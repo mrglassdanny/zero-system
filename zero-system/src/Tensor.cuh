@@ -1,3 +1,5 @@
+#pragma once
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -20,7 +22,7 @@ private:
 public:
     Tensor(int row_cnt, int col_cnt, bool gpu_flg);
     Tensor(Tensor *src);
-    Tensor::Tensor(int row_cnt, int col_cnt, bool gpu_flg, float *cpu_arr);
+    Tensor(int row_cnt, int col_cnt, bool gpu_flg, float *cpu_arr);
     ~Tensor();
 
     void translate(bool gpu_flg);
