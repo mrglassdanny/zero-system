@@ -84,6 +84,11 @@
   <ItemGroup>
     <ClCompile Include="src\app.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\zero-system\zero-system.vcxproj">
+      <Project>{d0f85482-bf6a-480c-b267-2f3eba3807fc}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
