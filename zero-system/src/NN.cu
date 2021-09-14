@@ -1,7 +1,7 @@
 #include "NN.cuh"
 
 NN::NN(int layer_cnt, int *layer_neuron_cnts, ActivationFunctionId hidden_layer_activation, ActivationFunctionId output_layer_activation,
-       CostFunctionId cost, float learning_rate)
+       CostFunctionId cost, float learning_rate, float dropout_rate)
 {
     this->layer_cnt = layer_cnt;
     this->layer_neuron_cnts = (int *)malloc(sizeof(int) * layer_cnt);
@@ -33,10 +33,10 @@ NN::NN(int layer_cnt, int *layer_neuron_cnts, ActivationFunctionId hidden_layer_
 
     this->hidden_layer_activation = hidden_layer_activation;
     this->output_layer_activation = output_layer_activation;
-
     this->cost = cost;
 
     this->learning_rate = learning_rate;
+    this->dropout_rate = dropout_rate;
 }
 
 NN::~NN()
