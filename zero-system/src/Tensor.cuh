@@ -11,6 +11,7 @@
 
 class Tensor
 {
+private:
     float *arr;
     int row_cnt;
     int col_cnt;
