@@ -1,8 +1,8 @@
 #include "Tensor.cuh"
 
-Tensor::Tensor(int row_cnt, int col_cnt, bool gpu_flg)
+Tensor::Tensor(int row_cnt, int col_cnt, TensorType typ)
 {
-    if (gpu_flg)
+    if (typ == Gpu)
     {
         cudaMalloc(&this->arr, sizeof(float) * (row_cnt * col_cnt));
     }
@@ -13,12 +13,12 @@ Tensor::Tensor(int row_cnt, int col_cnt, bool gpu_flg)
 
     this->row_cnt = row_cnt;
     this->col_cnt = col_cnt;
-    this->gpu_flg = gpu_flg;
+    this->typ = typ;
 }
 
 Tensor::Tensor(Tensor *src)
 {
-    if (src->gpu_flg)
+    if (src->typ == Gpu)
     {
         cudaMalloc(&this->arr, sizeof(float) * (row_cnt * col_cnt));
         cudaMemcpy(this->arr, src->arr, sizeof(float) * (row_cnt * col_cnt), cudaMemcpyDeviceToDevice);
@@ -31,12 +31,12 @@ Tensor::Tensor(Tensor *src)
 
     this->row_cnt = src->row_cnt;
     this->col_cnt = src->col_cnt;
-    this->gpu_flg = src->gpu_flg;
+    this->typ = src->typ;
 }
 
-Tensor::Tensor(int row_cnt, int col_cnt, bool gpu_flg, float *cpu_arr)
+Tensor::Tensor(int row_cnt, int col_cnt, TensorType typ, float *cpu_arr)
 {
-    if (gpu_flg)
+    if (typ == Gpu)
     {
         cudaMalloc(&this->arr, sizeof(float) * (row_cnt * col_cnt));
         cudaMemcpy(this->arr, cpu_arr, sizeof(float) * (row_cnt * col_cnt), cudaMemcpyHostToDevice);
@@ -49,12 +49,12 @@ Tensor::Tensor(int row_cnt, int col_cnt, bool gpu_flg, float *cpu_arr)
 
     this->row_cnt = row_cnt;
     this->col_cnt = col_cnt;
-    this->gpu_flg = gpu_flg;
+    this->typ = typ;
 }
 
 Tensor::~Tensor()
 {
-    if (this->gpu_flg)
+    if (this->typ == Gpu)
     {
         cudaFree(this->arr);
     }
@@ -64,11 +64,11 @@ Tensor::~Tensor()
     }
 }
 
-void Tensor::translate(bool gpu_flg)
+void Tensor::translate(TensorType typ)
 {
-    if (gpu_flg)
+    if (typ == Gpu)
     {
-        if (!this->gpu_flg)
+        if (this->typ != Gpu)
         {
             float *d_arr;
             cudaMalloc(&d_arr, sizeof(float) * (this->row_cnt * this->col_cnt));
@@ -76,26 +76,36 @@ void Tensor::translate(bool gpu_flg)
             free(this->arr);
             this->arr = d_arr;
 
-            this->gpu_flg = true;
+            this->typ = Gpu;
         }
     }
     else
     {
-        if (this->gpu_flg)
+        if (this->typ == Gpu)
         {
             float *h_arr = (float *)malloc(sizeof(float) * (this->row_cnt * this->col_cnt));
             cudaMemcpy(h_arr, this->arr, sizeof(float) * (this->row_cnt * this->col_cnt), cudaMemcpyDeviceToHost);
             cudaFree(this->arr);
             this->arr = h_arr;
 
-            this->gpu_flg = false;
+            this->typ = Cpu;
         }
     }
 }
 
+int Tensor::get_row_cnt()
+{
+    return this->row_cnt;
+}
+
+int Tensor::get_col_cnt()
+{
+    return this->col_cnt;
+}
+
 float Tensor::get_idx(int idx)
 {
-    if (this->gpu_flg)
+    if (this->typ == Gpu)
     {
         float val;
         cudaMemcpy(&val, &this->arr[idx], sizeof(float), cudaMemcpyDeviceToHost);
@@ -113,15 +123,15 @@ float Tensor::get_rowcol(int row_idx, int col_idx)
     return this->get_idx(idx);
 }
 
-float *Tensor::get_arr(bool gpu_flg)
+float *Tensor::get_arr(TensorType typ)
 {
-    this->translate(gpu_flg);
+    this->translate(typ);
     return this->arr;
 }
 
 void Tensor::set_idx(int idx, float val)
 {
-    if (this->gpu_flg)
+    if (this->typ == Gpu)
     {
         cudaMemcpy(&this->arr[idx], &val, sizeof(float), cudaMemcpyHostToDevice);
     }
@@ -137,13 +147,13 @@ void Tensor::set_rowcol(int row_idx, int col_idx, float val)
     return this->set_idx(idx, val);
 }
 
-void Tensor::set_arr(float *arr, bool gpu_flg, bool translate_flg)
+void Tensor::set_arr(float *arr, TensorType typ, bool translate_flg)
 {
-    bool orig_gpu_flg = this->gpu_flg;
+    TensorType orig_typ = this->typ;
 
-    this->translate(gpu_flg);
+    this->translate(typ);
 
-    if (gpu_flg)
+    if (typ == Gpu)
     {
         cudaMalloc(&this->arr, sizeof(float) * (row_cnt * col_cnt));
         cudaMemcpy(this->arr, arr, sizeof(float) * (row_cnt * col_cnt), cudaMemcpyHostToDevice);
@@ -156,7 +166,7 @@ void Tensor::set_arr(float *arr, bool gpu_flg, bool translate_flg)
 
     if (translate_flg)
     {
-        this->translate(orig_gpu_flg);
+        this->translate(orig_typ);
     }
 }
 
@@ -164,28 +174,25 @@ void Tensor::set_all(float val)
 {
     int tot_cnt = this->row_cnt * this->col_cnt;
 
-    bool orig_gpu_flg = this->gpu_flg;
+    TensorType orig_typ = this->typ;
 
-    this->translate(false);
+    this->translate(Cpu);
 
     for (int i = 0; i < tot_cnt; i++)
     {
         this->arr[i] = val;
     }
 
-    if (orig_gpu_flg)
-    {
-        this->translate(true);
-    }
+    this->translate(orig_typ);
 }
 
 void Tensor::set_all_rand(float upper)
 {
     int tot_cnt = this->row_cnt * this->col_cnt;
 
-    bool orig_gpu_flg = this->gpu_flg;
+    TensorType orig_typ = this->typ;
 
-    this->translate(false);
+    this->translate(Cpu);
 
     for (int i = 0; i < tot_cnt; i++)
     {
@@ -195,20 +202,14 @@ void Tensor::set_all_rand(float upper)
         this->arr[i] = val;
     }
 
-    if (orig_gpu_flg)
-    {
-        this->translate(true);
-    }
+    this->translate(orig_typ);
 }
 
 void Tensor::print()
 {
-    bool orig_gpu_flg = this->gpu_flg;
+    TensorType orig_typ = this->typ;
 
-    if (orig_gpu_flg == 1)
-    {
-        this->translate(false);
-    }
+    this->translate(Cpu);
 
     {
         printf("[");
@@ -248,5 +249,5 @@ void Tensor::print()
         printf("]\n");
     }
 
-    this->translate(orig_gpu_flg);
+    this->translate(orig_typ);
 }
