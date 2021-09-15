@@ -1,6 +1,6 @@
 #include "NN.cuh"
 
-#define THREADS_PER_BLOCK 16
+#define THREADS_PER_BLOCK 32
 
 __device__ float d_relu(float z)
 {
@@ -133,7 +133,7 @@ __global__ void k_activate(float *neu_arr, int neu_cnt, ActivationFunctionId act
     }
 }
 
-__global__ void k_cost(float *neu_arr, float *y_arr, float *atomic_cost, int neu_cnt)
+__global__ void k_cost(float *neu_arr, float *y_arr, float *cost, int neu_cnt, CostFunctionId cost_func_id)
 {
     __shared__ float temp[THREADS_PER_BLOCK];
     memset(temp, 0, THREADS_PER_BLOCK * sizeof(float));
@@ -142,20 +142,30 @@ __global__ void k_cost(float *neu_arr, float *y_arr, float *atomic_cost, int neu
 
     if (tid < neu_cnt)
     {
-        temp[threadIdx.x] = d_mse_cost(neu_arr[tid], y_arr[tid]);
+        switch (cost_func_id)
+        {
+        case MSE:
+            temp[threadIdx.x] = d_mse_cost(neu_arr[tid], y_arr[tid]);
+            break;
+        case CrossEntropy:
+            temp[threadIdx.x] = d_mse_cost(neu_arr[tid], y_arr[tid]);
+            break;
+        default:
+            break;
+        }
     }
 
     __syncthreads();
 
     if (threadIdx.x == 0)
     {
-        float cost = 0.0f;
+        float sum = 0.0f;
         for (int i = 0; i < THREADS_PER_BLOCK; i++)
         {
-            cost += temp[i];
+            sum += temp[i];
         }
 
-        atomicAdd(atomic_cost, cost);
+        atomicAdd(cost, sum);
     }
 }
 
@@ -203,7 +213,7 @@ __global__ void k_derive_activation(float *neu_arr, float *agg_arr, int neu_cnt,
     }
 }
 
-__global__ void k_derive_n_increment_weights(float *agg_arr, float *neu_arr, float *dw_arr, int nxt_neu_cnt, int neu_cnt)
+__global__ void k_derive_weights_n_increment_derivatives(float *agg_arr, float *neu_arr, float *dw_arr, int nxt_neu_cnt, int neu_cnt)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -217,7 +227,7 @@ __global__ void k_derive_n_increment_weights(float *agg_arr, float *neu_arr, flo
     }
 }
 
-__global__ void k_derive_n_increment_biases(float *agg_arr, float *db_arr, int cnt)
+__global__ void k_derive_biases_n_increment_derivatives(float *agg_arr, float *db_arr, int cnt)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -227,22 +237,22 @@ __global__ void k_derive_n_increment_biases(float *agg_arr, float *db_arr, int c
     }
 }
 
-__global__ void k_aggregate_derivatives(float *wgt_arr, float *agg_arr, float *out_arr, int col_cnt, int row_cnt)
+__global__ void k_aggregate_derivatives(float *wgt_arr, float *agg_arr, float *temp_agg_arr, int prv_neu_cnt, int neu_cnt)
 {
     __shared__ float temp[THREADS_PER_BLOCK];
     memset(temp, 0, THREADS_PER_BLOCK * sizeof(float));
 
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    int tot_cnt = col_cnt * row_cnt;
+    int tot_neu_cnt = prv_neu_cnt * neu_cnt;
 
-    int row_idx = tid / col_cnt;
-    int col_idx = tid % col_cnt;
-    int wgt_idx = row_idx * col_cnt + col_idx;
+    int neu_idx = tid / prv_neu_cnt;
+    int prv_neu_idx = tid % prv_neu_cnt;
+    int wgt_idx = neu_idx * prv_neu_cnt + prv_neu_idx;
 
-    if (tid < tot_cnt)
+    if (tid < tot_neu_cnt)
     {
-        temp[threadIdx.x] = (agg_arr[row_idx] * wgt_arr[wgt_idx]);
+        temp[threadIdx.x] = (agg_arr[neu_idx] * wgt_arr[wgt_idx]);
     }
 
     __syncthreads();
@@ -252,8 +262,8 @@ __global__ void k_aggregate_derivatives(float *wgt_arr, float *agg_arr, float *o
         for (int i = 0; i < THREADS_PER_BLOCK; i++)
         {
             // NOTE: this only works if we assume the threadIdx.x is 0!!!
-            int idx = (tid + i) % col_cnt;
-            atomicAdd(&out_arr[idx], temp[i]);
+            int idx = (tid + i) % prv_neu_cnt;
+            atomicAdd(&temp_agg_arr[idx], temp[i]);
         }
     }
 }
@@ -283,15 +293,36 @@ __global__ void k_optimize_biases(float *bia_arr, float *db_arr, int batch_size,
 NN::NN(std::vector<int> layer_config, ActivationFunctionId hidden_layer_activation_func_id,
        ActivationFunctionId output_layer_activation_func_id, CostFunctionId cost_func_id, float learning_rate)
 {
+
+    int lyr_cnt = layer_config.size();
+
     // Leave input neurons NULL for now!
     this->neurons.push_back(nullptr);
-    for (int lyr_idx = 0; lyr_idx < layer_config.size() - 1; lyr_idx++)
+
+    for (int lyr_idx = 0; lyr_idx < lyr_cnt - 1; lyr_idx++)
     {
-        this->neurons.push_back(new Tensor(1, layer_config[lyr_idx + 1], Gpu));
-        this->weights.push_back(new Tensor(layer_config[lyr_idx + 1], layer_config[lyr_idx], Gpu));
-        this->biases.push_back(new Tensor(layer_config[lyr_idx + 1], 1, Gpu));
-        this->weight_derivatives.push_back(new Tensor(layer_config[lyr_idx + 1], layer_config[lyr_idx], Gpu));
-        this->bias_derivatives.push_back(new Tensor(layer_config[lyr_idx + 1], 1, Gpu));
+        int neu_cnt = layer_config[lyr_idx];
+        int nxt_neu_cnt = layer_config[lyr_idx + 1];
+
+        Tensor *neu = new Tensor(1, nxt_neu_cnt, Gpu);
+        neu->set_all(0.0f);
+        this->neurons.push_back(neu);
+
+        Tensor *wgt = new Tensor(nxt_neu_cnt, neu_cnt, Gpu);
+        wgt->set_all_rand(1.0f / sqrt(neu_cnt)); // Xavier initialization!
+        this->weights.push_back(wgt);
+
+        Tensor *bia = new Tensor(nxt_neu_cnt, 1, Gpu);
+        bia->set_all(0.0f);
+        this->biases.push_back(bia);
+
+        Tensor *dw = new Tensor(nxt_neu_cnt, neu_cnt, Gpu);
+        dw->set_all(0.0f);
+        this->weight_derivatives.push_back(dw);
+
+        Tensor *db = new Tensor(nxt_neu_cnt, 1, Gpu);
+        db->set_all(0.0f);
+        this->bias_derivatives.push_back(db);
     }
 
     this->hidden_layer_activation_func_id = hidden_layer_activation_func_id;
@@ -304,6 +335,19 @@ NN::NN(std::vector<int> layer_config, ActivationFunctionId hidden_layer_activati
 
 NN::~NN()
 {
+    int lyr_cnt = this->neurons.size();
+
+    // Do not free input neurons since we do not own the Tensor!
+    this->neurons[0] = nullptr;
+
+    for (int lyr_idx = 0; lyr_idx < lyr_cnt - 1; lyr_idx++)
+    {
+        delete this->neurons[lyr_idx + 1];
+        delete this->weights[lyr_idx];
+        delete this->biases[lyr_idx];
+        delete this->weight_derivatives[lyr_idx];
+        delete this->bias_derivatives[lyr_idx];
+    }
 }
 
 void NN::feed_forward(Tensor *x)
@@ -311,7 +355,8 @@ void NN::feed_forward(Tensor *x)
     x->translate(Gpu);
     this->neurons[0] = x;
 
-    int lst_lyr_idx = this->neurons.size() - 1;
+    int lyr_cnt = this->neurons.size();
+    int lst_lyr_idx = lyr_cnt - 1;
 
     for (int lyr_idx = 0; lyr_idx < lst_lyr_idx; lyr_idx++)
     {
@@ -375,7 +420,7 @@ float NN::get_cost(Tensor *y, int batch_size)
 
         // Aggregate async:
         k_cost<<<num_blocks, threads_per_block>>>(lst_lyr_neu->get_arr(Gpu), y->get_arr(Gpu),
-                                                  d_cost, lst_lyr_neu_cnt);
+                                                  d_cost, lst_lyr_neu_cnt, this->cost_func_id);
     }
 
     cudaMemcpy(&h_cost, d_cost, sizeof(float), cudaMemcpyDeviceToHost);
@@ -431,17 +476,17 @@ void NN::back_propagate(Tensor *y)
         {
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks(ceil((float)neu_cnt * prv_neu_cnt / (float)threads_per_block));
-            k_derive_n_increment_weights<<<num_blocks, threads_per_block>>>(agg->get_arr(Gpu),
-                                                                            prv_neu->get_arr(Gpu),
-                                                                            prv_dw->get_arr(Gpu),
-                                                                            neu_cnt, prv_neu_cnt);
+            k_derive_weights_n_increment_derivatives<<<num_blocks, threads_per_block>>>(agg->get_arr(Gpu),
+                                                                                        prv_neu->get_arr(Gpu),
+                                                                                        prv_dw->get_arr(Gpu),
+                                                                                        neu_cnt, prv_neu_cnt);
         }
 
         // Biases:
         {
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks(ceil((float)neu_cnt / (float)threads_per_block));
-            k_derive_n_increment_biases<<<num_blocks, threads_per_block>>>(agg->get_arr(Gpu), prv_db->get_arr(Gpu), neu_cnt);
+            k_derive_biases_n_increment_derivatives<<<num_blocks, threads_per_block>>>(agg->get_arr(Gpu), prv_db->get_arr(Gpu), neu_cnt);
         }
 
         // Aggregate:

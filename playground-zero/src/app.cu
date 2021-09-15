@@ -1,6 +1,5 @@
 #include <iostream>
 
-#include "Tensor.cuh"
 #include "NN.cuh"
 
 int main(int argc, char **argv)
