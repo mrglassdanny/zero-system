@@ -4,7 +4,7 @@
 
 int main(int argc, char **argv)
 {
-	srand(time(NULL));
+	//srand(time(NULL));
 
 	Tensor *x = new Tensor(1, 10, Gpu);
 	x->set_all(0.5f);
@@ -13,7 +13,7 @@ int main(int argc, char **argv)
 	y->set_all(1.0f);
 
 	std::vector<int> layer_config = {10, 5, 1};
-	NN *nn = new NN(layer_config, ReLU, ReLU, MSE, 0.001f);
+	NN *nn = new NN(layer_config, ReLU, Tanh, MSE, 0.001f);
 
 	nn->check_gradient(x, y, true);
 

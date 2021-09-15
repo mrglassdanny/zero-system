@@ -13,6 +13,26 @@ __device__ float d_derive_relu(float val)
     return val > 0.0f ? 1.0f : 0.0f;
 }
 
+__device__ float d_sigmoid(float val)
+{
+    return (1.0 / (1.0 + exp(-val)));
+}
+
+__device__ float d_derive_sigmoid(float val)
+{
+    return (val) * (1.0 - val);
+}
+
+__device__ float d_tanh(float val)
+{
+    return ((exp(val) - exp(-val)) / (exp(val) + exp(-val)));
+}
+
+__device__ float d_derive_tanh(float val)
+{
+    return (1 - pow(val, 2.0));
+}
+
 __device__ float d_mse_cost(float n_val, float y_val)
 {
     return pow((n_val - y_val), 2.0);
@@ -21,6 +41,16 @@ __device__ float d_mse_cost(float n_val, float y_val)
 __device__ float d_derive_mse_cost(float n_val, float y_val)
 {
     return 2.0f * (n_val - y_val);
+}
+
+__device__ float d_cross_entropy_cost(float n_val, float y_val)
+{
+    return (float)((y_val * log(n_val)) + ((1.0 - y_val) * log(1.0 - n_val)));
+}
+
+__device__ float d_derive_cross_entropy_cost(float n_val, float y_val)
+{
+    return (n_val - y_val);
 }
 
 // Kernel functions:
@@ -34,6 +64,7 @@ __global__ void k_set_arr(float *arr, int cnt, float val)
     }
 }
 
+// TODO
 __global__ void k_dot_all(float *n_arr, float *w_arr, float *nxt_n_arr, int n_cnt, int nxt_n_cnt)
 {
     __shared__ float temp[THREADS_PER_BLOCK];
@@ -125,23 +156,21 @@ __global__ void k_activate(float *n_arr, int n_cnt, ActivationFunctionId activat
 
     if (tid < n_cnt)
     {
-        // switch (activation_func_id)
-        // {
-        // case ReLU:
-        //     n_arr[tid] = d_relu(n_arr[tid]);
-        //     break;
-        // case Sigmoid:
-        //     n_arr[tid] = d_relu(n_arr[tid]);
-        //     break;
-        // case Tanh:
-        //     n_arr[tid] = d_relu(n_arr[tid]);
-        //     break;
-        // default:
-        //     // None
-        //     break;
-        // }
-
-        n_arr[tid] = d_relu(n_arr[tid]);
+        switch (activation_func_id)
+        {
+        case ReLU:
+            n_arr[tid] = d_relu(n_arr[tid]);
+            break;
+        case Sigmoid:
+            n_arr[tid] = d_sigmoid(n_arr[tid]);
+            break;
+        case Tanh:
+            n_arr[tid] = d_tanh(n_arr[tid]);
+            break;
+        default:
+            // None
+            break;
+        }
     }
 }
 
@@ -154,19 +183,19 @@ __global__ void k_cost(float *n_arr, float *y_arr, float *cost, int n_cnt, CostF
 
     if (tid < n_cnt)
     {
-        // switch (cost_func_id)
-        // {
-        // case MSE:
-        //     temp[threadIdx.x] = d_mse_cost(n_arr[tid], y_arr[tid]);
-        //     break;
-        // case CrossEntropy:
-        //     temp[threadIdx.x] = d_mse_cost(n_arr[tid], y_arr[tid]);
-        //     break;
-        // default:
-        //     break;
-        // }
+        switch (cost_func_id)
+        {
+        case MSE:
+            temp[threadIdx.x] = d_mse_cost(n_arr[tid], y_arr[tid]);
+            break;
+        case CrossEntropy:
+            temp[threadIdx.x] = d_cross_entropy_cost(n_arr[tid], y_arr[tid]);
+            break;
+        default:
+            break;
+        }
 
-        temp[threadIdx.x] = d_mse_cost(n_arr[tid], y_arr[tid]);
+        //temp[threadIdx.x] = d_mse_cost(n_arr[tid], y_arr[tid]);
     }
 
     __syncthreads();
@@ -189,19 +218,19 @@ __global__ void k_derive_cost(float *n_arr, float *y_arr, float *agg_arr, int n_
 
     if (tid < n_cnt)
     {
-        // switch (cost_func_id)
-        // {
-        // case MSE:
-        //     agg_arr[tid] *= d_derive_mse_cost(n_arr[tid], y_arr[tid]);
-        //     break;
-        // case CrossEntropy:
-        //     agg_arr[tid] *= d_derive_mse_cost(n_arr[tid], y_arr[tid]);
-        //     break;
-        // default:
-        //     break;
-        // }
+        switch (cost_func_id)
+        {
+        case MSE:
+            agg_arr[tid] *= d_derive_mse_cost(n_arr[tid], y_arr[tid]);
+            break;
+        case CrossEntropy:
+            agg_arr[tid] *= d_derive_cross_entropy_cost(n_arr[tid], y_arr[tid]);
+            break;
+        default:
+            break;
+        }
 
-        agg_arr[tid] *= d_derive_mse_cost(n_arr[tid], y_arr[tid]);
+        //agg_arr[tid] *= d_derive_mse_cost(n_arr[tid], y_arr[tid]);
     }
 }
 
@@ -211,22 +240,22 @@ __global__ void k_derive_activation(float *n_arr, float *agg_arr, int n_cnt, Act
 
     if (tid < n_cnt)
     {
-        // switch (activation_func_id)
-        // {
-        // case ReLU:
-        //     agg_arr[tid] *= d_derive_relu(n_arr[tid]);
-        //     break;
-        // case Sigmoid:
-        //     agg_arr[tid] *= d_derive_relu(n_arr[tid]);
-        //     break;
-        // case Tanh:
-        //     agg_arr[tid] *= d_derive_relu(n_arr[tid]);
-        //     break;
-        // default:
-        //     // None
-        //     break;
-        // }
-        agg_arr[tid] *= d_derive_relu(n_arr[tid]);
+        switch (activation_func_id)
+        {
+        case ReLU:
+            agg_arr[tid] *= d_derive_relu(n_arr[tid]);
+            break;
+        case Sigmoid:
+            agg_arr[tid] *= d_derive_sigmoid(n_arr[tid]);
+            break;
+        case Tanh:
+            agg_arr[tid] *= d_derive_tanh(n_arr[tid]);
+            break;
+        default:
+            // None
+            break;
+        }
+        //agg_arr[tid] *= d_derive_relu(n_arr[tid]);
     }
 }
 
@@ -254,6 +283,7 @@ __global__ void k_derive_biases_n_increment_derivatives(float *agg_arr, float *d
     }
 }
 
+// TODO
 __global__ void k_aggregate_derivatives(float *w_arr, float *agg_arr, float *temp_agg_arr, int prv_n_cnt, int n_cnt)
 {
     __shared__ float temp[THREADS_PER_BLOCK];
@@ -478,7 +508,7 @@ void NN::back_propagate(Tensor *y)
         int n_cnt = prv_w->get_row_cnt();
         int prv_n_cnt = prv_w->get_col_cnt();
 
-        ActivationFunctionId activation_func_id = (lyr_idx == lst_lyr_idx - 1) ? this->output_layer_activation_func_id : this->hidden_layer_activation_func_id;
+        ActivationFunctionId activation_func_id = (lyr_idx == lst_lyr_idx) ? this->output_layer_activation_func_id : this->hidden_layer_activation_func_id;
 
         // Activations:
         {
