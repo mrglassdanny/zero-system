@@ -129,6 +129,12 @@ float *Tensor::get_arr(TensorType typ)
     return this->arr;
 }
 
+float *Tensor::get_slice(int idx, TensorType typ)
+{
+    this->translate(typ);
+    return &this->arr[idx];
+}
+
 TensorTuple Tensor::get_min()
 {
     TensorTuple tup;

@@ -44,6 +44,7 @@ public:
     float get_idx(int idx);
     float get_rowcol(int row_idx, int col_idx);
     float *get_arr(TensorType typ);
+    float *get_slice(int idx, TensorType typ);
     TensorTuple get_min();
     TensorTuple get_max();
 

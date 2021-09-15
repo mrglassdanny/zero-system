@@ -1,6 +1,6 @@
 #include "NN.cuh"
 
-#define THREADS_PER_BLOCK 4
+#define THREADS_PER_BLOCK 32
 
 // Device functions:
 __device__ float d_relu(float val)
@@ -85,7 +85,7 @@ __global__ void k_dot_all(float *n_arr, float *w_arr, float *nxt_n_arr, int n_cn
     {
         // NOTE: this only works if we assume the threadIdx.x is 0!!!
         int lower_idx = tid / n_cnt;
-        int upper_idx = (tid + THREADS_PER_BLOCK - 1) / n_cnt;
+        int upper_idx = (tid + THREADS_PER_BLOCK) / n_cnt;
 
         if (n_cnt >= THREADS_PER_BLOCK)
         {
@@ -277,7 +277,7 @@ __global__ void k_derive_biases_n_increment_derivatives(float *agg_arr, float *d
 }
 
 // TODO
-__global__ void k_aggregate_derivatives(float *w_arr, float *agg_arr, float *temp_agg_arr, int prv_n_cnt, int n_cnt)
+__global__ void k_aggregate_derivatives_old(float *w_arr, float *agg_arr, float *temp_agg_arr, int prv_n_cnt, int n_cnt)
 {
     __shared__ float temp[THREADS_PER_BLOCK];
     memset(temp, 0, THREADS_PER_BLOCK * sizeof(float));
@@ -304,6 +304,78 @@ __global__ void k_aggregate_derivatives(float *w_arr, float *agg_arr, float *tem
             // NOTE: this only works if we assume the threadIdx.x is 0!!!
             int idx = (tid + i) % prv_n_cnt;
             atomicAdd(&temp_agg_arr[idx], temp[i]);
+        }
+    }
+}
+
+__global__ void k_aggregate_derivatives(float *w_arr, float *agg_arr, float *temp_agg_arr, int prv_n_cnt, int n_cnt)
+{
+    __shared__ float temp[THREADS_PER_BLOCK];
+    memset(temp, 0, THREADS_PER_BLOCK * sizeof(float));
+
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    int w_cnt = prv_n_cnt * n_cnt;
+
+    // Transpose the weights "matrix".
+    int n_idx = tid % n_cnt;
+    int prv_n_idx = tid / n_cnt;
+    int w_idx = prv_n_idx * n_cnt + n_idx;
+
+    if (tid < w_cnt)
+    {
+        temp[threadIdx.x] = (agg_arr[n_idx] * w_arr[w_idx]);
+    }
+
+    __syncthreads();
+
+    if (threadIdx.x == 0)
+    {
+        // NOTE: this only works if we assume the threadIdx.x is 0!!!
+        int lower_idx = tid / n_cnt;
+        int upper_idx = (tid + THREADS_PER_BLOCK) / n_cnt;
+
+        if (n_cnt >= THREADS_PER_BLOCK)
+        {
+            if (lower_idx == upper_idx)
+            {
+                float sum = 0.0f;
+
+                for (int i = 0; i < THREADS_PER_BLOCK; i++)
+                {
+                    sum += temp[i];
+                }
+                atomicAdd(&temp_agg_arr[lower_idx], sum);
+            }
+            else
+            {
+                float sums[2] = {0.0f, 0.0f};
+
+                for (int i = 0; i < THREADS_PER_BLOCK; i++)
+                {
+                    if ((tid + i) / n_cnt == lower_idx)
+                    {
+                        sums[0] += temp[i];
+                    }
+                    else
+                    {
+                        sums[1] += temp[i];
+                    }
+                }
+
+                atomicAdd(&temp_agg_arr[lower_idx], sums[0]);
+                if (upper_idx < n_cnt)
+                {
+                    atomicAdd(&temp_agg_arr[upper_idx], sums[1]);
+                }
+            }
+        }
+        else
+        {
+            for (int i = 0; i < THREADS_PER_BLOCK; i++)
+            {
+                atomicAdd(&temp_agg_arr[prv_n_idx], temp[i]);
+            }
         }
     }
 }

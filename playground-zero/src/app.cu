@@ -62,10 +62,12 @@ void misc_test()
 	Tensor *y = new Tensor(1, y_col_cnt, Gpu);
 	y->set_all(1.0f);
 
-	std::vector<int> layer_config = {x_col_cnt, 32, 32, y_col_cnt};
+	std::vector<int> layer_config = {x_col_cnt, 64, 64, y_col_cnt};
 	NN *nn = new NN(layer_config, ReLU, Tanh, MSE, 0.001f);
 
-	nn->profile(x, y);
+	for (int i = 0; i < 5; i++)
+		nn->profile(x, y);
+
 	//nn->check_gradient(x, y, true);
 
 	delete nn;
