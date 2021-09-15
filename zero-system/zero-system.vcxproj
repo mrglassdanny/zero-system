@@ -11,11 +11,15 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <CudaCompile Include="src\Batch.cu" />
     <CudaCompile Include="src\NN.cu" />
+    <CudaCompile Include="src\Supervisor.cu" />
     <CudaCompile Include="src\Tensor.cu" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Batch.cuh" />
     <ClInclude Include="src\NN.cuh" />
+    <ClInclude Include="src\Supervisor.cuh" />
     <ClInclude Include="src\Tensor.cuh" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

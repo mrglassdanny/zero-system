@@ -445,6 +445,8 @@ void NN::feed_forward(Tensor *x)
 
 float NN::get_cost(Tensor *y)
 {
+    y->translate(Gpu);
+
     float h_cost = 0.0f;
     float *d_cost;
     cudaMalloc(&d_cost, sizeof(float));
@@ -473,6 +475,7 @@ float NN::get_cost(Tensor *y)
 
 void NN::back_propagate(Tensor *y)
 {
+    y->translate(Gpu);
 
     int lyr_cnt = this->neurons.size();
     int lst_lyr_idx = lyr_cnt - 1;
@@ -714,14 +717,43 @@ void NN::train(Batch *batch)
     for (int i = 0; i < batch_size; i++)
     {
         Tensor *x = batch->get_x(i);
-        Tensor *y = batch->get_y(i);
+
+        // Depending on our layer configuration, we may need to adjust y.
+        // TODO
+        Tensor *y;
+        bool own_y_flg = false;
+        if (this->neurons[this->neurons.size() - 1]->get_col_cnt() > 1)
+        {
+            // One hot encode!
+            own_y_flg = true;
+            y = new Tensor(1, this->neurons[this->neurons.size() - 1]->get_col_cnt(), Cpu);
+            y->set_all(0.0f);
+            for (int j = 0; j < this->neurons.size() - 1; j++)
+            {
+                if (y->get_idx(0) == j)
+                {
+                    y->set_idx(j, 1.0f);
+                    break;
+                }
+            }
+        }
+        else
+        {
+            y = batch->get_y(i);
+        }
 
         this->feed_forward(x);
         cost += this->get_cost(y);
         this->back_propagate(y);
+
+        if (own_y_flg)
+        {
+            delete y;
+        }
     }
 
     cost /= batch_size;
+    printf("COST: %f\n", cost);
     this->optimize(batch_size);
 }
 
