@@ -64,8 +64,7 @@ __global__ void k_set_arr(float *arr, int cnt, float val)
     }
 }
 
-// TODO
-__global__ void k_dot_all(float *n_arr, float *w_arr, float *nxt_n_arr, int n_cnt, int nxt_n_cnt)
+__global__ void k_dot(float *n_arr, float *w_arr, float *nxt_n_arr, int n_cnt, int nxt_n_cnt)
 {
     __shared__ float temp[THREADS_PER_BLOCK];
     memset(temp, 0, THREADS_PER_BLOCK * sizeof(float));
@@ -276,7 +275,6 @@ __global__ void k_derive_biases_n_increment_derivatives(float *agg_arr, float *d
     }
 }
 
-// TODO
 __global__ void k_aggregate_derivatives_old(float *w_arr, float *agg_arr, float *temp_agg_arr, int prv_n_cnt, int n_cnt)
 {
     __shared__ float temp[THREADS_PER_BLOCK];
@@ -494,8 +492,8 @@ void NN::feed_forward(Tensor *x)
         {
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks(ceil((float)(n_cnt * nxt_n_cnt) / (float)threads_per_block));
-            k_dot_all<<<num_blocks, threads_per_block>>>(n->get_arr(Gpu), w->get_arr(Gpu),
-                                                         nxt_n->get_arr(Gpu), n_cnt, nxt_n_cnt);
+            k_dot<<<num_blocks, threads_per_block>>>(n->get_arr(Gpu), w->get_arr(Gpu),
+                                                     nxt_n->get_arr(Gpu), n_cnt, nxt_n_cnt);
         }
 
         // Add biases:
