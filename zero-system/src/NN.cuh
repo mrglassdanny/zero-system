@@ -40,7 +40,8 @@ public:
     ~NN();
 
     void feed_forward(Tensor *x);
-    float get_cost(Tensor *y, int batch_size);
+    float get_cost(Tensor *y);
     void back_propagate(Tensor *y);
     void optimize(int batch_size);
+    void check_gradient(Tensor *x, Tensor *y, bool print_flg);
 };
