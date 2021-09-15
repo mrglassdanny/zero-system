@@ -19,6 +19,13 @@ enum CostFunctionId
     CrossEntropy
 };
 
+struct Result
+{
+    float cost;
+    int cor_cnt;
+    int tot_cnt;
+};
+
 class NN
 {
 private:
@@ -45,7 +52,8 @@ public:
     void back_propagate(Tensor *y);
     void optimize(int batch_size);
     void check_gradient(Tensor *x, Tensor *y, bool print_flg);
-    void train(Batch *batch);
-    void validate(Batch *batch);
-    void test(Batch *batch);
+    void profile(Tensor *x, Tensor *y);
+    Result train(Batch *batch);
+    Result validate(Batch *batch);
+    Result test(Batch *batch);
 };

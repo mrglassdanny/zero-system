@@ -17,6 +17,12 @@ typedef enum TensorType
     Gpu
 } TensorType;
 
+struct TensorTuple
+{
+    int idx;
+    float val;
+};
+
 class Tensor
 {
 private:
@@ -38,6 +44,8 @@ public:
     float get_idx(int idx);
     float get_rowcol(int row_idx, int col_idx);
     float *get_arr(TensorType typ);
+    TensorTuple get_min();
+    TensorTuple get_max();
 
     void set_idx(int idx, float val);
     void set_rowcol(int row_idx, int col_idx, float val);

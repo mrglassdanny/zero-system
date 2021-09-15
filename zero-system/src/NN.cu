@@ -708,9 +708,42 @@ void NN::check_gradient(Tensor *x, Tensor *y, bool print_flg)
     }
 }
 
-void NN::train(Batch *batch)
+void NN::profile(Tensor *x, Tensor *y)
 {
+    int epoch_cnt = 100;
+    int batch_size = 100;
+
+    printf("START PERFORMANCE TEST\n");
+    clock_t t;
+    t = clock();
+
+    for (int epoch = 0; epoch < epoch_cnt; epoch++)
+    {
+        for (int batch = 0; batch < batch_size; batch++)
+        {
+            this->feed_forward(x);
+            //this->get_cost(y);
+            this->back_propagate(y);
+        }
+        //this->optimize(batch_size);
+    }
+
+    t = clock() - t;
+    double time_taken = ((double)t) / CLOCKS_PER_SEC;
+
+    printf("END PERFORMANCE TEST\n");
+    printf("Elapsed Seconds: %f\n\n", time_taken);
+}
+
+// TODO
+Result NN::train(Batch *batch)
+{
+    Result result;
+
     int batch_size = batch->get_size();
+
+    result.cor_cnt = 0;
+    result.tot_cnt = batch_size;
 
     float cost = 0.0f;
 
@@ -720,6 +753,7 @@ void NN::train(Batch *batch)
 
         // Depending on our layer configuration, we may need to adjust y.
         // TODO
+        float y_val = batch->get_y(i)->get_idx(0);
         Tensor *y;
         bool own_y_flg = false;
         if (this->neurons[this->neurons.size() - 1]->get_col_cnt() > 1)
@@ -728,9 +762,9 @@ void NN::train(Batch *batch)
             own_y_flg = true;
             y = new Tensor(1, this->neurons[this->neurons.size() - 1]->get_col_cnt(), Cpu);
             y->set_all(0.0f);
-            for (int j = 0; j < this->neurons.size() - 1; j++)
+            for (int j = 0; j < this->neurons[this->neurons.size() - 1]->get_col_cnt(); j++)
             {
-                if (y->get_idx(0) == j)
+                if ((int)y_val == j)
                 {
                     y->set_idx(j, 1.0f);
                     break;
@@ -746,6 +780,12 @@ void NN::train(Batch *batch)
         cost += this->get_cost(y);
         this->back_propagate(y);
 
+        TensorTuple max_tup = this->neurons[this->neurons.size() - 1]->get_max();
+        if (max_tup.idx == (int)y_val)
+        {
+            result.cor_cnt++;
+        }
+
         if (own_y_flg)
         {
             delete y;
@@ -753,12 +793,18 @@ void NN::train(Batch *batch)
     }
 
     cost /= batch_size;
-    printf("COST: %f\n", cost);
+
+    result.cost = cost;
+
     this->optimize(batch_size);
+
+    return result;
 }
 
-void NN::validate(Batch *batch)
+Result NN::validate(Batch *batch)
 {
+    Result result;
+
     int batch_size = batch->get_size();
 
     float cost = 0.0f;
@@ -773,10 +819,16 @@ void NN::validate(Batch *batch)
     }
 
     cost /= batch_size;
+
+    result.cost = cost;
+
+    return result;
 }
 
-void NN::test(Batch *batch)
+Result NN::test(Batch *batch)
 {
+    Result result;
+
     int batch_size = batch->get_size();
 
     float cost = 0.0f;
@@ -791,4 +843,8 @@ void NN::test(Batch *batch)
     }
 
     cost /= batch_size;
+
+    result.cost = cost;
+
+    return result;
 }

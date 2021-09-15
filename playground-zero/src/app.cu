@@ -49,20 +49,24 @@ Supervisor *init_mnist_supervisor()
 	return sup;
 }
 
-void gradient_check()
+void misc_test()
 {
 	//srand(time(NULL));
 
-	Tensor *x = new Tensor(1, 10, Gpu);
+	int x_col_cnt = 64;
+	int y_col_cnt = 1;
+
+	Tensor *x = new Tensor(1, x_col_cnt, Gpu);
 	x->set_all(0.5f);
 
-	Tensor *y = new Tensor(1, 1, Gpu);
+	Tensor *y = new Tensor(1, y_col_cnt, Gpu);
 	y->set_all(1.0f);
 
-	std::vector<int> layer_config = {6, 6, 2, 1};
+	std::vector<int> layer_config = {x_col_cnt, 32, 32, y_col_cnt};
 	NN *nn = new NN(layer_config, ReLU, Tanh, MSE, 0.001f);
 
-	nn->check_gradient(x, y, true);
+	nn->profile(x, y);
+	//nn->check_gradient(x, y, true);
 
 	delete nn;
 
@@ -70,26 +74,35 @@ void gradient_check()
 	delete y;
 }
 
-int main(int argc, char **argv)
+void mnist_test()
 {
 	srand(time(NULL));
 
 	Supervisor *sup = init_mnist_supervisor();
 
-	std::vector<int> layer_config = {784, 16, 10};
-	NN *nn = new NN(layer_config, ReLU, ReLU, MSE, 0.001f);
+	std::vector<int> layer_config = {784, 2048, 1024, 10};
+	NN *nn = new NN(layer_config, ReLU, ReLU, MSE, 0.1f);
 
 	int epoch_cnt = 10000;
 	for (int epoch = 0; epoch < epoch_cnt; epoch++)
 	{
-		Batch *batch = sup->create_train_batch(10);
-		nn->train(batch);
+		Batch *batch = sup->create_train_batch(100);
+		Result result = nn->train(batch);
 		delete batch;
+
+		if (epoch % 100 == 0)
+		{
+			printf("COST: %f\tACCURACY: %f%%\n", result.cost, (((float)result.cor_cnt / (float)result.tot_cnt)) * 100.0f);
+		}
 	}
 
 	delete nn;
 
 	delete sup;
+}
 
+int main(int argc, char **argv)
+{
+	misc_test();
 	return 0;
 }

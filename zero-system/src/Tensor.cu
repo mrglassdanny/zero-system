@@ -129,6 +129,46 @@ float *Tensor::get_arr(TensorType typ)
     return this->arr;
 }
 
+TensorTuple Tensor::get_min()
+{
+    TensorTuple tup;
+
+    tup.idx = 0;
+    tup.val = FLT_MAX;
+
+    for (int i = 0; i < this->row_cnt * this->col_cnt; i++)
+    {
+        float cur_val = this->get_idx(i);
+        if (cur_val < tup.val)
+        {
+            tup.idx = i;
+            tup.val = cur_val;
+        }
+    }
+
+    return tup;
+}
+
+TensorTuple Tensor::get_max()
+{
+    TensorTuple tup;
+
+    tup.idx = 0;
+    tup.val = -FLT_MAX;
+
+    for (int i = 0; i < this->row_cnt * this->col_cnt; i++)
+    {
+        float cur_val = this->get_idx(i);
+        if (cur_val > tup.val)
+        {
+            tup.idx = i;
+            tup.val = cur_val;
+        }
+    }
+
+    return tup;
+}
+
 void Tensor::set_idx(int idx, float val)
 {
     if (this->typ == Gpu)
