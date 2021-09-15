@@ -147,29 +147,6 @@ void Tensor::set_rowcol(int row_idx, int col_idx, float val)
     return this->set_idx(idx, val);
 }
 
-void Tensor::set_arr(float *arr, TensorType typ, bool translate_flg)
-{
-    TensorType orig_typ = this->typ;
-
-    this->translate(typ);
-
-    if (typ == Gpu)
-    {
-        cudaMalloc(&this->arr, sizeof(float) * (row_cnt * col_cnt));
-        cudaMemcpy(this->arr, arr, sizeof(float) * (row_cnt * col_cnt), cudaMemcpyHostToDevice);
-    }
-    else
-    {
-        this->arr = (float *)malloc(sizeof(float) * (row_cnt * col_cnt));
-        memcpy(this->arr, arr, sizeof(float) * (row_cnt * col_cnt));
-    }
-
-    if (translate_flg)
-    {
-        this->translate(orig_typ);
-    }
-}
-
 void Tensor::set_all(float val)
 {
     int tot_cnt = this->row_cnt * this->col_cnt;

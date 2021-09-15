@@ -40,7 +40,7 @@ public:
     ~NN();
 
     void feed_forward(Tensor *x);
-    float get_cost(Tensor *y);
+    float get_cost(Tensor *y, int batch_size);
     void back_propagate(Tensor *y);
-    void optimize();
+    void optimize(int batch_size);
 };

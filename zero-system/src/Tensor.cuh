@@ -41,7 +41,6 @@ public:
 
     void set_idx(int idx, float val);
     void set_rowcol(int row_idx, int col_idx, float val);
-    void set_arr(float *arr, TensorType typ, bool translate_flg);
     void set_all(float val);
     void set_all_rand(float upper);
 
