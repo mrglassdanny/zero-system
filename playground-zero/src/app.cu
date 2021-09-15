@@ -12,7 +12,7 @@ int main(int argc, char **argv)
 	Tensor *y = new Tensor(1, 1, Gpu);
 	y->set_all(1.0f);
 
-	std::vector<int> layer_config = {10, 5, 1};
+	std::vector<int> layer_config = {6, 6, 2, 1};
 	NN *nn = new NN(layer_config, ReLU, Tanh, MSE, 0.001f);
 
 	nn->check_gradient(x, y, true);

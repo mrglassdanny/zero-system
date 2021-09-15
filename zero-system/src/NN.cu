@@ -1,6 +1,6 @@
 #include "NN.cuh"
 
-#define THREADS_PER_BLOCK 32
+#define THREADS_PER_BLOCK 4
 
 // Device functions:
 __device__ float d_relu(float val)
@@ -84,51 +84,44 @@ __global__ void k_dot_all(float *n_arr, float *w_arr, float *nxt_n_arr, int n_cn
     if (threadIdx.x == 0)
     {
         // NOTE: this only works if we assume the threadIdx.x is 0!!!
-        int a = tid / n_cnt;
-        int b = (tid + THREADS_PER_BLOCK - 1) / n_cnt;
+        int lower_idx = tid / n_cnt;
+        int upper_idx = (tid + THREADS_PER_BLOCK - 1) / n_cnt;
 
-        if (n_cnt >= THREADS_PER_BLOCK && a == b)
+        if (n_cnt >= THREADS_PER_BLOCK)
         {
-            // if (a == b)
-            // {
-            //     float sum = 0.0f;
-
-            //     for (int i = 0; i < THREADS_PER_BLOCK; i++)
-            //     {
-            //         sum += temp[i];
-            //     }
-            //     atomicAdd(&nxt_n_arr[a], sum);
-            // }
-            // else
-            // {
-            //     float sums[2] = {0.0f, 0.0f};
-
-            //     for (int i = 0; i < THREADS_PER_BLOCK; i++)
-            //     {
-            //         if ((tid + i) / n_cnt == a)
-            //         {
-            //             sums[0] += temp[i];
-            //         }
-            //         else
-            //         {
-            //             sums[1] += temp[i];
-            //         }
-            //     }
-
-            //     atomicAdd(&nxt_n_arr[a], sums[0]);
-            //     if (a + 1 < n_cnt)
-            //     {
-            //         atomicAdd(&nxt_n_arr[a + 1], sums[1]);
-            //     }
-            // }
-
-            float sum = 0.0f;
-
-            for (int i = 0; i < THREADS_PER_BLOCK; i++)
+            if (lower_idx == upper_idx)
             {
-                sum += temp[i];
+                float sum = 0.0f;
+
+                for (int i = 0; i < THREADS_PER_BLOCK; i++)
+                {
+                    sum += temp[i];
+                }
+
+                atomicAdd(&nxt_n_arr[lower_idx], sum);
             }
-            atomicAdd(&nxt_n_arr[a], sum);
+            else
+            {
+                float sums[2] = {0.0f, 0.0f};
+
+                for (int i = 0; i < THREADS_PER_BLOCK; i++)
+                {
+                    if ((tid + i) / n_cnt == lower_idx)
+                    {
+                        sums[0] += temp[i];
+                    }
+                    else
+                    {
+                        sums[1] += temp[i];
+                    }
+                }
+
+                atomicAdd(&nxt_n_arr[lower_idx], sums[0]);
+                if (upper_idx < n_cnt)
+                {
+                    atomicAdd(&nxt_n_arr[upper_idx], sums[1]);
+                }
+            }
         }
         else
         {
@@ -315,24 +308,24 @@ __global__ void k_aggregate_derivatives(float *w_arr, float *agg_arr, float *tem
     }
 }
 
-__global__ void k_optimize_weights(float *w_arr, float *dw_arr, int batch_size, float lr, int cnt)
+__global__ void k_optimize_weights(float *w_arr, float *dw_arr, int batch_size, float learning_rate, int cnt)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (tid < cnt)
     {
-        w_arr[tid] -= ((dw_arr[tid] * lr) / (float)batch_size);
+        w_arr[tid] -= ((dw_arr[tid] * learning_rate) / (float)batch_size);
         dw_arr[tid] = 0.0f;
     }
 }
 
-__global__ void k_optimize_biases(float *b_arr, float *db_arr, int batch_size, float lr, int cnt)
+__global__ void k_optimize_biases(float *b_arr, float *db_arr, int batch_size, float learning_rate, int cnt)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (tid < cnt)
     {
-        b_arr[tid] -= ((db_arr[tid] * lr) / (float)batch_size);
+        b_arr[tid] -= ((db_arr[tid] * learning_rate) / (float)batch_size);
         db_arr[tid] = 0.0f;
     }
 }
@@ -710,4 +703,60 @@ void NN::check_gradient(Tensor *x, Tensor *y, bool print_flg)
     {
         printf("GRADIENT CHECK RESULT: %f\n", (agg_grad_diff) / (agg_ana_grad + agg_num_grad));
     }
+}
+
+void NN::train(Batch *batch)
+{
+    int batch_size = batch->get_size();
+
+    float cost = 0.0f;
+
+    for (int i = 0; i < batch_size; i++)
+    {
+        Tensor *x = batch->get_x(i);
+        Tensor *y = batch->get_y(i);
+
+        this->feed_forward(x);
+        cost += this->get_cost(y);
+        this->back_propagate(y);
+    }
+
+    cost /= batch_size;
+    this->optimize(batch_size);
+}
+
+void NN::validate(Batch *batch)
+{
+    int batch_size = batch->get_size();
+
+    float cost = 0.0f;
+
+    for (int i = 0; i < batch_size; i++)
+    {
+        Tensor *x = batch->get_x(i);
+        Tensor *y = batch->get_y(i);
+
+        this->feed_forward(x);
+        cost += this->get_cost(y);
+    }
+
+    cost /= batch_size;
+}
+
+void NN::test(Batch *batch)
+{
+    int batch_size = batch->get_size();
+
+    float cost = 0.0f;
+
+    for (int i = 0; i < batch_size; i++)
+    {
+        Tensor *x = batch->get_x(i);
+        Tensor *y = batch->get_y(i);
+
+        this->feed_forward(x);
+        cost += this->get_cost(y);
+    }
+
+    cost /= batch_size;
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Tensor.cuh"
+#include "Batch.cuh"
 
 #include <vector>
 
@@ -44,4 +45,7 @@ public:
     void back_propagate(Tensor *y);
     void optimize(int batch_size);
     void check_gradient(Tensor *x, Tensor *y, bool print_flg);
+    void train(Batch *batch);
+    void validate(Batch *batch);
+    void test(Batch *batch);
 };
