@@ -252,7 +252,7 @@ __global__ void k_derive_activation(float *n_arr, float *agg_arr, int n_cnt, Act
     }
 }
 
-__global__ void k_derive_weight_and_increment_derivative(float *agg_arr, float *n_arr, float *dw_arr, int n_cnt, int prv_n_cnt)
+__global__ void k_derive_z_and_increment_weight_derivative(float *agg_arr, float *n_arr, float *dw_arr, int n_cnt, int prv_n_cnt)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -268,7 +268,7 @@ __global__ void k_derive_weight_and_increment_derivative(float *agg_arr, float *
     }
 }
 
-__global__ void k_derive_bias_and_increment_derivative(float *agg_arr, float *db_arr, int n_cnt)
+__global__ void k_derive_z_and_increment_bias_derivative(float *agg_arr, float *db_arr, int n_cnt)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -351,7 +351,7 @@ __global__ void k_aggregate_derivatives(float *w_arr, float *agg_arr, float *tem
     }
 }
 
-__global__ void k_optimize_weights(float *w_arr, float *dw_arr, int batch_size, float learning_rate, int cnt)
+__global__ void k_adjust_weight(float *w_arr, float *dw_arr, int batch_size, float learning_rate, int cnt)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -362,7 +362,7 @@ __global__ void k_optimize_weights(float *w_arr, float *dw_arr, int batch_size, 
     }
 }
 
-__global__ void k_optimize_biases(float *b_arr, float *db_arr, int batch_size, float learning_rate, int cnt)
+__global__ void k_adjust_bias(float *b_arr, float *db_arr, int batch_size, float learning_rate, int cnt)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -561,17 +561,17 @@ void NN::back_propagate(Tensor *y)
         {
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks(ceil((float)n_cnt * prv_n_cnt / (float)threads_per_block));
-            k_derive_weight_and_increment_derivative<<<num_blocks, threads_per_block>>>(agg->get_arr(Gpu),
-                                                                                        prv_n->get_arr(Gpu),
-                                                                                        prv_dw->get_arr(Gpu),
-                                                                                        n_cnt, prv_n_cnt);
+            k_derive_z_and_increment_weight_derivative<<<num_blocks, threads_per_block>>>(agg->get_arr(Gpu),
+                                                                                          prv_n->get_arr(Gpu),
+                                                                                          prv_dw->get_arr(Gpu),
+                                                                                          n_cnt, prv_n_cnt);
         }
 
         // Biases:
         {
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks(ceil((float)n_cnt / (float)threads_per_block));
-            k_derive_bias_and_increment_derivative<<<num_blocks, threads_per_block>>>(agg->get_arr(Gpu), prv_db->get_arr(Gpu), n_cnt);
+            k_derive_z_and_increment_bias_derivative<<<num_blocks, threads_per_block>>>(agg->get_arr(Gpu), prv_db->get_arr(Gpu), n_cnt);
         }
 
         // Aggregate:
@@ -618,15 +618,15 @@ void NN::optimize(int batch_size)
         {
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks(ceil(((float)nxt_n_cnt * n_cnt) / (float)threads_per_block));
-            k_optimize_weights<<<num_blocks, threads_per_block>>>(w->get_arr(Gpu), dw->get_arr(Gpu), batch_size, this->learning_rate,
-                                                                  (nxt_n_cnt * n_cnt));
+            k_adjust_weight<<<num_blocks, threads_per_block>>>(w->get_arr(Gpu), dw->get_arr(Gpu), batch_size, this->learning_rate,
+                                                               (nxt_n_cnt * n_cnt));
         }
 
         // Biases:
         {
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks(ceil((float)nxt_n_cnt / (float)threads_per_block));
-            k_optimize_biases<<<num_blocks, threads_per_block>>>(b->get_arr(Gpu), db->get_arr(Gpu), batch_size, this->learning_rate, nxt_n_cnt);
+            k_adjust_bias<<<num_blocks, threads_per_block>>>(b->get_arr(Gpu), db->get_arr(Gpu), batch_size, this->learning_rate, nxt_n_cnt);
         }
     }
 }
