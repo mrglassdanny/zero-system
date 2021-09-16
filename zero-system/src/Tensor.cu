@@ -247,6 +247,19 @@ void Tensor::set_all_rand(float upper)
     this->translate(orig_typ);
 }
 
+void Tensor::set_arr(float *cpu_arr)
+{
+    int tot_cnt = this->row_cnt * this->col_cnt;
+
+    TensorType orig_typ = this->typ;
+
+    this->translate(Cpu);
+
+    memcpy(this->arr, cpu_arr, sizeof(float) * tot_cnt);
+
+    this->translate(orig_typ);
+}
+
 void Tensor::print()
 {
     TensorType orig_typ = this->typ;

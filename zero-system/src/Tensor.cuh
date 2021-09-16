@@ -55,6 +55,7 @@ public:
     void set_rowcol(int row_idx, int col_idx, float val);
     void set_all(float val);
     void set_all_rand(float upper);
+    void set_arr(float *cpu_arr);
 
     void print();
 };
