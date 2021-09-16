@@ -10,7 +10,7 @@ Supervisor *init_mnist_supervisor()
 	int img_cols = 28;
 	int img_area = img_rows * img_cols;
 
-	int img_cnt = 10000;
+	int img_cnt = 60000;
 
 	FILE *img_file = fopen("C:\\Users\\d0g0825\\ML-Data\\mnist_digits\\train-images.idx3-ubyte", "rb");
 	FILE *lbl_file = fopen("C:\\Users\\d0g0825\\ML-Data\\mnist_digits\\train-labels.idx1-ubyte", "rb");
@@ -55,10 +55,10 @@ void mnist_test()
 
 	Supervisor *sup = init_mnist_supervisor();
 
-	std::vector<int> layer_config = {784, 1024, 512, 256, 128, 10};
+	std::vector<int> layer_config = {784, 1024, 1024, 512, 128, 10};
 	NN *nn = new NN(layer_config, ReLU, ReLU, MSE, 0.01f);
 
-	nn->all(sup, 100, 1000, "C:\\Users\\d0g0825\\Desktop\\mnist-train.csv", "C:\\Users\\d0g0825\\Desktop\\mnist-validation.csv");
+	nn->all(sup, 1000, 1000, "C:\\Users\\d0g0825\\Desktop\\mnist-train.csv", "C:\\Users\\d0g0825\\Desktop\\mnist-validation.csv");
 
 	delete nn;
 
@@ -94,7 +94,7 @@ void misc_test()
 
 int main(int argc, char **argv)
 {
-	misc_test();
-	//mnist_test();
+	//misc_test();
+	mnist_test();
 	return 0;
 }
