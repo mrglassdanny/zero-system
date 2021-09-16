@@ -49,6 +49,22 @@ Supervisor *init_mnist_supervisor()
 	return sup;
 }
 
+void mnist_test()
+{
+	srand(time(NULL));
+
+	Supervisor *sup = init_mnist_supervisor();
+
+	std::vector<int> layer_config = {784, 2048, 1024, 10};
+	NN *nn = new NN(layer_config, ReLU, ReLU, MSE, 0.1f);
+
+	nn->all(sup, 100, 100, "C:\\Users\\d0g0825\\Desktop\\mnist-test.csv", "C:\\Users\\d0g0825\\Desktop\\mnist-validation.csv");
+
+	delete nn;
+
+	delete sup;
+}
+
 void misc_test()
 {
 	srand(time(NULL));
@@ -76,35 +92,9 @@ void misc_test()
 	delete y;
 }
 
-void mnist_test()
-{
-	srand(time(NULL));
-
-	Supervisor *sup = init_mnist_supervisor();
-
-	std::vector<int> layer_config = {784, 2048, 1024, 10};
-	NN *nn = new NN(layer_config, ReLU, ReLU, MSE, 0.1f);
-
-	int epoch_cnt = 10000;
-	for (int epoch = 0; epoch < epoch_cnt; epoch++)
-	{
-		Batch *batch = sup->create_train_batch(100);
-		ProgressReport result = nn->train(batch);
-		delete batch;
-
-		if (epoch % 100 == 0)
-		{
-			printf("COST: %f\tACCURACY: %f%%\n", result.cost, (((float)result.crct_cnt / (float)result.tot_cnt)) * 100.0f);
-		}
-	}
-
-	delete nn;
-
-	delete sup;
-}
-
 int main(int argc, char **argv)
 {
-	misc_test();
+	//misc_test();
+	mnist_test();
 	return 0;
 }

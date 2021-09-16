@@ -398,7 +398,7 @@ void NN::write_csv_header(FILE *csv_file_ptr)
 
 void NN::write_to_csv(FILE *csv_file_ptr, int epoch, ProgressReport rpt)
 {
-    fprintf(csv_file_ptr, "%d,%f,%f,%d,%d\n", epoch, rpt.cost, (rpt.crct_cnt / rpt.tot_cnt) * 100.0f, rpt.crct_cnt, rpt.tot_cnt);
+    fprintf(csv_file_ptr, "%d,%f,%f,%d,%d\n", epoch, rpt.cost, ((float)rpt.crct_cnt / (float)rpt.tot_cnt) * 100.0f, rpt.crct_cnt, rpt.tot_cnt);
 }
 
 // Member functions:
@@ -851,6 +851,9 @@ ProgressReport NN::validate(Batch *batch)
 
     int batch_size = batch->get_size();
 
+    rpt.crct_cnt = 0;
+    rpt.tot_cnt = batch_size;
+
     float cost = 0.0f;
 
     for (int i = 0; i < batch_size; i++)
@@ -874,6 +877,9 @@ ProgressReport NN::test(Batch *batch)
     ProgressReport rpt;
 
     int batch_size = batch->get_size();
+
+    rpt.crct_cnt = 0;
+    rpt.tot_cnt = batch_size;
 
     float cost = 0.0f;
 
@@ -931,6 +937,7 @@ void NN::all(Supervisor *supervisor, int train_batch_size, int validation_chk_fr
     }
 
     ProgressReport test_rpt = this->test(test_batch);
+    printf("TEST: cost=%f\taccuracy=%f\n", test_rpt.cost, ((float)test_rpt.crct_cnt / (float)test_rpt.tot_cnt) * 100.0f);
 
     delete validation_batch;
     delete test_batch;
