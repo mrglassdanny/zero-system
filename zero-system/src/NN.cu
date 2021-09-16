@@ -1,6 +1,6 @@
 #include "NN.cuh"
 
-#define THREADS_PER_BLOCK 62
+#define THREADS_PER_BLOCK 32
 
 // Device functions:
 __device__ float d_relu(float val)
@@ -84,9 +84,16 @@ __global__ void k_dot(float *n_arr, float *w_arr, float *nxt_n_arr, int n_cnt, i
 
     __syncthreads();
 
-    if (threadIdx.x == 0)
+    if (threadIdx.x == 0) // threadIdx MUST be 0 for below logic to work!
     {
-        // NOTE: this only works if we assume the threadIdx.x is 0!!!
+        /*
+        The goal here is to try to minimize atomic adds. If the neuron count is
+        greater than or equal to the threads per block, a maximum of 2 atomic adds
+        is necessary for this block. However, most of the time we can get away with just 1.
+
+        If the threads per block is greater than the neuron count, we just play it safe
+        and incur an atomic add for each thread in the block.
+        */
 
         int lower_idx = tid / n_cnt;
         int upper_idx = (tid + THREADS_PER_BLOCK) / n_cnt;
@@ -278,7 +285,7 @@ __global__ void k_derive_z_and_increment_bias_derivative(float *agg_arr, float *
     }
 }
 
-__global__ void k_aggregate_derivatives(float *w_arr, float *agg_arr, float *temp_agg_arr, int prv_n_cnt, int n_cnt)
+__global__ void k_derive_z_and_aggregate_derivatives(float *w_arr, float *agg_arr, float *temp_agg_arr, int prv_n_cnt, int n_cnt)
 {
     __shared__ float temp[THREADS_PER_BLOCK];
     memset(temp, 0, THREADS_PER_BLOCK * sizeof(float));
@@ -299,9 +306,16 @@ __global__ void k_aggregate_derivatives(float *w_arr, float *agg_arr, float *tem
 
     __syncthreads();
 
-    if (threadIdx.x == 0)
+    if (threadIdx.x == 0) // threadIdx MUST be 0 for below logic to work!
     {
-        // NOTE: this only works if we assume the threadIdx.x is 0!!!
+        /*
+        The goal here is to try to minimize atomic adds. If the neuron count is
+        greater than or equal to the threads per block, a maximum of 2 atomic adds
+        is necessary for this block. However, most of the time we can get away with just 1.
+
+        If the threads per block is greater than the neuron count, we just play it safe
+        and incur an atomic add for each thread in the block.
+        */
 
         int lower_idx = tid / n_cnt;
         int upper_idx = (tid + THREADS_PER_BLOCK) / n_cnt;
@@ -527,7 +541,7 @@ void NN::back_propagate(Tensor *y)
     Tensor *agg = new Tensor(1, lst_lyr_n_cnt, Gpu);
     agg->set_all(1.0f);
 
-    // Cost:
+    // Derive cost (activation):
     {
         int threads_per_block(THREADS_PER_BLOCK);
         int num_blocks(ceil((float)lst_lyr_n_cnt / (float)threads_per_block));
@@ -549,7 +563,7 @@ void NN::back_propagate(Tensor *y)
 
         ActivationFunctionId activation_func_id = (lyr_idx == lst_lyr_idx) ? this->output_layer_activation_func_id : this->hidden_layer_activation_func_id;
 
-        // Activations:
+        // Derive activation (z):
         {
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks(ceil((float)n_cnt / (float)threads_per_block));
@@ -557,7 +571,7 @@ void NN::back_propagate(Tensor *y)
                                                                    agg->get_arr(Gpu), n_cnt, activation_func_id);
         }
 
-        // Weights:
+        // Derive z (weight):
         {
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks(ceil((float)n_cnt * prv_n_cnt / (float)threads_per_block));
@@ -567,14 +581,14 @@ void NN::back_propagate(Tensor *y)
                                                                                           n_cnt, prv_n_cnt);
         }
 
-        // Biases:
+        // Derive z (bias):
         {
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks(ceil((float)n_cnt / (float)threads_per_block));
             k_derive_z_and_increment_bias_derivative<<<num_blocks, threads_per_block>>>(agg->get_arr(Gpu), prv_db->get_arr(Gpu), n_cnt);
         }
 
-        // Aggregate:
+        // Derive z (activation) and aggregate derivatives:
         {
             if (lyr_idx > 1)
             {
@@ -584,9 +598,9 @@ void NN::back_propagate(Tensor *y)
                 {
                     int threads_per_block(THREADS_PER_BLOCK);
                     int num_blocks(ceil((float)prv_n_cnt * n_cnt / (float)threads_per_block));
-                    k_aggregate_derivatives<<<num_blocks, threads_per_block>>>(prv_w->get_arr(Gpu),
-                                                                               agg->get_arr(Gpu), temp_agg->get_arr(Gpu),
-                                                                               prv_n_cnt, n_cnt);
+                    k_derive_z_and_aggregate_derivatives<<<num_blocks, threads_per_block>>>(prv_w->get_arr(Gpu),
+                                                                                            agg->get_arr(Gpu), temp_agg->get_arr(Gpu),
+                                                                                            prv_n_cnt, n_cnt);
                 }
 
                 delete agg;
