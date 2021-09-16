@@ -55,10 +55,10 @@ void mnist_test()
 
 	Supervisor *sup = init_mnist_supervisor();
 
-	std::vector<int> layer_config = {784, 2048, 1024, 10};
-	NN *nn = new NN(layer_config, ReLU, ReLU, MSE, 0.1f);
+	std::vector<int> layer_config = {784, 1024, 512, 10};
+	NN *nn = new NN(layer_config, ReLU, ReLU, MSE, 0.01f);
 
-	nn->all(sup, 100, 100, "C:\\Users\\d0g0825\\Desktop\\mnist-test.csv", "C:\\Users\\d0g0825\\Desktop\\mnist-validation.csv");
+	nn->all(sup, 100, 1000, "C:\\Users\\d0g0825\\Desktop\\mnist-train.csv", "C:\\Users\\d0g0825\\Desktop\\mnist-validation.csv");
 
 	delete nn;
 
@@ -69,7 +69,7 @@ void misc_test()
 {
 	srand(time(NULL));
 
-	int x_col_cnt = 24;
+	int x_col_cnt = 1024;
 	int y_col_cnt = 1;
 
 	Tensor *x = new Tensor(1, x_col_cnt, Gpu);
@@ -78,13 +78,13 @@ void misc_test()
 	Tensor *y = new Tensor(1, y_col_cnt, Gpu);
 	y->set_all(1.0f);
 
-	std::vector<int> layer_config = {x_col_cnt, 12, 6, 2, y_col_cnt};
-	NN *nn = new NN(layer_config, Tanh, Tanh, MSE, 0.001f);
+	std::vector<int> layer_config = {x_col_cnt, 1024, 1024, 512, 512, 256, y_col_cnt};
+	NN *nn = new NN(layer_config, None, None, MSE, 0.001f);
 
-	// for (int i = 0; i < 5; i++)
-	// 	nn->profile(x, y);
+	for (int i = 0; i < 5; i++)
+		nn->profile(x, y);
 
-	nn->check_gradient(x, y, true);
+	//nn->check_gradient(x, y, true);
 
 	delete nn;
 
@@ -94,7 +94,7 @@ void misc_test()
 
 int main(int argc, char **argv)
 {
-	misc_test();
-	//mnist_test();
+	//misc_test();
+	mnist_test();
 	return 0;
 }
