@@ -51,9 +51,9 @@ Supervisor *init_mnist_supervisor()
 
 void misc_test()
 {
-	//srand(time(NULL));
+	srand(time(NULL));
 
-	int x_col_cnt = 64;
+	int x_col_cnt = 24;
 	int y_col_cnt = 1;
 
 	Tensor *x = new Tensor(1, x_col_cnt, Gpu);
@@ -62,8 +62,8 @@ void misc_test()
 	Tensor *y = new Tensor(1, y_col_cnt, Gpu);
 	y->set_all(1.0f);
 
-	std::vector<int> layer_config = {x_col_cnt, 128, 64, 32, y_col_cnt};
-	NN *nn = new NN(layer_config, ReLU, Tanh, MSE, 0.001f);
+	std::vector<int> layer_config = {x_col_cnt, 12, 8, 4, y_col_cnt};
+	NN *nn = new NN(layer_config, Sigmoid, ReLU, MSE, 0.001f);
 
 	// for (int i = 0; i < 5; i++)
 	// 	nn->profile(x, y);
