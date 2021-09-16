@@ -13,11 +13,11 @@ private:
 
 public:
     Supervisor();
-    Supervisor(int row_cnt, int col_cnt, int output_col_cnt, float *x_arr, float *y_arr, TensorType typ);
+    Supervisor(int row_cnt, int col_cnt, int one_hot_cnt, float *x_arr, float *y_arr, TensorType typ);
     ~Supervisor();
 
-    void add(int col_cnt, int output_col_cnt, float *x_arr, float y_val, TensorType typ);
-    void add_all(int row_cnt, int col_cnt, int output_col_cnt, float *x_arr, float *y_arr, TensorType typ);
+    void add(int col_cnt, int one_hot_cnt, float *x_arr, float y_val, TensorType typ);
+    void add_all(int row_cnt, int col_cnt, int one_hot_cnt, float *x_arr, float *y_arr, TensorType typ);
     void clear();
 
     Batch *create_batch(int batch_size, int lower, int upper);

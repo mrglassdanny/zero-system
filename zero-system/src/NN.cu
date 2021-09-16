@@ -804,48 +804,21 @@ Result NN::train(Batch *batch)
 
     float cost = 0.0f;
 
+    int lst_lyr_idx = this->neurons.size() - 1;
+
     for (int i = 0; i < batch_size; i++)
     {
         Tensor *x = batch->get_x(i);
-
-        // Depending on our layer configuration, we may need to adjust y.
-        // TODO
-        float y_val = batch->get_y(i)->get_idx(0);
-        Tensor *y;
-        bool own_y_flg = false;
-        if (this->neurons[this->neurons.size() - 1]->get_col_cnt() > 1)
-        {
-            // One hot encode!
-            own_y_flg = true;
-            y = new Tensor(1, this->neurons[this->neurons.size() - 1]->get_col_cnt(), Cpu);
-            y->set_all(0.0f);
-            for (int j = 0; j < this->neurons[this->neurons.size() - 1]->get_col_cnt(); j++)
-            {
-                if ((int)y_val == j)
-                {
-                    y->set_idx(j, 1.0f);
-                    break;
-                }
-            }
-        }
-        else
-        {
-            y = batch->get_y(i);
-        }
+        Tensor *y = batch->get_y(i);
 
         this->feed_forward(x);
         cost += this->get_cost(y);
         this->back_propagate(y);
 
-        TensorTuple max_tup = this->neurons[this->neurons.size() - 1]->get_max();
-        if (max_tup.idx == (int)y_val)
+        TensorTuple max_tup = this->neurons[lst_lyr_idx]->get_max();
+        if (y->get_idx(max_tup.idx) == 1.0f)
         {
             result.cor_cnt++;
-        }
-
-        if (own_y_flg)
-        {
-            delete y;
         }
     }
 
