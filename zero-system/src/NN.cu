@@ -471,14 +471,14 @@ void NN::feed_forward(Tensor *x)
         // Need to reset neurons before we do anything:
         {
             int threads_per_block(THREADS_PER_BLOCK);
-            int num_blocks(ceil((float)nxt_n_cnt / (float)threads_per_block));
+            int num_blocks((nxt_n_cnt / threads_per_block) + 1);
             k_set_arr<<<num_blocks, threads_per_block>>>(nxt_n->get_arr(Gpu), nxt_n_cnt, 0.0f);
         }
 
         // Dot product:
         {
             int threads_per_block(THREADS_PER_BLOCK);
-            int num_blocks(ceil((float)(n_cnt * nxt_n_cnt) / (float)threads_per_block));
+            int num_blocks(((n_cnt * nxt_n_cnt) / threads_per_block) + 1);
             k_dot<<<num_blocks, threads_per_block>>>(n->get_arr(Gpu), w->get_arr(Gpu),
                                                      nxt_n->get_arr(Gpu), n_cnt, nxt_n_cnt);
         }
@@ -486,7 +486,7 @@ void NN::feed_forward(Tensor *x)
         // Add biases:
         {
             int threads_per_block(THREADS_PER_BLOCK);
-            int num_blocks(ceil((float)nxt_n_cnt / (float)threads_per_block));
+            int num_blocks((nxt_n_cnt / threads_per_block) + 1);
             k_add_bias<<<num_blocks, threads_per_block>>>(b->get_arr(Gpu), nxt_n->get_arr(Gpu),
                                                           nxt_n_cnt);
         }
@@ -494,7 +494,7 @@ void NN::feed_forward(Tensor *x)
         // Activate:
         {
             int threads_per_block(THREADS_PER_BLOCK);
-            int num_blocks(ceil((float)nxt_n_cnt / (float)threads_per_block));
+            int num_blocks((nxt_n_cnt / threads_per_block) + 1);
             k_activate<<<num_blocks, threads_per_block>>>(nxt_n->get_arr(Gpu), nxt_n_cnt, activation_func_id);
         }
     }
@@ -518,7 +518,7 @@ float NN::get_cost(Tensor *y)
 
     {
         int threads_per_block(THREADS_PER_BLOCK);
-        int num_blocks(ceil((float)lst_lyr_n_cnt / (float)threads_per_block));
+        int num_blocks((lst_lyr_n_cnt / threads_per_block) + 1);
 
         k_cost<<<num_blocks, threads_per_block>>>(lst_lyr_n->get_arr(Gpu), y->get_arr(Gpu),
                                                   d_cost, lst_lyr_n_cnt, this->cost_func_id);
@@ -544,7 +544,7 @@ void NN::back_propagate(Tensor *y)
     // Derive cost (activation):
     {
         int threads_per_block(THREADS_PER_BLOCK);
-        int num_blocks(ceil((float)lst_lyr_n_cnt / (float)threads_per_block));
+        int num_blocks((lst_lyr_n_cnt / threads_per_block) + 1);
         k_derive_cost<<<num_blocks, threads_per_block>>>(this->neurons[lst_lyr_idx]->get_arr(Gpu),
                                                          y->get_arr(Gpu), agg->get_arr(Gpu), lst_lyr_n_cnt, this->cost_func_id);
     }
@@ -566,7 +566,7 @@ void NN::back_propagate(Tensor *y)
         // Derive activation (z):
         {
             int threads_per_block(THREADS_PER_BLOCK);
-            int num_blocks(ceil((float)n_cnt / (float)threads_per_block));
+            int num_blocks((n_cnt / threads_per_block) + 1);
             k_derive_activation<<<num_blocks, threads_per_block>>>(n->get_arr(Gpu),
                                                                    agg->get_arr(Gpu), n_cnt, activation_func_id);
         }
@@ -574,7 +574,7 @@ void NN::back_propagate(Tensor *y)
         // Derive z (weight):
         {
             int threads_per_block(THREADS_PER_BLOCK);
-            int num_blocks(ceil((float)n_cnt * prv_n_cnt / (float)threads_per_block));
+            int num_blocks(((n_cnt * prv_n_cnt) / threads_per_block) + 1);
             k_derive_z_and_increment_weight_derivative<<<num_blocks, threads_per_block>>>(agg->get_arr(Gpu),
                                                                                           prv_n->get_arr(Gpu),
                                                                                           prv_dw->get_arr(Gpu),
@@ -584,7 +584,7 @@ void NN::back_propagate(Tensor *y)
         // Derive z (bias):
         {
             int threads_per_block(THREADS_PER_BLOCK);
-            int num_blocks(ceil((float)n_cnt / (float)threads_per_block));
+            int num_blocks((n_cnt / threads_per_block) + 1);
             k_derive_z_and_increment_bias_derivative<<<num_blocks, threads_per_block>>>(agg->get_arr(Gpu), prv_db->get_arr(Gpu), n_cnt);
         }
 
@@ -597,7 +597,7 @@ void NN::back_propagate(Tensor *y)
 
                 {
                     int threads_per_block(THREADS_PER_BLOCK);
-                    int num_blocks(ceil((float)prv_n_cnt * n_cnt / (float)threads_per_block));
+                    int num_blocks(((prv_n_cnt * n_cnt) / threads_per_block) + 1);
                     k_derive_z_and_aggregate_derivatives<<<num_blocks, threads_per_block>>>(prv_w->get_arr(Gpu),
                                                                                             agg->get_arr(Gpu), temp_agg->get_arr(Gpu),
                                                                                             prv_n_cnt, n_cnt);
@@ -631,7 +631,7 @@ void NN::optimize(int batch_size)
         // Weights:
         {
             int threads_per_block(THREADS_PER_BLOCK);
-            int num_blocks(ceil(((float)nxt_n_cnt * n_cnt) / (float)threads_per_block));
+            int num_blocks(((nxt_n_cnt * n_cnt) / threads_per_block) + 1);
             k_adjust_weight<<<num_blocks, threads_per_block>>>(w->get_arr(Gpu), dw->get_arr(Gpu), batch_size, this->learning_rate,
                                                                (nxt_n_cnt * n_cnt));
         }
@@ -639,7 +639,7 @@ void NN::optimize(int batch_size)
         // Biases:
         {
             int threads_per_block(THREADS_PER_BLOCK);
-            int num_blocks(ceil((float)nxt_n_cnt / (float)threads_per_block));
+            int num_blocks((nxt_n_cnt / threads_per_block) + 1);
             k_adjust_bias<<<num_blocks, threads_per_block>>>(b->get_arr(Gpu), db->get_arr(Gpu), batch_size, this->learning_rate, nxt_n_cnt);
         }
     }
