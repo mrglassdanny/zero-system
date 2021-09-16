@@ -11,11 +11,11 @@
 #include "device_launch_parameters.h"
 #include "device_atomic_functions.h"
 
-typedef enum TensorType
+enum TensorType
 {
     Cpu,
     Gpu
-} TensorType;
+};
 
 struct TensorTuple
 {
@@ -32,8 +32,10 @@ private:
     TensorType typ;
 
 public:
+    static Tensor *one_hot_encode(int row_cnt, int col_cnt, TensorType typ, float *cpu_arr);
+
     Tensor(int row_cnt, int col_cnt, TensorType typ);
-    Tensor(Tensor *src);
+    Tensor(const Tensor &src);
     Tensor(int row_cnt, int col_cnt, TensorType typ, float *cpu_arr);
     ~Tensor();
 

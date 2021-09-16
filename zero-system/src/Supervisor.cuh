@@ -13,10 +13,12 @@ private:
 
 public:
     Supervisor();
-    Supervisor(int row_cnt, int col_cnt, float *x_arr, float *y_arr);
+    Supervisor(int row_cnt, int col_cnt, int output_col_cnt, float *x_arr, float *y_arr);
     ~Supervisor();
 
-    void add(int col_cnt, float *x_arr, float y_val);
+    void add(int col_cnt, int output_col_cnt, float *x_arr, float y_val);
+    void add_all(int row_cnt, int col_cnt, int output_col_cnt, float *x_arr, float *y_arr);
+    void clear();
 
     Batch *create_batch(int batch_size, int lower, int upper);
     Batch *create_train_batch(int batch_size);

@@ -1,5 +1,24 @@
 #include "Tensor.cuh"
 
+Tensor *Tensor::one_hot_encode(int row_cnt, int col_cnt, TensorType typ, float *cpu_arr)
+{
+    Tensor *tensor = new Tensor(row_cnt, col_cnt, typ);
+    tensor->set_all(0.0f);
+
+    for (int i = 0; i < row_cnt; i++)
+    {
+        int col_idx = (int)cpu_arr[i];
+        if (col_idx < col_cnt)
+        {
+            tensor->set_rowcol(i, col_idx, 1.0f);
+        }
+        // If column index is greater than or equal to column count, skip it!
+        // ^ this shouldn't happen...
+    }
+
+    return tensor;
+}
+
 Tensor::Tensor(int row_cnt, int col_cnt, TensorType typ)
 {
     if (typ == Gpu)
@@ -16,22 +35,22 @@ Tensor::Tensor(int row_cnt, int col_cnt, TensorType typ)
     this->typ = typ;
 }
 
-Tensor::Tensor(Tensor *src)
+Tensor::Tensor(const Tensor &src)
 {
-    if (src->typ == Gpu)
+    if (src.typ == Gpu)
     {
         cudaMalloc(&this->arr, sizeof(float) * (row_cnt * col_cnt));
-        cudaMemcpy(this->arr, src->arr, sizeof(float) * (row_cnt * col_cnt), cudaMemcpyDeviceToDevice);
+        cudaMemcpy(this->arr, src.arr, sizeof(float) * (row_cnt * col_cnt), cudaMemcpyDeviceToDevice);
     }
     else
     {
         this->arr = (float *)malloc(sizeof(float) * (row_cnt * col_cnt));
-        memcpy(this->arr, src->arr, sizeof(float) * (row_cnt * col_cnt));
+        memcpy(this->arr, src.arr, sizeof(float) * (row_cnt * col_cnt));
     }
 
-    this->row_cnt = src->row_cnt;
-    this->col_cnt = src->col_cnt;
-    this->typ = src->typ;
+    this->row_cnt = src.row_cnt;
+    this->col_cnt = src.col_cnt;
+    this->typ = src.typ;
 }
 
 Tensor::Tensor(int row_cnt, int col_cnt, TensorType typ, float *cpu_arr)
