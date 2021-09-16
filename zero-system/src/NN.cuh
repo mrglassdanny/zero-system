@@ -49,7 +49,10 @@ private:
 public:
     NN(std::vector<int> layer_config, ActivationFunctionId hidden_layer_activation_func_id,
        ActivationFunctionId output_layer_activation_func_id, CostFunctionId cost_func_id, float learning_rate);
+    NN(const char *path);
     ~NN();
+
+    void dump_to_file(const char *path);
 
     void feed_forward(Tensor *x);
     float get_cost(Tensor *y);

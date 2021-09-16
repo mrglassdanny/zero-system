@@ -403,19 +403,19 @@ void NN::write_to_csv(FILE *csv_file_ptr, int epoch, ProgressReport rpt)
 
 // Member functions:
 
-NN::NN(std::vector<int> layer_config, ActivationFunctionId hidden_layer_activation_func_id,
+NN::NN(std::vector<int> lyr_cfg, ActivationFunctionId hidden_layer_activation_func_id,
        ActivationFunctionId output_layer_activation_func_id, CostFunctionId cost_func_id, float learning_rate)
 {
 
-    int lyr_cnt = layer_config.size();
+    int lyr_cnt = lyr_cfg.size();
 
     // Leave input neurons NULL for now!
     this->neurons.push_back(nullptr);
 
     for (int lyr_idx = 0; lyr_idx < lyr_cnt - 1; lyr_idx++)
     {
-        int n_cnt = layer_config[lyr_idx];
-        int nxt_n_cnt = layer_config[lyr_idx + 1];
+        int n_cnt = lyr_cfg[lyr_idx];
+        int nxt_n_cnt = lyr_cfg[lyr_idx + 1];
 
         Tensor *n = new Tensor(1, nxt_n_cnt, Gpu);
         n->set_all(0.0f);
@@ -446,6 +446,66 @@ NN::NN(std::vector<int> layer_config, ActivationFunctionId hidden_layer_activati
     this->learning_rate = learning_rate;
 }
 
+NN::NN(const char *path)
+{
+    FILE *file_ptr = fopen(path, "rb");
+
+    int lyr_cnt = 0;
+    fread(&lyr_cnt, sizeof(int), 1, file_ptr);
+
+    std::vector<int> lyr_cfg;
+
+    for (int i = 0; i < lyr_cnt; i++)
+    {
+        int n_cnt = 0;
+        fread(&n_cnt, sizeof(int), 1, file_ptr);
+        lyr_cfg.push_back(n_cnt);
+    }
+
+    fread(&this->hidden_layer_activation_func_id, sizeof(ActivationFunctionId), 1, file_ptr);
+    fread(&this->output_layer_activation_func_id, sizeof(ActivationFunctionId), 1, file_ptr);
+    fread(&this->cost_func_id, sizeof(CostFunctionId), 1, file_ptr);
+    fread(&this->learning_rate, sizeof(float), 1, file_ptr);
+
+    // Leave input neurons NULL for now!
+    this->neurons.push_back(nullptr);
+
+    for (int lyr_idx = 0; lyr_idx < lyr_cnt - 1; lyr_idx++)
+    {
+        int n_cnt = lyr_cfg[lyr_idx];
+        int nxt_n_cnt = lyr_cfg[lyr_idx + 1];
+
+        int w_cnt = n_cnt * nxt_n_cnt;
+        int b_cnt = nxt_n_cnt;
+
+        Tensor *n = new Tensor(1, nxt_n_cnt, Gpu);
+        n->set_all(0.0f);
+        this->neurons.push_back(n);
+
+        float *w_buf = (float *)malloc(sizeof(float) * w_cnt);
+        fread(w_buf, sizeof(float), w_cnt, file_ptr);
+        Tensor *w = new Tensor(nxt_n_cnt, n_cnt, Gpu, w_buf);
+        this->weights.push_back(w);
+        free(w_buf);
+
+        float *b_buf = (float *)malloc(sizeof(float) * b_cnt);
+        fread(b_buf, sizeof(float), b_cnt, file_ptr);
+        Tensor *b = new Tensor(nxt_n_cnt, 1, Gpu, b_buf);
+        this->biases.push_back(b);
+        free(b_buf);
+
+        Tensor *dw = new Tensor(nxt_n_cnt, n_cnt, Gpu);
+        dw->set_all(0.0f);
+        this->weight_derivatives.push_back(dw);
+
+        Tensor *db = new Tensor(nxt_n_cnt, 1, Gpu);
+        db->set_all(0.0f);
+        this->bias_derivatives.push_back(db);
+    }
+
+    fclose(file_ptr);
+}
+
 NN::~NN()
 {
     int lyr_cnt = this->neurons.size();
@@ -461,6 +521,37 @@ NN::~NN()
         delete this->weight_derivatives[lyr_idx];
         delete this->bias_derivatives[lyr_idx];
     }
+}
+
+void NN::dump_to_file(const char *path)
+{
+
+    FILE *file_ptr = fopen(path, "wb");
+
+    int lyr_cnt = this->neurons.size();
+    fwrite(&lyr_cnt, sizeof(int), 1, file_ptr);
+
+    for (int lyr_idx = 0; lyr_idx < lyr_cnt; lyr_idx++)
+    {
+        int n_cnt = this->neurons[lyr_idx]->get_col_cnt();
+        fwrite(&n_cnt, sizeof(int), 1, file_ptr);
+    }
+
+    fwrite(&this->hidden_layer_activation_func_id, sizeof(ActivationFunctionId), 1, file_ptr);
+    fwrite(&this->output_layer_activation_func_id, sizeof(ActivationFunctionId), 1, file_ptr);
+    fwrite(&this->cost_func_id, sizeof(CostFunctionId), 1, file_ptr);
+    fwrite(&this->learning_rate, sizeof(float), 1, file_ptr);
+
+    for (int lyr_idx = 0; lyr_idx < lyr_cnt - 1; lyr_idx++)
+    {
+        Tensor *w = this->weights[lyr_idx];
+        fwrite(w->get_arr(Cpu), sizeof(float), (w->get_row_cnt() * w->get_col_cnt()), file_ptr);
+
+        Tensor *b = this->biases[lyr_idx];
+        fwrite(b->get_arr(Cpu), sizeof(float), (b->get_row_cnt()), file_ptr);
+    }
+
+    fclose(file_ptr);
 }
 
 void NN::feed_forward(Tensor *x)
