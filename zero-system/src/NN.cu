@@ -798,7 +798,7 @@ ProgressReport NN::train(Batch *batch)
 
     int batch_size = batch->get_size();
 
-    rpt.cor_cnt = 0;
+    rpt.crct_cnt = 0;
     rpt.tot_cnt = batch_size;
 
     float cost = 0.0f;
@@ -817,7 +817,7 @@ ProgressReport NN::train(Batch *batch)
         TensorTuple max_tup = this->neurons[lst_lyr_idx]->get_max();
         if (y->get_idx(max_tup.idx) == 1.0f)
         {
-            rpt.cor_cnt++;
+            rpt.crct_cnt++;
         }
     }
 

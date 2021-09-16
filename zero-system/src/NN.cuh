@@ -22,7 +22,7 @@ enum CostFunctionId
 struct ProgressReport
 {
     float cost;
-    int cor_cnt;
+    int crct_cnt;
     int tot_cnt;
 };
 

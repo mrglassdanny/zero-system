@@ -94,7 +94,7 @@ void mnist_test()
 
 		if (epoch % 100 == 0)
 		{
-			printf("COST: %f\tACCURACY: %f%%\n", result.cost, (((float)result.cor_cnt / (float)result.tot_cnt)) * 100.0f);
+			printf("COST: %f\tACCURACY: %f%%\n", result.cost, (((float)result.crct_cnt / (float)result.tot_cnt)) * 100.0f);
 		}
 	}
 
