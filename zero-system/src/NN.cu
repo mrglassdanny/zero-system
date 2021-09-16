@@ -87,6 +87,7 @@ __global__ void k_dot(float *n_arr, float *w_arr, float *nxt_n_arr, int n_cnt, i
     if (threadIdx.x == 0)
     {
         // NOTE: this only works if we assume the threadIdx.x is 0!!!
+
         int lower_idx = tid / n_cnt;
         int upper_idx = (tid + THREADS_PER_BLOCK) / n_cnt;
 
@@ -190,8 +191,6 @@ __global__ void k_cost(float *n_arr, float *y_arr, float *cost, int n_cnt, CostF
         default:
             break;
         }
-
-        //temp[threadIdx.x] = d_mse_cost(n_arr[tid], y_arr[tid]);
     }
 
     __syncthreads();
@@ -199,6 +198,7 @@ __global__ void k_cost(float *n_arr, float *y_arr, float *cost, int n_cnt, CostF
     if (threadIdx.x == 0)
     {
         float sum = 0.0f;
+
         for (int i = 0; i < THREADS_PER_BLOCK; i++)
         {
             sum += temp[i];
@@ -225,8 +225,6 @@ __global__ void k_derive_cost(float *n_arr, float *y_arr, float *agg_arr, int n_
         default:
             break;
         }
-
-        //agg_arr[tid] *= d_derive_mse_cost(n_arr[tid], y_arr[tid]);
     }
 }
 
@@ -251,7 +249,6 @@ __global__ void k_derive_activation(float *n_arr, float *agg_arr, int n_cnt, Act
             // None
             break;
         }
-        //agg_arr[tid] *= d_derive_relu(n_arr[tid]);
     }
 }
 
@@ -305,6 +302,7 @@ __global__ void k_aggregate_derivatives(float *w_arr, float *agg_arr, float *tem
     if (threadIdx.x == 0)
     {
         // NOTE: this only works if we assume the threadIdx.x is 0!!!
+
         int lower_idx = tid / n_cnt;
         int upper_idx = (tid + THREADS_PER_BLOCK) / n_cnt;
 
