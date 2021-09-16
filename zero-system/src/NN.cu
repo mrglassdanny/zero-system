@@ -1,6 +1,6 @@
 #include "NN.cuh"
 
-#define THREADS_PER_BLOCK 32
+#define THREADS_PER_BLOCK 62
 
 // Device functions:
 __device__ float d_relu(float val)
@@ -278,37 +278,6 @@ __global__ void k_derive_bias_and_increment_derivative(float *agg_arr, float *db
     if (tid < n_cnt)
     {
         db_arr[tid] += (agg_arr[tid]);
-    }
-}
-
-__global__ void k_aggregate_derivatives_old(float *w_arr, float *agg_arr, float *temp_agg_arr, int prv_n_cnt, int n_cnt)
-{
-    __shared__ float temp[THREADS_PER_BLOCK];
-    memset(temp, 0, THREADS_PER_BLOCK * sizeof(float));
-
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-
-    int w_cnt = prv_n_cnt * n_cnt;
-
-    int n_idx = tid / prv_n_cnt;
-    int prv_n_idx = tid % prv_n_cnt;
-    int w_idx = n_idx * prv_n_cnt + prv_n_idx;
-
-    if (tid < w_cnt)
-    {
-        temp[threadIdx.x] = (agg_arr[n_idx] * w_arr[w_idx]);
-    }
-
-    __syncthreads();
-
-    if (threadIdx.x == 0)
-    {
-        for (int i = 0; i < THREADS_PER_BLOCK; i++)
-        {
-            // NOTE: this only works if we assume the threadIdx.x is 0!!!
-            int idx = (tid + i) % prv_n_cnt;
-            atomicAdd(&temp_agg_arr[idx], temp[i]);
-        }
     }
 }
 
