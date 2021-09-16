@@ -78,8 +78,8 @@ void misc_test()
 	Tensor *y = new Tensor(1, y_col_cnt, Gpu);
 	y->set_all(1.0f);
 
-	std::vector<int> layer_config = {x_col_cnt, 12, 8, 4, y_col_cnt};
-	NN *nn = new NN(layer_config, Sigmoid, ReLU, MSE, 0.001f);
+	std::vector<int> layer_config = {x_col_cnt, 12, 6, 2, y_col_cnt};
+	NN *nn = new NN(layer_config, Tanh, Tanh, MSE, 0.001f);
 
 	// for (int i = 0; i < 5; i++)
 	// 	nn->profile(x, y);
@@ -94,7 +94,7 @@ void misc_test()
 
 int main(int argc, char **argv)
 {
-	//misc_test();
-	mnist_test();
+	misc_test();
+	//mnist_test();
 	return 0;
 }

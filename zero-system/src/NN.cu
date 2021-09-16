@@ -829,10 +829,17 @@ ProgressReport NN::train(Batch *batch)
         cost += this->get_cost(y);
         this->back_propagate(y);
 
-        TensorTuple max_tup = this->neurons[lst_lyr_idx]->get_max();
-        if (y->get_idx(max_tup.idx) == 1.0f)
+        if (this->neurons[lst_lyr_idx]->get_col_cnt() > 1)
         {
-            rpt.crct_cnt++;
+            TensorTuple max_tup = this->neurons[lst_lyr_idx]->get_max();
+            if (y->get_idx(max_tup.idx) == 1.0f)
+            {
+                rpt.crct_cnt++;
+            }
+        }
+        else
+        {
+            // TODO
         }
     }
 
@@ -856,6 +863,8 @@ ProgressReport NN::validate(Batch *batch)
 
     float cost = 0.0f;
 
+    int lst_lyr_idx = this->neurons.size() - 1;
+
     for (int i = 0; i < batch_size; i++)
     {
         Tensor *x = batch->get_x(i);
@@ -863,6 +872,19 @@ ProgressReport NN::validate(Batch *batch)
 
         this->feed_forward(x);
         cost += this->get_cost(y);
+
+        if (this->neurons[lst_lyr_idx]->get_col_cnt() > 1)
+        {
+            TensorTuple max_tup = this->neurons[lst_lyr_idx]->get_max();
+            if (y->get_idx(max_tup.idx) == 1.0f)
+            {
+                rpt.crct_cnt++;
+            }
+        }
+        else
+        {
+            // TODO
+        }
     }
 
     cost /= batch_size;
@@ -883,6 +905,8 @@ ProgressReport NN::test(Batch *batch)
 
     float cost = 0.0f;
 
+    int lst_lyr_idx = this->neurons.size() - 1;
+
     for (int i = 0; i < batch_size; i++)
     {
         Tensor *x = batch->get_x(i);
@@ -890,6 +914,19 @@ ProgressReport NN::test(Batch *batch)
 
         this->feed_forward(x);
         cost += this->get_cost(y);
+
+        if (this->neurons[lst_lyr_idx]->get_col_cnt() > 1)
+        {
+            TensorTuple max_tup = this->neurons[lst_lyr_idx]->get_max();
+            if (y->get_idx(max_tup.idx) == 1.0f)
+            {
+                rpt.crct_cnt++;
+            }
+        }
+        else
+        {
+            // TODO
+        }
     }
 
     cost /= batch_size;
