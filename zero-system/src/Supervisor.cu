@@ -4,9 +4,9 @@ Supervisor::Supervisor()
 {
 }
 
-Supervisor::Supervisor(int row_cnt, int col_cnt, int output_col_cnt, float *x_arr, float *y_arr)
+Supervisor::Supervisor(int row_cnt, int col_cnt, int output_col_cnt, float *x_arr, float *y_arr, TensorType typ)
 {
-    this->add_all(row_cnt, col_cnt, output_col_cnt, x_arr, y_arr);
+    this->add_all(row_cnt, col_cnt, output_col_cnt, x_arr, y_arr, typ);
 }
 
 Supervisor::~Supervisor()
@@ -14,51 +14,35 @@ Supervisor::~Supervisor()
     this->clear();
 }
 
-void Supervisor::add(int col_cnt, int output_col_cnt, float *x_arr, float y_val)
+void Supervisor::add(int col_cnt, int output_col_cnt, float *x_arr, float y_val, TensorType typ)
 {
-    Tensor *x = new Tensor(1, col_cnt, Cpu, x_arr);
+    Tensor *x = new Tensor(1, col_cnt, typ, x_arr);
 
     Tensor *y;
     // Single value or one hot encoded?
     if (output_col_cnt > 1)
     {
         // One hot encode!
-        y = Tensor::one_hot_encode(1, output_col_cnt, Cpu, &y_val);
+        y = Tensor::one_hot_encode(1, output_col_cnt, typ, &y_val);
     }
     else
     {
         // Single value.
-        y = new Tensor(1, 1, Cpu, &y_val);
+        y = new Tensor(1, 1, typ, &y_val);
     }
 
     this->xs.push_back(x);
     this->ys.push_back(y);
 }
 
-void Supervisor::add_all(int row_cnt, int col_cnt, int output_col_cnt, float *x_arr, float *y_arr)
+void Supervisor::add_all(int row_cnt, int col_cnt, int output_col_cnt, float *x_arr, float *y_arr, TensorType typ)
 {
     this->xs.reserve(row_cnt);
     this->ys.reserve(row_cnt);
 
     for (int i = 0; i < row_cnt; i++)
     {
-        Tensor *x = new Tensor(1, col_cnt, Cpu, &x_arr[i * col_cnt]);
-
-        Tensor *y;
-        // Single value or one hot encoded?
-        if (output_col_cnt > 1)
-        {
-            // One hot encode!
-            y = Tensor::one_hot_encode(1, output_col_cnt, Cpu, &y_arr[i]);
-        }
-        else
-        {
-            // Single value.
-            y = new Tensor(1, 1, Cpu, &y_arr[i]);
-        }
-
-        this->xs.push_back(x);
-        this->ys.push_back(y);
+        this->add(col_cnt, output_col_cnt, &x_arr[i * col_cnt], y_arr[i], typ);
     }
 }
 
