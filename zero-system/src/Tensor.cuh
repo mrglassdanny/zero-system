@@ -6,6 +6,7 @@
 #include <math.h>
 #include <float.h>
 #include <time.h>
+#include <conio.h>
 
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"

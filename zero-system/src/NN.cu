@@ -782,8 +782,8 @@ void NN::check_gradient(Tensor *x, Tensor *y, bool print_flg)
 
 void NN::profile(Tensor *x, Tensor *y)
 {
-    int epoch_cnt = 100;
-    int batch_size = 100;
+    int epoch_cnt = 10;
+    int batch_size = 10;
 
     printf("START PERFORMANCE TEST\n");
     clock_t t;
@@ -841,6 +841,9 @@ ProgressReport NN::train(Batch *batch)
         {
             // TODO
         }
+
+        x->translate(Cpu);
+        y->translate(Cpu);
     }
 
     cost /= batch_size;
@@ -961,6 +964,8 @@ void NN::all(Supervisor *supervisor, int train_batch_size, int validation_chk_fr
         {
             ProgressReport validation_rpt = this->validate(validation_batch);
             NN::write_to_csv(validation_csv_file_ptr, epoch, validation_rpt);
+            printf("VALIDATION: cost=%f\taccuracy=%f\n", validation_rpt.cost,
+                   ((float)validation_rpt.crct_cnt / (float)validation_rpt.tot_cnt) * 100.0f);
 
             if (prv_validation_cost <= validation_rpt.cost)
             {
@@ -968,6 +973,15 @@ void NN::all(Supervisor *supervisor, int train_batch_size, int validation_chk_fr
             }
 
             prv_validation_cost = validation_rpt.cost;
+        }
+
+        // Allow for manual override.
+        if (_kbhit())
+        {
+            if (_getch() == 'q')
+            {
+                break;
+            }
         }
 
         epoch++;
