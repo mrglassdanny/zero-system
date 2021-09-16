@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Tensor.cuh"
+#include "Supervisor.cuh"
 #include "Batch.cuh"
 
 #include <vector>
@@ -42,6 +43,9 @@ private:
 
     float learning_rate;
 
+    static void write_csv_header(FILE *csv_file_ptr);
+    static void write_to_csv(FILE *csv_file_ptr, int epoch, ProgressReport rpt);
+
 public:
     NN(std::vector<int> layer_config, ActivationFunctionId hidden_layer_activation_func_id,
        ActivationFunctionId output_layer_activation_func_id, CostFunctionId cost_func_id, float learning_rate);
@@ -51,9 +55,13 @@ public:
     float get_cost(Tensor *y);
     void back_propagate(Tensor *y);
     void optimize(int batch_size);
+
     void check_gradient(Tensor *x, Tensor *y, bool print_flg);
     void profile(Tensor *x, Tensor *y);
+
     ProgressReport train(Batch *batch);
     ProgressReport validate(Batch *batch);
     ProgressReport test(Batch *batch);
+
+    void all(Supervisor *supervisor, int train_batch_size, int validation_chk_freq, const char *train_csv_path, const char *validation_csv_path);
 };

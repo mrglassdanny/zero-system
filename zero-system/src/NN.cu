@@ -3,6 +3,7 @@
 #define THREADS_PER_BLOCK 32
 
 // Device functions:
+
 __device__ float d_relu(float val)
 {
     return val > 0.0f ? val : 0.0f;
@@ -54,6 +55,7 @@ __device__ float d_derive_cross_entropy_cost(float n_val, float y_val)
 }
 
 // Kernel functions:
+
 __global__ void k_set_arr(float *arr, int cnt, float val)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -387,7 +389,20 @@ __global__ void k_adjust_bias(float *b_arr, float *db_arr, int batch_size, float
     }
 }
 
+// Static functions:
+
+void NN::write_csv_header(FILE *csv_file_ptr)
+{
+    fprintf(csv_file_ptr, "epoch,cost,accuracy,correct_cnt,total_cnt\n");
+}
+
+void NN::write_to_csv(FILE *csv_file_ptr, int epoch, ProgressReport rpt)
+{
+    fprintf(csv_file_ptr, "%d,%f,%f,%d,%d\n", epoch, rpt.cost, (rpt.crct_cnt / rpt.tot_cnt) * 100.0f, rpt.crct_cnt, rpt.tot_cnt);
+}
+
 // Member functions:
+
 NN::NN(std::vector<int> layer_config, ActivationFunctionId hidden_layer_activation_func_id,
        ActivationFunctionId output_layer_activation_func_id, CostFunctionId cost_func_id, float learning_rate)
 {
@@ -876,4 +891,50 @@ ProgressReport NN::test(Batch *batch)
     rpt.cost = cost;
 
     return rpt;
+}
+
+void NN::all(Supervisor *supervisor, int train_batch_size, int validation_chk_freq, const char *train_csv_path, const char *validation_csv_path)
+{
+    FILE *train_csv_file_ptr = fopen(train_csv_path, "w");
+    FILE *validation_csv_file_ptr = fopen(validation_csv_path, "w");
+
+    NN::write_csv_header(train_csv_file_ptr);
+    NN::write_csv_header(validation_csv_file_ptr);
+
+    Batch *validation_batch = supervisor->create_validation_batch();
+    float prv_validation_cost = FLT_MAX;
+
+    Batch *test_batch = supervisor->create_test_batch();
+
+    unsigned long int epoch = 1;
+    while (true)
+    {
+        Batch *train_batch = supervisor->create_train_batch(train_batch_size);
+        ProgressReport train_rpt = this->train(train_batch);
+        NN::write_to_csv(train_csv_file_ptr, epoch, train_rpt);
+        delete train_batch;
+
+        if (epoch % validation_chk_freq == 0)
+        {
+            ProgressReport validation_rpt = this->validate(validation_batch);
+            NN::write_to_csv(validation_csv_file_ptr, epoch, validation_rpt);
+
+            if (prv_validation_cost <= validation_rpt.cost)
+            {
+                break;
+            }
+
+            prv_validation_cost = validation_rpt.cost;
+        }
+
+        epoch++;
+    }
+
+    ProgressReport test_rpt = this->test(test_batch);
+
+    delete validation_batch;
+    delete test_batch;
+
+    fclose(train_csv_file_ptr);
+    fclose(validation_csv_file_ptr);
 }
