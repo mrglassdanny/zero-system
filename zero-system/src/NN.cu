@@ -792,15 +792,14 @@ void NN::profile(Tensor *x, Tensor *y)
     printf("Elapsed Seconds: %f\n\n", time_taken);
 }
 
-// TODO
-Result NN::train(Batch *batch)
+ProgressReport NN::train(Batch *batch)
 {
-    Result result;
+    ProgressReport rpt;
 
     int batch_size = batch->get_size();
 
-    result.cor_cnt = 0;
-    result.tot_cnt = batch_size;
+    rpt.cor_cnt = 0;
+    rpt.tot_cnt = batch_size;
 
     float cost = 0.0f;
 
@@ -818,22 +817,22 @@ Result NN::train(Batch *batch)
         TensorTuple max_tup = this->neurons[lst_lyr_idx]->get_max();
         if (y->get_idx(max_tup.idx) == 1.0f)
         {
-            result.cor_cnt++;
+            rpt.cor_cnt++;
         }
     }
 
     cost /= batch_size;
 
-    result.cost = cost;
+    rpt.cost = cost;
 
     this->optimize(batch_size);
 
-    return result;
+    return rpt;
 }
 
-Result NN::validate(Batch *batch)
+ProgressReport NN::validate(Batch *batch)
 {
-    Result result;
+    ProgressReport rpt;
 
     int batch_size = batch->get_size();
 
@@ -850,14 +849,14 @@ Result NN::validate(Batch *batch)
 
     cost /= batch_size;
 
-    result.cost = cost;
+    rpt.cost = cost;
 
-    return result;
+    return rpt;
 }
 
-Result NN::test(Batch *batch)
+ProgressReport NN::test(Batch *batch)
 {
-    Result result;
+    ProgressReport rpt;
 
     int batch_size = batch->get_size();
 
@@ -874,7 +873,7 @@ Result NN::test(Batch *batch)
 
     cost /= batch_size;
 
-    result.cost = cost;
+    rpt.cost = cost;
 
-    return result;
+    return rpt;
 }

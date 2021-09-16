@@ -41,7 +41,7 @@ Supervisor *init_mnist_supervisor()
 	free(img_buf);
 	free(lbl_buf);
 
-	Supervisor *sup = new Supervisor(img_cnt, 784, img_flt_buf, lbl_flt_buf);
+	Supervisor *sup = new Supervisor(img_cnt, 784, 10, img_flt_buf, lbl_flt_buf, Cpu);
 
 	free(lbl_flt_buf);
 	free(img_flt_buf);
@@ -89,7 +89,7 @@ void mnist_test()
 	for (int epoch = 0; epoch < epoch_cnt; epoch++)
 	{
 		Batch *batch = sup->create_train_batch(100);
-		Result result = nn->train(batch);
+		ProgressReport result = nn->train(batch);
 		delete batch;
 
 		if (epoch % 100 == 0)

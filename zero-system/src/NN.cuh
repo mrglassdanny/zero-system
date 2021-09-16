@@ -19,7 +19,7 @@ enum CostFunctionId
     CrossEntropy
 };
 
-struct Result
+struct ProgressReport
 {
     float cost;
     int cor_cnt;
@@ -53,7 +53,7 @@ public:
     void optimize(int batch_size);
     void check_gradient(Tensor *x, Tensor *y, bool print_flg);
     void profile(Tensor *x, Tensor *y);
-    Result train(Batch *batch);
-    Result validate(Batch *batch);
-    Result test(Batch *batch);
+    ProgressReport train(Batch *batch);
+    ProgressReport validate(Batch *batch);
+    ProgressReport test(Batch *batch);
 };
