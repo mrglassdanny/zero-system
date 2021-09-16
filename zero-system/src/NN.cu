@@ -73,9 +73,13 @@ __global__ void k_dot(float *n_arr, float *w_arr, float *nxt_n_arr, int n_cnt, i
 
     int w_cnt = n_cnt * nxt_n_cnt;
 
+    int n_idx = tid % n_cnt;
+    int nxt_n_idx = tid / n_cnt;
+    int w_idx = tid;
+
     if (tid < w_cnt)
     {
-        temp[threadIdx.x] = n_arr[tid % n_cnt] * w_arr[tid];
+        temp[threadIdx.x] = n_arr[n_idx] * w_arr[w_idx];
     }
 
     __syncthreads();
@@ -251,25 +255,27 @@ __global__ void k_derive_activation(float *n_arr, float *agg_arr, int n_cnt, Act
     }
 }
 
-__global__ void k_derive_weights_n_increment_derivatives(float *agg_arr, float *n_arr, float *dw_arr, int nxt_n_cnt, int n_cnt)
+__global__ void k_derive_weight_and_increment_derivative(float *agg_arr, float *n_arr, float *dw_arr, int n_cnt, int prv_n_cnt)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    int nxt_n_idx = tid / n_cnt;
-    int n_idx = tid % n_cnt;
-    int w_idx = nxt_n_idx * n_cnt + n_idx;
+    int w_cnt = n_cnt * prv_n_cnt;
 
-    if (tid < (nxt_n_cnt * n_cnt))
+    int prv_n_idx = tid % prv_n_cnt;
+    int n_idx = tid / prv_n_cnt;
+    int w_idx = n_idx * prv_n_cnt + prv_n_idx;
+
+    if (w_idx < w_cnt)
     {
-        dw_arr[w_idx] += (agg_arr[nxt_n_idx] * n_arr[n_idx]);
+        dw_arr[w_idx] += (agg_arr[n_idx] * n_arr[prv_n_idx]);
     }
 }
 
-__global__ void k_derive_biases_n_increment_derivatives(float *agg_arr, float *db_arr, int cnt)
+__global__ void k_derive_bias_and_increment_derivative(float *agg_arr, float *db_arr, int n_cnt)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (tid < cnt)
+    if (tid < n_cnt)
     {
         db_arr[tid] += (agg_arr[tid]);
     }
@@ -318,9 +324,9 @@ __global__ void k_aggregate_derivatives(float *w_arr, float *agg_arr, float *tem
     // Transpose the weights "matrix".
     int n_idx = tid % n_cnt;
     int prv_n_idx = tid / n_cnt;
-    int w_idx = prv_n_idx * n_cnt + n_idx;
+    int w_idx = n_idx * prv_n_cnt + prv_n_idx;
 
-    if (tid < w_cnt)
+    if (w_idx < w_cnt)
     {
         temp[threadIdx.x] = (agg_arr[n_idx] * w_arr[w_idx]);
     }
@@ -372,7 +378,7 @@ __global__ void k_aggregate_derivatives(float *w_arr, float *agg_arr, float *tem
         {
             for (int i = 0; i < THREADS_PER_BLOCK; i++)
             {
-                atomicAdd(&temp_agg_arr[prv_n_idx], temp[i]);
+                atomicAdd(&temp_agg_arr[(tid + i) / n_cnt], temp[i]);
             }
         }
     }
@@ -588,7 +594,7 @@ void NN::back_propagate(Tensor *y)
         {
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks(ceil((float)n_cnt * prv_n_cnt / (float)threads_per_block));
-            k_derive_weights_n_increment_derivatives<<<num_blocks, threads_per_block>>>(agg->get_arr(Gpu),
+            k_derive_weight_and_increment_derivative<<<num_blocks, threads_per_block>>>(agg->get_arr(Gpu),
                                                                                         prv_n->get_arr(Gpu),
                                                                                         prv_dw->get_arr(Gpu),
                                                                                         n_cnt, prv_n_cnt);
@@ -598,7 +604,7 @@ void NN::back_propagate(Tensor *y)
         {
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks(ceil((float)n_cnt / (float)threads_per_block));
-            k_derive_biases_n_increment_derivatives<<<num_blocks, threads_per_block>>>(agg->get_arr(Gpu), prv_db->get_arr(Gpu), n_cnt);
+            k_derive_bias_and_increment_derivative<<<num_blocks, threads_per_block>>>(agg->get_arr(Gpu), prv_db->get_arr(Gpu), n_cnt);
         }
 
         // Aggregate:

@@ -65,10 +65,12 @@ void misc_test()
 	std::vector<int> layer_config = {x_col_cnt, 16, 8, y_col_cnt};
 	NN *nn = new NN(layer_config, ReLU, Tanh, MSE, 0.001f);
 
-	for (int i = 0; i < 5; i++)
-		nn->profile(x, y);
+	// for (int i = 0; i < 5; i++)
+	// 	nn->profile(x, y);
 
 	nn->check_gradient(x, y, true);
+
+	printf("%d\n", 3 / 4);
 
 	delete nn;
 
