@@ -112,15 +112,21 @@ void misc_test_2()
 
 void misc_test_3()
 {
-	Tensor *t1 = new Tensor(3, 3, Cpu);
-	t1->set_all(11.0f);
-	t1->print();
+	// Tensor *t1 = new Tensor(3, 3, Cpu);
+	// t1->set_all(11.0f);
+	// t1->print();
 
-	Tensor *t2 = new Tensor(*t1);
-	t2->print();
+	// Tensor *t2 = new Tensor(*t1);
+	// t2->print();
 
-	delete t1;
-	delete t2;
+	// t2->dump_to_csv("C:\\Users\\d0g0825\\Desktop\\tensor-test.csv");
+
+	Tensor *t3 = Tensor::from_csv("C:\\Users\\d0g0825\\Desktop\\tensor-test.csv");
+	t3->print();
+
+	//delete t1;
+	//delete t2;
+	delete t3;
 }
 
 int main(int argc, char **argv)

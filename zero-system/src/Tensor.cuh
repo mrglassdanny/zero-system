@@ -34,6 +34,7 @@ private:
 
 public:
     static Tensor *one_hot_encode(int row_cnt, int col_cnt, TensorType typ, float *cpu_arr);
+    static Tensor *from_csv(const char *csv_file_name);
 
     Tensor(int row_cnt, int col_cnt, TensorType typ);
     Tensor(const Tensor &src);
@@ -41,6 +42,8 @@ public:
     ~Tensor();
 
     void print();
+
+    void dump_to_csv(const char *csv_file_name);
 
     void translate(TensorType typ);
 
