@@ -76,7 +76,7 @@ namespace zero
             ProgressReport validate(Batch *batch);
             ProgressReport test(Batch *batch);
 
-            void all(Supervisor *supervisor, int train_batch_size, int validation_chk_freq, const char *train_csv_path, const char *validation_csv_path);
+            void all(Supervisor *supervisor, int train_batch_size, int validation_chk_freq, const char *csv_path);
 
             Tensor *predict(Tensor *x);
         };
