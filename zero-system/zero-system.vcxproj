@@ -99,6 +99,8 @@
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <Include>
       </Include>
+      <Optimization>O2</Optimization>
+      <FastMath>false</FastMath>
     </CudaCompile>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

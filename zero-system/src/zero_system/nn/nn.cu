@@ -109,6 +109,7 @@ __global__ void k_dot(float *n_arr, float *w_arr, float *nxt_n_arr, int n_cnt, i
             {
                 float sum = 0.0f;
 
+#pragma unroll
                 for (int i = 0; i < THREADS_PER_BLOCK; i++)
                 {
                     sum += temp[i];
@@ -120,6 +121,7 @@ __global__ void k_dot(float *n_arr, float *w_arr, float *nxt_n_arr, int n_cnt, i
             {
                 float sums[2] = {0.0f, 0.0f};
 
+#pragma unroll
                 for (int i = 0; i < THREADS_PER_BLOCK; i++)
                 {
                     if ((tid + i) / n_cnt == lower_idx)
@@ -141,6 +143,8 @@ __global__ void k_dot(float *n_arr, float *w_arr, float *nxt_n_arr, int n_cnt, i
         }
         else
         {
+
+#pragma unroll
             for (int i = 0; i < THREADS_PER_BLOCK; i++)
             {
                 atomicAdd(&nxt_n_arr[(tid + i) / n_cnt], temp[i]);
@@ -211,6 +215,7 @@ __global__ void k_cost(float *n_arr, float *y_arr, float *cost, int n_cnt, CostF
     {
         float sum = 0.0f;
 
+#pragma unroll
         for (int i = 0; i < THREADS_PER_BLOCK; i++)
         {
             sum += temp[i];
@@ -331,6 +336,7 @@ __global__ void k_derive_z_and_aggregate_derivatives(float *w_arr, float *agg_ar
             {
                 float sum = 0.0f;
 
+#pragma unroll
                 for (int i = 0; i < THREADS_PER_BLOCK; i++)
                 {
                     sum += temp[i];
@@ -341,6 +347,7 @@ __global__ void k_derive_z_and_aggregate_derivatives(float *w_arr, float *agg_ar
             {
                 float sums[2] = {0.0f, 0.0f};
 
+#pragma unroll
                 for (int i = 0; i < THREADS_PER_BLOCK; i++)
                 {
                     if ((tid + i) / n_cnt == lower_idx)
@@ -362,6 +369,8 @@ __global__ void k_derive_z_and_aggregate_derivatives(float *w_arr, float *agg_ar
         }
         else
         {
+
+#pragma unroll
             for (int i = 0; i < THREADS_PER_BLOCK; i++)
             {
                 atomicAdd(&temp_agg_arr[(tid + i) / n_cnt], temp[i]);
@@ -911,7 +920,7 @@ void NN::check_gradient(Tensor *x, Tensor *y, bool print_flg)
 
 void NN::check_performance(Tensor *x, Tensor *y)
 {
-    int epoch_cnt = 10;
+    int epoch_cnt = 100;
     int batch_size = 10;
 
     printf("START PERFORMANCE TEST\n");
