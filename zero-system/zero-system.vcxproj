@@ -11,20 +11,16 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="src\nn\Batch.cu" />
-    <CudaCompile Include="src\nn\NN.cu" />
-    <CudaCompile Include="src\nn\Supervisor.cu" />
-    <CudaCompile Include="src\nn\util.cu" />
-    <CudaCompile Include="src\Tensor.cu" />
+    <CudaCompile Include="src\zero_system\nn\nn.cu" />
+    <CudaCompile Include="src\zero_system\nn\supervisor.cu" />
+    <CudaCompile Include="src\zero_system\nn\util.cu" />
+    <CudaCompile Include="src\zero_system\core\tensor.cu" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\nn\Batch.cuh" />
-    <ClInclude Include="src\nn\mod.cuh" />
-    <ClInclude Include="src\nn\NN.cuh" />
-    <ClInclude Include="src\nn\pub.cuh" />
-    <ClInclude Include="src\nn\Supervisor.cuh" />
-    <ClInclude Include="src\nn\util.cuh" />
-    <ClInclude Include="src\Tensor.cuh" />
+    <ClInclude Include="src\zero_system\nn\nn.cuh" />
+    <ClInclude Include="src\zero_system\nn\supervisor.cuh" />
+    <ClInclude Include="src\zero_system\nn\util.cuh" />
+    <ClInclude Include="src\zero_system\core\tensor.cuh" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{D0F85482-BF6A-480C-B267-2F3EBA3807FC}</ProjectGuid>
@@ -60,10 +56,12 @@
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)$(ProjectName)\bin\$(Platform)-$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)$(ProjectName)\bin-int\$(Platform)-$(Configuration)\</IntDir>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)$(ProjectName)\bin\$(Platform)-$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)$(ProjectName)\bin-int\$(Platform)-$(Configuration)\</IntDir>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -78,6 +76,8 @@
     </Link>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
+      <Include>
+      </Include>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -97,6 +97,8 @@
     </Link>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
+      <Include>
+      </Include>
     </CudaCompile>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

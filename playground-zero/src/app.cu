@@ -1,8 +1,9 @@
 #include <iostream>
 
-#include "nn/pub.cuh"
+#include <zero_system/nn/nn.cuh>
 
-using namespace nn;
+using namespace zero::core;
+using namespace zero::nn;
 
 Supervisor *init_mnist_supervisor()
 {

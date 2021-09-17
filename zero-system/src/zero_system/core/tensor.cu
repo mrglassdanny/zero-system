@@ -1,5 +1,7 @@
 #include "Tensor.cuh"
 
+using namespace zero::core;
+
 Tensor *Tensor::one_hot_encode(int row_cnt, int col_cnt, TensorType typ, float *cpu_arr)
 {
     Tensor *tensor = new Tensor(row_cnt, col_cnt, typ);

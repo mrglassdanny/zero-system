@@ -1,8 +1,9 @@
-#include "NN.cuh"
+#include "nn.cuh"
 
 #define THREADS_PER_BLOCK 32
 
-using namespace nn;
+using namespace zero::nn;
+using namespace zero::core;
 
 // Device functions:
 
