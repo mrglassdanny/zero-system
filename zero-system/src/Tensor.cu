@@ -39,13 +39,13 @@ Tensor::Tensor(const Tensor &src)
 {
     if (src.typ == Gpu)
     {
-        cudaMalloc(&this->arr, sizeof(float) * (row_cnt * col_cnt));
-        cudaMemcpy(this->arr, src.arr, sizeof(float) * (row_cnt * col_cnt), cudaMemcpyDeviceToDevice);
+        cudaMalloc(&this->arr, sizeof(float) * (src.row_cnt * src.col_cnt));
+        cudaMemcpy(this->arr, src.arr, sizeof(float) * (src.row_cnt * src.col_cnt), cudaMemcpyDeviceToDevice);
     }
     else
     {
-        this->arr = (float *)malloc(sizeof(float) * (row_cnt * col_cnt));
-        memcpy(this->arr, src.arr, sizeof(float) * (row_cnt * col_cnt));
+        this->arr = (float *)malloc(sizeof(float) * (src.row_cnt * src.col_cnt));
+        memcpy(this->arr, src.arr, sizeof(float) * (src.row_cnt * src.col_cnt));
     }
 
     this->row_cnt = src.row_cnt;

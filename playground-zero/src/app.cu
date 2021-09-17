@@ -110,12 +110,26 @@ void misc_test_2()
 	delete nn;
 }
 
+void misc_test_3()
+{
+	Tensor *t1 = new Tensor(3, 3, Cpu);
+	t1->set_all(11.0f);
+	t1->print();
+
+	Tensor *t2 = new Tensor(*t1);
+	t2->print();
+
+	delete t1;
+	delete t2;
+}
+
 int main(int argc, char **argv)
 {
 
 	//mnist_test();
 	//misc_test();
-	misc_test_2();
+	//misc_test_2();
+	misc_test_3();
 
 	return 0;
 }
