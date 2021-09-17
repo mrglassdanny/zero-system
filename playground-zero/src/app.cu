@@ -3,7 +3,9 @@
 #include "nn/Supervisor.cuh"
 #include "nn/NN.cuh"
 
-nn::Supervisor *init_mnist_supervisor()
+using namespace nn;
+
+Supervisor *init_mnist_supervisor()
 {
 
 	int img_rows = 28;
@@ -41,7 +43,7 @@ nn::Supervisor *init_mnist_supervisor()
 	free(img_buf);
 	free(lbl_buf);
 
-	nn::Supervisor *sup = new nn::Supervisor(img_cnt, 784, 10, img_flt_buf, lbl_flt_buf, Cpu);
+	Supervisor *sup = new Supervisor(img_cnt, 784, 10, img_flt_buf, lbl_flt_buf, Cpu);
 
 	free(lbl_flt_buf);
 	free(img_flt_buf);
@@ -53,10 +55,10 @@ void mnist_test()
 {
 	srand(time(NULL));
 
-	nn::Supervisor *sup = init_mnist_supervisor();
+	Supervisor *sup = init_mnist_supervisor();
 
 	std::vector<int> layer_config = {784, 128, 128, 64, 10};
-	nn::NN *nn = new nn::NN(layer_config, nn::ReLU, nn::ReLU, nn::MSE, 0.01f);
+	NN *nn = new NN(layer_config, ReLU, ReLU, MSE, 0.01f);
 
 	nn->all(sup, 10, 100, "C:\\Users\\d0g0825\\Desktop\\mnist-train.csv", "C:\\Users\\d0g0825\\Desktop\\mnist-validation.csv");
 
@@ -82,7 +84,7 @@ void misc_test()
 	y->set_idx(1, 1.0f);
 
 	std::vector<int> layer_config = {x_col_cnt, 12, 8, y_col_cnt};
-	nn::NN *nn = new nn::NN(layer_config, nn::ReLU, nn::ReLU, nn::MSE, 0.01f);
+	NN *nn = new NN(layer_config, ReLU, ReLU, MSE, 0.01f);
 
 	//nn->profile(x, y);
 
@@ -96,26 +98,11 @@ void misc_test()
 	delete y;
 }
 
-void misc_test_2()
-{
-	nn::NN *nn = new nn::NN("C:\\Users\\d0g0825\\Desktop\\cuda-mnist.nn");
-
-	nn::Supervisor *sup = init_mnist_supervisor();
-
-	nn::ProgressReport rpt = nn->test(sup->create_test_batch());
-	rpt.print();
-
-	delete sup;
-
-	delete nn;
-}
-
 int main(int argc, char **argv)
 {
 
 	//mnist_test();
-	//misc_test();
-	misc_test_2();
+	misc_test();
 
 	return 0;
 }
