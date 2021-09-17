@@ -63,9 +63,29 @@ int Supervisor::get_cnt()
     return this->xs.size();
 }
 
+// Creates batch with all data
+Batch *Supervisor::create_batch()
+{
+    int cnt = this->get_cnt();
+
+    if (cnt == 0)
+    {
+        return nullptr;
+    }
+
+    Batch *batch = new Batch();
+
+    for (int i = 0; i < cnt; i++)
+    {
+        batch->add(this->xs[i], this->ys[i]);
+    }
+
+    return batch;
+}
+
 Batch *Supervisor::create_batch(int lower, int upper)
 {
-    if (this->xs.size() == 0)
+    if (this->get_cnt() == 0)
     {
         return nullptr;
     }
@@ -82,7 +102,7 @@ Batch *Supervisor::create_batch(int lower, int upper)
 
 Batch *Supervisor::create_batch(int batch_size, int lower, int upper)
 {
-    if (this->xs.size() == 0)
+    if (this->get_cnt() == 0)
     {
         return nullptr;
     }
@@ -98,20 +118,23 @@ Batch *Supervisor::create_batch(int batch_size, int lower, int upper)
     return batch;
 }
 
-// 70% of data
+Batch *Supervisor::create_train_batch()
+{
+    return this->create_batch(0, (int)floor(this->xs.size() * SUPERVISOR_TRAIN_SPLIT));
+}
+
 Batch *Supervisor::create_train_batch(int batch_size)
 {
-    return this->create_batch(batch_size, 0, (int)floor(this->xs.size() * 0.70f));
+    return this->create_batch(batch_size, 0, (int)floor(this->xs.size() * SUPERVISOR_TRAIN_SPLIT));
 }
 
-// 15% of data
 Batch *Supervisor::create_validation_batch()
 {
-    return this->create_batch((int)floor(this->xs.size() * 0.70f), (int)floor(this->xs.size() * 0.85f));
+    return this->create_batch((int)floor(this->xs.size() * SUPERVISOR_TRAIN_SPLIT), (int)floor(this->xs.size() *
+                                                                                               (SUPERVISOR_TRAIN_SPLIT + SUPERVISOR_VALIDATION_SPLIT)));
 }
 
-// 15% of data
 Batch *Supervisor::create_test_batch()
 {
-    return this->create_batch((int)floor(this->xs.size() * 0.85f), this->xs.size());
+    return this->create_batch((int)floor(this->xs.size() * (SUPERVISOR_TRAIN_SPLIT + SUPERVISOR_VALIDATION_SPLIT)), this->xs.size());
 }
