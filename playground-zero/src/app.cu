@@ -58,7 +58,7 @@ void mnist_test()
 	Supervisor *sup = init_mnist_supervisor();
 
 	std::vector<int> layer_config = {784, 1024, 512, 128, 64, 10};
-	NN *nn = new NN(layer_config, ReLU, ReLU, MSE, 0.01f);
+	NN *nn = new NN(layer_config, ReLU, ReLU, MSE, 0.1f);
 
 	nn->all(sup, 1000, 1000, "C:\\Users\\d0g0825\\Desktop\\mnist-train.csv");
 
@@ -73,7 +73,7 @@ void misc_test()
 {
 	srand(time(NULL));
 
-	int x_col_cnt = 1024;
+	int x_col_cnt = 48;
 	int y_col_cnt = 2;
 
 	Tensor *x = new Tensor(1, x_col_cnt, Gpu);
@@ -83,12 +83,12 @@ void misc_test()
 	y->set_all(0.0f);
 	y->set_idx(1, 1.0f);
 
-	std::vector<int> layer_config = {x_col_cnt, 1024, 1024, 512, 512, 256, 256, y_col_cnt};
+	std::vector<int> layer_config = {x_col_cnt, 16, 12, 8, y_col_cnt};
 	NN *nn = new NN(layer_config, ReLU, ReLU, MSE, 0.01f);
 
-	nn->check_performance(x, y);
+	//nn->check_performance(x, y);
 
-	//nn->check_gradient(x, y, false);
+	nn->check_gradient(x, y, true);
 
 	//nn->dump_to_file("C:\\Users\\d0g0825\\Desktop\\test.nn");
 
