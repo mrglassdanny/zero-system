@@ -55,10 +55,12 @@ void mnist_test()
 
 	Supervisor *sup = init_mnist_supervisor();
 
-	std::vector<int> layer_config = {784, 1024, 1024, 512, 128, 10};
+	std::vector<int> layer_config = {784, 128, 128, 64, 10};
 	NN *nn = new NN(layer_config, ReLU, ReLU, MSE, 0.01f);
 
-	nn->all(sup, 1000, 1000, "C:\\Users\\d0g0825\\Desktop\\mnist-train.csv", "C:\\Users\\d0g0825\\Desktop\\mnist-validation.csv");
+	nn->all(sup, 10, 100, "C:\\Users\\d0g0825\\Desktop\\mnist-train.csv", "C:\\Users\\d0g0825\\Desktop\\mnist-validation.csv");
+
+	nn->dump_to_file("C:\\Users\\d0g0825\\Desktop\\cuda-mnist.nn");
 
 	delete nn;
 
@@ -69,22 +71,24 @@ void misc_test()
 {
 	srand(time(NULL));
 
-	int x_col_cnt = 784;
-	int y_col_cnt = 10;
+	int x_col_cnt = 24;
+	int y_col_cnt = 2;
 
 	Tensor *x = new Tensor(1, x_col_cnt, Gpu);
 	x->set_all(0.5f);
 
 	Tensor *y = new Tensor(1, y_col_cnt, Gpu);
 	y->set_all(0.0f);
-	y->set_idx(5, 1.0f);
+	y->set_idx(1, 1.0f);
 
-	std::vector<int> layer_config = {x_col_cnt, 1024, 1024, 1024, y_col_cnt};
+	std::vector<int> layer_config = {x_col_cnt, 12, 8, y_col_cnt};
 	NN *nn = new NN(layer_config, ReLU, ReLU, MSE, 0.01f);
 
-	nn->profile(x, y);
+	//nn->profile(x, y);
 
-	//nn->check_gradient(x, y, true);
+	nn->check_gradient(x, y, false);
+
+	nn->dump_to_file("C:\\Users\\d0g0825\\Desktop\\test.nn");
 
 	delete nn;
 
@@ -92,9 +96,26 @@ void misc_test()
 	delete y;
 }
 
+void misc_test_2()
+{
+	NN *nn = new NN("C:\\Users\\d0g0825\\Desktop\\cuda-mnist.nn");
+
+	Supervisor *sup = init_mnist_supervisor();
+
+	ProgressReport rpt = nn->test(sup->create_test_batch());
+	rpt.print();
+
+	delete sup;
+
+	delete nn;
+}
+
 int main(int argc, char **argv)
 {
+
+	//mnist_test();
 	//misc_test();
-	mnist_test();
+	misc_test_2();
+
 	return 0;
 }
