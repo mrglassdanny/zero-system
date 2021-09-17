@@ -7,6 +7,7 @@
 class Batch
 {
 private:
+    // Batch does NOT own Tensors!
     std::vector<Tensor *> xs;
     std::vector<Tensor *> ys;
 
