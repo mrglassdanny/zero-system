@@ -1,9 +1,9 @@
 #include <iostream>
 
-#include "Supervisor.cuh"
-#include "NN.cuh"
+#include "nn/Supervisor.cuh"
+#include "nn/NN.cuh"
 
-Supervisor *init_mnist_supervisor()
+nn::Supervisor *init_mnist_supervisor()
 {
 
 	int img_rows = 28;
@@ -41,7 +41,7 @@ Supervisor *init_mnist_supervisor()
 	free(img_buf);
 	free(lbl_buf);
 
-	Supervisor *sup = new Supervisor(img_cnt, 784, 10, img_flt_buf, lbl_flt_buf, Cpu);
+	nn::Supervisor *sup = new nn::Supervisor(img_cnt, 784, 10, img_flt_buf, lbl_flt_buf, Cpu);
 
 	free(lbl_flt_buf);
 	free(img_flt_buf);
@@ -53,10 +53,10 @@ void mnist_test()
 {
 	srand(time(NULL));
 
-	Supervisor *sup = init_mnist_supervisor();
+	nn::Supervisor *sup = init_mnist_supervisor();
 
 	std::vector<int> layer_config = {784, 128, 128, 64, 10};
-	NN *nn = new NN(layer_config, ReLU, ReLU, MSE, 0.01f);
+	nn::NN *nn = new nn::NN(layer_config, nn::ReLU, nn::ReLU, nn::MSE, 0.01f);
 
 	nn->all(sup, 10, 100, "C:\\Users\\d0g0825\\Desktop\\mnist-train.csv", "C:\\Users\\d0g0825\\Desktop\\mnist-validation.csv");
 
@@ -82,7 +82,7 @@ void misc_test()
 	y->set_idx(1, 1.0f);
 
 	std::vector<int> layer_config = {x_col_cnt, 12, 8, y_col_cnt};
-	NN *nn = new NN(layer_config, ReLU, ReLU, MSE, 0.01f);
+	nn::NN *nn = new nn::NN(layer_config, nn::ReLU, nn::ReLU, nn::MSE, 0.01f);
 
 	//nn->profile(x, y);
 
@@ -98,11 +98,11 @@ void misc_test()
 
 void misc_test_2()
 {
-	NN *nn = new NN("C:\\Users\\d0g0825\\Desktop\\cuda-mnist.nn");
+	nn::NN *nn = new nn::NN("C:\\Users\\d0g0825\\Desktop\\cuda-mnist.nn");
 
-	Supervisor *sup = init_mnist_supervisor();
+	nn::Supervisor *sup = init_mnist_supervisor();
 
-	ProgressReport rpt = nn->test(sup->create_test_batch());
+	nn::ProgressReport rpt = nn->test(sup->create_test_batch());
 	rpt.print();
 
 	delete sup;
@@ -110,32 +110,12 @@ void misc_test_2()
 	delete nn;
 }
 
-void misc_test_3()
-{
-	// Tensor *t1 = new Tensor(3, 3, Cpu);
-	// t1->set_all(11.0f);
-	// t1->print();
-
-	// Tensor *t2 = new Tensor(*t1);
-	// t2->print();
-
-	// t2->dump_to_csv("C:\\Users\\d0g0825\\Desktop\\tensor-test.csv");
-
-	Tensor *t3 = Tensor::from_csv("C:\\Users\\d0g0825\\Desktop\\tensor-test.csv");
-	t3->print();
-
-	//delete t1;
-	//delete t2;
-	delete t3;
-}
-
 int main(int argc, char **argv)
 {
 
 	//mnist_test();
 	//misc_test();
-	//misc_test_2();
-	misc_test_3();
+	misc_test_2();
 
 	return 0;
 }

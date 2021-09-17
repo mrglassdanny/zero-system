@@ -2,6 +2,8 @@
 
 #define THREADS_PER_BLOCK 32
 
+using namespace nn;
+
 // Device functions:
 
 __device__ float d_relu(float val)

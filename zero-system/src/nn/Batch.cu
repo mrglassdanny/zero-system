@@ -1,5 +1,7 @@
 #include "Batch.cuh"
 
+using namespace nn;
+
 Batch::Batch()
 {
 }

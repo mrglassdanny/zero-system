@@ -1,5 +1,7 @@
 #include "Supervisor.cuh"
 
+using namespace nn;
+
 Supervisor::Supervisor()
 {
 }
