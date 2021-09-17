@@ -64,7 +64,7 @@ namespace zero
 
             void dump_to_file(const char *path);
 
-            void change_learning_rate(float learning_rate);
+            void set_learning_rate(float learning_rate);
 
             void feed_forward(Tensor *x);
             float get_cost(Tensor *y);

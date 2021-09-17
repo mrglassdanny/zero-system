@@ -601,7 +601,7 @@ void NN::dump_to_file(const char *path)
     fclose(file_ptr);
 }
 
-void NN::change_learning_rate(float learning_rate)
+void NN::set_learning_rate(float learning_rate)
 {
     this->learning_rate = learning_rate;
 }
