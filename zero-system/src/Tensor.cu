@@ -83,6 +83,53 @@ Tensor::~Tensor()
     }
 }
 
+void Tensor::print()
+{
+    TensorType orig_typ = this->typ;
+
+    this->translate(Cpu);
+
+    {
+        printf("[");
+        for (int i = 0; i < this->row_cnt; i++)
+        {
+
+            if (i == 0)
+            {
+                printf(" [ ");
+            }
+            else
+            {
+                printf("  [ ");
+            }
+
+            for (int j = 0; j < this->col_cnt; j++)
+            {
+                if (j == this->col_cnt - 1)
+                {
+                    printf("%f", this->arr[i * this->col_cnt + j]);
+                }
+                else
+                {
+                    printf("%f, ", this->arr[i * this->col_cnt + j]);
+                }
+            }
+
+            if (i == this->row_cnt - 1)
+            {
+                printf(" ] ");
+            }
+            else
+            {
+                printf(" ],\n");
+            }
+        }
+        printf("]\n");
+    }
+
+    this->translate(orig_typ);
+}
+
 void Tensor::translate(TensorType typ)
 {
     if (typ == Gpu)
@@ -256,53 +303,6 @@ void Tensor::set_arr(float *cpu_arr)
     this->translate(Cpu);
 
     memcpy(this->arr, cpu_arr, sizeof(float) * tot_cnt);
-
-    this->translate(orig_typ);
-}
-
-void Tensor::print()
-{
-    TensorType orig_typ = this->typ;
-
-    this->translate(Cpu);
-
-    {
-        printf("[");
-        for (int i = 0; i < this->row_cnt; i++)
-        {
-
-            if (i == 0)
-            {
-                printf(" [ ");
-            }
-            else
-            {
-                printf("  [ ");
-            }
-
-            for (int j = 0; j < this->col_cnt; j++)
-            {
-                if (j == this->col_cnt - 1)
-                {
-                    printf("%f", this->arr[i * this->col_cnt + j]);
-                }
-                else
-                {
-                    printf("%f, ", this->arr[i * this->col_cnt + j]);
-                }
-            }
-
-            if (i == this->row_cnt - 1)
-            {
-                printf(" ] ");
-            }
-            else
-            {
-                printf(" ],\n");
-            }
-        }
-        printf("]\n");
-    }
 
     this->translate(orig_typ);
 }

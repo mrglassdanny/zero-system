@@ -20,11 +20,14 @@ enum CostFunctionId
     CrossEntropy
 };
 
-struct ProgressReport
+class ProgressReport
 {
+public:
     float cost;
     int crct_cnt;
     int tot_cnt;
+
+    void print();
 };
 
 class NN
@@ -51,6 +54,8 @@ public:
        ActivationFunctionId output_layer_activation_func_id, CostFunctionId cost_func_id, float learning_rate);
     NN(const char *path);
     ~NN();
+
+    void print();
 
     void dump_to_file(const char *path);
 

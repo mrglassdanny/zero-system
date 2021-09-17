@@ -40,6 +40,8 @@ public:
     Tensor(int row_cnt, int col_cnt, TensorType typ, float *cpu_arr);
     ~Tensor();
 
+    void print();
+
     void translate(TensorType typ);
 
     int get_row_cnt();
@@ -56,6 +58,4 @@ public:
     void set_all(float val);
     void set_all_rand(float upper);
     void set_arr(float *cpu_arr);
-
-    void print();
 };

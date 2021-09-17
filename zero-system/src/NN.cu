@@ -389,7 +389,13 @@ __global__ void k_adjust_bias(float *b_arr, float *db_arr, int batch_size, float
     }
 }
 
-// Static functions:
+// ProgressReport Member functions:
+void ProgressReport::print()
+{
+    printf("COST: %f\tACCURACY: %f%%\n", this->cost, ((float)this->crct_cnt / (float)this->tot_cnt) * 100.0f);
+}
+
+// NN Static functions:
 
 void NN::write_csv_header(FILE *csv_file_ptr)
 {
@@ -401,7 +407,7 @@ void NN::write_to_csv(FILE *csv_file_ptr, int epoch, ProgressReport rpt)
     fprintf(csv_file_ptr, "%d,%f,%f,%d,%d\n", epoch, rpt.cost, ((float)rpt.crct_cnt / (float)rpt.tot_cnt) * 100.0f, rpt.crct_cnt, rpt.tot_cnt);
 }
 
-// Member functions:
+// NN Member functions:
 
 NN::NN(std::vector<int> lyr_cfg, ActivationFunctionId hidden_layer_activation_func_id,
        ActivationFunctionId output_layer_activation_func_id, CostFunctionId cost_func_id, float learning_rate)
@@ -520,6 +526,35 @@ NN::~NN()
         delete this->biases[lyr_idx];
         delete this->weight_derivatives[lyr_idx];
         delete this->bias_derivatives[lyr_idx];
+    }
+}
+
+void NN::print()
+{
+    int lyr_cnt = this->neurons.size();
+
+    for (int lyr_idx = 0; lyr_idx < lyr_cnt; lyr_idx++)
+    {
+        printf("\n\n==================== LAYER: %d ====================\n\n", lyr_idx + 1);
+
+        printf("NEURONS:\n");
+        if (this->neurons[lyr_idx] == nullptr)
+        {
+            printf("NULL\n");
+        }
+        else
+        {
+            this->neurons[lyr_idx]->print();
+        }
+
+        if (lyr_idx < lyr_cnt - 1)
+        {
+            printf("WEIGHTS:\n");
+            this->weights[lyr_idx]->print();
+
+            printf("BIASES:\n");
+            this->biases[lyr_idx]->print();
+        }
     }
 }
 
@@ -1030,6 +1065,7 @@ ProgressReport NN::test(Batch *batch)
     return rpt;
 }
 
+// Trains, validates, and tests. Press 'q' to force quit.
 void NN::all(Supervisor *supervisor, int train_batch_size, int validation_chk_freq, const char *train_csv_path, const char *validation_csv_path)
 {
     FILE *train_csv_file_ptr = fopen(train_csv_path, "w");
@@ -1055,8 +1091,8 @@ void NN::all(Supervisor *supervisor, int train_batch_size, int validation_chk_fr
         {
             ProgressReport validation_rpt = this->validate(validation_batch);
             NN::write_to_csv(validation_csv_file_ptr, epoch, validation_rpt);
-            printf("VALIDATION: cost=%f\taccuracy=%f\n", validation_rpt.cost,
-                   ((float)validation_rpt.crct_cnt / (float)validation_rpt.tot_cnt) * 100.0f);
+            printf("VALIDATION: ");
+            validation_rpt.print();
 
             if (prv_validation_cost <= validation_rpt.cost)
             {
@@ -1067,11 +1103,13 @@ void NN::all(Supervisor *supervisor, int train_batch_size, int validation_chk_fr
         }
 
         // Allow for manual override.
-        if (_kbhit())
         {
-            if (_getch() == 'q')
+            if (_kbhit())
             {
-                break;
+                if (_getch() == 'q')
+                {
+                    break;
+                }
             }
         }
 
@@ -1079,7 +1117,8 @@ void NN::all(Supervisor *supervisor, int train_batch_size, int validation_chk_fr
     }
 
     ProgressReport test_rpt = this->test(test_batch);
-    printf("TEST: cost=%f\taccuracy=%f\n", test_rpt.cost, ((float)test_rpt.crct_cnt / (float)test_rpt.tot_cnt) * 100.0f);
+    printf("TEST: ");
+    test_rpt.print();
 
     delete validation_batch;
     delete test_batch;
