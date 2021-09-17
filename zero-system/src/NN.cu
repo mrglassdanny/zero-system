@@ -906,7 +906,7 @@ void NN::check_gradient(Tensor *x, Tensor *y, bool print_flg)
     }
 }
 
-void NN::profile(Tensor *x, Tensor *y)
+void NN::check_performance(Tensor *x, Tensor *y)
 {
     int epoch_cnt = 10;
     int batch_size = 10;
@@ -1125,4 +1125,11 @@ void NN::all(Supervisor *supervisor, int train_batch_size, int validation_chk_fr
 
     fclose(train_csv_file_ptr);
     fclose(validation_csv_file_ptr);
+}
+
+Tensor *NN::predict(Tensor *x)
+{
+    this->feed_forward(x);
+    Tensor *pred = new Tensor(*this->neurons[this->neurons.size() - 1]);
+    return pred;
 }

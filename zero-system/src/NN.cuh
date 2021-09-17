@@ -65,11 +65,13 @@ public:
     void optimize(int batch_size);
 
     void check_gradient(Tensor *x, Tensor *y, bool print_flg);
-    void profile(Tensor *x, Tensor *y);
+    void check_performance(Tensor *x, Tensor *y);
 
     ProgressReport train(Batch *batch);
     ProgressReport validate(Batch *batch);
     ProgressReport test(Batch *batch);
 
     void all(Supervisor *supervisor, int train_batch_size, int validation_chk_freq, const char *train_csv_path, const char *validation_csv_path);
+
+    Tensor *predict(Tensor *x);
 };
