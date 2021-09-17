@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "../Tensor.cuh"
+#include "mod.cuh"
 
 namespace nn
 {

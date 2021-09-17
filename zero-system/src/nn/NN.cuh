@@ -1,10 +1,11 @@
 #pragma once
 
-#include "../Tensor.cuh"
+#include <vector>
+
+#include "mod.cuh"
+#include "util.cuh"
 #include "Supervisor.cuh"
 #include "Batch.cuh"
-
-#include <vector>
 
 namespace nn
 {

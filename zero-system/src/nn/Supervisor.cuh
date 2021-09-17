@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "../Tensor.cuh"
+#include "mod.cuh"
 #include "Batch.cuh"
 
 #define SUPERVISOR_TRAIN_SPLIT 0.70f

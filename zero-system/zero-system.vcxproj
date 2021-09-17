@@ -14,12 +14,16 @@
     <CudaCompile Include="src\nn\Batch.cu" />
     <CudaCompile Include="src\nn\NN.cu" />
     <CudaCompile Include="src\nn\Supervisor.cu" />
+    <CudaCompile Include="src\nn\util.cu" />
     <CudaCompile Include="src\Tensor.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\nn\Batch.cuh" />
+    <ClInclude Include="src\nn\mod.cuh" />
     <ClInclude Include="src\nn\NN.cuh" />
+    <ClInclude Include="src\nn\pub.cuh" />
     <ClInclude Include="src\nn\Supervisor.cuh" />
+    <ClInclude Include="src\nn\util.cuh" />
     <ClInclude Include="src\Tensor.cuh" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

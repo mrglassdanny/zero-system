@@ -1,7 +1,6 @@
 #include <iostream>
 
-#include "nn/Supervisor.cuh"
-#include "nn/NN.cuh"
+#include "nn/pub.cuh"
 
 using namespace nn;
 
@@ -86,11 +85,11 @@ void misc_test()
 	std::vector<int> layer_config = {x_col_cnt, 12, 8, y_col_cnt};
 	NN *nn = new NN(layer_config, ReLU, ReLU, MSE, 0.01f);
 
-	//nn->profile(x, y);
+	nn->check_performance(x, y);
 
-	nn->check_gradient(x, y, false);
+	//nn->check_gradient(x, y, false);
 
-	nn->dump_to_file("C:\\Users\\d0g0825\\Desktop\\test.nn");
+	//nn->dump_to_file("C:\\Users\\d0g0825\\Desktop\\test.nn");
 
 	delete nn;
 
