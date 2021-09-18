@@ -404,7 +404,7 @@ __global__ void k_adjust_bias(float *b_arr, float *db_arr, int batch_size, float
 // ProgressReport Member functions:
 void ProgressReport::print()
 {
-    printf("COST: %f\tACCURACY: %f%%\n", this->cost, ((float)this->crct_cnt / (float)this->tot_cnt) * 100.0f);
+    printf("COST: %f\tACCURACY: %f%%\n", this->cost, ((float)this->correct_cnt / (float)this->total_cnt) * 100.0f);
 }
 
 // NN Static functions:
@@ -416,7 +416,7 @@ void NN::write_csv_header(FILE *csv_file_ptr)
 
 void NN::write_to_csv(FILE *csv_file_ptr, int epoch, ProgressReport rpt)
 {
-    fprintf(csv_file_ptr, "%d,%f,%f,%d,%d\n", epoch, rpt.cost, ((float)rpt.crct_cnt / (float)rpt.tot_cnt) * 100.0f, rpt.crct_cnt, rpt.tot_cnt);
+    fprintf(csv_file_ptr, "%d,%f,%f,%d,%d\n", epoch, rpt.cost, ((float)rpt.correct_cnt / (float)rpt.total_cnt) * 100.0f, rpt.correct_cnt, rpt.total_cnt);
 }
 
 // NN Member functions:
@@ -956,8 +956,8 @@ ProgressReport NN::train(Batch *batch)
 
     int batch_size = batch->get_size();
 
-    rpt.crct_cnt = 0;
-    rpt.tot_cnt = batch_size;
+    rpt.correct_cnt = 0;
+    rpt.total_cnt = batch_size;
 
     float cost = 0.0f;
 
@@ -977,7 +977,7 @@ ProgressReport NN::train(Batch *batch)
             TensorTuple max_tup = this->neurons[lst_lyr_idx]->get_max();
             if (y->get_idx(max_tup.idx) == 1.0f)
             {
-                rpt.crct_cnt++;
+                rpt.correct_cnt++;
             }
         }
         else
@@ -1004,8 +1004,8 @@ ProgressReport NN::validate(Batch *batch)
 
     int batch_size = batch->get_size();
 
-    rpt.crct_cnt = 0;
-    rpt.tot_cnt = batch_size;
+    rpt.correct_cnt = 0;
+    rpt.total_cnt = batch_size;
 
     float cost = 0.0f;
 
@@ -1024,7 +1024,7 @@ ProgressReport NN::validate(Batch *batch)
             TensorTuple max_tup = this->neurons[lst_lyr_idx]->get_max();
             if (y->get_idx(max_tup.idx) == 1.0f)
             {
-                rpt.crct_cnt++;
+                rpt.correct_cnt++;
             }
         }
         else
@@ -1046,8 +1046,8 @@ ProgressReport NN::test(Batch *batch)
 
     int batch_size = batch->get_size();
 
-    rpt.crct_cnt = 0;
-    rpt.tot_cnt = batch_size;
+    rpt.correct_cnt = 0;
+    rpt.total_cnt = batch_size;
 
     float cost = 0.0f;
 
@@ -1066,7 +1066,7 @@ ProgressReport NN::test(Batch *batch)
             TensorTuple max_tup = this->neurons[lst_lyr_idx]->get_max();
             if (y->get_idx(max_tup.idx) == 1.0f)
             {
-                rpt.crct_cnt++;
+                rpt.correct_cnt++;
             }
         }
         else

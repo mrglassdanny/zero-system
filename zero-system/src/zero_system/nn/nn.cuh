@@ -29,8 +29,8 @@ namespace zero
         {
         public:
             float cost;
-            int crct_cnt;
-            int tot_cnt;
+            int correct_cnt;
+            int total_cnt;
 
             void print();
         };
