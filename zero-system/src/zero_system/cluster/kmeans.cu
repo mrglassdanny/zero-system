@@ -20,6 +20,18 @@ KMeans::KMeans(const KMeans &src)
 
 KMeans::KMeans(const char *path)
 {
+    FILE *file_ptr = fopen(path, "rb");
+
+    fread(&this->cluster_cnt, sizeof(int), 1, file_ptr);
+    fread(&this->feature_cnt, sizeof(int), 1, file_ptr);
+
+    int tot_cnt = (this->cluster_cnt * this->feature_cnt);
+    float *cluster_buf = (float *)malloc(sizeof(float) * tot_cnt);
+    fread(cluster_buf, sizeof(float), tot_cnt, file_ptr);
+    this->clusters = new Tensor(this->cluster_cnt, this->feature_cnt, Gpu, cluster_buf);
+    free(cluster_buf);
+
+    fclose(file_ptr);
 }
 
 KMeans::~KMeans()
@@ -29,10 +41,18 @@ KMeans::~KMeans()
 
 void KMeans::print()
 {
+    this->clusters->print();
 }
 
-void KMeans::dump_to_file(const char *path)
+void KMeans::dump(const char *path)
 {
+    FILE *file_ptr = fopen(path, "wb");
+
+    fwrite(&this->cluster_cnt, sizeof(int), 1, file_ptr);
+    fwrite(&this->feature_cnt, sizeof(int), 1, file_ptr);
+    fwrite(this->clusters->get_arr(Cpu), sizeof(float), (this->clusters->get_row_cnt() * this->clusters->get_col_cnt()), file_ptr);
+
+    fclose(file_ptr);
 }
 
 float KMeans::train(Tensor *x, int train_chk_freq)

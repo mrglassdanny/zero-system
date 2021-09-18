@@ -27,7 +27,7 @@ namespace zero
 
             void print();
 
-            void dump_to_file(const char *path);
+            void dump(const char *path);
 
             float train(Tensor *x, int train_chk_freq);
             Tensor *get_input_assignments(Tensor *x);
