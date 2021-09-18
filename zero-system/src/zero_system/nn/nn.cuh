@@ -25,7 +25,7 @@ namespace zero
             CrossEntropy
         };
 
-        class ProgressReport
+        class Report
         {
         public:
             float cost;
@@ -52,7 +52,7 @@ namespace zero
             float learning_rate;
 
             static void write_csv_header(FILE *csv_file_ptr);
-            static void write_to_csv(FILE *csv_file_ptr, int epoch, ProgressReport rpt);
+            static void write_to_csv(FILE *csv_file_ptr, int epoch, Report rpt);
 
         public:
             NN(std::vector<int> layer_config, ActivationFunctionId hidden_layer_activation_func_id,
@@ -74,9 +74,9 @@ namespace zero
             void check_gradient(Tensor *x, Tensor *y, bool print_flg);
             void check_performance(Tensor *x, Tensor *y);
 
-            ProgressReport train(Batch *batch);
-            ProgressReport validate(Batch *batch);
-            ProgressReport test(Batch *batch);
+            Report train(Batch *batch);
+            Report validate(Batch *batch);
+            Report test(Batch *batch);
 
             void all(Supervisor *supervisor, int train_batch_size, int validation_chk_freq, const char *csv_path);
 

@@ -401,8 +401,8 @@ __global__ void k_adjust_bias(float *b_arr, float *db_arr, int batch_size, float
     }
 }
 
-// ProgressReport Member functions:
-void ProgressReport::print()
+// Report Member functions:
+void Report::print()
 {
     printf("COST: %f\tACCURACY: %f%%\n", this->cost, ((float)this->correct_cnt / (float)this->total_cnt) * 100.0f);
 }
@@ -414,7 +414,7 @@ void NN::write_csv_header(FILE *csv_file_ptr)
     fprintf(csv_file_ptr, "epoch,cost,accuracy,correct_cnt,total_cnt\n");
 }
 
-void NN::write_to_csv(FILE *csv_file_ptr, int epoch, ProgressReport rpt)
+void NN::write_to_csv(FILE *csv_file_ptr, int epoch, Report rpt)
 {
     fprintf(csv_file_ptr, "%d,%f,%f,%d,%d\n", epoch, rpt.cost, ((float)rpt.correct_cnt / (float)rpt.total_cnt) * 100.0f, rpt.correct_cnt, rpt.total_cnt);
 }
@@ -950,9 +950,9 @@ void NN::check_performance(Tensor *x, Tensor *y)
     printf("Elapsed Seconds: %f\n\n", time_taken);
 }
 
-ProgressReport NN::train(Batch *batch)
+Report NN::train(Batch *batch)
 {
-    ProgressReport rpt;
+    Report rpt;
 
     int batch_size = batch->get_size();
 
@@ -998,9 +998,9 @@ ProgressReport NN::train(Batch *batch)
     return rpt;
 }
 
-ProgressReport NN::validate(Batch *batch)
+Report NN::validate(Batch *batch)
 {
-    ProgressReport rpt;
+    Report rpt;
 
     int batch_size = batch->get_size();
 
@@ -1040,9 +1040,9 @@ ProgressReport NN::validate(Batch *batch)
     return rpt;
 }
 
-ProgressReport NN::test(Batch *batch)
+Report NN::test(Batch *batch)
 {
-    ProgressReport rpt;
+    Report rpt;
 
     int batch_size = batch->get_size();
 
@@ -1098,13 +1098,13 @@ void NN::all(Supervisor *supervisor, int train_batch_size, int validation_chk_fr
     while (true)
     {
         Batch *train_batch = supervisor->create_train_batch(train_batch_size);
-        ProgressReport train_rpt = this->train(train_batch);
+        Report train_rpt = this->train(train_batch);
         NN::write_to_csv(csv_file_ptr, epoch, train_rpt);
         delete train_batch;
 
         if (epoch % validation_chk_freq == 0)
         {
-            ProgressReport validation_rpt = this->validate(validation_batch);
+            Report validation_rpt = this->validate(validation_batch);
             printf("VALIDATION: ");
             validation_rpt.print();
 
@@ -1130,7 +1130,7 @@ void NN::all(Supervisor *supervisor, int train_batch_size, int validation_chk_fr
         epoch++;
     }
 
-    ProgressReport test_rpt = this->test(test_batch);
+    Report test_rpt = this->test(test_batch);
     printf("TEST: ");
     test_rpt.print();
 
