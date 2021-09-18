@@ -62,7 +62,7 @@ namespace zero
 
             void print();
 
-            void dump_to_file(const char *path);
+            void dump(const char *path);
 
             void set_learning_rate(float learning_rate);
 

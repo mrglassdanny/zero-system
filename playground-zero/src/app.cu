@@ -60,12 +60,12 @@ void mnist_test()
 	//std::vector<int> layer_config = {784, 1024, 512, 128, 64, 10};
 	//NN *nn = new NN(layer_config, ReLU, ReLU, MSE, 0.1f);
 
-	NN *nn = new NN("C:\\Users\\d0g0825\\Desktop\\cuda-mnist-2.nn");
+	NN *nn = new NN("C:\\Users\\d0g0825\\Desktop\\cuda-mnist.nn");
 	nn->set_learning_rate(0.01f);
 
 	nn->all(sup, 6000, 100, "C:\\Users\\d0g0825\\Desktop\\mnist-train.csv");
 
-	nn->dump_to_file("C:\\Users\\d0g0825\\Desktop\\cuda-mnist-3.nn");
+	nn->dump("C:\\Users\\d0g0825\\Desktop\\cuda-mnist-2.nn");
 
 	delete nn;
 
@@ -93,7 +93,7 @@ void misc_test()
 
 	nn->check_gradient(x, y, true);
 
-	//nn->dump_to_file("C:\\Users\\d0g0825\\Desktop\\test.nn");
+	//nn->dump("C:\\Users\\d0g0825\\Desktop\\test.nn");
 
 	delete nn;
 
@@ -104,8 +104,8 @@ void misc_test()
 int main(int argc, char **argv)
 {
 
-	mnist_test();
-	//misc_test();
+	//mnist_test();
+	misc_test();
 
 	return 0;
 }

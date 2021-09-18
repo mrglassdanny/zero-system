@@ -570,7 +570,7 @@ void NN::print()
     }
 }
 
-void NN::dump_to_file(const char *path)
+void NN::dump(const char *path)
 {
 
     FILE *file_ptr = fopen(path, "wb");
