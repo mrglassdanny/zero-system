@@ -1091,9 +1091,13 @@ Report NN::test(Batch *batch)
 // Trains, validates, and tests. Press 'q' to force quit.
 void NN::all(Supervisor *supervisor, int train_batch_size, int validation_chk_freq, const char *csv_path)
 {
-    FILE *csv_file_ptr = fopen(csv_path, "w");
+    FILE *csv_file_ptr;
 
-    NN::write_csv_header(csv_file_ptr);
+    if (csv_path != nullptr)
+    {
+        csv_file_ptr = fopen(csv_path, "w");
+        NN::write_csv_header(csv_file_ptr);
+    }
 
     Batch *validation_batch = supervisor->create_validation_batch();
     float prv_validation_cost = FLT_MAX;
@@ -1105,7 +1109,12 @@ void NN::all(Supervisor *supervisor, int train_batch_size, int validation_chk_fr
     {
         Batch *train_batch = supervisor->create_train_batch(train_batch_size);
         Report train_rpt = this->train(train_batch);
-        NN::write_to_csv(csv_file_ptr, epoch, train_rpt);
+
+        if (csv_path != nullptr)
+        {
+            NN::write_to_csv(csv_file_ptr, epoch, train_rpt);
+        }
+
         delete train_batch;
 
         if (epoch % validation_chk_freq == 0)
@@ -1143,7 +1152,10 @@ void NN::all(Supervisor *supervisor, int train_batch_size, int validation_chk_fr
     delete validation_batch;
     delete test_batch;
 
-    fclose(csv_file_ptr);
+    if (csv_path != nullptr)
+    {
+        fclose(csv_file_ptr);
+    }
 }
 
 Tensor *NN::predict(Tensor *x)
