@@ -13,6 +13,11 @@
   <ItemGroup>
     <CudaCompile Include="src\mnist.cu" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\zero-system\zero-system.vcxproj">
+      <Project>{d0f85482-bf6a-480c-b267-2f3eba3807fc}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{B60E8A91-0752-4349-91D4-AFF1D0FBF217}</ProjectGuid>
     <RootNamespace>mnist_zero</RootNamespace>
