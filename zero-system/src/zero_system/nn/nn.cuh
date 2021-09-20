@@ -51,6 +51,8 @@ namespace zero
 
             float learning_rate;
 
+            float *d_cost;
+
             static void write_csv_header(FILE *csv_file_ptr);
             static void write_to_csv(FILE *csv_file_ptr, int epoch, Report rpt);
 

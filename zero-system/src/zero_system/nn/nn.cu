@@ -401,13 +401,13 @@ __global__ void k_adjust_bias(float *b_arr, float *db_arr, int batch_size, float
     }
 }
 
-// Report Member functions:
+// Report member functions:
 void Report::print()
 {
     printf("COST: %f\tACCURACY: %f%%\n", this->cost, ((float)this->correct_cnt / (float)this->total_cnt) * 100.0f);
 }
 
-// NN Static functions:
+// NN static functions:
 
 void NN::write_csv_header(FILE *csv_file_ptr)
 {
@@ -419,7 +419,7 @@ void NN::write_to_csv(FILE *csv_file_ptr, int epoch, Report rpt)
     fprintf(csv_file_ptr, "%d,%f,%f,%d,%d\n", epoch, rpt.cost, ((float)rpt.correct_cnt / (float)rpt.total_cnt) * 100.0f, rpt.correct_cnt, rpt.total_cnt);
 }
 
-// NN Member functions:
+// NN member functions:
 
 NN::NN(std::vector<int> lyr_cfg, ActivationFunctionId hidden_layer_activation_func_id,
        ActivationFunctionId output_layer_activation_func_id, CostFunctionId cost_func_id, float learning_rate)
@@ -462,6 +462,9 @@ NN::NN(std::vector<int> lyr_cfg, ActivationFunctionId hidden_layer_activation_fu
     this->cost_func_id = cost_func_id;
 
     this->learning_rate = learning_rate;
+
+    cudaMalloc(&this->d_cost, sizeof(float));
+    cudaMemset(this->d_cost, 0, sizeof(float));
 }
 
 NN::NN(const char *path)
@@ -522,6 +525,9 @@ NN::NN(const char *path)
     }
 
     fclose(file_ptr);
+
+    cudaMalloc(&this->d_cost, sizeof(float));
+    cudaMemset(this->d_cost, 0, sizeof(float));
 }
 
 NN::~NN()
@@ -539,6 +545,8 @@ NN::~NN()
         delete this->weight_derivatives[lyr_idx];
         delete this->bias_derivatives[lyr_idx];
     }
+
+    cudaFree(this->d_cost);
 }
 
 void NN::print()
@@ -663,9 +671,6 @@ float NN::get_cost(Tensor *y)
     y->translate(Gpu);
 
     float h_cost = 0.0f;
-    float *d_cost;
-    cudaMalloc(&d_cost, sizeof(float));
-    cudaMemset(d_cost, 0, sizeof(float));
 
     int lyr_cnt = this->neurons.size();
     int lst_lyr_idx = lyr_cnt - 1;
@@ -679,11 +684,12 @@ float NN::get_cost(Tensor *y)
         int num_blocks((lst_lyr_n_cnt / threads_per_block) + 1);
 
         k_cost<<<num_blocks, threads_per_block>>>(lst_lyr_n->get_arr(Gpu), y->get_arr(Gpu),
-                                                  d_cost, lst_lyr_n_cnt, this->cost_func_id);
+                                                  this->d_cost, lst_lyr_n_cnt, this->cost_func_id);
     }
 
-    cudaMemcpy(&h_cost, d_cost, sizeof(float), cudaMemcpyDeviceToHost);
-    cudaFree(d_cost);
+    cudaMemcpy(&h_cost, this->d_cost, sizeof(float), cudaMemcpyDeviceToHost);
+
+    cudaMemset(this->d_cost, 0, sizeof(float));
 
     return h_cost;
 }
