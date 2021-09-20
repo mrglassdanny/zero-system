@@ -1117,6 +1117,7 @@ void NN::all(Supervisor *supervisor, int train_batch_size, int validation_chk_fr
 
         delete train_batch;
 
+        // Validate every x epochs.
         if (epoch % validation_chk_freq == 0)
         {
             Report validation_rpt = this->validate(validation_batch);
