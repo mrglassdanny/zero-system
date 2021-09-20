@@ -33,48 +33,55 @@ int __device__ d_get_min(float *arr, int cnt)
 
 // Kernel functions:
 
-void __global__ k_assign(float *x, float *assignments, float *clusters, int feature_cnt, int cluster_cnt, float *cost)
+void __global__ k_assign(float *x, float *assignments, float *clusters, int feature_cnt, int cluster_cnt, int row_cnt, float *cost)
 {
-    extern __shared__ float temp[];
-    memset(temp, 0, sizeof(float) * cluster_cnt);
+
+    float temp[] = {0.0f, 0.0f, 0.0f};
 
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    for (int i = 0; i < feature_cnt; i++)
+    if (tid < row_cnt)
     {
+        for (int i = 0; i < feature_cnt; i++)
+        {
+            for (int j = 0; j < cluster_cnt; j++)
+            {
+                float cost = d_calc_cost(x[tid * feature_cnt + i], clusters[j * feature_cnt + i]);
+                temp[j] += cost;
+            }
+        }
+
         for (int j = 0; j < cluster_cnt; j++)
         {
-            float cost = d_calc_cost(x[tid * feature_cnt + i], clusters[j * feature_cnt + i]);
-            temp[j] += cost;
+            temp[j] = sqrt(temp[j]);
         }
-    }
 
-    for (int j = 0; j < cluster_cnt; j++)
-    {
-        temp[j] = sqrt(temp[j]);
-    }
+        int idx = d_get_min(temp, cluster_cnt);
 
-    int idx = d_get_min(temp, cluster_cnt);
+        assignments[tid] = idx;
 
-    assignments[tid] = idx;
-
-    if (cost != nullptr)
-    {
-        *cost += temp[idx];
+        if (cost != nullptr)
+        {
+            atomicAdd(cost, temp[idx]);
+        }
     }
 }
 
-void __global__ k_update(float *x, float *assignments, float *clusters, float *assignment_cnts, int feature_cnt, int cluster_cnt)
+void __global__ k_update(float *x, float *assignments, float *clusters, float *assignment_cnts, int feature_cnt, int cluster_cnt, int row_cnt)
 {
 
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    int cluster_idx = assignments[tid];
-    assignment_cnts[cluster_idx]++;
-
-    for (int i = 0; i < feature_cnt; i++)
+    if (tid < row_cnt)
     {
-        atomicAdd(&clusters[cluster_idx * feature_cnt + i], x[tid * feature_cnt + i]);
+        int cluster_idx = assignments[tid];
+
+        atomicAdd(&assignment_cnts[cluster_idx], 1.0f);
+
+        for (int i = 0; i < feature_cnt; i++)
+        {
+            atomicAdd(&clusters[cluster_idx * feature_cnt + i], x[tid * feature_cnt + i]);
+        }
     }
 }
 
@@ -82,15 +89,18 @@ void __global__ k_div(float *clusters, float *assignment_cnts, int cluster_cnt, 
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    int cluster_idx = tid / cluster_cnt;
-    int feature_idx = tid % feature_cnt;
+    if (tid < cluster_cnt * feature_cnt)
+    {
+        int cluster_idx = tid / feature_cnt;
+        int feature_idx = tid % feature_cnt;
 
-    clusters[cluster_idx * feature_cnt + feature_idx] /= assignment_cnts[cluster_idx];
+        clusters[tid] /= (assignment_cnts[cluster_idx] + 1);
+    }
 }
 
 // KMeans member functions:
 
-void KMeans::set(Tensor *x)
+void KMeans::set_clusters(Tensor *x)
 {
     this->clusters->translate(Cpu);
 
@@ -103,7 +113,7 @@ void KMeans::set(Tensor *x)
     this->clusters->translate(Gpu);
 }
 
-void KMeans::reset()
+void KMeans::reset_clusters()
 {
     this->clusters->set_all(0.0f);
 }
@@ -162,9 +172,10 @@ void KMeans::dump(const char *path)
 
 float KMeans::train(Tensor *x)
 {
-    this->set(x);
+    this->set_clusters(x);
 
     Tensor *assignments = new Tensor(x->get_row_cnt(), 1, Gpu);
+    assignments->set_all(0.0f);
 
     int epoch = 1;
 
@@ -176,6 +187,7 @@ float KMeans::train(Tensor *x)
     cudaMemset(d_cost, 0, sizeof(float));
 
     Tensor *assignment_cnts = new Tensor(this->cluster_cnt, 1, Gpu);
+    assignment_cnts->set_all(0.0f);
 
     while (true)
     {
@@ -183,13 +195,13 @@ float KMeans::train(Tensor *x)
         {
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks((x->get_row_cnt() / threads_per_block) + 1);
-            k_assign<<<num_blocks, threads_per_block, sizeof(float) * this->cluster_cnt>>>(x->get_arr(Gpu), assignments->get_arr(Gpu), this->clusters->get_arr(Gpu),
-                                                                                           this->feature_cnt, this->cluster_cnt, d_cost);
+            k_assign<<<num_blocks, threads_per_block>>>(x->get_arr(Gpu), assignments->get_arr(Gpu), this->clusters->get_arr(Gpu),
+                                                        this->feature_cnt, this->cluster_cnt, x->get_row_cnt(), d_cost);
         }
 
         cudaMemcpy(&h_cost, d_cost, sizeof(float), cudaMemcpyDeviceToHost);
 
-        h_cost /= x->get_row_cnt();
+        h_cost /= (float)x->get_row_cnt();
 
         if (h_prv_cost <= h_cost)
         {
@@ -199,18 +211,18 @@ float KMeans::train(Tensor *x)
         h_prv_cost = h_cost;
 
         {
+
             {
                 int threads_per_block(THREADS_PER_BLOCK);
                 int num_blocks((x->get_row_cnt() / threads_per_block) + 1);
                 k_update<<<num_blocks, threads_per_block>>>(x->get_arr(Gpu), assignments->get_arr(Gpu), this->clusters->get_arr(Gpu),
-                                                            assignment_cnts->get_arr(Gpu), this->feature_cnt, this->cluster_cnt);
+                                                            assignment_cnts->get_arr(Gpu), this->feature_cnt, this->cluster_cnt, x->get_row_cnt());
             }
 
-            for (int i = 0; i < this->cluster_cnt; i++)
             {
                 int threads_per_block(THREADS_PER_BLOCK);
                 int num_blocks(((this->cluster_cnt * this->feature_cnt) / threads_per_block) + 1);
-                k_div<<<num_blocks, threads_per_block>>>(this->clusters->get_arr(Gpu), assignment_cnts->get_arr(Gpu), cluster_cnt, feature_cnt);
+                k_div<<<num_blocks, threads_per_block>>>(this->clusters->get_arr(Gpu), assignment_cnts->get_arr(Gpu), this->cluster_cnt, this->feature_cnt);
             }
         }
 
@@ -221,6 +233,9 @@ float KMeans::train(Tensor *x)
     }
 
     cudaFree(d_cost);
+
+    delete assignments;
+    delete assignment_cnts;
 
     return h_cost;
 }
@@ -233,7 +248,7 @@ Tensor *KMeans::predict(Tensor *x)
         int threads_per_block(THREADS_PER_BLOCK);
         int num_blocks((x->get_row_cnt() / threads_per_block) + 1);
         k_assign<<<num_blocks, threads_per_block, sizeof(float) * this->cluster_cnt>>>(x->get_arr(Gpu), assignments->get_arr(Gpu), this->clusters->get_arr(Gpu),
-                                                                                       this->feature_cnt, this->cluster_cnt, nullptr);
+                                                                                       this->feature_cnt, this->cluster_cnt, x->get_row_cnt(), nullptr);
     }
 
     assignments->translate(Cpu);
@@ -259,10 +274,12 @@ void KMeans::find_best(Tensor *x, int cluster_cnt, int iter_cnt, const char *pat
         {
             min_cost = cost;
 
+            printf("LOWEST COST: %f\n", min_cost);
+
             best_kmeans->clusters->set_arr(kmeans->clusters->get_arr(Cpu));
         }
 
-        kmeans->reset();
+        kmeans->reset_clusters();
     }
 
     best_kmeans->dump(path);

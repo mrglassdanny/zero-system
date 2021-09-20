@@ -16,8 +16,8 @@ namespace zero
             int feature_cnt;
             Tensor *clusters;
 
-            void set(Tensor *x);
-            void reset();
+            void set_clusters(Tensor *x);
+            void reset_clusters();
 
         public:
             KMeans(int cluster_cnt, int feature_cnt);

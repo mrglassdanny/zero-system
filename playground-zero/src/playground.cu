@@ -1,11 +1,13 @@
 #include <iostream>
 
 #include <zero_system/nn/nn.cuh>
+#include <zero_system/cluster/kmeans.cuh>
 
 using namespace zero::core;
 using namespace zero::nn;
+using namespace zero::cluster;
 
-void misc_test()
+void nn_test()
 {
 	srand(time(NULL));
 
@@ -34,9 +36,40 @@ void misc_test()
 	delete y;
 }
 
+void kmeans_test()
+{
+	Tensor *x = Tensor::from_csv("C:\\Users\\d0g0825\\Desktop\\data.csv");
+
+	KMeans::find_best(x, 3, 10000, "C:\\Users\\d0g0825\\Desktop\\model.km");
+
+	delete x;
+}
+
+void kmeans_test_2()
+{
+	KMeans *kmeans = new KMeans("C:\\Users\\d0g0825\\Desktop\\model.km");
+
+	kmeans->print();
+
+	Tensor *x = Tensor::from_csv("C:\\Users\\d0g0825\\Desktop\\data.csv");
+
+	Tensor *p = kmeans->predict(x);
+
+	p->dump_to_csv("C:\\Users\\d0g0825\\Desktop\\preds.csv");
+
+	delete p;
+
+	delete x;
+
+	delete kmeans;
+}
+
 int main(int argc, char **argv)
 {
-	misc_test();
+	srand(time(NULL));
+
+	kmeans_test();
+	kmeans_test_2();
 
 	return 0;
 }
