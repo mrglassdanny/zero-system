@@ -1,4 +1,6 @@
 
+#include <vector>
+
 #include "../core/tensor.cuh"
 
 namespace zero
@@ -14,10 +16,8 @@ namespace zero
             int feature_cnt;
             Tensor *clusters;
 
-            void set_clusters(Tensor *x);
-            float assign_inputs_to_clusters(Tensor *x, Tensor *assignments);
-            void update_clusters(Tensor *x, Tensor *assignments);
-            void reset_clusters();
+            void set(Tensor *x);
+            void reset();
 
         public:
             KMeans(int cluster_cnt, int feature_cnt);
@@ -29,8 +29,10 @@ namespace zero
 
             void dump(const char *path);
 
-            float train(Tensor *x, int train_chk_freq);
-            Tensor *get_input_assignments(Tensor *x);
+            float train(Tensor *x);
+            Tensor *predict(Tensor *x);
+
+            static void find_best(Tensor *x, int cluster_cnt, int iter_cnt, const char *path);
         };
     }
 }
