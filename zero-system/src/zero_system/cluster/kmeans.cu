@@ -57,8 +57,10 @@ void KMeans::dump(const char *path)
 
 float KMeans::train(Tensor *x, int train_chk_freq)
 {
+    return 0.0f;
 }
 
 Tensor *get_input_assignments(Tensor *x)
 {
+    return nullptr;
 }

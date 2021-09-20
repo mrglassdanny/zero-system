@@ -11,7 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="src\app.cu" />
+    <CudaCompile Include="src\playground.cu" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\zero-system\zero-system.vcxproj">

@@ -19,7 +19,7 @@ void misc_test()
 	y->set_all(0.0f);
 	y->set_idx(1, 1.0f);
 
-	std::vector<int> layer_config = {x_col_cnt, 16, 12, 8, y_col_cnt};
+	std::vector<int> layer_config = {x_col_cnt, 128, 44, 8, y_col_cnt};
 	NN *nn = new NN(layer_config, ReLU, ReLU, MSE, 0.01f);
 
 	//nn->check_performance(x, y);
