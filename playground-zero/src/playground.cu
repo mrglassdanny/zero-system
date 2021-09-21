@@ -9,7 +9,7 @@ using namespace zero::cluster;
 
 void nn_test()
 {
-	int x_col_cnt = 38;
+	int x_col_cnt = 64;
 	int y_col_cnt = 2;
 
 	Tensor *x = new Tensor(1, x_col_cnt, Gpu);
@@ -19,8 +19,7 @@ void nn_test()
 	y->set_all(0.0f);
 	y->set_idx(1, 1.0f);
 
-	//std::vector<int> layer_config = {x_col_cnt, 64, 32, 8, y_col_cnt};
-	std::vector<int> layer_config = {62, 64, 32, 8, y_col_cnt};
+	std::vector<int> layer_config = {x_col_cnt, 74, 32, 8, y_col_cnt};
 	NN *nn = new NN(layer_config, None, None, MSE, 0.01f);
 
 	nn->check_gradient(x, y, true);
@@ -55,11 +54,11 @@ int main(int argc, char **argv)
 {
 	srand(time(NULL));
 
-	//kmeans_test();
+	kmeans_test();
 
-	//kmeans_test_2();
+	kmeans_test_2();
 
-	nn_test();
+	//nn_test();
 
 	return 0;
 }
