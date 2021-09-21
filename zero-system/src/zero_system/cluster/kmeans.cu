@@ -10,7 +10,7 @@ using namespace zero::cluster;
 
 float __device__ d_get_cost(float x_val, float cluster_val)
 {
-    return pow(x_val - cluster_val, 2.0f);
+    return ((x_val - cluster_val) * (x_val - cluster_val));
 }
 
 int __device__ d_get_min(float *arr, int cnt)

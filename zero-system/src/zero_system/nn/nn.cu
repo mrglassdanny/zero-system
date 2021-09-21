@@ -34,12 +34,12 @@ __device__ float d_tanh(float val)
 
 __device__ float d_derive_tanh(float val)
 {
-    return (1 - pow(val, 2.0));
+    return (1 - (val * val));
 }
 
 __device__ float d_mse_cost(float n_val, float y_val)
 {
-    return pow((n_val - y_val), 2.0);
+    return ((n_val - y_val) * (n_val - y_val));
 }
 
 __device__ float d_derive_mse_cost(float n_val, float y_val)
@@ -903,9 +903,9 @@ void NN::check_gradient(Tensor *x, Tensor *y, bool print_flg)
                     printf("W: %d  %d\t%f : %f  (%f)\n", lyr_idx, w_idx, ana_grad, num_grad, fabs(ana_grad - num_grad));
                 }
 
-                agg_ana_grad += pow(ana_grad, 2.0f);
-                agg_num_grad += pow(num_grad, 2.0f);
-                agg_grad_diff += pow(ana_grad - num_grad, 2.0f);
+                agg_ana_grad += (ana_grad * ana_grad);
+                agg_num_grad += (num_grad * num_grad);
+                agg_grad_diff += ((ana_grad - num_grad) * (ana_grad - num_grad));
 
                 w->set_idx(w_idx, orig_w_val);
             }
@@ -944,9 +944,9 @@ void NN::check_gradient(Tensor *x, Tensor *y, bool print_flg)
                     printf("B: %d  %d\t%f : %f  (%f)\n", lyr_idx, b_idx, ana_grad, num_grad, fabs(ana_grad - num_grad));
                 }
 
-                agg_ana_grad += pow(ana_grad, 2.0f);
-                agg_num_grad += pow(num_grad, 2.0f);
-                agg_grad_diff += pow(ana_grad - num_grad, 2.0f);
+                agg_ana_grad += (ana_grad * ana_grad);
+                agg_num_grad += (num_grad * num_grad);
+                agg_grad_diff += ((ana_grad - num_grad) * (ana_grad - num_grad));
 
                 b->set_idx(b_idx, orig_b_val);
             }
