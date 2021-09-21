@@ -16,9 +16,6 @@ namespace zero
             int feature_cnt;
             Tensor *clusters;
 
-            void set_clusters(Tensor *x);
-            void reset_clusters();
-
         public:
             KMeans(int cluster_cnt, int feature_cnt);
             KMeans(const KMeans &src);
@@ -29,10 +26,13 @@ namespace zero
 
             void dump(const char *path);
 
+            void set_clusters(Tensor *x);
+            void reset_clusters();
+
             float train(Tensor *x);
             Tensor *predict(Tensor *x);
 
-            static void find_best(Tensor *x, int cluster_cnt, int iter_cnt, const char *path);
+            static void dump_best(Tensor *x, int cluster_cnt, int iter_cnt, const char *path);
         };
     }
 }
