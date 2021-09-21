@@ -33,6 +33,7 @@ namespace zero
             int total_cnt;
 
             void print();
+            void update_correct_cnt(Tensor *n, Tensor *y);
         };
 
         class NN
