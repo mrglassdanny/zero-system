@@ -220,7 +220,7 @@ float KMeans::train(Tensor *x)
                                                            assignment_cnts->get_arr(Gpu), this->feature_cnt, this->cluster_cnt, x->get_row_cnt());
     }
 
-    // Update clusters part 1:
+    // Update clusters part 2:
     {
         int threads_per_block(THREADS_PER_BLOCK);
         int num_blocks(((this->cluster_cnt * this->feature_cnt) / threads_per_block) + 1);
