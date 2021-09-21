@@ -964,6 +964,7 @@ Report NN::train(Batch *batch)
             // TODO
         }
 
+        // Translate back to CPU as to not overload GPU.
         x->translate(Cpu);
         y->translate(Cpu);
     }
@@ -1010,6 +1011,10 @@ Report NN::validate(Batch *batch)
         {
             // TODO
         }
+
+        // Translate back to CPU as to not overload GPU.
+        x->translate(Cpu);
+        y->translate(Cpu);
     }
 
     cost /= batch_size;
@@ -1052,6 +1057,10 @@ Report NN::test(Batch *batch)
         {
             // TODO
         }
+
+        // Translate back to CPU as to not overload GPU.
+        x->translate(Cpu);
+        y->translate(Cpu);
     }
 
     cost /= batch_size;
