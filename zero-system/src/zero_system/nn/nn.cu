@@ -82,7 +82,7 @@ __global__ void k_dot(float *n_arr, float *w_arr, float *nxt_n_arr, int n_cnt, i
     int nxt_n_idx = tid / n_cnt;
     int w_idx = tid;
 
-    if (tid < w_cnt)
+    if (w_idx < w_cnt)
     {
         temp[threadIdx.x] = n_arr[n_idx] * w_arr[w_idx];
     }
@@ -101,7 +101,7 @@ __global__ void k_dot(float *n_arr, float *w_arr, float *nxt_n_arr, int n_cnt, i
         */
 
         int lower_idx = tid / n_cnt;
-        int upper_idx = (tid + THREADS_PER_BLOCK) / n_cnt;
+        int upper_idx = ((tid + THREADS_PER_BLOCK) - 1) / n_cnt;
 
         if (n_cnt >= THREADS_PER_BLOCK)
         {
@@ -135,7 +135,7 @@ __global__ void k_dot(float *n_arr, float *w_arr, float *nxt_n_arr, int n_cnt, i
                 }
 
                 atomicAdd(&nxt_n_arr[lower_idx], sums[0]);
-                if (upper_idx < n_cnt)
+                if (upper_idx < nxt_n_cnt)
                 {
                     atomicAdd(&nxt_n_arr[upper_idx], sums[1]);
                 }
@@ -295,7 +295,7 @@ __global__ void k_derive_z_and_increment_bias_derivative(float *agg_arr, float *
     }
 }
 
-__global__ void k_derive_z_and_aggregate_derivatives(float *w_arr, float *agg_arr, float *temp_agg_arr, int prv_n_cnt, int n_cnt)
+__global__ void k_derive_z_and_aggregate_derivatives(float *w_arr, float *agg_arr, float *nxt_agg_arr, int prv_n_cnt, int n_cnt)
 {
     __shared__ float temp[THREADS_PER_BLOCK];
     memset(temp, 0, THREADS_PER_BLOCK * sizeof(float));
@@ -328,7 +328,7 @@ __global__ void k_derive_z_and_aggregate_derivatives(float *w_arr, float *agg_ar
         */
 
         int lower_idx = tid / n_cnt;
-        int upper_idx = (tid + THREADS_PER_BLOCK) / n_cnt;
+        int upper_idx = ((tid + THREADS_PER_BLOCK) - 1) / n_cnt;
 
         if (n_cnt >= THREADS_PER_BLOCK)
         {
@@ -341,7 +341,7 @@ __global__ void k_derive_z_and_aggregate_derivatives(float *w_arr, float *agg_ar
                 {
                     sum += temp[i];
                 }
-                atomicAdd(&temp_agg_arr[lower_idx], sum);
+                atomicAdd(&nxt_agg_arr[lower_idx], sum);
             }
             else
             {
@@ -360,10 +360,10 @@ __global__ void k_derive_z_and_aggregate_derivatives(float *w_arr, float *agg_ar
                     }
                 }
 
-                atomicAdd(&temp_agg_arr[lower_idx], sums[0]);
-                if (upper_idx < n_cnt)
+                atomicAdd(&nxt_agg_arr[lower_idx], sums[0]);
+                if (upper_idx < prv_n_cnt)
                 {
-                    atomicAdd(&temp_agg_arr[upper_idx], sums[1]);
+                    atomicAdd(&nxt_agg_arr[upper_idx], sums[1]);
                 }
             }
         }
@@ -373,7 +373,7 @@ __global__ void k_derive_z_and_aggregate_derivatives(float *w_arr, float *agg_ar
 #pragma unroll
             for (int i = 0; i < THREADS_PER_BLOCK; i++)
             {
-                atomicAdd(&temp_agg_arr[(tid + i) / n_cnt], temp[i]);
+                atomicAdd(&nxt_agg_arr[(tid + i) / n_cnt], temp[i]);
             }
         }
     }
