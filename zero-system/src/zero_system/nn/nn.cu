@@ -473,24 +473,20 @@ NN::NN(std::vector<int> lyr_cfg, ActivationFunctionId hidden_layer_activation_fu
         n->set_all(0.0f);
         this->neurons.push_back(n);
 
+        Tensor *w = new Tensor(nxt_n_cnt, n_cnt, Gpu);
         switch (init_mthd_id)
         {
         case Xavier:
-            Tensor *w = new Tensor(nxt_n_cnt, n_cnt, Gpu);
             w->set_all_rand(1.0f / sqrt(n_cnt));
-            this->weights.push_back(w);
             break;
         case He:
-            Tensor *w = new Tensor(nxt_n_cnt, n_cnt, Gpu);
             w->set_all_rand(2.0f / sqrt(n_cnt));
-            this->weights.push_back(w);
             break;
         default:
-            Tensor *w = new Tensor(nxt_n_cnt, n_cnt, Gpu);
             w->set_all(0.0f);
-            this->weights.push_back(w);
             break;
         }
+        this->weights.push_back(w);
 
         Tensor *b = new Tensor(nxt_n_cnt, 1, Gpu);
         b->set_all(0.0f);
