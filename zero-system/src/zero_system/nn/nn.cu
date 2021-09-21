@@ -269,19 +269,19 @@ __global__ void k_derive_activation(float *n_arr, float *agg_arr, int n_cnt, Act
     }
 }
 
-__global__ void k_derive_z_and_increment_weight_derivative(float *agg_arr, float *n_arr, float *dw_arr, int n_cnt, int prv_n_cnt)
+__global__ void k_derive_z_and_increment_weight_derivative(float *agg_arr, float *n_arr, float *dw_arr, int n_cnt, int nxt_n_cnt)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    int w_cnt = n_cnt * prv_n_cnt;
+    int w_cnt = n_cnt * nxt_n_cnt;
 
-    int prv_n_idx = tid % prv_n_cnt;
-    int n_idx = tid / prv_n_cnt;
-    int w_idx = n_idx * prv_n_cnt + prv_n_idx;
+    int nxt_n_idx = tid % nxt_n_cnt;
+    int n_idx = tid / nxt_n_cnt;
+    int w_idx = n_idx * nxt_n_cnt + nxt_n_idx;
 
     if (w_idx < w_cnt)
     {
-        dw_arr[w_idx] += (agg_arr[n_idx] * n_arr[prv_n_idx]);
+        dw_arr[w_idx] += (agg_arr[n_idx] * n_arr[nxt_n_idx]);
     }
 }
 
@@ -295,19 +295,19 @@ __global__ void k_derive_z_and_increment_bias_derivative(float *agg_arr, float *
     }
 }
 
-__global__ void k_derive_z_and_aggregate_derivatives(float *w_arr, float *agg_arr, float *nxt_agg_arr, int prv_n_cnt, int n_cnt)
+__global__ void k_derive_z_and_aggregate_derivatives(float *agg_arr, float *w_arr, float *nxt_agg_arr, int n_cnt, int nxt_n_cnt)
 {
     __shared__ float temp[THREADS_PER_BLOCK];
     memset(temp, 0, THREADS_PER_BLOCK * sizeof(float));
 
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    int w_cnt = prv_n_cnt * n_cnt;
+    int w_cnt = nxt_n_cnt * n_cnt;
 
     // Transpose the weights "matrix".
     int n_idx = tid % n_cnt;
-    int prv_n_idx = tid / n_cnt;
-    int w_idx = n_idx * prv_n_cnt + prv_n_idx;
+    int nxt_n_idx = tid / n_cnt;
+    int w_idx = n_idx * nxt_n_cnt + nxt_n_idx;
 
     if (w_idx < w_cnt)
     {
@@ -361,7 +361,7 @@ __global__ void k_derive_z_and_aggregate_derivatives(float *w_arr, float *agg_ar
                 }
 
                 atomicAdd(&nxt_agg_arr[lower_idx], sums[0]);
-                if (upper_idx < prv_n_cnt)
+                if (upper_idx < nxt_n_cnt)
                 {
                     atomicAdd(&nxt_agg_arr[upper_idx], sums[1]);
                 }
@@ -750,14 +750,14 @@ void NN::back_propagate(Tensor *y)
     for (int lyr_idx = lst_lyr_idx; lyr_idx > 0; lyr_idx--)
     {
         Tensor *n = this->neurons[lyr_idx];
-        Tensor *prv_n = this->neurons[lyr_idx - 1];
-        Tensor *prv_w = this->weights[lyr_idx - 1];
-        Tensor *prv_b = this->biases[lyr_idx - 1];
-        Tensor *prv_dw = this->weight_derivatives[lyr_idx - 1];
-        Tensor *prv_db = this->bias_derivatives[lyr_idx - 1];
+        Tensor *nxt_n = this->neurons[lyr_idx - 1];
+        Tensor *nxt_w = this->weights[lyr_idx - 1];
+        Tensor *nxt_b = this->biases[lyr_idx - 1];
+        Tensor *nxt_dw = this->weight_derivatives[lyr_idx - 1];
+        Tensor *nxt_db = this->bias_derivatives[lyr_idx - 1];
 
-        int n_cnt = prv_w->get_row_cnt();
-        int prv_n_cnt = prv_w->get_col_cnt();
+        int n_cnt = nxt_w->get_row_cnt();
+        int nxt_n_cnt = nxt_w->get_col_cnt();
 
         ActivationFunctionId activation_func_id = (lyr_idx == lst_lyr_idx) ? this->output_layer_activation_func_id : this->hidden_layer_activation_func_id;
 
@@ -772,37 +772,37 @@ void NN::back_propagate(Tensor *y)
         // Derive z (weight):
         {
             int threads_per_block(THREADS_PER_BLOCK);
-            int num_blocks(((n_cnt * prv_n_cnt) / threads_per_block) + 1);
+            int num_blocks(((n_cnt * nxt_n_cnt) / threads_per_block) + 1);
             k_derive_z_and_increment_weight_derivative<<<num_blocks, threads_per_block>>>(agg->get_arr(Gpu),
-                                                                                          prv_n->get_arr(Gpu),
-                                                                                          prv_dw->get_arr(Gpu),
-                                                                                          n_cnt, prv_n_cnt);
+                                                                                          nxt_n->get_arr(Gpu),
+                                                                                          nxt_dw->get_arr(Gpu),
+                                                                                          n_cnt, nxt_n_cnt);
         }
 
         // Derive z (bias):
         {
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks((n_cnt / threads_per_block) + 1);
-            k_derive_z_and_increment_bias_derivative<<<num_blocks, threads_per_block>>>(agg->get_arr(Gpu), prv_db->get_arr(Gpu), n_cnt);
+            k_derive_z_and_increment_bias_derivative<<<num_blocks, threads_per_block>>>(agg->get_arr(Gpu), nxt_db->get_arr(Gpu), n_cnt);
         }
 
         // Derive z (activation) and aggregate derivatives:
         {
             if (lyr_idx > 1)
             {
-                Tensor *temp_agg = new Tensor(1, prv_n_cnt, Gpu);
-                temp_agg->set_all(0.0f);
+                Tensor *nxt_agg = new Tensor(1, nxt_n_cnt, Gpu);
+                nxt_agg->set_all(0.0f);
 
                 {
                     int threads_per_block(THREADS_PER_BLOCK);
-                    int num_blocks(((prv_n_cnt * n_cnt) / threads_per_block) + 1);
-                    k_derive_z_and_aggregate_derivatives<<<num_blocks, threads_per_block>>>(prv_w->get_arr(Gpu),
-                                                                                            agg->get_arr(Gpu), temp_agg->get_arr(Gpu),
-                                                                                            prv_n_cnt, n_cnt);
+                    int num_blocks(((nxt_n_cnt * n_cnt) / threads_per_block) + 1);
+                    k_derive_z_and_aggregate_derivatives<<<num_blocks, threads_per_block>>>(agg->get_arr(Gpu), nxt_w->get_arr(Gpu),
+                                                                                            nxt_agg->get_arr(Gpu),
+                                                                                            n_cnt, nxt_n_cnt);
                 }
 
                 delete agg;
-                agg = temp_agg;
+                agg = nxt_agg;
             }
         }
     }
