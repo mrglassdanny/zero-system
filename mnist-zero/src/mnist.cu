@@ -57,16 +57,18 @@ void mnist_test()
 
     Supervisor *sup = init_mnist_supervisor();
 
-    // std::vector<int> layer_config = {784, 1024, 1024, 512, 512, 10};
-    // NN *nn = new NN(layer_config, ReLU, ReLU, MSE, 0.1f);
+    std::vector<int> layer_config = {784, 1024, 1024, 512, 512, 256, 128, 64, 10};
+    NN *nn = new NN(layer_config, ReLU, ReLU, MSE, He, 0.05f);
 
-    NN *nn = new NN("C:\\Users\\d0g0825\\Desktop\\temp\\cuda-zero-system-bests\\cuda-mnist.nn");
+    //nn->all(sup, 100, 1000, "C:\\Users\\d0g0825\\Desktop\\mnist-train-x.csv");
+    nn->all(sup, 100, 1000, "C:\\Users\\d0g0825\\Desktop\\mnist-train-h.csv");
 
-    //nn->all(sup, 100, 1000, "C:\\Users\\d0g0825\\Desktop\\mnist-train.csv");
+    //nn->dump("C:\\Users\\d0g0825\\Desktop\\cuda-mnist-xavier.nn");
+    nn->dump("C:\\Users\\d0g0825\\Desktop\\cuda-mnist-he.nn");
 
-    //nn->dump("C:\\Users\\d0g0825\\Desktop\\cuda-mnist-2.nn");
+    //NN *nn = new NN("C:\\Users\\d0g0825\\Desktop\\temp\\cuda-zero-system-bests\\cuda-mnist.nn");
 
-    nn->test(sup->create_test_batch()).print();
+    //nn->test(sup->create_test_batch()).print();
 
     delete nn;
 
