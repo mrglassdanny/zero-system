@@ -9,8 +9,8 @@ using namespace zero::cluster;
 
 void nn_test()
 {
-	int x_col_cnt = 64;
-	int y_col_cnt = 2;
+	int x_col_cnt = 784;
+	int y_col_cnt = 10;
 
 	Tensor *x = new Tensor(1, x_col_cnt, Gpu);
 	x->set_all(0.5f);
@@ -19,8 +19,8 @@ void nn_test()
 	y->set_all(0.0f);
 	y->set_idx(1, 1.0f);
 
-	std::vector<int> layer_config = {x_col_cnt, 74, 32, 8, y_col_cnt};
-	NN *nn = new NN(layer_config, None, None, MSE, 0.01f);
+	std::vector<int> layer_config = {x_col_cnt, 16, 16, y_col_cnt};
+	NN *nn = new NN(layer_config, None, None, MSE, Xavier, 0.01f);
 
 	nn->check_gradient(x, y, true);
 
@@ -34,20 +34,23 @@ void nn_test()
 
 void kmeans_test()
 {
-	Tensor *x = Tensor::from_csv("C:\\Users\\d0g0825\\Desktop\\data.csv");
+	Tensor *x = Tensor::from_csv("C:\\Users\\d0g0825\\Desktop\\temp\\data.csv");
 
-	KMeans::dump_best(x, 5, 1000, "C:\\Users\\d0g0825\\Desktop\\model.km");
+	KMeans::dump_best(x, 3, 1000, "C:\\Users\\d0g0825\\Desktop\\model.km");
 
 	delete x;
 }
 
 void kmeans_test_2()
 {
-	KMeans *kmeans = new KMeans("C:\\Users\\d0g0825\\Desktop\\model.km");
+	KMeans *km = new KMeans("C:\\Users\\d0g0825\\Desktop\\model.km");
 
-	kmeans->print();
+	km->print();
 
-	delete kmeans;
+	Tensor *x = Tensor::from_csv("C:\\Users\\d0g0825\\Desktop\\temp\\data.csv");
+
+	delete km;
+	delete x;
 }
 
 int main(int argc, char **argv)
