@@ -25,6 +25,12 @@ namespace zero
             CrossEntropy
         };
 
+        enum InitializationMethodId
+        {
+            Xavier,
+            He
+        };
+
         class Report
         {
         public:
@@ -59,7 +65,7 @@ namespace zero
 
         public:
             NN(std::vector<int> layer_config, ActivationFunctionId hidden_layer_activation_func_id,
-               ActivationFunctionId output_layer_activation_func_id, CostFunctionId cost_func_id, float learning_rate);
+               ActivationFunctionId output_layer_activation_func_id, CostFunctionId cost_func_id, InitializationMethodId init_mthd_id, float learning_rate);
             NN(const char *path);
             ~NN();
 
