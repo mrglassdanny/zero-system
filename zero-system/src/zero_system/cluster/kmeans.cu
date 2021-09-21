@@ -1,7 +1,7 @@
 #include "kmeans.cuh"
 
 #define THREADS_PER_BLOCK 32
-#define MAX_CLUSTER_CNT 512
+#define MAX_CLUSTER_CNT 128
 
 using namespace zero::core;
 using namespace zero::cluster;
