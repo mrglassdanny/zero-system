@@ -199,7 +199,7 @@ float KMeans::train(Tensor *x)
         {
             cudaMemcpy(&h_cost, d_cost, sizeof(float), cudaMemcpyDeviceToHost);
 
-            h_cost /= (float)x->get_row_cnt();
+            h_cost /= x->get_row_cnt();
 
             if (h_prv_cost <= h_cost)
             {
