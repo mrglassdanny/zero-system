@@ -26,7 +26,7 @@ namespace zero
 
             void dump(const char *path);
 
-            void set_clusters(Tensor *x);
+            void initialize_clusters(Tensor *x);
             void reset_clusters();
 
             float train(Tensor *x);

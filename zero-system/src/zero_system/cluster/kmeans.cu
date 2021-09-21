@@ -33,6 +33,16 @@ int __device__ d_get_min(float *arr, int cnt)
 
 // Kernel functions:
 
+void __global__ k_reset(float *cluster_arr, int cnt)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < cnt)
+    {
+        cluster_arr[tid] = 0.0f;
+    }
+}
+
 void __global__ k_assign(float *x_arr, float *assignment_arr, float *cluster_arr, float *cost, int feature_cnt, int cluster_cnt, int row_cnt)
 {
     float temp[MAX_CLUSTER_CNT];
@@ -149,13 +159,39 @@ void KMeans::dump(const char *path)
     fclose(file_ptr);
 }
 
-void KMeans::set_clusters(Tensor *x)
+void KMeans::initialize_clusters(Tensor *x)
 {
     this->clusters->translate(Cpu);
 
+    std::vector<int> rand_nums;
+
+    for (int i = 0; i < this->cluster_cnt; i++)
+    {
+        bool rand_num_already_added;
+        int rand_num;
+
+        do
+        {
+            rand_num_already_added = false;
+            rand_num = rand() % x->get_row_cnt();
+
+            for (int j = 0; j < rand_nums.size(); j++)
+            {
+                if (rand_nums[j] == rand_num)
+                {
+                    rand_num_already_added = true;
+                    break;
+                }
+            }
+
+        } while (rand_num_already_added);
+
+        rand_nums.push_back(rand_num);
+    }
+
     for (int cluster_idx = 0; cluster_idx < this->cluster_cnt; cluster_idx++)
     {
-        int rand_row_idx = rand() % x->get_row_cnt();
+        int rand_row_idx = rand_nums[cluster_idx];
         memcpy(this->clusters->get_slice(cluster_idx * this->feature_cnt, Cpu), x->get_slice(rand_row_idx * x->get_col_cnt(), Cpu), sizeof(float) * this->feature_cnt);
     }
 
@@ -169,7 +205,7 @@ void KMeans::reset_clusters()
 
 float KMeans::train(Tensor *x)
 {
-    this->set_clusters(x);
+    this->initialize_clusters(x);
 
     Tensor *assignments = new Tensor(x->get_row_cnt(), 1, Gpu);
     assignments->set_all(0.0f);
@@ -207,6 +243,13 @@ float KMeans::train(Tensor *x)
             }
 
             h_prv_cost = h_cost;
+        }
+
+        // Reset clusters prior to update:
+        {
+            int threads_per_block(THREADS_PER_BLOCK);
+            int num_blocks(((this->cluster_cnt * this->feature_cnt) / threads_per_block) + 1);
+            k_reset<<<num_blocks, threads_per_block>>>(this->clusters->get_arr(Gpu), (this->cluster_cnt * this->feature_cnt));
         }
 
         // Update clusters:
