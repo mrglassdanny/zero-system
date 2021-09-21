@@ -2,8 +2,8 @@
 
 #define THREADS_PER_BLOCK 32
 
-using namespace zero::nn;
 using namespace zero::core;
+using namespace zero::nn;
 
 // Device functions:
 
