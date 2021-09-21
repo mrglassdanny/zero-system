@@ -74,7 +74,6 @@ namespace zero
             void optimize(int batch_size);
 
             void check_gradient(Tensor *x, Tensor *y, bool print_flg);
-            void check_performance(Tensor *x, Tensor *y);
 
             Report train(Batch *batch);
             Report validate(Batch *batch);

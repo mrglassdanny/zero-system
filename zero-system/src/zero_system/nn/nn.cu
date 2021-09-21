@@ -929,33 +929,6 @@ void NN::check_gradient(Tensor *x, Tensor *y, bool print_flg)
     }
 }
 
-void NN::check_performance(Tensor *x, Tensor *y)
-{
-    int epoch_cnt = 100;
-    int batch_size = 10;
-
-    printf("START PERFORMANCE TEST\n");
-    clock_t t;
-    t = clock();
-
-    for (int epoch = 0; epoch < epoch_cnt; epoch++)
-    {
-        for (int batch = 0; batch < batch_size; batch++)
-        {
-            this->feed_forward(x);
-            //this->get_cost(y);
-            this->back_propagate(y);
-        }
-        //this->optimize(batch_size);
-    }
-
-    t = clock() - t;
-    double time_taken = ((double)t) / CLOCKS_PER_SEC;
-
-    printf("END PERFORMANCE TEST\n");
-    printf("Elapsed Seconds: %f\n\n", time_taken);
-}
-
 Report NN::train(Batch *batch)
 {
     Report rpt;

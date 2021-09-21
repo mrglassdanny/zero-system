@@ -24,8 +24,6 @@ void nn_test()
 	std::vector<int> layer_config = {x_col_cnt, 128, 44, 8, y_col_cnt};
 	NN *nn = new NN(layer_config, ReLU, ReLU, MSE, 0.01f);
 
-	//nn->check_performance(x, y);
-
 	nn->check_gradient(x, y, true);
 
 	//nn->dump("C:\\Users\\d0g0825\\Desktop\\test.nn");
@@ -40,7 +38,7 @@ void kmeans_test()
 {
 	Tensor *x = Tensor::from_csv("C:\\Users\\d0g0825\\Desktop\\data.csv");
 
-	KMeans::find_best(x, 3, 10000, "C:\\Users\\d0g0825\\Desktop\\model.km");
+	KMeans::find_best(x, 50, 1000, "C:\\Users\\d0g0825\\Desktop\\model.km");
 
 	delete x;
 }
@@ -68,7 +66,15 @@ int main(int argc, char **argv)
 {
 	srand(time(NULL));
 
+	printf("START PERFORMANCE TEST\n");
+	clock_t t;
+	t = clock();
 	kmeans_test();
+	t = clock() - t;
+	double time_taken = ((double)t) / CLOCKS_PER_SEC;
+
+	printf("END PERFORMANCE TEST\n");
+	printf("Elapsed Seconds: %f\n\n", time_taken);
 	kmeans_test_2();
 
 	return 0;
