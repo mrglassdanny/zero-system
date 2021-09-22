@@ -24,8 +24,6 @@ void nn_test()
 
 	nn->check_gradient(x, y, true);
 
-	//nn->dump("C:\\Users\\d0g0825\\Desktop\\test.nn");
-
 	delete nn;
 
 	delete x;
@@ -34,11 +32,11 @@ void nn_test()
 
 void kmeans_test()
 {
-	Tensor *x = Tensor::from_csv("C:\\Users\\d0g0825\\Desktop\\temp\\data.csv");
+	Tensor *x = Tensor::from_csv("C:\\Users\\d0g0825\\Desktop\\temp\\kmeans\\data.csv");
 
-	KMeans::dump_best(x, 3, 10000, "C:\\Users\\d0g0825\\Desktop\\model.km");
+	KMeans::dump_best(x, 3, 10000, "C:\\Users\\d0g0825\\Desktop\\temp\\kmeans\\model.km");
 
-	KMeans *km = new KMeans("C:\\Users\\d0g0825\\Desktop\\model.km");
+	KMeans *km = new KMeans("C:\\Users\\d0g0825\\Desktop\\temp\\kmeans\\model.km");
 
 	km->print();
 
