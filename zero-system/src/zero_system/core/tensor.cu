@@ -174,6 +174,34 @@ Tensor::Tensor(int row_cnt, int col_cnt, TensorType typ, float *cpu_arr)
     this->typ = typ;
 }
 
+Tensor::Tensor(int row_cnt, int col_cnt, TensorType typ, int *cpu_arr)
+{
+
+    if (typ == Gpu)
+    {
+        cudaMalloc(&this->arr, sizeof(float) * (row_cnt * col_cnt));
+
+        for (int i = 0; i < row_cnt * col_cnt; i++)
+        {
+            float f = (float)cpu_arr[i];
+            cudaMemcpy(&this->arr[i], &f, sizeof(float), cudaMemcpyHostToDevice);
+        }
+    }
+    else
+    {
+        this->arr = (float *)malloc(sizeof(float) * (row_cnt * col_cnt));
+
+        for (int i = 0; i < row_cnt * col_cnt; i++)
+        {
+            this->arr[i] = (float)cpu_arr[i];
+        }
+    }
+
+    this->row_cnt = row_cnt;
+    this->col_cnt = col_cnt;
+    this->typ = typ;
+}
+
 Tensor::~Tensor()
 {
     if (this->typ == Gpu)

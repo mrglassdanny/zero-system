@@ -43,6 +43,7 @@ namespace zero
             Tensor(int row_cnt, int col_cnt, TensorType typ);
             Tensor(const Tensor &src);
             Tensor(int row_cnt, int col_cnt, TensorType typ, float *cpu_arr);
+            Tensor(int row_cnt, int col_cnt, TensorType typ, int *cpu_arr);
             ~Tensor();
 
             void print();
