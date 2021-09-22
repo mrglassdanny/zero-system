@@ -38,18 +38,12 @@ void kmeans_test()
 
 	KMeans::dump_best(x, 3, 10000, "C:\\Users\\d0g0825\\Desktop\\model.km");
 
-	delete x;
-}
-
-void kmeans_test_2()
-{
 	KMeans *km = new KMeans("C:\\Users\\d0g0825\\Desktop\\model.km");
 
 	km->print();
 
-	Tensor *x = Tensor::from_csv("C:\\Users\\d0g0825\\Desktop\\temp\\data.csv");
-
 	delete km;
+
 	delete x;
 }
 
@@ -57,9 +51,7 @@ int main(int argc, char **argv)
 {
 	srand(time(NULL));
 
-	// kmeans_test();
-
-	// kmeans_test_2();
+	//kmeans_test();
 
 	nn_test();
 
