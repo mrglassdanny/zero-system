@@ -11,7 +11,7 @@
 using namespace zero::core;
 using namespace zero::nn;
 
-#define DUMP_SPOT "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\chess.nn"
+#define NN_DUMP_PATH "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\chess.nn"
 
 typedef struct DepthSearchResult
 {
@@ -281,7 +281,7 @@ void train_nn_one_hot_encoded_bin()
         //delete sup;
     }
 
-    nn->dump(DUMP_SPOT);
+    nn->dump(NN_DUMP_PATH);
     delete nn;
 
     fclose(boards_bin_file);
@@ -556,7 +556,7 @@ DepthSearchResult depth_search_recursive_one_hot_encoded(int *immut_sim_board, i
 
 void play_nn_depth_one_hot_encoded(int max_depth)
 {
-    NN *nn = new NN(DUMP_SPOT);
+    NN *nn = new NN(NN_DUMP_PATH);
 
     int *board = init_board();
     int cpy_board[CHESS_BOARD_LEN] = {0};
