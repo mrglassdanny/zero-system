@@ -11,8 +11,6 @@ Record::Record(Tensor *x, Tensor *y)
 
 Record::~Record()
 {
-    delete this->x;
-    delete this->y;
 }
 
 Batch::Batch()
@@ -54,6 +52,12 @@ Supervisor::Supervisor(int row_cnt, int col_cnt, int one_hot_cnt, float *x_arr, 
 
 Supervisor::~Supervisor()
 {
+    for (int i = 0; i < this->records.size(); i++)
+    {
+        delete this->records[i].x;
+        delete this->records[i].y;
+    }
+
     this->clear();
 }
 
@@ -99,8 +103,7 @@ int Supervisor::get_cnt()
 
 void Supervisor::shuffle()
 {
-    auto rng = std::default_random_engine{};
-    std::shuffle(std::begin(this->records), std::end(this->records), rng);
+    std::random_shuffle(this->records.begin(), this->records.end());
 }
 
 // Creates batch with all data

@@ -19,6 +19,7 @@ namespace zero
         class Record
         {
         public:
+            // Record does NOT own tensors!
             Tensor *x;
             Tensor *y;
 
