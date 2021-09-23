@@ -158,7 +158,6 @@ void dump_pgn_one_hot_encoded_boards_to_bin(const char *pgn_file_name)
 
 void train_nn_one_hot_encoded_bin()
 {
-
     srand(time(NULL));
 
     FILE *boards_bin_file = fopen("c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\one-hot-encoded-boards.ohbs", "rb");
@@ -199,7 +198,6 @@ void train_nn_one_hot_encoded_bin()
 
 DepthSearchResult depth_search_single_one_hot_encoded(int *board, float agg_eval, int white_mov_flg, NN *nn)
 {
-
     int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT] = {0};
     char mov[CHESS_MAX_MOVE_LEN] = {0};
 
@@ -302,7 +300,6 @@ DepthSearchResult depth_search_single_one_hot_encoded(int *board, float agg_eval
 
 DepthSearchResult depth_search_recursive_one_hot_encoded(int *immut_sim_board, int white_mov_flg, int white_mov_cur_flg, NN *nn, float agg_eval, int max_depth, int cur_depth, char *prev_mov)
 {
-
     int mut_sim_board[CHESS_BOARD_LEN] = {0};
     int one_hot_encoded_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN] = {0};
 
