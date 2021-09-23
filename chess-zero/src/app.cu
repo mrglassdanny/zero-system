@@ -170,10 +170,10 @@ void train_nn_one_hot_encoded_bin()
     int col_cnt = CHESS_ONE_HOT_ENCODED_BOARD_LEN;
     int row_cnt = boards_bin_file_size / (sizeof(float) * col_cnt);
 
-    int sup_cnt = 25;
+    int sup_cnt = 3;
     int sup_row_cnt = (row_cnt / sup_cnt) - 1;
 
-    std::vector<int> layer_cfg = {col_cnt, 2048, 2048, 1024, 512, 32, 1};
+    std::vector<int> layer_cfg = {col_cnt, 1024, 1024, 512, 512, 64, 1};
     NN *nn = new NN(layer_cfg, ReLU, Tanh, MSE, Xavier, 0.01f);
 
     char csv_path_buf[256];
@@ -188,6 +188,7 @@ void train_nn_one_hot_encoded_bin()
         fread(lbl_buf, sizeof(float) * sup_row_cnt, 1, board_labels_bin_file);
 
         Supervisor *sup = new Supervisor(sup_row_cnt, col_cnt, 1, data_buf, lbl_buf, Cpu);
+        sup->shuffle();
 
         sprintf(csv_path_buf, "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\chess-train-%d.csv", i + 1);
         nn->all(sup, 1000, 1000, csv_path_buf);
@@ -541,9 +542,9 @@ int main(int argc, char **argv)
 {
     //test_pgn_import("c:\\users\\d0g0825\\ml-data\\chess-zero\\TEST.pgn");
 
-    dump_pgn_one_hot_encoded_boards_to_bin("c:\\users\\d0g0825\\ml-data\\chess-zero\\ALL.pgn");
+    //dump_pgn_one_hot_encoded_boards_to_bin("c:\\users\\d0g0825\\ml-data\\chess-zero\\ALL.pgn");
 
-    //train_nn_one_hot_encoded_bin();
+    train_nn_one_hot_encoded_bin();
 
     //play_nn_depth_one_hot_encoded(0);
 
