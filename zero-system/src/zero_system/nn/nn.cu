@@ -625,13 +625,45 @@ void NN::print()
 
 void NN::dump(const char *path)
 {
-
     FILE *file_ptr = fopen(path, "wb");
 
     int lyr_cnt = this->neurons.size();
     fwrite(&lyr_cnt, sizeof(int), 1, file_ptr);
 
     for (int lyr_idx = 0; lyr_idx < lyr_cnt; lyr_idx++)
+    {
+        int n_cnt = this->neurons[lyr_idx]->get_col_cnt();
+        fwrite(&n_cnt, sizeof(int), 1, file_ptr);
+    }
+
+    fwrite(&this->hidden_layer_activation_func_id, sizeof(ActivationFunctionId), 1, file_ptr);
+    fwrite(&this->output_layer_activation_func_id, sizeof(ActivationFunctionId), 1, file_ptr);
+    fwrite(&this->cost_func_id, sizeof(CostFunctionId), 1, file_ptr);
+    fwrite(&this->learning_rate, sizeof(float), 1, file_ptr);
+
+    for (int lyr_idx = 0; lyr_idx < lyr_cnt - 1; lyr_idx++)
+    {
+        Tensor *w = this->weights[lyr_idx];
+        fwrite(w->get_arr(Cpu), sizeof(float), (w->get_row_cnt() * w->get_col_cnt()), file_ptr);
+
+        Tensor *b = this->biases[lyr_idx];
+        fwrite(b->get_arr(Cpu), sizeof(float), (b->get_row_cnt()), file_ptr);
+    }
+
+    fclose(file_ptr);
+}
+
+void NN::dump(const char *path, int feature_cnt)
+{
+    FILE *file_ptr = fopen(path, "wb");
+
+    int lyr_cnt = this->neurons.size();
+    fwrite(&lyr_cnt, sizeof(int), 1, file_ptr);
+
+    // Assume first layer memory is no longer available to us.
+    fwrite(&feature_cnt, sizeof(int), 1, file_ptr);
+
+    for (int lyr_idx = 1; lyr_idx < lyr_cnt; lyr_idx++)
     {
         int n_cnt = this->neurons[lyr_idx]->get_col_cnt();
         fwrite(&n_cnt, sizeof(int), 1, file_ptr);
