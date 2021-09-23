@@ -1,6 +1,8 @@
 #pragma once
 
 #include <vector>
+#include <algorithm>
+#include <random>
 
 #include "../core/tensor.cuh"
 
@@ -14,18 +16,27 @@ namespace zero
 
     namespace nn
     {
+        class Record
+        {
+        public:
+            Tensor *x;
+            Tensor *y;
+
+            Record(Tensor *x, Tensor *y);
+            ~Record();
+        };
+
         class Batch
         {
         private:
-            // Batch does NOT own Tensors!
-            std::vector<Tensor *> xs;
-            std::vector<Tensor *> ys;
+            // Batch does NOT own records!
+            std::vector<Record *> records;
 
         public:
             Batch();
             ~Batch();
 
-            void add(Tensor *x, Tensor *y);
+            void add(Record *record);
 
             int get_size();
             Tensor *get_x(int idx);
@@ -35,8 +46,7 @@ namespace zero
         class Supervisor
         {
         private:
-            std::vector<Tensor *> xs;
-            std::vector<Tensor *> ys;
+            std::vector<Record> records;
 
         public:
             Supervisor();
@@ -48,6 +58,8 @@ namespace zero
             void clear();
 
             int get_cnt();
+
+            void shuffle();
 
             Batch *create_batch();
             Batch *create_batch(int lower, int upper);

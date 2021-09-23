@@ -3,6 +3,18 @@
 using namespace zero::nn;
 using namespace zero::core;
 
+Record::Record(Tensor *x, Tensor *y)
+{
+    this->x = x;
+    this->y = y;
+}
+
+Record::~Record()
+{
+    delete this->x;
+    delete this->y;
+}
+
 Batch::Batch()
 {
 }
@@ -11,25 +23,24 @@ Batch::~Batch()
 {
 }
 
-void Batch::add(Tensor *x, Tensor *y)
+void Batch::add(Record *record)
 {
-    this->xs.push_back(x);
-    this->ys.push_back(y);
+    this->records.push_back(record);
 }
 
 int Batch::get_size()
 {
-    return this->xs.size();
+    return this->records.size();
 }
 
 Tensor *Batch::get_x(int idx)
 {
-    return this->xs[idx];
+    return this->records[idx]->x;
 }
 
 Tensor *Batch::get_y(int idx)
 {
-    return this->ys[idx];
+    return this->records[idx]->y;
 }
 
 Supervisor::Supervisor()
@@ -63,14 +74,12 @@ void Supervisor::add(int col_cnt, int one_hot_cnt, float *x_arr, float y_val, Te
         y = new Tensor(1, 1, typ, &y_val);
     }
 
-    this->xs.push_back(x);
-    this->ys.push_back(y);
+    this->records.push_back(Record(x, y));
 }
 
 void Supervisor::add_all(int row_cnt, int col_cnt, int one_hot_cnt, float *x_arr, float *y_arr, TensorType typ)
 {
-    this->xs.reserve(row_cnt);
-    this->ys.reserve(row_cnt);
+    this->records.reserve(row_cnt);
 
     for (int i = 0; i < row_cnt; i++)
     {
@@ -80,19 +89,19 @@ void Supervisor::add_all(int row_cnt, int col_cnt, int one_hot_cnt, float *x_arr
 
 void Supervisor::clear()
 {
-    for (int i = 0; i < this->xs.size(); i++)
-    {
-        delete this->xs[i];
-        delete this->ys[i];
-    }
-
-    this->xs.clear();
-    this->ys.clear();
+    this->records.clear();
 }
 
 int Supervisor::get_cnt()
 {
-    return this->xs.size();
+    return this->records.size();
+}
+
+void Supervisor::shuffle()
+{
+    auto rd = std::random_device{};
+    auto rng = std::default_random_engine{rd()};
+    std::shuffle(std::begin(this->records), std::end(this->records), rng);
 }
 
 // Creates batch with all data
@@ -109,7 +118,7 @@ Batch *Supervisor::create_batch()
 
     for (int i = 0; i < cnt; i++)
     {
-        batch->add(this->xs[i], this->ys[i]);
+        batch->add(&this->records[i]);
     }
 
     return batch;
@@ -126,12 +135,13 @@ Batch *Supervisor::create_batch(int lower, int upper)
 
     for (int i = lower; i < upper; i++)
     {
-        batch->add(this->xs[i], this->ys[i]);
+        batch->add(&this->records[i]);
     }
 
     return batch;
 }
 
+// Creates batch of specified size and bounds with random records.
 Batch *Supervisor::create_batch(int batch_size, int lower, int upper)
 {
     if (this->get_cnt() == 0)
@@ -144,7 +154,7 @@ Batch *Supervisor::create_batch(int batch_size, int lower, int upper)
     for (int i = 0; i < batch_size; i++)
     {
         int idx = (rand() % (upper - lower)) + lower;
-        batch->add(this->xs[idx], this->ys[idx]);
+        batch->add(&this->records[i]);
     }
 
     return batch;
@@ -152,21 +162,21 @@ Batch *Supervisor::create_batch(int batch_size, int lower, int upper)
 
 Batch *Supervisor::create_train_batch()
 {
-    return this->create_batch(0, (int)floor(this->xs.size() * SUPERVISOR_TRAIN_SPLIT));
+    return this->create_batch(0, (int)floor(this->records.size() * SUPERVISOR_TRAIN_SPLIT));
 }
 
 Batch *Supervisor::create_train_batch(int batch_size)
 {
-    return this->create_batch(batch_size, 0, (int)floor(this->xs.size() * SUPERVISOR_TRAIN_SPLIT));
+    return this->create_batch(batch_size, 0, (int)floor(this->records.size() * SUPERVISOR_TRAIN_SPLIT));
 }
 
 Batch *Supervisor::create_validation_batch()
 {
-    return this->create_batch((int)floor(this->xs.size() * SUPERVISOR_TRAIN_SPLIT), (int)floor(this->xs.size() *
-                                                                                               (SUPERVISOR_TRAIN_SPLIT + SUPERVISOR_VALIDATION_SPLIT)));
+    return this->create_batch((int)floor(this->records.size() * SUPERVISOR_TRAIN_SPLIT), (int)floor(this->records.size() *
+                                                                                                    (SUPERVISOR_TRAIN_SPLIT + SUPERVISOR_VALIDATION_SPLIT)));
 }
 
 Batch *Supervisor::create_test_batch()
 {
-    return this->create_batch((int)floor(this->xs.size() * (SUPERVISOR_TRAIN_SPLIT + SUPERVISOR_VALIDATION_SPLIT)), this->xs.size());
+    return this->create_batch((int)floor(this->records.size() * (SUPERVISOR_TRAIN_SPLIT + SUPERVISOR_VALIDATION_SPLIT)), this->records.size());
 }
