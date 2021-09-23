@@ -10,7 +10,7 @@ using namespace zero::cluster;
 void nn_test()
 {
 	int x_col_cnt = 384;
-	int y_col_cnt = 2;
+	int y_col_cnt = 1;
 
 	Tensor *x = new Tensor(1, x_col_cnt, Gpu);
 	x->set_all(0.5f);
@@ -19,7 +19,7 @@ void nn_test()
 	y->set_all(0.0f);
 	y->set_idx(1, 1.0f);
 
-	std::vector<int> layer_config = {x_col_cnt, 1024, 1024, 512, 512, 256, 64, y_col_cnt};
+	std::vector<int> layer_config = {x_col_cnt, 512, 256, y_col_cnt};
 	NN *nn = new NN(layer_config, None, None, MSE, Xavier, 0.01f);
 
 	nn->check_gradient(x, y, false);
