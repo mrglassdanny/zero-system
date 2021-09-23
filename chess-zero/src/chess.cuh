@@ -16,7 +16,7 @@
 
 #define CHESS_INVALID_VALUE -1
 
-#define CHESS_ONE_HOT_ENCODE_COMBINATION_CNT 13
+#define CHESS_ONE_HOT_ENCODE_COMBINATION_CNT 6
 #define CHESS_ONE_HOT_ENCODED_BOARD_LEN (CHESS_BOARD_LEN * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT)
 
 typedef enum ChessPiece
@@ -27,13 +27,13 @@ typedef enum ChessPiece
     WhiteBishop = 4,
     WhiteRook = 6,
     WhiteQueen = 9,
-    WhiteKing = 2,
+    WhiteKing = 10,
     BlackPawn = -1,
     BlackKnight = -3,
     BlackBishop = -4,
     BlackRook = -6,
     BlackQueen = -9,
-    BlackKing = -2
+    BlackKing = -10
 } ChessPiece;
 
 typedef struct SrcDst_Idx

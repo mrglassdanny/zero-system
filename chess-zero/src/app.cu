@@ -77,7 +77,7 @@ void test_pgn_import(const char *pgn_file_name)
     PGNImport_free(pgn);
 }
 
-void dump_pgn_one_hot_encoded_boards_to_bin(const char *pgn_file_name, int rand_mov_cnt)
+void dump_pgn_one_hot_encoded_boards_to_bin(const char *pgn_file_name)
 {
     PGNImport *pgn = PGNImport_init(pgn_file_name);
 
@@ -93,9 +93,7 @@ void dump_pgn_one_hot_encoded_boards_to_bin(const char *pgn_file_name, int rand_
     float one_hot_encoded_board_flt[CHESS_ONE_HOT_ENCODED_BOARD_LEN] = {0.0};
     int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT] = {0};
 
-    int avg_book_mov_cnt = 5;
-    float capture_mult = 1.2;
-    float check_mult = 1.5;
+    int avg_book_mov_cnt = 7;
 
     printf("Total Games: %d\n", pgn->cnt);
 
@@ -103,116 +101,48 @@ void dump_pgn_one_hot_encoded_boards_to_bin(const char *pgn_file_name, int rand_
     {
         PGNMoveList *pl = pgn->games[i];
 
-        white_mov_flg = 1;
-
-        for (int j = 0; j < pl->cnt; j++)
+        if (pl->white_won_flg == 1 || pl->black_won_flg == 1)
         {
-            // Make copy before we make optimal move.
-            copy_board(board, cpy_board);
+            white_mov_flg = 1;
 
-            // Optimal move.
-            change_board_w_mov(board, pl->arr[j], white_mov_flg);
-
-            one_hot_encode_board(board, one_hot_encoded_board);
-            for (int f = 0; f < CHESS_ONE_HOT_ENCODED_BOARD_LEN; f++)
+            for (int j = avg_book_mov_cnt; j < pl->cnt; j++)
             {
-                one_hot_encoded_board_flt[f] = (float)one_hot_encoded_board[f];
-            }
-            fwrite(one_hot_encoded_board_flt, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN, 1, boards_bin_file);
+                // Make copy before we make optimal move.
+                copy_board(board, cpy_board);
 
-            // Label.
-            float lbl;
+                // Optimal move.
+                change_board_w_mov(board, pl->arr[j], white_mov_flg);
 
-            if (white_mov_flg == 1)
-            {
+                one_hot_encode_board(board, one_hot_encoded_board);
+                for (int f = 0; f < CHESS_ONE_HOT_ENCODED_BOARD_LEN; f++)
+                {
+                    one_hot_encoded_board_flt[f] = (float)one_hot_encoded_board[f];
+                }
+                fwrite(one_hot_encoded_board_flt, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN, 1, boards_bin_file);
+
+                // Label.
+                float lbl;
+
                 if (pl->white_won_flg == 1)
                 {
-                    lbl = 1.1;
+                    lbl = 1.0f;
                 }
                 else if (pl->black_won_flg == 1)
                 {
-                    lbl = 0.9;
+                    lbl = -1.0f;
                 }
-                else
-                {
-                    lbl = 1.0;
-                }
+
+                fwrite(&lbl, sizeof(float), 1, board_labels_bin_file);
+
+                white_mov_flg = !white_mov_flg;
             }
-            else
+
+            reset_board(board);
+
+            if (i % 10 == 0)
             {
-                if (pl->white_won_flg == 1)
-                {
-                    lbl = -0.9;
-                }
-                else if (pl->black_won_flg == 1)
-                {
-                    lbl = -1.1;
-                }
-                else
-                {
-                    lbl = -1.0;
-                }
+                printf("%d / %d (%f%%)\n", i, pgn->cnt, (((i * 1.0) / (pgn->cnt * 1.0) * 100.0)));
             }
-
-            // See if move was a capture.
-            int capture_flg = 0;
-            for (int k = 0; k < strlen(pl->arr[j]); k++)
-            {
-                if (pl->arr[j][k] == 'x')
-                {
-                    capture_flg = 1;
-                    break;
-                }
-            }
-
-            // See if move resulted in check.
-            int check_flg = 0;
-            for (int k = 0; k < strlen(pl->arr[j]); k++)
-            {
-                if (pl->arr[j][k] == '+' || pl->arr[j][k] == '#')
-                {
-                    check_flg = 1;
-                    break;
-                }
-            }
-
-            fwrite(&lbl, sizeof(float), 1, board_labels_bin_file);
-
-            // Random move(s).
-            for (int k = 0; k < rand_mov_cnt; k++)
-            {
-                SrcDst_Idx src_dst_idx = get_random_move(cpy_board, white_mov_flg, board);
-                if (src_dst_idx.src_idx != CHESS_INVALID_VALUE && src_dst_idx.dst_idx != CHESS_INVALID_VALUE)
-                {
-                    simulate_board_change_w_srcdst_idx(cpy_board, src_dst_idx.src_idx, src_dst_idx.dst_idx, sim_board);
-                    one_hot_encode_board(cpy_board, one_hot_encoded_board);
-                    for (int f = 0; f < CHESS_ONE_HOT_ENCODED_BOARD_LEN; f++)
-                    {
-                        one_hot_encoded_board_flt[f] = (float)one_hot_encoded_board[f];
-                    }
-                    fwrite(one_hot_encoded_board_flt, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN, 1, boards_bin_file);
-
-                    if (white_mov_flg == 1)
-                    {
-                        float _lbl = -fabs(lbl);
-                        fwrite(&_lbl, sizeof(float), 1, board_labels_bin_file);
-                    }
-                    else
-                    {
-                        float _lbl = fabs(lbl);
-                        fwrite(&_lbl, sizeof(float), 1, board_labels_bin_file);
-                    }
-                }
-            }
-
-            white_mov_flg = !white_mov_flg;
-        }
-
-        reset_board(board);
-
-        if (i % 10 == 0)
-        {
-            printf("%d / %d (%f%%)\n", i, pgn->cnt, (((i * 1.0) / (pgn->cnt * 1.0) * 100.0)));
         }
     }
 
@@ -611,9 +541,9 @@ int main(int argc, char **argv)
 {
     //test_pgn_import("c:\\users\\d0g0825\\ml-data\\chess-zero\\TEST.pgn");
 
-    //dump_pgn_one_hot_encoded_boards_to_bin("c:\\users\\d0g0825\\ml-data\\chess-zero\\ALL.pgn", 1);
+    dump_pgn_one_hot_encoded_boards_to_bin("c:\\users\\d0g0825\\ml-data\\chess-zero\\ALL.pgn");
 
-    train_nn_one_hot_encoded_bin();
+    //train_nn_one_hot_encoded_bin();
 
     //play_nn_depth_one_hot_encoded(0);
 
