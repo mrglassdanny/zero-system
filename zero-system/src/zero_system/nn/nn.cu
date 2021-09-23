@@ -653,7 +653,9 @@ void NN::dump(const char *path)
     fclose(file_ptr);
 }
 
-void NN::dump(const char *path, int feature_cnt)
+// If reference to input neurons is no longer valid, we can no longer get input neuron count.
+// This overload on dump gives us the ability to manually pass it in.
+void NN::dump(const char *path, int input_lyr_n_cnt)
 {
     FILE *file_ptr = fopen(path, "wb");
 
@@ -661,7 +663,7 @@ void NN::dump(const char *path, int feature_cnt)
     fwrite(&lyr_cnt, sizeof(int), 1, file_ptr);
 
     // Assume first layer memory is no longer available to us.
-    fwrite(&feature_cnt, sizeof(int), 1, file_ptr);
+    fwrite(&input_lyr_n_cnt, sizeof(int), 1, file_ptr);
 
     for (int lyr_idx = 1; lyr_idx < lyr_cnt; lyr_idx++)
     {

@@ -72,7 +72,7 @@ namespace zero
             void print();
 
             void dump(const char *path);
-            void dump(const char *path, int feature_cnt);
+            void dump(const char *path, int input_lyr_n_cnt);
 
             void set_learning_rate(float learning_rate);
 
