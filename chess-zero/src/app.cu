@@ -240,11 +240,11 @@ void train_nn_one_hot_encoded_bin()
     int col_cnt = CHESS_ONE_HOT_ENCODED_BOARD_LEN;
     int row_cnt = boards_bin_file_size / (sizeof(float) * col_cnt);
 
-    int sup_cnt = 30;
+    int sup_cnt = 25;
     int sup_row_cnt = (row_cnt / sup_cnt) - 1;
 
-    std::vector<int> layer_cfg = {col_cnt, 1024, 1024, 512, 512, 256, 256, 128, 128, 64, 64, 1};
-    NN *nn = new NN(layer_cfg, ReLU, Tanh, MSE, Xavier, 0.1f);
+    std::vector<int> layer_cfg = {col_cnt, 2048, 2048, 1024, 512, 32, 1};
+    NN *nn = new NN(layer_cfg, ReLU, Tanh, MSE, Xavier, 0.01f);
 
     char csv_path_buf[256];
     memset(csv_path_buf, 0, 256);
@@ -260,7 +260,7 @@ void train_nn_one_hot_encoded_bin()
         Supervisor *sup = new Supervisor(sup_row_cnt, col_cnt, 1, data_buf, lbl_buf, Cpu);
 
         sprintf(csv_path_buf, "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\chess-train-%d.csv", i + 1);
-        nn->all(sup, 100, 100, csv_path_buf);
+        nn->all(sup, 1000, 1000, csv_path_buf);
         memset(csv_path_buf, 0, 256);
 
         // Allow for manual override.
@@ -611,7 +611,7 @@ int main(int argc, char **argv)
 {
     //test_pgn_import("c:\\users\\d0g0825\\ml-data\\chess-zero\\TEST.pgn");
 
-    //dump_pgn_one_hot_encoded_boards_to_bin("c:\\users\\d0g0825\\ml-data\\chess-zero\\ALL.pgn", 0);
+    //dump_pgn_one_hot_encoded_boards_to_bin("c:\\users\\d0g0825\\ml-data\\chess-zero\\ALL.pgn", 1);
 
     train_nn_one_hot_encoded_bin();
 
