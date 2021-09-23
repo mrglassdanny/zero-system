@@ -41,9 +41,9 @@ namespace zero
             void add(Record *record);
 
             int get_size();
+
             Tensor *get_x(int idx);
             Tensor *get_y(int idx);
-            Record *get_record(int idx);
         };
 
         class Supervisor
