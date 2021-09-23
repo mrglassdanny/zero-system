@@ -1035,6 +1035,7 @@ Report NN::train(Batch *batch)
         y->translate(Cpu);
     }
 
+    // Get mean cost.
     cost /= batch_size;
 
     rpt.cost = cost;
@@ -1072,6 +1073,7 @@ Report NN::validate(Batch *batch)
         y->translate(Cpu);
     }
 
+    // Get mean cost.
     cost /= batch_size;
 
     rpt.cost = cost;
@@ -1107,6 +1109,7 @@ Report NN::test(Batch *batch)
         y->translate(Cpu);
     }
 
+    // Get mean cost.
     cost /= batch_size;
 
     rpt.cost = cost;
