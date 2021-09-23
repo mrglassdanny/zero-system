@@ -170,49 +170,28 @@ void train_nn_one_hot_encoded_bin()
     int col_cnt = CHESS_ONE_HOT_ENCODED_BOARD_LEN;
     int row_cnt = boards_bin_file_size / (sizeof(float) * col_cnt);
 
-    int sup_cnt = 3;
-    int sup_row_cnt = (row_cnt / sup_cnt) - 1;
-
     std::vector<int> layer_cfg = {col_cnt, 1024, 1024, 512, 512, 64, 1};
     NN *nn = new NN(layer_cfg, ReLU, Tanh, MSE, Xavier, 0.01f);
 
-    char csv_path_buf[256];
-    memset(csv_path_buf, 0, 256);
+    float *data_buf = (float *)malloc(sizeof(float) * (row_cnt * col_cnt));
+    fread(data_buf, sizeof(float) * (row_cnt * col_cnt), 1, boards_bin_file);
 
-    for (int i = 0; i < sup_cnt; i++)
-    {
-        float *data_buf = (float *)malloc(sizeof(float) * (sup_row_cnt * col_cnt));
-        fread(data_buf, sizeof(float) * (sup_row_cnt * col_cnt), 1, boards_bin_file);
+    float *lbl_buf = (float *)malloc(sizeof(float) * row_cnt);
+    fread(lbl_buf, sizeof(float) * row_cnt, 1, board_labels_bin_file);
 
-        float *lbl_buf = (float *)malloc(sizeof(float) * sup_row_cnt);
-        fread(lbl_buf, sizeof(float) * sup_row_cnt, 1, board_labels_bin_file);
+    Supervisor *sup = new Supervisor(row_cnt, col_cnt, 1, data_buf, lbl_buf, Cpu);
 
-        Supervisor *sup = new Supervisor(sup_row_cnt, col_cnt, 1, data_buf, lbl_buf, Cpu);
-        sup->shuffle();
+    free(data_buf);
+    free(lbl_buf);
 
-        sprintf(csv_path_buf, "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\chess-train-%d.csv", i + 1);
-        nn->all(sup, 1000, 1000, csv_path_buf);
-        memset(csv_path_buf, 0, 256);
+    sup->shuffle();
 
-        // Allow for manual override.
-        {
-            if (_kbhit())
-            {
-                if (_getch() == 'a')
-                {
-                    break;
-                }
-            }
-        }
-
-        free(data_buf);
-        free(lbl_buf);
-
-        delete sup;
-    }
+    nn->all(sup, 1000, 1000, "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\chess-train.csv");
 
     nn->dump(NN_DUMP_PATH, col_cnt);
+
     delete nn;
+    delete sup;
 
     fclose(boards_bin_file);
     fclose(board_labels_bin_file);
@@ -511,6 +490,13 @@ void play_nn_depth_one_hot_encoded(int max_depth)
             printf("ENTER MOVE: ");
             std::cin >> mov;
             system("cls");
+
+            // Allow user to confirm they want to make recommended move.
+            if (strlen(mov) <= 1)
+            {
+                strcpy(mov, ds_res.mov);
+            }
+
             change_board_w_mov(board, mov, white_mov_flg);
             white_mov_flg = !white_mov_flg;
             print_board(board);
@@ -529,6 +515,13 @@ void play_nn_depth_one_hot_encoded(int max_depth)
             printf("ENTER MOVE: ");
             std::cin >> mov;
             system("cls");
+
+            // Allow user to confirm they want to make recommended move.
+            if (strlen(mov) <= 1)
+            {
+                strcpy(mov, ds_res.mov);
+            }
+
             change_board_w_mov(board, mov, white_mov_flg);
             white_mov_flg = !white_mov_flg;
             print_board(board);
