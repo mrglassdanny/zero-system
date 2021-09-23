@@ -11,10 +11,13 @@ Record::Record(Tensor *x, Tensor *y)
 
 Record::~Record()
 {
+    delete this->x;
+    delete this->y;
 }
 
-Batch::Batch()
+Batch::Batch(int batch_size)
 {
+    this->records.reserve(batch_size);
 }
 
 Batch::~Batch()
@@ -54,8 +57,7 @@ Supervisor::~Supervisor()
 {
     for (int i = 0; i < this->records.size(); i++)
     {
-        delete this->records[i].x;
-        delete this->records[i].y;
+        delete this->records[i];
     }
 
     this->clear();
@@ -78,7 +80,7 @@ void Supervisor::add(int col_cnt, int one_hot_cnt, float *x_arr, float y_val, Te
         y = new Tensor(1, 1, typ, &y_val);
     }
 
-    this->records.push_back(Record(x, y));
+    this->records.push_back(new Record(x, y));
 }
 
 void Supervisor::add_all(int row_cnt, int col_cnt, int one_hot_cnt, float *x_arr, float *y_arr, TensorType typ)
@@ -116,11 +118,11 @@ Batch *Supervisor::create_batch()
         return nullptr;
     }
 
-    Batch *batch = new Batch();
+    Batch *batch = new Batch(cnt);
 
     for (int i = 0; i < cnt; i++)
     {
-        batch->add(&this->records[i]);
+        batch->add(this->records[i]);
     }
 
     return batch;
@@ -133,11 +135,11 @@ Batch *Supervisor::create_batch(int lower, int upper)
         return nullptr;
     }
 
-    Batch *batch = new Batch();
+    Batch *batch = new Batch(upper - lower);
 
     for (int i = lower; i < upper; i++)
     {
-        batch->add(&this->records[i]);
+        batch->add(this->records[i]);
     }
 
     return batch;
@@ -151,12 +153,12 @@ Batch *Supervisor::create_batch(int batch_size, int lower, int upper)
         return nullptr;
     }
 
-    Batch *batch = new Batch();
+    Batch *batch = new Batch(batch_size);
 
     for (int i = 0; i < batch_size; i++)
     {
         int idx = (rand() % (upper - lower)) + lower;
-        batch->add(&this->records[i]);
+        batch->add(this->records[i]);
     }
 
     return batch;

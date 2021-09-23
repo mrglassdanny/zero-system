@@ -6,9 +6,9 @@
 
 #include "../core/tensor.cuh"
 
-#define SUPERVISOR_TRAIN_SPLIT 0.70f
-#define SUPERVISOR_VALIDATION_SPLIT 0.15f
-#define SUPERVISOR_TEST_SPLIT 0.15f
+#define SUPERVISOR_TRAIN_SPLIT 0.80f
+#define SUPERVISOR_VALIDATION_SPLIT 0.10f
+#define SUPERVISOR_TEST_SPLIT 0.10f
 
 namespace zero
 {
@@ -18,8 +18,9 @@ namespace zero
     {
         class Record
         {
+
         public:
-            // Record does NOT own tensors!
+            // Record owns tensors!
             Tensor *x;
             Tensor *y;
 
@@ -34,7 +35,7 @@ namespace zero
             std::vector<Record *> records;
 
         public:
-            Batch();
+            Batch(int batch_size);
             ~Batch();
 
             void add(Record *record);
@@ -42,12 +43,14 @@ namespace zero
             int get_size();
             Tensor *get_x(int idx);
             Tensor *get_y(int idx);
+            Record *get_record(int idx);
         };
 
         class Supervisor
         {
         private:
-            std::vector<Record> records;
+            // Supervisor owns records!
+            std::vector<Record *> records;
 
         public:
             Supervisor();
