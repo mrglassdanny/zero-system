@@ -99,8 +99,7 @@ int Supervisor::get_cnt()
 
 void Supervisor::shuffle()
 {
-    auto rd = std::random_device{};
-    auto rng = std::default_random_engine{rd()};
+    auto rng = std::default_random_engine{};
     std::shuffle(std::begin(this->records), std::end(this->records), rng);
 }
 
