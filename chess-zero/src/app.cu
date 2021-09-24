@@ -169,7 +169,7 @@ void train_nn_one_hot_encoded_bin()
     int col_cnt = CHESS_ONE_HOT_ENCODED_BOARD_LEN;
     int row_cnt = boards_bin_file_size / (sizeof(float) * col_cnt);
 
-    std::vector<int> layer_cfg = {col_cnt, 1024, 1024, 512, 512, 64, 1};
+    std::vector<int> layer_cfg = {col_cnt, 1024, 512, 128, 64, 1};
     NN *nn = new NN(layer_cfg, ReLU, Tanh, MSE, Xavier, 0.01f);
 
     float *data_buf = (float *)malloc(sizeof(float) * (row_cnt * col_cnt));
@@ -185,7 +185,7 @@ void train_nn_one_hot_encoded_bin()
 
     sup->shuffle();
 
-    nn->all(sup, 1000, 1000, "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\chess-train.csv");
+    nn->all(sup, 500, 10000, "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\chess-train.csv");
 
     nn->dump(NN_DUMP_PATH, col_cnt);
 
@@ -345,6 +345,8 @@ DepthSearchResult depth_search_recursive_one_hot_encoded(int *immut_sim_board, i
 
                         float eval = pred->get_idx(0);
 
+                        printf("MOVE: %s\t%f\n", mov, eval);
+
                         delete x;
                         delete pred;
 
@@ -413,6 +415,8 @@ DepthSearchResult depth_search_recursive_one_hot_encoded(int *immut_sim_board, i
 
                         float eval = pred->get_idx(0);
 
+                        printf("MOVE: %s\t%f\n", mov, eval);
+
                         delete x;
                         delete pred;
 
@@ -472,6 +476,34 @@ void play_nn_depth_one_hot_encoded(int max_depth)
     int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT] = {0};
 
     int white_mov_flg = 1;
+
+    // Go ahead and make opening moves since we do not train the model on openings.
+    {
+        change_board_w_mov(board, "d4", white_mov_flg);
+        white_mov_flg = !white_mov_flg;
+
+        change_board_w_mov(board, "Nf6", white_mov_flg);
+        white_mov_flg = !white_mov_flg;
+
+        change_board_w_mov(board, "c4", white_mov_flg);
+        white_mov_flg = !white_mov_flg;
+
+        change_board_w_mov(board, "e6", white_mov_flg);
+        white_mov_flg = !white_mov_flg;
+
+        change_board_w_mov(board, "Nc3", white_mov_flg);
+        white_mov_flg = !white_mov_flg;
+
+        change_board_w_mov(board, "Bb4", white_mov_flg);
+        white_mov_flg = !white_mov_flg;
+
+        change_board_w_mov(board, "Qc2", white_mov_flg);
+        white_mov_flg = !white_mov_flg;
+
+        change_board_w_mov(board, "O-O", white_mov_flg);
+        white_mov_flg = !white_mov_flg;
+    }
+
     while (1)
     {
 
@@ -484,7 +516,7 @@ void play_nn_depth_one_hot_encoded(int max_depth)
 
             // Now accept user input.
             memset(mov, 0, CHESS_MAX_MOVE_LEN);
-            printf("ENTER MOVE: ");
+            printf("ENTER MOVE (WHITE): ");
             std::cin >> mov;
             system("cls");
 
@@ -509,7 +541,7 @@ void play_nn_depth_one_hot_encoded(int max_depth)
 
             // Now accept user input.
             memset(mov, 0, CHESS_MAX_MOVE_LEN);
-            printf("ENTER MOVE: ");
+            printf("ENTER MOVE (BLACK): ");
             std::cin >> mov;
             system("cls");
 
@@ -534,9 +566,9 @@ int main(int argc, char **argv)
 
     //dump_pgn_one_hot_encoded_boards_to_bin("c:\\users\\d0g0825\\ml-data\\chess-zero\\ALL.pgn");
 
-    train_nn_one_hot_encoded_bin();
+    //train_nn_one_hot_encoded_bin();
 
-    //play_nn_depth_one_hot_encoded(0);
+    play_nn_depth_one_hot_encoded(0);
 
     return 0;
 }
