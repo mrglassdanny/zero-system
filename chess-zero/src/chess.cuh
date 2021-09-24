@@ -70,20 +70,4 @@ int boardcmp(int *a, int *b);
 
 void print_board(int *board);
 
-FILE *create_csv_for_boards(const char *file_name);
-
-FILE *create_csv_for_board_labels(const char *file_name);
-
-void dump_board_to_csv(FILE *file_ptr, int *board);
-
-void dump_board_label_to_csv(FILE *file_ptr, float lbl);
-
 void one_hot_encode_board(int *board, int *out);
-
-FILE *create_csv_for_one_hot_encoded_boards(const char *file_name);
-
-FILE *create_csv_for_one_hot_encoded_board_labels(const char *file_name);
-
-void dump_one_hot_encoded_board_to_csv(FILE *file_ptr, int *board);
-
-void dump_one_hot_encoded_board_label_to_csv(FILE *file_ptr, float lbl);

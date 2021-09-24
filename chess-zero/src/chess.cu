@@ -1674,57 +1674,6 @@ void print_board(int *board)
     printf("\n\n");
 }
 
-FILE *create_csv_for_boards(const char *file_name)
-{
-    FILE *file_ptr = fopen(file_name, "w");
-
-    // Headers.
-    for (int i = 0; i < CHESS_BOARD_LEN; i++)
-    {
-        if (i != CHESS_BOARD_LEN - 1)
-        {
-            fprintf(file_ptr, "c%d,", i);
-        }
-        else
-        {
-            fprintf(file_ptr, "c%d", i);
-        }
-    }
-    fprintf(file_ptr, "\n");
-
-    return file_ptr;
-}
-
-FILE *create_csv_for_board_labels(const char *file_name)
-{
-    FILE *file_ptr = fopen(file_name, "w");
-
-    // Headers.
-    fprintf(file_ptr, "eval\n");
-
-    return file_ptr;
-}
-
-void dump_board_to_csv(FILE *file_ptr, int *board)
-{
-    for (int i = 0; i < CHESS_BOARD_LEN; i++)
-    {
-        if (i != CHESS_BOARD_LEN - 1)
-        {
-            fprintf(file_ptr, "%d,", board[i]);
-        }
-        else
-        {
-            fprintf(file_ptr, "%d\n", board[i]);
-        }
-    }
-}
-
-void dump_board_label_to_csv(FILE *file_ptr, float lbl)
-{
-    fprintf(file_ptr, "%f\n", lbl);
-}
-
 void one_hot_encode_board(int *board, int *out)
 {
     memset(out, 0, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
@@ -1774,55 +1723,4 @@ void one_hot_encode_board(int *board, int *out)
             break;
         }
     }
-}
-
-FILE *create_csv_for_one_hot_encoded_boards(const char *file_name)
-{
-    FILE *file_ptr = fopen(file_name, "w");
-
-    // Headers.
-    for (int i = 0; i < CHESS_ONE_HOT_ENCODED_BOARD_LEN; i++)
-    {
-        if (i != CHESS_ONE_HOT_ENCODED_BOARD_LEN - 1)
-        {
-            fprintf(file_ptr, "c%d,", i);
-        }
-        else
-        {
-            fprintf(file_ptr, "c%d", i);
-        }
-    }
-    fprintf(file_ptr, "\n");
-
-    return file_ptr;
-}
-
-FILE *create_csv_for_one_hot_encoded_board_labels(const char *file_name)
-{
-    FILE *file_ptr = fopen(file_name, "w");
-
-    // Headers.
-    fprintf(file_ptr, "eval\n");
-
-    return file_ptr;
-}
-
-void dump_one_hot_encoded_board_to_csv(FILE *file_ptr, int *board)
-{
-    for (int i = 0; i < CHESS_ONE_HOT_ENCODED_BOARD_LEN; i++)
-    {
-        if (i != CHESS_ONE_HOT_ENCODED_BOARD_LEN - 1)
-        {
-            fprintf(file_ptr, "%d,", board[i]);
-        }
-        else
-        {
-            fprintf(file_ptr, "%d\n", board[i]);
-        }
-    }
-}
-
-void dump_one_hot_encoded_board_label_to_csv(FILE *file_ptr, float lbl)
-{
-    fprintf(file_ptr, "%f\n", lbl);
 }
