@@ -605,7 +605,7 @@ namespace option_2
                     copy_board(board, cpy_board);
 
                     // Write pre-move board state first.
-                    one_hot_encode_board(board, one_hot_encoded_board);
+                    one_hot_encode_board(cpy_board, one_hot_encoded_board);
                     for (int f = 0; f < CHESS_ONE_HOT_ENCODED_BOARD_LEN; f++)
                     {
                         one_hot_encoded_board_flt[f] = (float)one_hot_encoded_board[f];
@@ -628,13 +628,13 @@ namespace option_2
                     fwrite(&lbl, sizeof(float), 1, board_labels_bin_file);
 
                     // Random move(s).
-                    for (int k = 0; k < 10; k++)
+                    for (int k = 0; k < 2; k++)
                     {
                         SrcDst_Idx src_dst_idx = get_random_move(cpy_board, white_mov_flg, board);
                         if (src_dst_idx.src_idx != CHESS_INVALID_VALUE && src_dst_idx.dst_idx != CHESS_INVALID_VALUE)
                         {
                             // Write pre-move board state first.
-                            one_hot_encode_board(board, one_hot_encoded_board);
+                            one_hot_encode_board(cpy_board, one_hot_encoded_board);
                             for (int f = 0; f < CHESS_ONE_HOT_ENCODED_BOARD_LEN; f++)
                             {
                                 one_hot_encoded_board_flt[f] = (float)one_hot_encoded_board[f];
@@ -645,7 +645,7 @@ namespace option_2
                             simulate_board_change_w_srcdst_idx(cpy_board, src_dst_idx.src_idx, src_dst_idx.dst_idx, sim_board);
 
                             // Now write post-move(random) board state.
-                            one_hot_encode_board(cpy_board, one_hot_encoded_board);
+                            one_hot_encode_board(sim_board, one_hot_encoded_board);
                             for (int f = 0; f < CHESS_ONE_HOT_ENCODED_BOARD_LEN; f++)
                             {
                                 one_hot_encoded_board_flt[f] = (float)one_hot_encoded_board[f];
@@ -708,7 +708,7 @@ namespace option_2
 
         sup->shuffle();
 
-        nn->all(sup, 500, 5000, "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\opt2-chess-train.csv");
+        nn->all(sup, 1000, 5000, "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\opt2-chess-train.csv");
 
         nn->dump(OPT2_NN_DUMP_PATH, col_cnt);
 
