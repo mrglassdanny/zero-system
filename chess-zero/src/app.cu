@@ -40,9 +40,9 @@ long long get_file_size(const char *name)
     return size.QuadPart;
 }
 
-void test_pgn_import(const char *pgn_file_name)
+void test_pgn_import(const char *pgn_path)
 {
-    PGNImport *pgn = PGNImport_init(pgn_file_name);
+    PGNImport *pgn = PGNImport_init(pgn_path);
 
     int *board = init_board();
     int white_mov_flg;
@@ -84,9 +84,9 @@ void test_pgn_import(const char *pgn_file_name)
 namespace option_1
 {
 
-    void dump_pgn(const char *pgn_file_name)
+    void dump_pgn(const char *pgn_path)
     {
-        PGNImport *pgn = PGNImport_init(pgn_file_name);
+        PGNImport *pgn = PGNImport_init(pgn_path);
 
         FILE *boards_bin_file = fopen("c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\opt1-boards.bs", "wb");
         FILE *board_labels_bin_file = fopen("c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\opt1-board-labels.bl", "wb");
@@ -572,12 +572,20 @@ namespace option_1
 // 1: good      0: bad
 namespace option_2
 {
-    void dump_pgn(const char *pgn_file_name)
+    void dump_pgn(const char *pgn_name)
     {
-        PGNImport *pgn = PGNImport_init(pgn_file_name);
+        char file_name_buf[256];
+        memset(file_name_buf, 0, 256);
+        sprintf(file_name_buf, "c:\\users\\d0g0825\\ml-data\\chess-zero\\%s.pgn", pgn_name);
+        PGNImport *pgn = PGNImport_init(file_name_buf);
 
-        FILE *boards_bin_file = fopen("c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\opt2-boards.bs", "wb");
-        FILE *board_labels_bin_file = fopen("c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\opt2-board-labels.bl", "wb");
+        memset(file_name_buf, 0, 256);
+        sprintf(file_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\%s.bs", pgn_name);
+        FILE *boards_bin_file = fopen(file_name_buf, "wb");
+
+        memset(file_name_buf, 0, 256);
+        sprintf(file_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\%s.bl", pgn_name);
+        FILE *board_labels_bin_file = fopen(file_name_buf, "wb");
 
         int white_mov_flg;
 
@@ -680,21 +688,28 @@ namespace option_2
         system("cls");
     }
 
-    void train_nn()
+    void train_nn(const char *pgn_name)
     {
         srand(time(NULL));
 
-        FILE *boards_bin_file = fopen("c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\opt2-boards.bs", "rb");
-        FILE *board_labels_bin_file = fopen("c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\opt2-board-labels.bl", "rb");
+        char file_name_buf[256];
 
-        long long boards_bin_file_size = get_file_size("c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\opt2-boards.bs");
-        long long board_labels_bin_file_size = get_file_size("c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\opt2-board-labels.bl");
+        memset(file_name_buf, 0, 256);
+        sprintf(file_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\%s.bs", pgn_name);
+        FILE *boards_bin_file = fopen(file_name_buf, "rb");
+        long long boards_bin_file_size = get_file_size(file_name_buf);
+
+        memset(file_name_buf, 0, 256);
+        sprintf(file_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\%s.bl", pgn_name);
+        FILE *board_labels_bin_file = fopen(file_name_buf, "rb");
+        long long board_labels_bin_file_size = get_file_size(file_name_buf);
 
         int col_cnt = CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2;
         int row_cnt = boards_bin_file_size / (sizeof(float) * col_cnt);
 
-        std::vector<int> layer_cfg = {col_cnt, 2048, 1024, 256, 64, 1};
-        NN *nn = new NN(layer_cfg, ReLU, Sigmoid, MSE, Xavier, 0.01f);
+        // std::vector<int> layer_cfg = {col_cnt, 2048, 1024, 256, 64, 1};
+        // NN *nn = new NN(layer_cfg, ReLU, Sigmoid, MSE, Xavier, 0.01f);
+        NN *nn = new NN(OPT2_NN_DUMP_PATH);
 
         float *data_buf = (float *)malloc(sizeof(float) * (row_cnt * col_cnt));
         fread(data_buf, sizeof(float) * (row_cnt * col_cnt), 1, boards_bin_file);
@@ -1100,20 +1115,11 @@ namespace option_2
 
 int main(int argc, char **argv)
 {
-    // Option 1:
-    {
-        //option_1::dump_pgn("c:\\users\\d0g0825\\ml-data\\chess-zero\\Carlsen.pgn");
-
-        // option_1::train_nn();
-
-        // option_1::play_nn(0);
-    }
-
     // Option 2:
     {
-        //option_2::dump_pgn("c:\\users\\d0g0825\\ml-data\\chess-zero\\Carlsen.pgn");
+        option_2::dump_pgn("KARPOV-KASPAROV");
 
-        option_2::train_nn();
+        //option_2::train_nn("KARPOV-KASPAROV");
 
         //option_2::play_nn(0);
     }
