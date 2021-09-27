@@ -40,9 +40,12 @@ long long get_file_size(const char *name)
     return size.QuadPart;
 }
 
-void test_pgn_import(const char *pgn_path)
+void test_pgn_import(const char *pgn_name)
 {
-    PGNImport *pgn = PGNImport_init(pgn_path);
+    char file_name_buf[256];
+    memset(file_name_buf, 0, 256);
+    sprintf(file_name_buf, "c:\\users\\d0g0825\\ml-data\\chess-zero\\%s.pgn", pgn_name);
+    PGNImport *pgn = PGNImport_init(file_name_buf);
 
     int *board = init_board();
     int white_mov_flg;
@@ -604,7 +607,7 @@ namespace option_2
         {
             PGNMoveList *pl = pgn->games[i];
 
-            if (pl->white_won_flg == 1 || pl->black_won_flg == 1)
+            //if (pl->white_won_flg == 1 || pl->black_won_flg == 1)
             {
                 white_mov_flg = 1;
 
@@ -895,6 +898,11 @@ namespace option_2
 
                             float eval = pred->get_idx(0);
 
+                            if (max_depth == 0)
+                            {
+                                printf("MOVE: %s (%f)\n", mov, eval);
+                            }
+
                             delete x;
                             delete pred;
 
@@ -968,6 +976,11 @@ namespace option_2
                             Tensor *pred = nn->predict(x);
 
                             float eval = pred->get_idx(0);
+
+                            if (max_depth == 0)
+                            {
+                                printf("MOVE: %s (%f)\n", mov, eval);
+                            }
 
                             delete x;
                             delete pred;
@@ -1117,9 +1130,9 @@ int main(int argc, char **argv)
 {
     // Option 2:
     {
-        option_2::dump_pgn("KARPOV-KASPAROV");
+        //option_2::dump_pgn("kasparov");
 
-        //option_2::train_nn("KARPOV-KASPAROV");
+        option_2::train_nn("kasparov");
 
         //option_2::play_nn(0);
     }
