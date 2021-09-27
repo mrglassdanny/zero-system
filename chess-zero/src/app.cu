@@ -78,6 +78,7 @@ void test_pgn_import(const char *pgn_file_name)
     PGNImport_free(pgn);
 }
 
+// TODO: Remove Option 1!!!
 // Take board state and evaluate from white/black advantage point of view.
 // 1: white adv     -1: black adv
 namespace option_1
@@ -567,7 +568,7 @@ namespace option_1
     }
 }
 
-// Line up pre-move board and post-move board and evaluate if post-move board is good.
+// Line up pre-move board and post-move board and evaluate if combo board is good.
 // 1: good      0: bad
 namespace option_2
 {
