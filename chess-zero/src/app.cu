@@ -692,7 +692,7 @@ namespace option_2
         int col_cnt = CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2;
         int row_cnt = boards_bin_file_size / (sizeof(float) * col_cnt);
 
-        std::vector<int> layer_cfg = {col_cnt, 2048, 2048, 1024, 256, 64, 1};
+        std::vector<int> layer_cfg = {col_cnt, 2048, 1024, 256, 64, 1};
         NN *nn = new NN(layer_cfg, ReLU, Sigmoid, MSE, Xavier, 0.01f);
 
         float *data_buf = (float *)malloc(sizeof(float) * (row_cnt * col_cnt));
