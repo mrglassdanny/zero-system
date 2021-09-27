@@ -1164,7 +1164,7 @@ SrcDst_Idx get_random_move(int *board, int white_mov_flg, int *cmp_board)
             }
         }
 
-        // Got the non-optimal move; now make it.
+        // If at least 1 move found, randomly make one and compare.
         if (legal_mov_ctr > 0)
         {
             int rand_legal_mov_idx = rand() % legal_mov_ctr;
