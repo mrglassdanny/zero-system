@@ -710,9 +710,9 @@ namespace option_2
         int col_cnt = CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2;
         int row_cnt = boards_bin_file_size / (sizeof(float) * col_cnt);
 
-        // std::vector<int> layer_cfg = {col_cnt, 2048, 1024, 256, 64, 1};
-        // NN *nn = new NN(layer_cfg, ReLU, Sigmoid, MSE, Xavier, 0.01f);
-        NN *nn = new NN(OPT2_NN_DUMP_PATH);
+        std::vector<int> layer_cfg = {col_cnt, 2048, 1024, 256, 64, 1};
+        NN *nn = new NN(layer_cfg, ReLU, Sigmoid, MSE, Xavier, 0.01f);
+        //NN *nn = new NN(OPT2_NN_DUMP_PATH);
 
         float *data_buf = (float *)malloc(sizeof(float) * (row_cnt * col_cnt));
         fread(data_buf, sizeof(float) * (row_cnt * col_cnt), 1, boards_bin_file);
@@ -727,7 +727,7 @@ namespace option_2
 
         sup->shuffle();
 
-        nn->all(sup, 1000, 5000, "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\opt2-chess-train.csv");
+        nn->all(sup, 1000, 1000, "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\opt2-chess-train.csv");
 
         nn->dump(OPT2_NN_DUMP_PATH, col_cnt);
 
@@ -1130,9 +1130,9 @@ int main(int argc, char **argv)
 {
     // Option 2:
     {
-        //option_2::dump_pgn("kasparov");
+        //option_2::dump_pgn("Carlsen");
 
-        option_2::train_nn("kasparov");
+        option_2::train_nn("Carlsen");
 
         //option_2::play_nn(0);
     }
