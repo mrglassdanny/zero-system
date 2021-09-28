@@ -157,8 +157,8 @@ Batch *Supervisor::create_batch(int batch_size, int lower, int upper)
 
     for (int i = 0; i < batch_size; i++)
     {
-        int idx = (rand() % (upper - lower)) + lower;
-        batch->add(this->records[i]);
+        int rand_idx = (rand() % (upper - lower)) + lower;
+        batch->add(this->records[rand_idx]);
     }
 
     return batch;
