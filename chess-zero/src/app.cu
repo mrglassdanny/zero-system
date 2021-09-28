@@ -250,10 +250,25 @@ void train_nn(const char *pgn_name, bool white_flg)
                         }
                         else
                         {
-                            simulate_board_change_w_srcdst_idx(pre_mov_board, piece_idx, legal_moves[mov_idx], sim_board);
-                            if (boardcmp(post_mov_board, sim_board) != 0)
+                            // Optimal move.
                             {
-                                // Non-optimal move.
+                                one_hot_encode_board(pre_mov_board, one_hot_board);
+                                memcpy(stacked_one_hot_board, one_hot_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
+
+                                one_hot_encode_board(post_mov_board, one_hot_board);
+                                memcpy(&stacked_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], one_hot_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
+
+                                Tensor *x = new Tensor(1, CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, Gpu, stacked_one_hot_board);
+                                Tensor *y = new Tensor(1, 1, Gpu);
+                                y->set_idx(0, 1.0f);
+
+                                batch->add(new Record(x, y));
+                            }
+
+                            // Non-optimal move.
+                            {
+                                simulate_board_change_w_srcdst_idx(pre_mov_board, piece_idx, legal_moves[mov_idx], sim_board);
+                                if (boardcmp(post_mov_board, sim_board) != 0)
                                 {
                                     one_hot_encode_board(pre_mov_board, one_hot_board);
                                     memcpy(stacked_one_hot_board, one_hot_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
@@ -264,21 +279,6 @@ void train_nn(const char *pgn_name, bool white_flg)
                                     Tensor *x = new Tensor(1, CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, Gpu, stacked_one_hot_board);
                                     Tensor *y = new Tensor(1, 1, Gpu);
                                     y->set_idx(0, 0.0f);
-
-                                    batch->add(new Record(x, y));
-                                }
-
-                                // Optimal move.
-                                {
-                                    one_hot_encode_board(pre_mov_board, one_hot_board);
-                                    memcpy(stacked_one_hot_board, one_hot_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-
-                                    one_hot_encode_board(post_mov_board, one_hot_board);
-                                    memcpy(&stacked_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], one_hot_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-
-                                    Tensor *x = new Tensor(1, CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, Gpu, stacked_one_hot_board);
-                                    Tensor *y = new Tensor(1, 1, Gpu);
-                                    y->set_idx(0, 1.0f);
 
                                     batch->add(new Record(x, y));
                                 }
@@ -303,10 +303,25 @@ void train_nn(const char *pgn_name, bool white_flg)
                         }
                         else
                         {
-                            simulate_board_change_w_srcdst_idx(pre_mov_board, piece_idx, legal_moves[mov_idx], sim_board);
-                            if (boardcmp(post_mov_board, sim_board) != 0)
+                            // Optimal move.
                             {
-                                // Non-optimal move.
+                                one_hot_encode_board(pre_mov_board, one_hot_board);
+                                memcpy(stacked_one_hot_board, one_hot_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
+
+                                one_hot_encode_board(post_mov_board, one_hot_board);
+                                memcpy(&stacked_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], one_hot_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
+
+                                Tensor *x = new Tensor(1, CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, Gpu, stacked_one_hot_board);
+                                Tensor *y = new Tensor(1, 1, Gpu);
+                                y->set_idx(0, -1.0f);
+
+                                batch->add(new Record(x, y));
+                            }
+
+                            // Non-optimal move.
+                            {
+                                simulate_board_change_w_srcdst_idx(pre_mov_board, piece_idx, legal_moves[mov_idx], sim_board);
+                                if (boardcmp(post_mov_board, sim_board) != 0)
                                 {
                                     one_hot_encode_board(pre_mov_board, one_hot_board);
                                     memcpy(stacked_one_hot_board, one_hot_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
@@ -320,21 +335,6 @@ void train_nn(const char *pgn_name, bool white_flg)
 
                                     batch->add(new Record(x, y));
                                 }
-
-                                // Optimal move.
-                                {
-                                    one_hot_encode_board(pre_mov_board, one_hot_board);
-                                    memcpy(stacked_one_hot_board, one_hot_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-
-                                    one_hot_encode_board(post_mov_board, one_hot_board);
-                                    memcpy(&stacked_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], one_hot_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-
-                                    Tensor *x = new Tensor(1, CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, Gpu, stacked_one_hot_board);
-                                    Tensor *y = new Tensor(1, 1, Gpu);
-                                    y->set_idx(0, -1.0f);
-
-                                    batch->add(new Record(x, y));
-                                }
                             }
                         }
                     }
@@ -342,8 +342,11 @@ void train_nn(const char *pgn_name, bool white_flg)
             }
         }
 
-        Report train_rpt = nn->train(batch);
-        NN::write_to_csv(csv_file_ptr, epoch, train_rpt);
+        if (batch->get_size() > 0)
+        {
+            Report train_rpt = nn->train(batch);
+            NN::write_to_csv(csv_file_ptr, epoch, train_rpt);
+        }
 
         delete batch;
 
