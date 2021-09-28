@@ -156,6 +156,35 @@ Tensor::Tensor(const Tensor &src)
     this->typ = src.typ;
 }
 
+Tensor::Tensor(const Tensor &src, TensorType typ)
+{
+
+    if (src.typ == Gpu && typ == Gpu)
+    {
+        cudaMalloc(&this->arr, sizeof(float) * (src.row_cnt * src.col_cnt));
+        cudaMemcpy(this->arr, src.arr, sizeof(float) * (src.row_cnt * src.col_cnt), cudaMemcpyDeviceToDevice);
+    }
+    else if (src.typ == Cpu && typ == Cpu)
+    {
+        this->arr = (float *)malloc(sizeof(float) * (src.row_cnt * src.col_cnt));
+        memcpy(this->arr, src.arr, sizeof(float) * (src.row_cnt * src.col_cnt));
+    }
+    else if (src.typ == Cpu && typ == Gpu)
+    {
+        cudaMalloc(&this->arr, sizeof(float) * (src.row_cnt * src.col_cnt));
+        cudaMemcpy(this->arr, src.arr, sizeof(float) * (src.row_cnt * src.col_cnt), cudaMemcpyHostToDevice);
+    }
+    else if (src.typ == Gpu && typ == Cpu)
+    {
+        this->arr = (float *)malloc(sizeof(float) * (src.row_cnt * src.col_cnt));
+        cudaMemcpy(this->arr, src.arr, sizeof(float) * (src.row_cnt * src.col_cnt), cudaMemcpyDeviceToHost);
+    }
+
+    this->row_cnt = src.row_cnt;
+    this->col_cnt = src.col_cnt;
+    this->typ = typ;
+}
+
 Tensor::Tensor(int row_cnt, int col_cnt, TensorType typ, float *cpu_arr)
 {
     if (typ == Gpu)
