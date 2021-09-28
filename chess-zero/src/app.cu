@@ -1,6 +1,5 @@
 
 #include <iostream>
-
 #include <windows.h>
 
 #include <zero_system/nn/nn.cuh>
@@ -11,7 +10,6 @@
 using namespace zero::core;
 using namespace zero::nn;
 
-#define OPT1_NN_DUMP_PATH "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\opt1-chess.nn"
 #define OPT2_NN_DUMP_PATH "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\opt2-chess.nn"
 
 struct MoveSearchResult
@@ -79,6 +77,295 @@ void test_pgn_import(const char *pgn_name)
     free(board);
 
     PGNImport_free(pgn);
+}
+
+void dump_pgn(const char *pgn_name)
+{
+    char file_name_buf[256];
+    memset(file_name_buf, 0, 256);
+    sprintf(file_name_buf, "c:\\users\\d0g0825\\ml-data\\chess-zero\\%s.pgn", pgn_name);
+    PGNImport *pgn = PGNImport_init(file_name_buf);
+
+    memset(file_name_buf, 0, 256);
+    sprintf(file_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\white-%s.bs", pgn_name);
+    FILE *white_boards_file = fopen(file_name_buf, "wb");
+
+    memset(file_name_buf, 0, 256);
+    sprintf(file_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\white-%s.bl", pgn_name);
+    FILE *white_board_labels_file = fopen(file_name_buf, "wb");
+
+    memset(file_name_buf, 0, 256);
+    sprintf(file_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\black-%s.bs", pgn_name);
+    FILE *black_boards_file = fopen(file_name_buf, "wb");
+
+    memset(file_name_buf, 0, 256);
+    sprintf(file_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\black-%s.bl", pgn_name);
+    FILE *black_board_labels_file = fopen(file_name_buf, "wb");
+
+    bool white_mov_flg;
+
+    int *board = init_board();
+
+    printf("Total Games: %d\n", pgn->cnt);
+
+    for (int i = 0; i < pgn->cnt; i++)
+    {
+        PGNMoveList *pl = pgn->games[i];
+
+        white_mov_flg = true;
+
+        for (int j = 0; j < pl->cnt; j++)
+        {
+            FILE *boards_file = nullptr;
+            FILE *board_labels_file = nullptr;
+
+            float lbl;
+
+            if (white_mov_flg)
+            {
+                boards_file = white_boards_file;
+                board_labels_file = white_board_labels_file;
+
+                lbl = 1.0f;
+            }
+            else
+            {
+                boards_file = black_boards_file;
+                board_labels_file = black_board_labels_file;
+
+                lbl = -1.0f;
+            }
+
+            // Write pre-move board state first.
+            fwrite(board, sizeof(int) * CHESS_BOARD_LEN, 1, boards_file);
+
+            // Make optimal move.
+            change_board_w_mov(board, pl->arr[j], white_mov_flg);
+
+            // Now write post-move(optimal) board state.
+            fwrite(board, sizeof(int) * CHESS_BOARD_LEN, 1, boards_file);
+
+            // Write label.
+            fwrite(&lbl, sizeof(float), 1, board_labels_file);
+
+            white_mov_flg = !white_mov_flg;
+        }
+
+        reset_board(board);
+
+        if (i % 10 == 0)
+        {
+            printf("%d / %d (%f%%)\n", i, pgn->cnt, (((i * 1.0) / (pgn->cnt * 1.0) * 100.0)));
+        }
+    }
+
+    free(board);
+
+    fclose(white_boards_file);
+    fclose(white_board_labels_file);
+
+    PGNImport_free(pgn);
+
+    system("cls");
+}
+
+void train_nn(const char *pgn_name, bool white_flg)
+{
+    srand(time(NULL));
+
+    char file_name_buf[256];
+
+    FILE *boards_file;
+    FILE *board_labels_file;
+    long long boards_file_size;
+    long long board_labels_file_size;
+
+    if (white_flg)
+    {
+        memset(file_name_buf, 0, 256);
+        sprintf(file_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\white-%s.bs", pgn_name);
+        boards_file = fopen(file_name_buf, "rb");
+        boards_file_size = get_file_size(file_name_buf);
+
+        memset(file_name_buf, 0, 256);
+        sprintf(file_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\white-%s.bl", pgn_name);
+        board_labels_file = fopen(file_name_buf, "rb");
+        board_labels_file_size = get_file_size(file_name_buf);
+    }
+    else
+    {
+        memset(file_name_buf, 0, 256);
+        sprintf(file_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\black-%s.bs", pgn_name);
+        boards_file = fopen(file_name_buf, "rb");
+        boards_file_size = get_file_size(file_name_buf);
+
+        memset(file_name_buf, 0, 256);
+        sprintf(file_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\black-%s.bl", pgn_name);
+        board_labels_file = fopen(file_name_buf, "rb");
+        board_labels_file_size = get_file_size(file_name_buf);
+    }
+
+    int file_col_cnt = CHESS_BOARD_LEN * 2;
+    int file_row_cnt = boards_file_size / (sizeof(int) * file_col_cnt);
+
+    int cur_row[CHESS_BOARD_LEN * 2];
+    int pre_mov_board[CHESS_BOARD_LEN];
+    int post_mov_board[CHESS_BOARD_LEN];
+    int sim_board[CHESS_BOARD_LEN] = {0};
+    int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT] = {0};
+
+    int one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
+    int stacked_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2];
+
+    std::vector<int> layer_cfg = {CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, 2048, 1024, 256, 64, 1};
+    NN *nn = new NN(layer_cfg, ReLU, ReLU, MSE, Xavier, 0.01f);
+
+    FILE *csv_file_ptr = fopen("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\chess-train.csv", "w");
+    NN::write_csv_header(csv_file_ptr);
+
+    int epoch = 1;
+    while (true)
+    {
+        Batch *batch = new Batch(true, 15);
+
+        int rand_row_idx = rand() % file_row_cnt;
+        fseek(boards_file, rand_row_idx * (sizeof(int) * (CHESS_BOARD_LEN * 2)), SEEK_SET);
+        fread(cur_row, sizeof(int), CHESS_BOARD_LEN * 2, boards_file);
+
+        memcpy(pre_mov_board, cur_row, sizeof(int) * CHESS_BOARD_LEN);
+        memcpy(post_mov_board, &cur_row[CHESS_BOARD_LEN], sizeof(int) * CHESS_BOARD_LEN);
+
+        if (white_flg)
+        {
+            for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
+            {
+                if (is_piece_white((ChessPiece)pre_mov_board[piece_idx]) == 1)
+                {
+                    get_legal_moves(pre_mov_board, piece_idx, legal_moves, 1);
+                    for (int mov_idx = 0; mov_idx < CHESS_BOARD_LEN; mov_idx++)
+                    {
+                        if (legal_moves[mov_idx] == CHESS_INVALID_VALUE)
+                        {
+                            break;
+                        }
+                        else
+                        {
+                            simulate_board_change_w_srcdst_idx(pre_mov_board, piece_idx, legal_moves[mov_idx], sim_board);
+                            if (boardcmp(post_mov_board, sim_board) != 0)
+                            {
+                                // Non-optimal move.
+                                {
+                                    one_hot_encode_board(pre_mov_board, one_hot_board);
+                                    memcpy(stacked_one_hot_board, one_hot_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
+
+                                    one_hot_encode_board(sim_board, one_hot_board);
+                                    memcpy(&stacked_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], one_hot_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
+
+                                    Tensor *x = new Tensor(1, CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, Gpu, stacked_one_hot_board);
+                                    Tensor *y = new Tensor(1, 1, Gpu);
+                                    y->set_idx(0, 0.0f);
+
+                                    batch->add(new Record(x, y));
+                                }
+
+                                // Optimal move.
+                                {
+                                    one_hot_encode_board(pre_mov_board, one_hot_board);
+                                    memcpy(stacked_one_hot_board, one_hot_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
+
+                                    one_hot_encode_board(post_mov_board, one_hot_board);
+                                    memcpy(&stacked_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], one_hot_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
+
+                                    Tensor *x = new Tensor(1, CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, Gpu, stacked_one_hot_board);
+                                    Tensor *y = new Tensor(1, 1, Gpu);
+                                    y->set_idx(0, 1.0f);
+
+                                    batch->add(new Record(x, y));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        else
+        {
+            for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
+            {
+                if (is_piece_black((ChessPiece)pre_mov_board[piece_idx]) == 1)
+                {
+                    get_legal_moves(pre_mov_board, piece_idx, legal_moves, 1);
+                    for (int mov_idx = 0; mov_idx < CHESS_BOARD_LEN; mov_idx++)
+                    {
+                        if (legal_moves[mov_idx] == CHESS_INVALID_VALUE)
+                        {
+                            break;
+                        }
+                        else
+                        {
+                            simulate_board_change_w_srcdst_idx(pre_mov_board, piece_idx, legal_moves[mov_idx], sim_board);
+                            if (boardcmp(post_mov_board, sim_board) != 0)
+                            {
+                                // Non-optimal move.
+                                {
+                                    one_hot_encode_board(pre_mov_board, one_hot_board);
+                                    memcpy(stacked_one_hot_board, one_hot_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
+
+                                    one_hot_encode_board(sim_board, one_hot_board);
+                                    memcpy(&stacked_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], one_hot_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
+
+                                    Tensor *x = new Tensor(1, CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, Gpu, stacked_one_hot_board);
+                                    Tensor *y = new Tensor(1, 1, Gpu);
+                                    y->set_idx(0, 0.0f);
+
+                                    batch->add(new Record(x, y));
+                                }
+
+                                // Optimal move.
+                                {
+                                    one_hot_encode_board(pre_mov_board, one_hot_board);
+                                    memcpy(stacked_one_hot_board, one_hot_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
+
+                                    one_hot_encode_board(post_mov_board, one_hot_board);
+                                    memcpy(&stacked_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], one_hot_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
+
+                                    Tensor *x = new Tensor(1, CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, Gpu, stacked_one_hot_board);
+                                    Tensor *y = new Tensor(1, 1, Gpu);
+                                    y->set_idx(0, -1.0f);
+
+                                    batch->add(new Record(x, y));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Report train_rpt = nn->train(batch);
+        NN::write_to_csv(csv_file_ptr, epoch, train_rpt);
+
+        delete batch;
+
+        epoch++;
+
+        // Allow for manual override.
+        {
+            if (_kbhit())
+            {
+                if (_getch() == 'q')
+                {
+                    break;
+                }
+            }
+        }
+    }
+
+    fclose(csv_file_ptr);
+    fclose(boards_file);
+    fclose(board_labels_file);
+
+    delete nn;
 }
 
 // Line up pre-move board and post-move board and evaluate if combo board is good.
@@ -463,14 +750,9 @@ namespace option_2
 
 int main(int argc, char **argv)
 {
-    // Option 2:
-    {
-        //option_2::dump_pgn("Carlsen");
+    dump_pgn("TEST");
 
-        option_2::train_nn("Carlsen");
-
-        //option_2::play_nn();
-    }
+    train_nn("TEST", true);
 
     return 0;
 }
