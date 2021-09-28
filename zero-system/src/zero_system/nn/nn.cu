@@ -1193,6 +1193,6 @@ void NN::all(Supervisor *supervisor, int train_batch_size, int validation_chk_fr
 Tensor *NN::predict(Tensor *x)
 {
     this->feed_forward(x);
-    Tensor *pred = new Tensor(*this->neurons[this->neurons.size() - 1]);
+    Tensor *pred = new Tensor(*this->neurons[this->neurons.size() - 1], Cpu);
     return pred;
 }
