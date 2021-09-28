@@ -31,11 +31,12 @@ namespace zero
         class Batch
         {
         private:
-            // Batch does NOT own records!
+            bool owns_records_flg;
             std::vector<Record *> records;
 
         public:
             Batch(int batch_size);
+            Batch(bool owns_records_flg, int batch_size);
             ~Batch();
 
             void add(Record *record);

@@ -17,11 +17,25 @@ Record::~Record()
 
 Batch::Batch(int batch_size)
 {
+    this->owns_records_flg = false;
+    this->records.reserve(batch_size);
+}
+
+Batch::Batch(bool owns_records_flg, int batch_size)
+{
+    this->owns_records_flg = owns_records_flg;
     this->records.reserve(batch_size);
 }
 
 Batch::~Batch()
 {
+    if (this->owns_records_flg)
+    {
+        for (int i = 0; i < this->records.size(); i++)
+        {
+            delete this->records[i];
+        }
+    }
 }
 
 void Batch::add(Record *record)

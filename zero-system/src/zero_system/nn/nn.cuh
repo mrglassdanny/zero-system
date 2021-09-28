@@ -60,14 +60,14 @@ namespace zero
 
             float *d_cost;
 
-            static void write_csv_header(FILE *csv_file_ptr);
-            static void write_to_csv(FILE *csv_file_ptr, int epoch, Report rpt);
-
         public:
             NN(std::vector<int> layer_config, ActivationFunctionId hidden_layer_activation_func_id,
                ActivationFunctionId output_layer_activation_func_id, CostFunctionId cost_func_id, InitializationMethodId init_mthd_id, float learning_rate);
             NN(const char *path);
             ~NN();
+
+            static void write_csv_header(FILE *csv_file_ptr);
+            static void write_to_csv(FILE *csv_file_ptr, int epoch, Report rpt);
 
             void print();
 
