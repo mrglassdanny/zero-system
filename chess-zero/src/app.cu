@@ -10,7 +10,7 @@
 using namespace zero::core;
 using namespace zero::nn;
 
-#define OPT2_NN_DUMP_PATH "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\opt2-chess.nn"
+#define NN_DUMP_PATH "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\chess.nn"
 
 struct MoveSearchResult
 {
@@ -339,388 +339,217 @@ void train_nn(const char *pgn_name, bool white_flg)
     fclose(csv_file_ptr);
     fclose(boards_file);
 
+    nn->dump(NN_DUMP_PATH, CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2);
+
     delete nn;
 }
 
-// Line up pre-move board and post-move board and evaluate if combo board is good.
-// 1: good      0: bad
-namespace option_2
+MoveSearchResult get_best_move(int *immut_board, int white_mov_flg, NN *nn)
 {
-    void dump_pgn(const char *pgn_name)
+    int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
+    char mov[CHESS_MAX_MOVE_LEN];
+
+    int sim_board[CHESS_BOARD_LEN];
+
+    int oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
+    int stacked_oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2];
+
+    float best_eval;
+    char best_mov[CHESS_MAX_MOVE_LEN];
+
+    best_eval = -FLT_MAX;
+
+    for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
     {
-        char file_name_buf[256];
-        memset(file_name_buf, 0, 256);
-        sprintf(file_name_buf, "c:\\users\\d0g0825\\ml-data\\chess-zero\\%s.pgn", pgn_name);
-        PGNImport *pgn = PGNImport_init(file_name_buf);
-
-        memset(file_name_buf, 0, 256);
-        sprintf(file_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\%s.bs", pgn_name);
-        FILE *boards_bin_file = fopen(file_name_buf, "wb");
-
-        memset(file_name_buf, 0, 256);
-        sprintf(file_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\%s.bl", pgn_name);
-        FILE *board_labels_bin_file = fopen(file_name_buf, "wb");
-
-        int white_mov_flg;
-
-        int *board = init_board();
-        int cpy_board[CHESS_BOARD_LEN] = {0};
-        int sim_board[CHESS_BOARD_LEN] = {0};
-        int one_hot_encoded_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN] = {0};
-        float one_hot_encoded_board_flt[CHESS_ONE_HOT_ENCODED_BOARD_LEN] = {0.0};
-        int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT] = {0};
-
-        int start_mov_idx = 0;
-
-        printf("Total Games: %d\n", pgn->cnt);
-
-        for (int i = 0; i < pgn->cnt; i++)
+        if (white_mov_flg == 1)
         {
-            PGNMoveList *pl = pgn->games[i];
-
-            //if (pl->white_won_flg == 1 || pl->black_won_flg == 1)
+            if (is_piece_white((ChessPiece)immut_board[piece_idx]) == 1)
             {
-                white_mov_flg = 1;
-
-                for (int j = start_mov_idx; j < pl->cnt; j++)
+                get_legal_moves(immut_board, piece_idx, legal_moves, 1);
+                for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
                 {
-                    // Make copy before we make optimal move.
-                    copy_board(board, cpy_board);
-
-                    // Write pre-move board state first.
-                    one_hot_encode_board(cpy_board, one_hot_encoded_board);
-                    for (int f = 0; f < CHESS_ONE_HOT_ENCODED_BOARD_LEN; f++)
+                    if (legal_moves[mov_idx] == CHESS_INVALID_VALUE)
                     {
-                        one_hot_encoded_board_flt[f] = (float)one_hot_encoded_board[f];
+                        break;
                     }
-                    fwrite(one_hot_encoded_board_flt, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN, 1, boards_bin_file);
-
-                    // Make optimal move.
-                    change_board_w_mov(board, pl->arr[j], white_mov_flg);
-
-                    // Now write post-move(optimal) board state.
-                    one_hot_encode_board(board, one_hot_encoded_board);
-                    for (int f = 0; f < CHESS_ONE_HOT_ENCODED_BOARD_LEN; f++)
+                    else
                     {
-                        one_hot_encoded_board_flt[f] = (float)one_hot_encoded_board[f];
-                    }
-                    fwrite(one_hot_encoded_board_flt, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN, 1, boards_bin_file);
+                        one_hot_encode_board(immut_board, oh_board);
+                        memcpy(stacked_oh_board, oh_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
 
-                    // Label.
-                    float lbl = 1.0f;
-                    fwrite(&lbl, sizeof(float), 1, board_labels_bin_file);
+                        simulate_board_change_w_srcdst_idx(immut_board, piece_idx, legal_moves[mov_idx], sim_board);
+                        one_hot_encode_board(sim_board, oh_board);
+                        memcpy(&stacked_oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], oh_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
 
-                    // Random move(s).
-                    for (int k = 0; k < 2; k++)
-                    {
-                        SrcDst_Idx src_dst_idx = get_random_move(cpy_board, white_mov_flg, board);
-                        if (src_dst_idx.src_idx != CHESS_INVALID_VALUE && src_dst_idx.dst_idx != CHESS_INVALID_VALUE)
+                        Tensor *x = new Tensor(1, CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, Gpu, stacked_oh_board);
+                        Tensor *pred = nn->predict(x);
+
+                        float eval = pred->get_idx(0);
+
+                        memset(mov, 0, CHESS_MAX_MOVE_LEN);
+                        translate_srcdst_idx_to_mov(immut_board, piece_idx, legal_moves[mov_idx], mov);
+
+                        printf("MOVE: %s (%f)\n", mov, eval);
+
+                        delete x;
+                        delete pred;
+
+                        if (best_eval < eval)
                         {
-                            // Write pre-move board state first.
-                            one_hot_encode_board(cpy_board, one_hot_encoded_board);
-                            for (int f = 0; f < CHESS_ONE_HOT_ENCODED_BOARD_LEN; f++)
-                            {
-                                one_hot_encoded_board_flt[f] = (float)one_hot_encoded_board[f];
-                            }
-                            fwrite(one_hot_encoded_board_flt, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN, 1, boards_bin_file);
-
-                            // Make random move.
-                            simulate_board_change_w_srcdst_idx(cpy_board, src_dst_idx.src_idx, src_dst_idx.dst_idx, sim_board);
-
-                            // Now write post-move(random) board state.
-                            one_hot_encode_board(sim_board, one_hot_encoded_board);
-                            for (int f = 0; f < CHESS_ONE_HOT_ENCODED_BOARD_LEN; f++)
-                            {
-                                one_hot_encoded_board_flt[f] = (float)one_hot_encoded_board[f];
-                            }
-                            fwrite(one_hot_encoded_board_flt, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN, 1, boards_bin_file);
-
-                            float _lbl = 0.0f;
-                            fwrite(&_lbl, sizeof(float), 1, board_labels_bin_file);
-                        }
-                    }
-
-                    white_mov_flg = !white_mov_flg;
-                }
-
-                reset_board(board);
-
-                if (i % 10 == 0)
-                {
-                    printf("%d / %d (%f%%)\n", i, pgn->cnt, (((i * 1.0) / (pgn->cnt * 1.0) * 100.0)));
-                }
-            }
-        }
-
-        free(board);
-
-        fclose(boards_bin_file);
-        fclose(board_labels_bin_file);
-
-        PGNImport_free(pgn);
-
-        system("cls");
-    }
-
-    void train_nn(const char *pgn_name)
-    {
-        srand(time(NULL));
-
-        char file_name_buf[256];
-
-        memset(file_name_buf, 0, 256);
-        sprintf(file_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\%s.bs", pgn_name);
-        FILE *boards_bin_file = fopen(file_name_buf, "rb");
-        long long boards_bin_file_size = get_file_size(file_name_buf);
-
-        memset(file_name_buf, 0, 256);
-        sprintf(file_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\%s.bl", pgn_name);
-        FILE *board_labels_bin_file = fopen(file_name_buf, "rb");
-        long long board_labels_bin_file_size = get_file_size(file_name_buf);
-
-        int col_cnt = CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2;
-        int row_cnt = boards_bin_file_size / (sizeof(float) * col_cnt);
-
-        std::vector<int> layer_cfg = {col_cnt, 2048, 1024, 256, 64, 1};
-        NN *nn = new NN(layer_cfg, ReLU, Sigmoid, MSE, Xavier, 0.01f);
-        //NN *nn = new NN(OPT2_NN_DUMP_PATH);
-
-        float *data_buf = (float *)malloc(sizeof(float) * (row_cnt * col_cnt));
-        fread(data_buf, sizeof(float) * (row_cnt * col_cnt), 1, boards_bin_file);
-
-        float *lbl_buf = (float *)malloc(sizeof(float) * row_cnt);
-        fread(lbl_buf, sizeof(float) * row_cnt, 1, board_labels_bin_file);
-
-        Supervisor *sup = new Supervisor(row_cnt, col_cnt, 1, data_buf, lbl_buf, Cpu);
-
-        free(data_buf);
-        free(lbl_buf);
-
-        sup->shuffle();
-
-        nn->all(sup, 1000, 1000, "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\opt2-chess-train.csv");
-
-        nn->dump(OPT2_NN_DUMP_PATH, col_cnt);
-
-        delete nn;
-        delete sup;
-
-        fclose(boards_bin_file);
-        fclose(board_labels_bin_file);
-    }
-
-    MoveSearchResult get_best_move(int *immut_board, int white_mov_flg, NN *nn)
-    {
-        int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT] = {0};
-        char mov[CHESS_MAX_MOVE_LEN] = {0};
-
-        int sim_board[CHESS_BOARD_LEN] = {0};
-
-        int one_hot_encoded_board_pre[CHESS_ONE_HOT_ENCODED_BOARD_LEN] = {0};
-        int one_hot_encoded_board_post[CHESS_ONE_HOT_ENCODED_BOARD_LEN] = {0};
-        int one_hot_encoded_consolidated_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2] = {0};
-
-        float best_eval;
-        char best_mov[CHESS_MAX_MOVE_LEN] = {0};
-
-        best_eval = -FLT_MAX;
-
-        for (int i = 0; i < CHESS_BOARD_LEN; i++)
-        {
-            if (white_mov_flg == 1)
-            {
-                if (is_piece_white((ChessPiece)immut_board[i]) == 1)
-                {
-                    get_legal_moves(immut_board, i, legal_moves, 1);
-                    for (int j = 0; j < CHESS_MAX_LEGAL_MOVE_CNT; j++)
-                    {
-                        if (legal_moves[j] == CHESS_INVALID_VALUE)
-                        {
-                            break;
-                        }
-                        else
-                        {
-                            // Pre-move board state first.
-                            one_hot_encode_board(immut_board, one_hot_encoded_board_pre);
-
-                            // Post-move board state second.
-                            memset(mov, 0, CHESS_MAX_MOVE_LEN);
-                            translate_srcdst_idx_to_mov(immut_board, i, legal_moves[j], mov);
-                            simulate_board_change_w_srcdst_idx(immut_board, i, legal_moves[j], sim_board);
-                            one_hot_encode_board(sim_board, one_hot_encoded_board_post);
-
-                            // Consolidate boards into single board for nn.
-                            memcpy(one_hot_encoded_consolidated_board, one_hot_encoded_board_pre, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-                            memcpy(&one_hot_encoded_consolidated_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], one_hot_encoded_board_post, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-
-                            Tensor *x = new Tensor(1, CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, Gpu, one_hot_encoded_consolidated_board);
-                            Tensor *pred = nn->predict(x);
-
-                            float eval = pred->get_idx(0);
-
-                            printf("MOVE: %s (%f)\n", mov, eval);
-
-                            delete x;
-                            delete pred;
-
-                            if (best_eval < eval)
-                            {
-                                best_eval = eval;
-                                memcpy(best_mov, mov, CHESS_MAX_MOVE_LEN);
-                            }
-                        }
-                    }
-                }
-            }
-            else
-            {
-                if (is_piece_black((ChessPiece)immut_board[i]) == 1)
-                {
-                    get_legal_moves(immut_board, i, legal_moves, 1);
-                    for (int j = 0; j < CHESS_MAX_LEGAL_MOVE_CNT; j++)
-                    {
-                        if (legal_moves[j] == CHESS_INVALID_VALUE)
-                        {
-                            break;
-                        }
-                        else
-                        {
-                            // Pre-move board state first.
-                            one_hot_encode_board(immut_board, one_hot_encoded_board_pre);
-
-                            // Post-move board state second.
-                            memset(mov, 0, CHESS_MAX_MOVE_LEN);
-                            translate_srcdst_idx_to_mov(immut_board, i, legal_moves[j], mov);
-                            simulate_board_change_w_srcdst_idx(immut_board, i, legal_moves[j], sim_board);
-                            one_hot_encode_board(sim_board, one_hot_encoded_board_post);
-
-                            // Consolidate boards into single board for nn.
-                            memcpy(one_hot_encoded_consolidated_board, one_hot_encoded_board_pre, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-                            memcpy(&one_hot_encoded_consolidated_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], one_hot_encoded_board_post, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-
-                            Tensor *x = new Tensor(1, CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, Gpu, one_hot_encoded_consolidated_board);
-                            Tensor *pred = nn->predict(x);
-
-                            float eval = pred->get_idx(0);
-
-                            printf("MOVE: %s (%f)\n", mov, eval);
-
-                            delete x;
-                            delete pred;
-
-                            if (best_eval < eval)
-                            {
-                                best_eval = eval;
-                                memcpy(best_mov, mov, CHESS_MAX_MOVE_LEN);
-                            }
+                            best_eval = eval;
+                            memcpy(best_mov, mov, CHESS_MAX_MOVE_LEN);
                         }
                     }
                 }
             }
         }
-
-        MoveSearchResult mov_res;
-        memcpy(mov_res.mov, best_mov, CHESS_MAX_MOVE_LEN);
-        mov_res.eval = best_eval;
-        return mov_res;
-    }
-
-    void play_nn()
-    {
-        NN *nn = new NN(OPT2_NN_DUMP_PATH);
-
-        int *board = init_board();
-        int cpy_board[CHESS_BOARD_LEN] = {0};
-        int sim_board[CHESS_BOARD_LEN] = {0};
-        char mov[CHESS_MAX_MOVE_LEN] = {0};
-
-        int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT] = {0};
-
-        int white_mov_flg = 1;
-
-        // Go ahead and make opening moves since we do not train the model on openings.
+        else
         {
-            change_board_w_mov(board, "d4", white_mov_flg);
-            white_mov_flg = !white_mov_flg;
-
-            change_board_w_mov(board, "Nf6", white_mov_flg);
-            white_mov_flg = !white_mov_flg;
-
-            change_board_w_mov(board, "c4", white_mov_flg);
-            white_mov_flg = !white_mov_flg;
-
-            change_board_w_mov(board, "e6", white_mov_flg);
-            white_mov_flg = !white_mov_flg;
-
-            change_board_w_mov(board, "Nc3", white_mov_flg);
-            white_mov_flg = !white_mov_flg;
-
-            change_board_w_mov(board, "Bb4", white_mov_flg);
-            white_mov_flg = !white_mov_flg;
-
-            change_board_w_mov(board, "Qc2", white_mov_flg);
-            white_mov_flg = !white_mov_flg;
-
-            change_board_w_mov(board, "O-O", white_mov_flg);
-            white_mov_flg = !white_mov_flg;
-        }
-
-        while (1)
-        {
-
-            // White move:
+            if (is_piece_black((ChessPiece)immut_board[piece_idx]) == 1)
             {
-                copy_board(board, cpy_board);
-
-                MoveSearchResult ds_res = get_best_move(cpy_board, white_mov_flg, nn);
-                printf("%s\t%f\n", ds_res.mov, ds_res.eval);
-
-                // Now accept user input.
-                memset(mov, 0, CHESS_MAX_MOVE_LEN);
-                printf("ENTER MOVE (WHITE): ");
-                std::cin >> mov;
-                system("cls");
-
-                // Allow user to confirm they want to make recommended move.
-                if (strlen(mov) <= 1)
+                get_legal_moves(immut_board, piece_idx, legal_moves, 1);
+                for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
                 {
-                    strcpy(mov, ds_res.mov);
+                    if (legal_moves[mov_idx] == CHESS_INVALID_VALUE)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        one_hot_encode_board(immut_board, oh_board);
+                        memcpy(stacked_oh_board, oh_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
+
+                        simulate_board_change_w_srcdst_idx(immut_board, piece_idx, legal_moves[mov_idx], sim_board);
+                        one_hot_encode_board(sim_board, oh_board);
+                        memcpy(&stacked_oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], oh_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
+
+                        Tensor *x = new Tensor(1, CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, Gpu, stacked_oh_board);
+                        Tensor *pred = nn->predict(x);
+
+                        float eval = pred->get_idx(0);
+
+                        memset(mov, 0, CHESS_MAX_MOVE_LEN);
+                        translate_srcdst_idx_to_mov(immut_board, piece_idx, legal_moves[mov_idx], mov);
+
+                        printf("MOVE: %s (%f)\n", mov, eval);
+
+                        delete x;
+                        delete pred;
+
+                        if (best_eval < eval)
+                        {
+                            best_eval = eval;
+                            memcpy(best_mov, mov, CHESS_MAX_MOVE_LEN);
+                        }
+                    }
                 }
-
-                change_board_w_mov(board, mov, white_mov_flg);
-                white_mov_flg = !white_mov_flg;
-                print_board(board);
-            }
-
-            // Black move:
-            {
-
-                copy_board(board, cpy_board);
-
-                MoveSearchResult ds_res = get_best_move(cpy_board, white_mov_flg, nn);
-                printf("%s\t%f\n", ds_res.mov, ds_res.eval);
-
-                // Now accept user input.
-                memset(mov, 0, CHESS_MAX_MOVE_LEN);
-                printf("ENTER MOVE (BLACK): ");
-                std::cin >> mov;
-                system("cls");
-
-                // Allow user to confirm they want to make recommended move.
-                if (strlen(mov) <= 1)
-                {
-                    strcpy(mov, ds_res.mov);
-                }
-
-                change_board_w_mov(board, mov, white_mov_flg);
-                white_mov_flg = !white_mov_flg;
-                print_board(board);
             }
         }
-
-        free(board);
     }
+
+    MoveSearchResult mov_res;
+    memcpy(mov_res.mov, best_mov, CHESS_MAX_MOVE_LEN);
+    mov_res.eval = best_eval;
+    return mov_res;
 }
+
+void play_nn()
+{
+    NN *nn = new NN(NN_DUMP_PATH);
+
+    int *board = init_board();
+    int cpy_board[CHESS_BOARD_LEN] = {0};
+    int sim_board[CHESS_BOARD_LEN] = {0};
+    char mov[CHESS_MAX_MOVE_LEN] = {0};
+
+    int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT] = {0};
+
+    int white_mov_flg = 1;
+
+    // Go ahead and make opening moves since we do not train the model on openings.
+    {
+        change_board_w_mov(board, "d4", white_mov_flg);
+        white_mov_flg = !white_mov_flg;
+
+        change_board_w_mov(board, "Nf6", white_mov_flg);
+        white_mov_flg = !white_mov_flg;
+
+        change_board_w_mov(board, "c4", white_mov_flg);
+        white_mov_flg = !white_mov_flg;
+
+        change_board_w_mov(board, "e6", white_mov_flg);
+        white_mov_flg = !white_mov_flg;
+
+        change_board_w_mov(board, "Nc3", white_mov_flg);
+        white_mov_flg = !white_mov_flg;
+
+        change_board_w_mov(board, "Bb4", white_mov_flg);
+        white_mov_flg = !white_mov_flg;
+
+        change_board_w_mov(board, "Qc2", white_mov_flg);
+        white_mov_flg = !white_mov_flg;
+
+        change_board_w_mov(board, "O-O", white_mov_flg);
+        white_mov_flg = !white_mov_flg;
+    }
+
+    while (1)
+    {
+
+        // White move:
+        {
+            copy_board(board, cpy_board);
+
+            MoveSearchResult ds_res = get_best_move(cpy_board, white_mov_flg, nn);
+            printf("%s\t%f\n", ds_res.mov, ds_res.eval);
+
+            // Now accept user input.
+            memset(mov, 0, CHESS_MAX_MOVE_LEN);
+            printf("ENTER MOVE (WHITE): ");
+            std::cin >> mov;
+            system("cls");
+
+            // Allow user to confirm they want to make recommended move.
+            if (strlen(mov) <= 1)
+            {
+                strcpy(mov, ds_res.mov);
+            }
+
+            change_board_w_mov(board, mov, white_mov_flg);
+            white_mov_flg = !white_mov_flg;
+            print_board(board);
+        }
+
+        // Black move:
+        {
+
+            copy_board(board, cpy_board);
+
+            MoveSearchResult ds_res = get_best_move(cpy_board, white_mov_flg, nn);
+            printf("%s\t%f\n", ds_res.mov, ds_res.eval);
+
+            // Now accept user input.
+            memset(mov, 0, CHESS_MAX_MOVE_LEN);
+            printf("ENTER MOVE (BLACK): ");
+            std::cin >> mov;
+            system("cls");
+
+            // Allow user to confirm they want to make recommended move.
+            if (strlen(mov) <= 1)
+            {
+                strcpy(mov, ds_res.mov);
+            }
+
+            change_board_w_mov(board, mov, white_mov_flg);
+            white_mov_flg = !white_mov_flg;
+            print_board(board);
+        }
+    }
+
+    free(board);
+}
+
+
 
 int main(int argc, char **argv)
 {
