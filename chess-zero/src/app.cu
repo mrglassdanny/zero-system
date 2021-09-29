@@ -315,10 +315,10 @@ void train_nn(const char *pgn_name, bool white_flg)
             Report train_rpt = nn->train(batch);
             NN::write_to_csv(csv_file_ptr, epoch, train_rpt);
 
-            if (epoch % 10 == 0)
-            {
-                train_rpt.print();
-            }
+            // if (epoch % 10 == 0)
+            // {
+            //     train_rpt.print();
+            // }
         }
 
         delete batch;
