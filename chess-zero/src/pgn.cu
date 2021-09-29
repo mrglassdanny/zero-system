@@ -62,7 +62,7 @@ PGNImport *PGNImport_init(const char *pgn_file_name)
 
     PGNMoveList *list = PGNMoveList_init();
 
-    char mov[CHESS_MAX_MOVE_LEN] = {0};
+    char mov[CHESS_MAX_MOVE_LEN];
 
     for (int i = 0; i < file_size; i++)
     {

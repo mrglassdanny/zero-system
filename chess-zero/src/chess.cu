@@ -1099,7 +1099,7 @@ void get_legal_moves(int *board, int piece_idx, int *out, int test_in_check_flg)
         int check_out[CHESS_MAX_LEGAL_MOVE_CNT];
         memset(check_out, CHESS_INVALID_VALUE, sizeof(int) * CHESS_MAX_LEGAL_MOVE_CNT);
         int check_mov_ctr = 0;
-        int cpy_board[CHESS_BOARD_LEN] = {0};
+        int cpy_board[CHESS_BOARD_LEN];
         for (int i = 0; i < mov_ctr; i++)
         {
             simulate_board_change_w_srcdst_idx(board, piece_idx, out[i], cpy_board);
@@ -1115,9 +1115,9 @@ void get_legal_moves(int *board, int piece_idx, int *out, int test_in_check_flg)
 
 SrcDst_Idx get_random_move(int *board, int white_mov_flg, int *cmp_board)
 {
-    int sim_board[CHESS_BOARD_LEN] = {0};
-    int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT] = {0};
-    int piece_idxs[CHESS_BOARD_LEN] = {0};
+    int sim_board[CHESS_BOARD_LEN];
+    int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
+    int piece_idxs[CHESS_BOARD_LEN];
 
     // Get piece indexes.
 
@@ -1251,7 +1251,7 @@ void translate_srcdst_idx_to_mov(int *board, int src_idx, int dst_idx, char *out
 
 void change_board_w_mov(int *board, const char *immut_mov, int white_mov_flg)
 {
-    char mut_mov[CHESS_MAX_MOVE_LEN] = {0};
+    char mut_mov[CHESS_MAX_MOVE_LEN];
     memcpy(mut_mov, immut_mov, CHESS_MAX_MOVE_LEN);
 
     int src_idx;
@@ -1263,7 +1263,7 @@ void change_board_w_mov(int *board, const char *immut_mov, int white_mov_flg)
     ChessPiece piece;
     char piece_char;
 
-    int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT] = {0};
+    int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
 
     // Trim '+'/'#'.
     for (int i = CHESS_MAX_MOVE_LEN; i > 0; i--)

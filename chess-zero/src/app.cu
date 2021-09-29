@@ -178,8 +178,8 @@ void train_nn(const char *pgn_name, bool white_flg)
     int cur_row[CHESS_BOARD_LEN * 2];
     int pre_mov_board[CHESS_BOARD_LEN];
     int post_mov_board[CHESS_BOARD_LEN];
-    int sim_board[CHESS_BOARD_LEN] = {0};
-    int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT] = {0};
+    int sim_board[CHESS_BOARD_LEN];
+    int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
 
     int oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
     int stacked_oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2];
@@ -458,11 +458,11 @@ void play_nn()
     NN *nn = new NN(NN_DUMP_PATH);
 
     int *board = init_board();
-    int cpy_board[CHESS_BOARD_LEN] = {0};
-    int sim_board[CHESS_BOARD_LEN] = {0};
-    char mov[CHESS_MAX_MOVE_LEN] = {0};
+    int cpy_board[CHESS_BOARD_LEN];
+    int sim_board[CHESS_BOARD_LEN];
+    char mov[CHESS_MAX_MOVE_LEN];
 
-    int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT] = {0};
+    int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
 
     int white_mov_flg = 1;
 
