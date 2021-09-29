@@ -280,7 +280,7 @@ void train_nn(const char *pgn_name, bool white_flg)
 
                                 Tensor *x = new Tensor(1, CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, Gpu, stacked_oh_board);
                                 Tensor *y = new Tensor(1, 1, Gpu);
-                                y->set_idx(0, -1.0f);
+                                y->set_idx(0, 1.0f);
 
                                 batch->add(new Record(x, y));
                             }
