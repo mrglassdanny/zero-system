@@ -1701,25 +1701,25 @@ void one_hot_encode_board(int *board, int *out)
             out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 5] = 1;
             break;
         case BlackPawn:
-            out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 0] = -1;
+            out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 6] = 1;
             break;
         case BlackKnight:
-            out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 1] = -1;
+            out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 7] = 1;
             break;
         case BlackBishop:
-            out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 2] = -1;
+            out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 8] = 1;
             break;
         case BlackRook:
-            out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 3] = -1;
+            out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 9] = 1;
             break;
         case BlackQueen:
-            out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 4] = -1;
+            out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 10] = 1;
             break;
         case BlackKing:
-            out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 5] = -1;
+            out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 11] = 1;
             break;
         default: // Empty space.
-            // Leave all as 0!
+            out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 12] = 1;
             break;
         }
     }
