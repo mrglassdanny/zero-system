@@ -91,16 +91,8 @@ void dump_pgn(const char *pgn_name)
     FILE *white_boards_file = fopen(file_name_buf, "wb");
 
     memset(file_name_buf, 0, 256);
-    sprintf(file_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\white-%s.bl", pgn_name);
-    FILE *white_board_labels_file = fopen(file_name_buf, "wb");
-
-    memset(file_name_buf, 0, 256);
     sprintf(file_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\black-%s.bs", pgn_name);
     FILE *black_boards_file = fopen(file_name_buf, "wb");
-
-    memset(file_name_buf, 0, 256);
-    sprintf(file_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\black-%s.bl", pgn_name);
-    FILE *black_board_labels_file = fopen(file_name_buf, "wb");
 
     bool white_mov_flg;
 
@@ -108,61 +100,48 @@ void dump_pgn(const char *pgn_name)
 
     printf("Total Games: %d\n", pgn->cnt);
 
-    for (int i = 0; i < pgn->cnt; i++)
+    for (int game_idx = 8; game_idx < pgn->cnt; game_idx++)
     {
-        PGNMoveList *pl = pgn->games[i];
+        PGNMoveList *pl = pgn->games[game_idx];
 
         white_mov_flg = true;
 
-        for (int j = 0; j < pl->cnt; j++)
+        for (int mov_idx = 0; mov_idx < pl->cnt; mov_idx++)
         {
             FILE *boards_file = nullptr;
-            FILE *board_labels_file = nullptr;
-
-            float lbl;
 
             if (white_mov_flg)
             {
                 boards_file = white_boards_file;
-                board_labels_file = white_board_labels_file;
-
-                lbl = 1.0f;
             }
             else
             {
                 boards_file = black_boards_file;
-                board_labels_file = black_board_labels_file;
-
-                lbl = -1.0f;
             }
 
             // Write pre-move board state first.
             fwrite(board, sizeof(int) * CHESS_BOARD_LEN, 1, boards_file);
 
             // Make optimal move.
-            change_board_w_mov(board, pl->arr[j], white_mov_flg);
+            change_board_w_mov(board, pl->arr[mov_idx], white_mov_flg);
 
             // Now write post-move(optimal) board state.
             fwrite(board, sizeof(int) * CHESS_BOARD_LEN, 1, boards_file);
-
-            // Write label.
-            fwrite(&lbl, sizeof(float), 1, board_labels_file);
 
             white_mov_flg = !white_mov_flg;
         }
 
         reset_board(board);
 
-        if (i % 10 == 0)
+        if (game_idx % 10 == 0)
         {
-            printf("%d / %d (%f%%)\n", i, pgn->cnt, (((i * 1.0) / (pgn->cnt * 1.0) * 100.0)));
+            printf("%d / %d (%f%%)\n", game_idx, pgn->cnt, (((game_idx * 1.0) / (pgn->cnt * 1.0) * 100.0)));
         }
     }
 
     free(board);
 
     fclose(white_boards_file);
-    fclose(white_board_labels_file);
 
     PGNImport_free(pgn);
 
@@ -176,9 +155,7 @@ void train_nn(const char *pgn_name, bool white_flg)
     char file_name_buf[256];
 
     FILE *boards_file;
-    FILE *board_labels_file;
     long long boards_file_size;
-    long long board_labels_file_size;
 
     if (white_flg)
     {
@@ -186,11 +163,6 @@ void train_nn(const char *pgn_name, bool white_flg)
         sprintf(file_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\white-%s.bs", pgn_name);
         boards_file = fopen(file_name_buf, "rb");
         boards_file_size = get_file_size(file_name_buf);
-
-        memset(file_name_buf, 0, 256);
-        sprintf(file_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\white-%s.bl", pgn_name);
-        board_labels_file = fopen(file_name_buf, "rb");
-        board_labels_file_size = get_file_size(file_name_buf);
     }
     else
     {
@@ -198,11 +170,6 @@ void train_nn(const char *pgn_name, bool white_flg)
         sprintf(file_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\black-%s.bs", pgn_name);
         boards_file = fopen(file_name_buf, "rb");
         boards_file_size = get_file_size(file_name_buf);
-
-        memset(file_name_buf, 0, 256);
-        sprintf(file_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\black-%s.bl", pgn_name);
-        board_labels_file = fopen(file_name_buf, "rb");
-        board_labels_file_size = get_file_size(file_name_buf);
     }
 
     int file_col_cnt = CHESS_BOARD_LEN * 2;
@@ -214,11 +181,11 @@ void train_nn(const char *pgn_name, bool white_flg)
     int sim_board[CHESS_BOARD_LEN] = {0};
     int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT] = {0};
 
-    int one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
-    int stacked_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2];
+    int oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
+    int stacked_oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2];
 
     std::vector<int> layer_cfg = {CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, 2048, 1024, 256, 64, 1};
-    NN *nn = new NN(layer_cfg, ReLU, ReLU, MSE, Xavier, 0.01f);
+    NN *nn = new NN(layer_cfg, ReLU, ReLU, MSE, Xavier, 0.05f);
 
     FILE *csv_file_ptr = fopen("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\chess-train.csv", "w");
     NN::write_csv_header(csv_file_ptr);
@@ -252,13 +219,13 @@ void train_nn(const char *pgn_name, bool white_flg)
                         {
                             // Optimal move.
                             {
-                                one_hot_encode_board(pre_mov_board, one_hot_board);
-                                memcpy(stacked_one_hot_board, one_hot_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
+                                one_hot_encode_board(pre_mov_board, oh_board);
+                                memcpy(stacked_oh_board, oh_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
 
-                                one_hot_encode_board(post_mov_board, one_hot_board);
-                                memcpy(&stacked_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], one_hot_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
+                                one_hot_encode_board(post_mov_board, oh_board);
+                                memcpy(&stacked_oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], oh_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
 
-                                Tensor *x = new Tensor(1, CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, Gpu, stacked_one_hot_board);
+                                Tensor *x = new Tensor(1, CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, Gpu, stacked_oh_board);
                                 Tensor *y = new Tensor(1, 1, Gpu);
                                 y->set_idx(0, 1.0f);
 
@@ -270,13 +237,13 @@ void train_nn(const char *pgn_name, bool white_flg)
                                 simulate_board_change_w_srcdst_idx(pre_mov_board, piece_idx, legal_moves[mov_idx], sim_board);
                                 if (boardcmp(post_mov_board, sim_board) != 0)
                                 {
-                                    one_hot_encode_board(pre_mov_board, one_hot_board);
-                                    memcpy(stacked_one_hot_board, one_hot_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
+                                    one_hot_encode_board(pre_mov_board, oh_board);
+                                    memcpy(stacked_oh_board, oh_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
 
-                                    one_hot_encode_board(sim_board, one_hot_board);
-                                    memcpy(&stacked_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], one_hot_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
+                                    one_hot_encode_board(sim_board, oh_board);
+                                    memcpy(&stacked_oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], oh_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
 
-                                    Tensor *x = new Tensor(1, CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, Gpu, stacked_one_hot_board);
+                                    Tensor *x = new Tensor(1, CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, Gpu, stacked_oh_board);
                                     Tensor *y = new Tensor(1, 1, Gpu);
                                     y->set_idx(0, 0.0f);
 
@@ -305,13 +272,13 @@ void train_nn(const char *pgn_name, bool white_flg)
                         {
                             // Optimal move.
                             {
-                                one_hot_encode_board(pre_mov_board, one_hot_board);
-                                memcpy(stacked_one_hot_board, one_hot_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
+                                one_hot_encode_board(pre_mov_board, oh_board);
+                                memcpy(stacked_oh_board, oh_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
 
-                                one_hot_encode_board(post_mov_board, one_hot_board);
-                                memcpy(&stacked_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], one_hot_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
+                                one_hot_encode_board(post_mov_board, oh_board);
+                                memcpy(&stacked_oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], oh_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
 
-                                Tensor *x = new Tensor(1, CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, Gpu, stacked_one_hot_board);
+                                Tensor *x = new Tensor(1, CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, Gpu, stacked_oh_board);
                                 Tensor *y = new Tensor(1, 1, Gpu);
                                 y->set_idx(0, -1.0f);
 
@@ -323,13 +290,13 @@ void train_nn(const char *pgn_name, bool white_flg)
                                 simulate_board_change_w_srcdst_idx(pre_mov_board, piece_idx, legal_moves[mov_idx], sim_board);
                                 if (boardcmp(post_mov_board, sim_board) != 0)
                                 {
-                                    one_hot_encode_board(pre_mov_board, one_hot_board);
-                                    memcpy(stacked_one_hot_board, one_hot_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
+                                    one_hot_encode_board(pre_mov_board, oh_board);
+                                    memcpy(stacked_oh_board, oh_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
 
-                                    one_hot_encode_board(sim_board, one_hot_board);
-                                    memcpy(&stacked_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], one_hot_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
+                                    one_hot_encode_board(sim_board, oh_board);
+                                    memcpy(&stacked_oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], oh_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
 
-                                    Tensor *x = new Tensor(1, CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, Gpu, stacked_one_hot_board);
+                                    Tensor *x = new Tensor(1, CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, Gpu, stacked_oh_board);
                                     Tensor *y = new Tensor(1, 1, Gpu);
                                     y->set_idx(0, 0.0f);
 
@@ -346,6 +313,11 @@ void train_nn(const char *pgn_name, bool white_flg)
         {
             Report train_rpt = nn->train(batch);
             NN::write_to_csv(csv_file_ptr, epoch, train_rpt);
+
+            if (epoch % 10 == 0)
+            {
+                train_rpt.print();
+            }
         }
 
         delete batch;
@@ -366,7 +338,6 @@ void train_nn(const char *pgn_name, bool white_flg)
 
     fclose(csv_file_ptr);
     fclose(boards_file);
-    fclose(board_labels_file);
 
     delete nn;
 }
