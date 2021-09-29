@@ -10,7 +10,6 @@
 using namespace zero::core;
 using namespace zero::nn;
 
-#define NN_DUMP_PATH "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\chess.nn"
 #define WHITE_NN_DUMP_PATH "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\white-chess.nn"
 #define BLACK_NN_DUMP_PATH "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\black-chess.nn"
 
@@ -666,11 +665,11 @@ void play_nn(bool white_flg)
 
 int main(int argc, char **argv)
 {
-    dump_pgn("TEST");
+    //dump_pgn("TEST");
 
-    train_nn("TEST", true);
+    //train_nn("TEST", true);
 
-    //play_nn(true);
+    play_nn(true);
 
     return 0;
 }
