@@ -48,15 +48,15 @@ int *copy_board(int *src, int *dst);
 
 void reset_board(int *board);
 
-int is_piece_white(ChessPiece piece);
+bool is_piece_white(ChessPiece piece);
 
-int is_piece_black(ChessPiece piece);
+bool is_piece_black(ChessPiece piece);
 
 int is_piece_same_color(ChessPiece a, ChessPiece b);
 
 bool is_piece_under_attack(int *board, int piece_idx);
 
-int is_in_check(int *board, int white_mov_flg);
+bool is_in_check(int *board, int white_mov_flg);
 
 void get_legal_moves(int *board, int piece_idx, int *out, int test_in_check_flg);
 

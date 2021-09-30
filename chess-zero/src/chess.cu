@@ -277,27 +277,27 @@ char get_char_fr_piece(ChessPiece piece)
     }
 }
 
-int is_piece_white(ChessPiece piece)
+bool is_piece_white(ChessPiece piece)
 {
     if (piece > 0)
     {
-        return 1;
+        return true;
     }
     else
     {
-        return 0;
+        return false;
     }
 }
 
-int is_piece_black(ChessPiece piece)
+bool is_piece_black(ChessPiece piece)
 {
     if (piece < 0)
     {
-        return 1;
+        return true;
     }
     else
     {
-        return 0;
+        return false;
     }
 }
 
@@ -337,20 +337,20 @@ bool is_piece_under_attack(int *board, int piece_idx)
 
     if (white_piece)
     {
-        for (int i = 0; i < CHESS_BOARD_LEN; i++)
+        for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
         {
-            if (is_piece_black((ChessPiece)board[i]) == 1)
+            if (is_piece_black((ChessPiece)board[piece_idx]) == 1)
             {
-                get_legal_moves(board, i, legal_moves, 1);
+                get_legal_moves(board, piece_idx, legal_moves, 1);
 
-                for (int j = 0; j < CHESS_MAX_LEGAL_MOVE_CNT; j++)
+                for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
                 {
-                    if (legal_moves[j] == CHESS_INVALID_VALUE)
+                    if (legal_moves[mov_idx] == CHESS_INVALID_VALUE)
                     {
                         break;
                     }
 
-                    if (legal_moves[j] == piece_idx)
+                    if (legal_moves[mov_idx] == piece_idx)
                     {
                         under_attack_flg = true;
                         break;
@@ -366,20 +366,20 @@ bool is_piece_under_attack(int *board, int piece_idx)
     }
     else
     {
-        for (int i = 0; i < CHESS_BOARD_LEN; i++)
+        for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
         {
-            if (is_piece_white((ChessPiece)board[i]) == 1)
+            if (is_piece_white((ChessPiece)board[piece_idx]) == 1)
             {
-                get_legal_moves(board, i, legal_moves, 1);
+                get_legal_moves(board, piece_idx, legal_moves, 1);
 
-                for (int j = 0; j < CHESS_MAX_LEGAL_MOVE_CNT; j++)
+                for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
                 {
-                    if (legal_moves[j] == CHESS_INVALID_VALUE)
+                    if (legal_moves[mov_idx] == CHESS_INVALID_VALUE)
                     {
                         break;
                     }
 
-                    if (legal_moves[j] == piece_idx)
+                    if (legal_moves[mov_idx] == piece_idx)
                     {
                         under_attack_flg = true;
                         break;
@@ -397,36 +397,36 @@ bool is_piece_under_attack(int *board, int piece_idx)
     return under_attack_flg;
 }
 
-int is_in_check(int *board, int white_mov_flg)
+bool is_in_check(int *board, int white_mov_flg)
 {
-    int in_check_flg = 0;
+    bool in_check_flg = 0;
     int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
     memset(legal_moves, CHESS_INVALID_VALUE, sizeof(int) * CHESS_MAX_LEGAL_MOVE_CNT);
 
     if (white_mov_flg == 1)
     {
-        for (int i = 0; i < CHESS_BOARD_LEN; i++)
+        for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
         {
-            if (is_piece_black((ChessPiece)board[i]) == 1)
+            if (is_piece_black((ChessPiece)board[piece_idx]) == 1)
             {
-                get_legal_moves(board, i, legal_moves, 0);
+                get_legal_moves(board, piece_idx, legal_moves, 0);
 
-                for (int j = 0; j < CHESS_MAX_LEGAL_MOVE_CNT; j++)
+                for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
                 {
-                    if (legal_moves[j] == CHESS_INVALID_VALUE)
+                    if (legal_moves[mov_idx] == CHESS_INVALID_VALUE)
                     {
                         break;
                     }
 
-                    if ((ChessPiece)board[legal_moves[j]] == WhiteKing)
+                    if ((ChessPiece)board[legal_moves[mov_idx]] == WhiteKing)
                     {
-                        in_check_flg = 1;
+                        in_check_flg = true;
                         break;
                     }
                 }
             }
 
-            if (in_check_flg == 1)
+            if (in_check_flg)
             {
                 break;
             }
@@ -434,28 +434,28 @@ int is_in_check(int *board, int white_mov_flg)
     }
     else
     {
-        for (int i = 0; i < CHESS_BOARD_LEN; i++)
+        for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
         {
-            if (is_piece_white((ChessPiece)board[i]) == 1)
+            if (is_piece_white((ChessPiece)board[piece_idx]) == 1)
             {
-                get_legal_moves(board, i, legal_moves, 0);
+                get_legal_moves(board, piece_idx, legal_moves, 0);
 
-                for (int j = 0; j < CHESS_MAX_LEGAL_MOVE_CNT; j++)
+                for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
                 {
-                    if (legal_moves[j] == CHESS_INVALID_VALUE)
+                    if (legal_moves[mov_idx] == CHESS_INVALID_VALUE)
                     {
                         break;
                     }
 
-                    if ((ChessPiece)board[legal_moves[j]] == BlackKing)
+                    if ((ChessPiece)board[legal_moves[mov_idx]] == BlackKing)
                     {
-                        in_check_flg = 1;
+                        in_check_flg = true;
                         break;
                     }
                 }
             }
 
-            if (in_check_flg == 1)
+            if (in_check_flg)
             {
                 break;
             }
@@ -463,6 +463,61 @@ int is_in_check(int *board, int white_mov_flg)
     }
 
     return in_check_flg;
+}
+
+bool is_in_checkmate(int *board, bool white_mov_flg)
+{
+    bool in_checkmate_flg;
+    int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
+    memset(legal_moves, CHESS_INVALID_VALUE, sizeof(int) * CHESS_MAX_LEGAL_MOVE_CNT);
+
+    int sim_board[CHESS_BOARD_LEN];
+
+    if (is_in_check(board, white_mov_flg))
+    {
+        in_checkmate_flg = true;
+
+        if (white_mov_flg)
+        {
+            for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
+            {
+                if (is_piece_white((ChessPiece)board[piece_idx]))
+                {
+                    get_legal_moves(board, piece_idx, legal_moves, 1);
+
+                    if (legal_moves[0] != CHESS_INVALID_VALUE)
+                    {
+                        in_checkmate_flg = false;
+                    }
+
+                    break;
+                }
+            }
+        }
+        else
+        {
+            for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
+            {
+                if (is_piece_black((ChessPiece)board[piece_idx]))
+                {
+                    get_legal_moves(board, piece_idx, legal_moves, 1);
+
+                    if (legal_moves[0] != CHESS_INVALID_VALUE)
+                    {
+                        in_checkmate_flg = false;
+                    }
+
+                    break;
+                }
+            }
+        }
+    }
+    else
+    {
+        in_checkmate_flg = false;
+    }
+
+    return in_checkmate_flg;
 }
 
 void get_legal_moves(int *board, int piece_idx, int *out, int test_in_check_flg)
@@ -1758,165 +1813,165 @@ void print_board(int *board)
     printf("\n\n");
 }
 
-void one_hot_encode_board(int *board, int *out)
-{
-    memset(out, 0, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-
-    for (int i = 0; i < CHESS_BOARD_LEN; i++)
+    void one_hot_encode_board(int *board, int *out)
     {
-        switch (board[i])
+        memset(out, 0, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
+
+        for (int i = 0; i < CHESS_BOARD_LEN; i++)
         {
-        case WhitePawn:
-            out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 0] = 1;
-            break;
-        case WhiteKnight:
-            out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 1] = 1;
-            break;
-        case WhiteBishop:
-            out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 2] = 1;
-            break;
-        case WhiteRook:
-            out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 3] = 1;
-            break;
-        case WhiteQueen:
-            out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 4] = 1;
-            break;
-        case WhiteKing:
-            out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 5] = 1;
-            break;
-        case BlackPawn:
-            out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 6] = 1;
-            break;
-        case BlackKnight:
-            out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 7] = 1;
-            break;
-        case BlackBishop:
-            out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 8] = 1;
-            break;
-        case BlackRook:
-            out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 9] = 1;
-            break;
-        case BlackQueen:
-            out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 10] = 1;
-            break;
-        case BlackKing:
-            out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 11] = 1;
-            break;
-        default: // Empty space.
-            out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 12] = 1;
-            break;
+            switch (board[i])
+            {
+            case WhitePawn:
+                out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 0] = 1;
+                break;
+            case WhiteKnight:
+                out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 1] = 1;
+                break;
+            case WhiteBishop:
+                out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 2] = 1;
+                break;
+            case WhiteRook:
+                out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 3] = 1;
+                break;
+            case WhiteQueen:
+                out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 4] = 1;
+                break;
+            case WhiteKing:
+                out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 5] = 1;
+                break;
+            case BlackPawn:
+                out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 6] = 1;
+                break;
+            case BlackKnight:
+                out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 7] = 1;
+                break;
+            case BlackBishop:
+                out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 8] = 1;
+                break;
+            case BlackRook:
+                out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 9] = 1;
+                break;
+            case BlackQueen:
+                out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 10] = 1;
+                break;
+            case BlackKing:
+                out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 11] = 1;
+                break;
+            default: // Empty space.
+                out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 12] = 1;
+                break;
+            }
         }
     }
-}
 
-int eval_board(int *board)
-{
-    int sum = 0;
-
-    for (int i = 0; i < CHESS_BOARD_LEN; i++)
+    int eval_board(int *board)
     {
-        sum += board[i];
-    }
+        int sum = 0;
 
-    return sum;
-}
-
-int get_worst_case(int *board, bool white_flg, bool cur_white_flg, int depth, int cur_depth)
-{
-    if (cur_depth == depth)
-    {
-        return eval_board(board);
-    }
-
-    int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
-
-    int sim_board[CHESS_BOARD_LEN];
-
-    int worst_eval;
-
-    if (white_flg)
-    {
-        worst_eval = INT_MAX;
-    }
-    else
-    {
-        worst_eval = -INT_MAX;
-    }
-
-    if (cur_white_flg)
-    {
-        for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
+        for (int i = 0; i < CHESS_BOARD_LEN; i++)
         {
-            if (is_piece_white((ChessPiece)board[piece_idx]) == 1)
+            sum += board[i];
+        }
+
+        return sum;
+    }
+
+    int get_worst_case(int *board, bool white_flg, bool cur_white_flg, int depth, int cur_depth)
+    {
+        if (cur_depth == depth)
+        {
+            return eval_board(board);
+        }
+
+        int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
+
+        int sim_board[CHESS_BOARD_LEN];
+
+        int worst_eval;
+
+        if (white_flg)
+        {
+            worst_eval = INT_MAX;
+        }
+        else
+        {
+            worst_eval = -INT_MAX;
+        }
+
+        if (cur_white_flg)
+        {
+            for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
             {
-                get_legal_moves(board, piece_idx, legal_moves, 1);
-
-                for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
+                if (is_piece_white((ChessPiece)board[piece_idx]) == 1)
                 {
-                    if (legal_moves[mov_idx] == CHESS_INVALID_VALUE)
+                    get_legal_moves(board, piece_idx, legal_moves, 1);
+
+                    for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
                     {
-                        break;
-                    }
-
-                    simulate_board_change_w_srcdst_idx(board, piece_idx, legal_moves[mov_idx], sim_board);
-
-                    int eval = get_worst_case(sim_board, white_flg, !cur_white_flg, depth, cur_depth + 1);
-
-                    if (white_flg)
-                    {
-                        if (eval < worst_eval)
+                        if (legal_moves[mov_idx] == CHESS_INVALID_VALUE)
                         {
-                            worst_eval = eval;
+                            break;
                         }
-                    }
-                    else
-                    {
-                        if (eval > worst_eval)
+
+                        simulate_board_change_w_srcdst_idx(board, piece_idx, legal_moves[mov_idx], sim_board);
+
+                        int eval = get_worst_case(sim_board, white_flg, !cur_white_flg, depth, cur_depth + 1);
+
+                        if (white_flg)
                         {
-                            worst_eval = eval;
+                            if (eval < worst_eval)
+                            {
+                                worst_eval = eval;
+                            }
+                        }
+                        else
+                        {
+                            if (eval > worst_eval)
+                            {
+                                worst_eval = eval;
+                            }
                         }
                     }
                 }
             }
         }
-    }
-    else
-    {
-        for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
+        else
         {
-            if (is_piece_black((ChessPiece)board[piece_idx]) == 1)
+            for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
             {
-                get_legal_moves(board, piece_idx, legal_moves, 1);
-
-                for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
+                if (is_piece_black((ChessPiece)board[piece_idx]) == 1)
                 {
-                    if (legal_moves[mov_idx] == CHESS_INVALID_VALUE)
+                    get_legal_moves(board, piece_idx, legal_moves, 1);
+
+                    for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
                     {
-                        break;
-                    }
-
-                    simulate_board_change_w_srcdst_idx(board, piece_idx, legal_moves[mov_idx], sim_board);
-
-                    int eval = get_worst_case(sim_board, white_flg, !cur_white_flg, depth, cur_depth + 1);
-
-                    if (white_flg)
-                    {
-                        if (eval < worst_eval)
+                        if (legal_moves[mov_idx] == CHESS_INVALID_VALUE)
                         {
-                            worst_eval = eval;
+                            break;
                         }
-                    }
-                    else
-                    {
-                        if (eval > worst_eval)
+
+                        simulate_board_change_w_srcdst_idx(board, piece_idx, legal_moves[mov_idx], sim_board);
+
+                        int eval = get_worst_case(sim_board, white_flg, !cur_white_flg, depth, cur_depth + 1);
+
+                        if (white_flg)
                         {
-                            worst_eval = eval;
+                            if (eval < worst_eval)
+                            {
+                                worst_eval = eval;
+                            }
+                        }
+                        else
+                        {
+                            if (eval > worst_eval)
+                            {
+                                worst_eval = eval;
+                            }
                         }
                     }
                 }
             }
         }
-    }
 
-    return eval_board(board) + worst_eval;
-}
+        return eval_board(board) + worst_eval;
+    }
