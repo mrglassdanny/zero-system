@@ -52,21 +52,21 @@ bool is_piece_white(ChessPiece piece);
 
 bool is_piece_black(ChessPiece piece);
 
-int is_piece_same_color(ChessPiece a, ChessPiece b);
+bool is_piece_same_color(ChessPiece a, ChessPiece b);
 
 bool is_piece_under_attack(int *board, int piece_idx);
 
-bool is_in_check(int *board, int white_mov_flg);
+bool is_in_check(int *board, bool white_mov_flg);
 
-void get_legal_moves(int *board, int piece_idx, int *out, int test_in_check_flg);
+void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg);
 
-SrcDst_Idx get_random_move(int *board, int white_mov_flg, int *cmp_board);
+SrcDst_Idx get_random_move(int *board, bool white_mov_flg, int *cmp_board);
 
 void simulate_board_change_w_srcdst_idx(int *board, int src_idx, int dst_idx, int *out);
 
 void translate_srcdst_idx_to_mov(int *board, int src_idx, int dst_idx, char *out);
 
-void change_board_w_mov(int *board, const char *mov, int white_mov_flg);
+void change_board_w_mov(int *board, const char *mov, bool white_mov_flg);
 
 int boardcmp(int *a, int *b);
 

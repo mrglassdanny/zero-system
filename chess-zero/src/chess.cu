@@ -165,37 +165,37 @@ int get_idx_fr_adj_colrow(int adj_col, int adj_row)
     return (adj_row * CHESS_BOARD_COL_CNT) + adj_col;
 }
 
-int is_row_valid(int row)
+bool is_row_valid(int row)
 {
     if (row >= 1 && row <= CHESS_BOARD_ROW_CNT)
     {
-        return 1;
+        return true;
     }
     else
     {
-        return 0;
+        return false;
     }
 }
 
-int is_adj_colrow_valid(int adj_col, int adj_row)
+bool is_adj_colrow_valid(int adj_col, int adj_row)
 {
     if (adj_col >= 0 && adj_col < CHESS_BOARD_COL_CNT &&
         adj_row >= 0 && adj_row < CHESS_BOARD_ROW_CNT)
     {
-        return 1;
+        return true;
     }
     else
     {
-        return 0;
+        return false;
     }
 }
 
-ChessPiece get_piece_fr_char(char piece_id, int white_mov_flg)
+ChessPiece get_piece_fr_char(char piece_id, bool white_mov_flg)
 {
     switch (piece_id)
     {
     case 'N':
-        if (white_mov_flg == 1)
+        if (white_mov_flg)
         {
             return WhiteKnight;
         }
@@ -204,7 +204,7 @@ ChessPiece get_piece_fr_char(char piece_id, int white_mov_flg)
             return BlackKnight;
         }
     case 'B':
-        if (white_mov_flg == 1)
+        if (white_mov_flg)
         {
             return WhiteBishop;
         }
@@ -213,7 +213,7 @@ ChessPiece get_piece_fr_char(char piece_id, int white_mov_flg)
             return BlackBishop;
         }
     case 'R':
-        if (white_mov_flg == 1)
+        if (white_mov_flg)
         {
             return WhiteRook;
         }
@@ -222,7 +222,7 @@ ChessPiece get_piece_fr_char(char piece_id, int white_mov_flg)
             return BlackRook;
         }
     case 'Q':
-        if (white_mov_flg == 1)
+        if (white_mov_flg)
         {
             return WhiteQueen;
         }
@@ -231,7 +231,7 @@ ChessPiece get_piece_fr_char(char piece_id, int white_mov_flg)
             return BlackQueen;
         }
     case 'K':
-        if (white_mov_flg == 1)
+        if (white_mov_flg)
         {
             return WhiteKing;
         }
@@ -241,7 +241,7 @@ ChessPiece get_piece_fr_char(char piece_id, int white_mov_flg)
         }
     default:
         // Pawn will be 'P' (optional).
-        if (white_mov_flg == 1)
+        if (white_mov_flg)
         {
             return WhitePawn;
         }
@@ -301,15 +301,15 @@ bool is_piece_black(ChessPiece piece)
     }
 }
 
-int is_piece_same_color(ChessPiece a, ChessPiece b)
+bool is_piece_same_color(ChessPiece a, ChessPiece b)
 {
-    if ((is_piece_white(a) == 1 && is_piece_white(b) == 1) || (is_piece_black(a) == 1 && is_piece_black(b) == 1))
+    if ((is_piece_white(a) && is_piece_white(b)) || (is_piece_black(a) && is_piece_black(b)))
     {
-        return 1;
+        return true;
     }
     else
     {
-        return 0;
+        return false;
     }
 }
 
@@ -332,14 +332,14 @@ bool is_piece_under_attack(int *board, int piece_idx)
     else
     {
         // Piece index is empty space.
-        return 0;
+        return false;
     }
 
     if (white_piece)
     {
         for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
         {
-            if (is_piece_black((ChessPiece)board[piece_idx]) == 1)
+            if (is_piece_black((ChessPiece)board[piece_idx]))
             {
                 get_legal_moves(board, piece_idx, legal_moves, 1);
 
@@ -368,7 +368,7 @@ bool is_piece_under_attack(int *board, int piece_idx)
     {
         for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
         {
-            if (is_piece_white((ChessPiece)board[piece_idx]) == 1)
+            if (is_piece_white((ChessPiece)board[piece_idx]))
             {
                 get_legal_moves(board, piece_idx, legal_moves, 1);
 
@@ -397,17 +397,17 @@ bool is_piece_under_attack(int *board, int piece_idx)
     return under_attack_flg;
 }
 
-bool is_in_check(int *board, int white_mov_flg)
+bool is_in_check(int *board, bool white_mov_flg)
 {
     bool in_check_flg = 0;
     int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
     memset(legal_moves, CHESS_INVALID_VALUE, sizeof(int) * CHESS_MAX_LEGAL_MOVE_CNT);
 
-    if (white_mov_flg == 1)
+    if (white_mov_flg)
     {
         for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
         {
-            if (is_piece_black((ChessPiece)board[piece_idx]) == 1)
+            if (is_piece_black((ChessPiece)board[piece_idx]))
             {
                 get_legal_moves(board, piece_idx, legal_moves, 0);
 
@@ -436,7 +436,7 @@ bool is_in_check(int *board, int white_mov_flg)
     {
         for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
         {
-            if (is_piece_white((ChessPiece)board[piece_idx]) == 1)
+            if (is_piece_white((ChessPiece)board[piece_idx]))
             {
                 get_legal_moves(board, piece_idx, legal_moves, 0);
 
@@ -520,7 +520,7 @@ bool is_in_checkmate(int *board, bool white_mov_flg)
     return in_checkmate_flg;
 }
 
-void get_legal_moves(int *board, int piece_idx, int *out, int test_in_check_flg)
+void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg)
 {
     memset(out, CHESS_INVALID_VALUE, sizeof(int) * CHESS_MAX_LEGAL_MOVE_CNT);
     int mov_ctr = 0;
@@ -551,19 +551,19 @@ void get_legal_moves(int *board, int piece_idx, int *out, int test_in_check_flg)
         // TODO: au passant
         {
             test_idx = get_idx_fr_colrow(col, row + 1);
-            if (is_row_valid(row + 1) == 1 && board[test_idx] == Empty)
+            if (is_row_valid(row + 1) && board[test_idx] == Empty)
             {
                 out[mov_ctr++] = test_idx;
             }
 
             test_idx = get_idx_fr_adj_colrow(adj_col - 1, adj_row + 1);
-            if (is_adj_colrow_valid(adj_col - 1, adj_row + 1) == 1 && board[test_idx] != Empty && is_piece_same_color(piece, (ChessPiece)board[test_idx]) == 0)
+            if (is_adj_colrow_valid(adj_col - 1, adj_row + 1) && board[test_idx] != Empty && !is_piece_same_color(piece, (ChessPiece)board[test_idx]))
             {
                 out[mov_ctr++] = test_idx;
             }
 
             test_idx = get_idx_fr_adj_colrow(adj_col + 1, adj_row + 1);
-            if (is_adj_colrow_valid(adj_col + 1, adj_row + 1) == 1 && board[test_idx] != Empty && is_piece_same_color(piece, (ChessPiece)board[test_idx]) == 0)
+            if (is_adj_colrow_valid(adj_col + 1, adj_row + 1) && board[test_idx] != Empty && !is_piece_same_color(piece, (ChessPiece)board[test_idx]))
             {
                 out[mov_ctr++] = test_idx;
             }
@@ -588,19 +588,19 @@ void get_legal_moves(int *board, int piece_idx, int *out, int test_in_check_flg)
         // TODO: au passant
         {
             test_idx = get_idx_fr_colrow(col, row - 1);
-            if (is_row_valid(row - 1) == 1 && board[test_idx] == Empty)
+            if (is_row_valid(row - 1) && board[test_idx] == Empty)
             {
                 out[mov_ctr++] = test_idx;
             }
 
             test_idx = get_idx_fr_adj_colrow(adj_col - 1, adj_row - 1);
-            if (is_adj_colrow_valid(adj_col - 1, adj_row - 1) == 1 && board[test_idx] != Empty && is_piece_same_color(piece, (ChessPiece)board[test_idx]) == 0)
+            if (is_adj_colrow_valid(adj_col - 1, adj_row - 1) && board[test_idx] != Empty && !is_piece_same_color(piece, (ChessPiece)board[test_idx]))
             {
                 out[mov_ctr++] = test_idx;
             }
 
             test_idx = get_idx_fr_adj_colrow(adj_col + 1, adj_row - 1);
-            if (is_adj_colrow_valid(adj_col + 1, adj_row - 1) == 1 && board[test_idx] != Empty && is_piece_same_color(piece, (ChessPiece)board[test_idx]) == 0)
+            if (is_adj_colrow_valid(adj_col + 1, adj_row - 1) && board[test_idx] != Empty && !is_piece_same_color(piece, (ChessPiece)board[test_idx]))
             {
                 out[mov_ctr++] = test_idx;
             }
@@ -625,73 +625,73 @@ void get_legal_moves(int *board, int piece_idx, int *out, int test_in_check_flg)
     case BlackKnight:
     {
 
-        if (is_adj_colrow_valid(adj_col + 1, adj_row + 2) == 1)
+        if (is_adj_colrow_valid(adj_col + 1, adj_row + 2))
         {
             test_idx = get_idx_fr_adj_colrow(adj_col + 1, adj_row + 2);
-            if (is_piece_same_color(piece, (ChessPiece)board[test_idx]) == 0)
+            if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
             {
                 out[mov_ctr++] = test_idx;
             }
         }
 
-        if (is_adj_colrow_valid(adj_col + 1, adj_row - 2) == 1)
+        if (is_adj_colrow_valid(adj_col + 1, adj_row - 2))
         {
             test_idx = get_idx_fr_adj_colrow(adj_col + 1, adj_row - 2);
-            if (is_piece_same_color(piece, (ChessPiece)board[test_idx]) == 0)
+            if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
             {
                 out[mov_ctr++] = test_idx;
             }
         }
 
-        if (is_adj_colrow_valid(adj_col - 1, adj_row + 2) == 1)
+        if (is_adj_colrow_valid(adj_col - 1, adj_row + 2))
         {
             test_idx = get_idx_fr_adj_colrow(adj_col - 1, adj_row + 2);
-            if (is_piece_same_color(piece, (ChessPiece)board[test_idx]) == 0)
+            if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
             {
                 out[mov_ctr++] = test_idx;
             }
         }
 
-        if (is_adj_colrow_valid(adj_col - 1, adj_row - 2) == 1)
+        if (is_adj_colrow_valid(adj_col - 1, adj_row - 2))
         {
             test_idx = get_idx_fr_adj_colrow(adj_col - 1, adj_row - 2);
-            if (is_piece_same_color(piece, (ChessPiece)board[test_idx]) == 0)
+            if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
             {
                 out[mov_ctr++] = test_idx;
             }
         }
 
-        if (is_adj_colrow_valid(adj_col + 2, adj_row + 1) == 1)
+        if (is_adj_colrow_valid(adj_col + 2, adj_row + 1))
         {
             test_idx = get_idx_fr_adj_colrow(adj_col + 2, adj_row + 1);
-            if (is_piece_same_color(piece, (ChessPiece)board[test_idx]) == 0)
+            if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
             {
                 out[mov_ctr++] = test_idx;
             }
         }
 
-        if (is_adj_colrow_valid(adj_col + 2, adj_row - 1) == 1)
+        if (is_adj_colrow_valid(adj_col + 2, adj_row - 1))
         {
             test_idx = get_idx_fr_adj_colrow(adj_col + 2, adj_row - 1);
-            if (is_piece_same_color(piece, (ChessPiece)board[test_idx]) == 0)
+            if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
             {
                 out[mov_ctr++] = test_idx;
             }
         }
 
-        if (is_adj_colrow_valid(adj_col - 2, adj_row + 1) == 1)
+        if (is_adj_colrow_valid(adj_col - 2, adj_row + 1))
         {
             test_idx = get_idx_fr_adj_colrow(adj_col - 2, adj_row + 1);
-            if (is_piece_same_color(piece, (ChessPiece)board[test_idx]) == 0)
+            if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
             {
                 out[mov_ctr++] = test_idx;
             }
         }
 
-        if (is_adj_colrow_valid(adj_col - 2, adj_row - 1) == 1)
+        if (is_adj_colrow_valid(adj_col - 2, adj_row - 1))
         {
             test_idx = get_idx_fr_adj_colrow(adj_col - 2, adj_row - 1);
-            if (is_piece_same_color(piece, (ChessPiece)board[test_idx]) == 0)
+            if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
             {
                 out[mov_ctr++] = test_idx;
             }
@@ -709,13 +709,13 @@ void get_legal_moves(int *board, int piece_idx, int *out, int test_in_check_flg)
         for (int i = 1; i < 8; i++)
         {
 
-            if (is_adj_colrow_valid(adj_col + i, adj_row + i) == 1 && ne == 0)
+            if (is_adj_colrow_valid(adj_col + i, adj_row + i) && ne == 0)
             {
                 test_idx = get_idx_fr_adj_colrow(adj_col + i, adj_row + i);
                 if (board[test_idx] != Empty)
                 {
                     ne = 1;
-                    if (is_piece_same_color(piece, (ChessPiece)board[test_idx]) == 0)
+                    if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
                     {
                         out[mov_ctr++] = test_idx;
                     }
@@ -726,13 +726,13 @@ void get_legal_moves(int *board, int piece_idx, int *out, int test_in_check_flg)
                 }
             }
 
-            if (is_adj_colrow_valid(adj_col - i, adj_row - i) == 1 && sw == 0)
+            if (is_adj_colrow_valid(adj_col - i, adj_row - i) && sw == 0)
             {
                 test_idx = get_idx_fr_adj_colrow(adj_col - i, adj_row - i);
                 if (board[test_idx] != Empty)
                 {
                     sw = 1;
-                    if (is_piece_same_color(piece, (ChessPiece)board[test_idx]) == 0)
+                    if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
                     {
                         out[mov_ctr++] = test_idx;
                     }
@@ -743,13 +743,13 @@ void get_legal_moves(int *board, int piece_idx, int *out, int test_in_check_flg)
                 }
             }
 
-            if (is_adj_colrow_valid(adj_col + i, adj_row - i) == 1 && se == 0)
+            if (is_adj_colrow_valid(adj_col + i, adj_row - i) && se == 0)
             {
                 test_idx = get_idx_fr_adj_colrow(adj_col + i, adj_row - i);
                 if (board[test_idx] != Empty)
                 {
                     se = 1;
-                    if (is_piece_same_color(piece, (ChessPiece)board[test_idx]) == 0)
+                    if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
                     {
                         out[mov_ctr++] = test_idx;
                     }
@@ -760,13 +760,13 @@ void get_legal_moves(int *board, int piece_idx, int *out, int test_in_check_flg)
                 }
             }
 
-            if (is_adj_colrow_valid(adj_col - i, adj_row + i) == 1 && nw == 0)
+            if (is_adj_colrow_valid(adj_col - i, adj_row + i) && nw == 0)
             {
                 test_idx = get_idx_fr_adj_colrow(adj_col - i, adj_row + i);
                 if (board[test_idx] != Empty)
                 {
                     nw = 1;
-                    if (is_piece_same_color(piece, (ChessPiece)board[test_idx]) == 0)
+                    if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
                     {
                         out[mov_ctr++] = test_idx;
                     }
@@ -790,13 +790,13 @@ void get_legal_moves(int *board, int piece_idx, int *out, int test_in_check_flg)
         for (int i = 1; i < 8; i++)
         {
 
-            if (is_adj_colrow_valid(adj_col + i, adj_row) == 1 && e == 0)
+            if (is_adj_colrow_valid(adj_col + i, adj_row) && e == 0)
             {
                 test_idx = get_idx_fr_adj_colrow(adj_col + i, adj_row);
                 if (board[test_idx] != Empty)
                 {
                     e = 1;
-                    if (is_piece_same_color(piece, (ChessPiece)board[test_idx]) == 0)
+                    if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
                     {
                         out[mov_ctr++] = test_idx;
                     }
@@ -807,13 +807,13 @@ void get_legal_moves(int *board, int piece_idx, int *out, int test_in_check_flg)
                 }
             }
 
-            if (is_adj_colrow_valid(adj_col - i, adj_row) == 1 && w == 0)
+            if (is_adj_colrow_valid(adj_col - i, adj_row) && w == 0)
             {
                 test_idx = get_idx_fr_adj_colrow(adj_col - i, adj_row);
                 if (board[test_idx] != Empty)
                 {
                     w = 1;
-                    if (is_piece_same_color(piece, (ChessPiece)board[test_idx]) == 0)
+                    if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
                     {
                         out[mov_ctr++] = test_idx;
                     }
@@ -824,13 +824,13 @@ void get_legal_moves(int *board, int piece_idx, int *out, int test_in_check_flg)
                 }
             }
 
-            if (is_adj_colrow_valid(adj_col, adj_row + i) == 1 && n == 0)
+            if (is_adj_colrow_valid(adj_col, adj_row + i) && n == 0)
             {
                 test_idx = get_idx_fr_adj_colrow(adj_col, adj_row + i);
                 if (board[test_idx] != Empty)
                 {
                     n = 1;
-                    if (is_piece_same_color(piece, (ChessPiece)board[test_idx]) == 0)
+                    if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
                     {
                         out[mov_ctr++] = test_idx;
                     }
@@ -841,13 +841,13 @@ void get_legal_moves(int *board, int piece_idx, int *out, int test_in_check_flg)
                 }
             }
 
-            if (is_adj_colrow_valid(adj_col, adj_row - i) == 1 && s == 0)
+            if (is_adj_colrow_valid(adj_col, adj_row - i) && s == 0)
             {
                 test_idx = get_idx_fr_adj_colrow(adj_col, adj_row - i);
                 if (board[test_idx] != Empty)
                 {
                     s = 1;
-                    if (is_piece_same_color(piece, (ChessPiece)board[test_idx]) == 0)
+                    if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
                     {
                         out[mov_ctr++] = test_idx;
                     }
@@ -872,13 +872,13 @@ void get_legal_moves(int *board, int piece_idx, int *out, int test_in_check_flg)
             for (int i = 1; i < 8; i++)
             {
 
-                if (is_adj_colrow_valid(adj_col + i, adj_row + i) == 1 && ne == 0)
+                if (is_adj_colrow_valid(adj_col + i, adj_row + i) && ne == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col + i, adj_row + i);
                     if (board[test_idx] != Empty)
                     {
                         ne = 1;
-                        if (is_piece_same_color(piece, (ChessPiece)board[test_idx]) == 0)
+                        if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
                         {
                             out[mov_ctr++] = test_idx;
                         }
@@ -889,13 +889,13 @@ void get_legal_moves(int *board, int piece_idx, int *out, int test_in_check_flg)
                     }
                 }
 
-                if (is_adj_colrow_valid(adj_col - i, adj_row - i) == 1 && sw == 0)
+                if (is_adj_colrow_valid(adj_col - i, adj_row - i) && sw == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col - i, adj_row - i);
                     if (board[test_idx] != Empty)
                     {
                         sw = 1;
-                        if (is_piece_same_color(piece, (ChessPiece)board[test_idx]) == 0)
+                        if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
                         {
                             out[mov_ctr++] = test_idx;
                         }
@@ -906,13 +906,13 @@ void get_legal_moves(int *board, int piece_idx, int *out, int test_in_check_flg)
                     }
                 }
 
-                if (is_adj_colrow_valid(adj_col + i, adj_row - i) == 1 && se == 0)
+                if (is_adj_colrow_valid(adj_col + i, adj_row - i) && se == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col + i, adj_row - i);
                     if (board[test_idx] != Empty)
                     {
                         se = 1;
-                        if (is_piece_same_color(piece, (ChessPiece)board[test_idx]) == 0)
+                        if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
                         {
                             out[mov_ctr++] = test_idx;
                         }
@@ -923,13 +923,13 @@ void get_legal_moves(int *board, int piece_idx, int *out, int test_in_check_flg)
                     }
                 }
 
-                if (is_adj_colrow_valid(adj_col - i, adj_row + i) == 1 && nw == 0)
+                if (is_adj_colrow_valid(adj_col - i, adj_row + i) && nw == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col - i, adj_row + i);
                     if (board[test_idx] != Empty)
                     {
                         nw = 1;
-                        if (is_piece_same_color(piece, (ChessPiece)board[test_idx]) == 0)
+                        if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
                         {
                             out[mov_ctr++] = test_idx;
                         }
@@ -950,13 +950,13 @@ void get_legal_moves(int *board, int piece_idx, int *out, int test_in_check_flg)
             for (int i = 1; i < 8; i++)
             {
 
-                if (is_adj_colrow_valid(adj_col + i, adj_row) == 1 && e == 0)
+                if (is_adj_colrow_valid(adj_col + i, adj_row) && e == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col + i, adj_row);
                     if (board[test_idx] != Empty)
                     {
                         e = 1;
-                        if (is_piece_same_color(piece, (ChessPiece)board[test_idx]) == 0)
+                        if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
                         {
                             out[mov_ctr++] = test_idx;
                         }
@@ -967,13 +967,13 @@ void get_legal_moves(int *board, int piece_idx, int *out, int test_in_check_flg)
                     }
                 }
 
-                if (is_adj_colrow_valid(adj_col - i, adj_row) == 1 && w == 0)
+                if (is_adj_colrow_valid(adj_col - i, adj_row) && w == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col - i, adj_row);
                     if (board[test_idx] != Empty)
                     {
                         w = 1;
-                        if (is_piece_same_color(piece, (ChessPiece)board[test_idx]) == 0)
+                        if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
                         {
                             out[mov_ctr++] = test_idx;
                         }
@@ -984,13 +984,13 @@ void get_legal_moves(int *board, int piece_idx, int *out, int test_in_check_flg)
                     }
                 }
 
-                if (is_adj_colrow_valid(adj_col, adj_row + i) == 1 && n == 0)
+                if (is_adj_colrow_valid(adj_col, adj_row + i) && n == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col, adj_row + i);
                     if (board[test_idx] != Empty)
                     {
                         n = 1;
-                        if (is_piece_same_color(piece, (ChessPiece)board[test_idx]) == 0)
+                        if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
                         {
                             out[mov_ctr++] = test_idx;
                         }
@@ -1001,13 +1001,13 @@ void get_legal_moves(int *board, int piece_idx, int *out, int test_in_check_flg)
                     }
                 }
 
-                if (is_adj_colrow_valid(adj_col, adj_row - i) == 1 && s == 0)
+                if (is_adj_colrow_valid(adj_col, adj_row - i) && s == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col, adj_row - i);
                     if (board[test_idx] != Empty)
                     {
                         s = 1;
-                        if (is_piece_same_color(piece, (ChessPiece)board[test_idx]) == 0)
+                        if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
                         {
                             out[mov_ctr++] = test_idx;
                         }
@@ -1032,13 +1032,13 @@ void get_legal_moves(int *board, int piece_idx, int *out, int test_in_check_flg)
             for (int i = 1; i < 2; i++)
             {
 
-                if (is_adj_colrow_valid(adj_col + i, adj_row + i) == 1 && ne == 0)
+                if (is_adj_colrow_valid(adj_col + i, adj_row + i) && ne == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col + i, adj_row + i);
                     if (board[test_idx] != Empty)
                     {
                         ne = 1;
-                        if (is_piece_same_color(piece, (ChessPiece)board[test_idx]) == 0)
+                        if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
                         {
                             out[mov_ctr++] = test_idx;
                         }
@@ -1049,13 +1049,13 @@ void get_legal_moves(int *board, int piece_idx, int *out, int test_in_check_flg)
                     }
                 }
 
-                if (is_adj_colrow_valid(adj_col - i, adj_row - i) == 1 && sw == 0)
+                if (is_adj_colrow_valid(adj_col - i, adj_row - i) && sw == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col - i, adj_row - i);
                     if (board[test_idx] != Empty)
                     {
                         sw = 1;
-                        if (is_piece_same_color(piece, (ChessPiece)board[test_idx]) == 0)
+                        if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
                         {
                             out[mov_ctr++] = test_idx;
                         }
@@ -1066,13 +1066,13 @@ void get_legal_moves(int *board, int piece_idx, int *out, int test_in_check_flg)
                     }
                 }
 
-                if (is_adj_colrow_valid(adj_col + i, adj_row - i) == 1 && se == 0)
+                if (is_adj_colrow_valid(adj_col + i, adj_row - i) && se == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col + i, adj_row - i);
                     if (board[test_idx] != Empty)
                     {
                         se = 1;
-                        if (is_piece_same_color(piece, (ChessPiece)board[test_idx]) == 0)
+                        if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
                         {
                             out[mov_ctr++] = test_idx;
                         }
@@ -1083,13 +1083,13 @@ void get_legal_moves(int *board, int piece_idx, int *out, int test_in_check_flg)
                     }
                 }
 
-                if (is_adj_colrow_valid(adj_col - i, adj_row + i) == 1 && nw == 0)
+                if (is_adj_colrow_valid(adj_col - i, adj_row + i) && nw == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col - i, adj_row + i);
                     if (board[test_idx] != Empty)
                     {
                         nw = 1;
-                        if (is_piece_same_color(piece, (ChessPiece)board[test_idx]) == 0)
+                        if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
                         {
                             out[mov_ctr++] = test_idx;
                         }
@@ -1110,13 +1110,13 @@ void get_legal_moves(int *board, int piece_idx, int *out, int test_in_check_flg)
             for (int i = 1; i < 2; i++)
             {
 
-                if (is_adj_colrow_valid(adj_col + i, adj_row) == 1 && e == 0)
+                if (is_adj_colrow_valid(adj_col + i, adj_row) && e == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col + i, adj_row);
                     if (board[test_idx] != Empty)
                     {
                         e = 1;
-                        if (is_piece_same_color(piece, (ChessPiece)board[test_idx]) == 0)
+                        if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
                         {
                             out[mov_ctr++] = test_idx;
                         }
@@ -1127,13 +1127,13 @@ void get_legal_moves(int *board, int piece_idx, int *out, int test_in_check_flg)
                     }
                 }
 
-                if (is_adj_colrow_valid(adj_col - i, adj_row) == 1 && w == 0)
+                if (is_adj_colrow_valid(adj_col - i, adj_row) && w == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col - i, adj_row);
                     if (board[test_idx] != Empty)
                     {
                         w = 1;
-                        if (is_piece_same_color(piece, (ChessPiece)board[test_idx]) == 0)
+                        if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
                         {
                             out[mov_ctr++] = test_idx;
                         }
@@ -1144,13 +1144,13 @@ void get_legal_moves(int *board, int piece_idx, int *out, int test_in_check_flg)
                     }
                 }
 
-                if (is_adj_colrow_valid(adj_col, adj_row + i) == 1 && n == 0)
+                if (is_adj_colrow_valid(adj_col, adj_row + i) && n == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col, adj_row + i);
                     if (board[test_idx] != Empty)
                     {
                         n = 1;
-                        if (is_piece_same_color(piece, (ChessPiece)board[test_idx]) == 0)
+                        if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
                         {
                             out[mov_ctr++] = test_idx;
                         }
@@ -1161,13 +1161,13 @@ void get_legal_moves(int *board, int piece_idx, int *out, int test_in_check_flg)
                     }
                 }
 
-                if (is_adj_colrow_valid(adj_col, adj_row - i) == 1 && s == 0)
+                if (is_adj_colrow_valid(adj_col, adj_row - i) && s == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col, adj_row - i);
                     if (board[test_idx] != Empty)
                     {
                         s = 1;
-                        if (is_piece_same_color(piece, (ChessPiece)board[test_idx]) == 0)
+                        if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
                         {
                             out[mov_ctr++] = test_idx;
                         }
@@ -1233,7 +1233,7 @@ void get_legal_moves(int *board, int piece_idx, int *out, int test_in_check_flg)
         break;
     }
 
-    if (test_in_check_flg == 1)
+    if (test_in_check_flg)
     {
         int check_out[CHESS_MAX_LEGAL_MOVE_CNT];
         memset(check_out, CHESS_INVALID_VALUE, sizeof(int) * CHESS_MAX_LEGAL_MOVE_CNT);
@@ -1242,7 +1242,7 @@ void get_legal_moves(int *board, int piece_idx, int *out, int test_in_check_flg)
         for (int i = 0; i < mov_ctr; i++)
         {
             simulate_board_change_w_srcdst_idx(board, piece_idx, out[i], cpy_board);
-            if (is_in_check(cpy_board, white_mov_flg) == 0)
+            if (!is_in_check(cpy_board, white_mov_flg))
             {
                 check_out[check_mov_ctr++] = out[i];
             }
@@ -1252,7 +1252,7 @@ void get_legal_moves(int *board, int piece_idx, int *out, int test_in_check_flg)
     }
 }
 
-SrcDst_Idx get_random_move(int *board, int white_mov_flg, int *cmp_board)
+SrcDst_Idx get_random_move(int *board, bool white_mov_flg, int *cmp_board)
 {
     int sim_board[CHESS_BOARD_LEN];
     int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
@@ -1263,9 +1263,9 @@ SrcDst_Idx get_random_move(int *board, int white_mov_flg, int *cmp_board)
     int piece_ctr = 0;
     for (int i = 0; i < CHESS_BOARD_LEN; i++)
     {
-        if (white_mov_flg == 1)
+        if (white_mov_flg)
         {
-            if (is_piece_white((ChessPiece)board[i]) == 1)
+            if (is_piece_white((ChessPiece)board[i]))
             {
                 piece_idxs[piece_ctr++] = i;
             }
@@ -1388,7 +1388,7 @@ void translate_srcdst_idx_to_mov(int *board, int src_idx, int dst_idx, char *out
     }
 }
 
-void change_board_w_mov(int *board, const char *immut_mov, int white_mov_flg)
+void change_board_w_mov(int *board, const char *immut_mov, bool white_mov_flg)
 {
     char mut_mov[CHESS_MAX_MOVE_LEN];
     memcpy(mut_mov, immut_mov, CHESS_MAX_MOVE_LEN);
@@ -1435,7 +1435,7 @@ void change_board_w_mov(int *board, const char *immut_mov, int white_mov_flg)
         // Pawn move.
         dst_row = get_row_fr_char(mut_mov[1]);
         dst_idx = get_idx_fr_colrow(mut_mov[0], dst_row);
-        if (white_mov_flg == 1)
+        if (white_mov_flg)
         {
             int prev_idx = get_idx_fr_colrow(mut_mov[0], dst_row - 1);
             int prev_idx_2 = get_idx_fr_colrow(mut_mov[0], dst_row - 2);
@@ -1472,7 +1472,7 @@ void change_board_w_mov(int *board, const char *immut_mov, int white_mov_flg)
         if (strcmp(mut_mov, "O-O") == 0)
         {
             // King side castle.
-            if (white_mov_flg == 1)
+            if (white_mov_flg)
             {
                 int cur_rook_idx = get_idx_fr_colrow('h', 1);
                 int cur_king_idx = get_idx_fr_colrow('e', 1);
@@ -1541,7 +1541,7 @@ void change_board_w_mov(int *board, const char *immut_mov, int white_mov_flg)
                 dst_row = get_row_fr_char(mut_mov[2]);
                 dst_idx = get_idx_fr_colrow(mut_mov[1], dst_row);
 
-                if (white_mov_flg == 1)
+                if (white_mov_flg)
                 {
                     piece = WhitePawn;
                     board[get_idx_fr_colrow(src_col, dst_row - 1)] = Empty;
@@ -1587,7 +1587,7 @@ void change_board_w_mov(int *board, const char *immut_mov, int white_mov_flg)
                 piece = get_piece_fr_char(piece_char, white_mov_flg);
                 ChessPiece promo_piece = piece;
 
-                if (white_mov_flg == 1)
+                if (white_mov_flg)
                 {
                     piece = WhitePawn;
                 }
@@ -1630,7 +1630,7 @@ void change_board_w_mov(int *board, const char *immut_mov, int white_mov_flg)
         if (strcmp(mut_mov, "O-O-O") == 0)
         {
             // Queen side castle.
-            if (white_mov_flg == 1)
+            if (white_mov_flg)
             {
                 int cur_rook_idx = get_idx_fr_colrow('a', 1);
                 int cur_king_idx = get_idx_fr_colrow('e', 1);
@@ -1688,7 +1688,7 @@ void change_board_w_mov(int *board, const char *immut_mov, int white_mov_flg)
                     piece = get_piece_fr_char(piece_char, white_mov_flg);
                     ChessPiece promo_piece = piece;
 
-                    if (white_mov_flg == 1)
+                    if (white_mov_flg)
                     {
                         piece = WhitePawn;
                     }
@@ -1915,7 +1915,7 @@ int get_worst_case(int *board, bool white_flg, bool cur_white_flg, int depth, in
     {
         for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
         {
-            if (is_piece_white((ChessPiece)board[piece_idx]) == 1)
+            if (is_piece_white((ChessPiece)board[piece_idx]))
             {
                 get_legal_moves(board, piece_idx, legal_moves, 1);
 
