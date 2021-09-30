@@ -74,4 +74,8 @@ void print_board(int *board);
 
 void one_hot_encode_board(int *board, int *out);
 
-int simple_eval(int *board);
+int eval_board(int *board);
+
+int get_worst_case(int *board, bool white_flg);
+
+int get_best_case(int *board, bool white_flg);

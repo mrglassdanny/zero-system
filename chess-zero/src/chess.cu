@@ -1809,7 +1809,7 @@ void one_hot_encode_board(int *board, int *out)
     }
 }
 
-int simple_eval(int *board)
+int eval_board(int *board)
 {
     int sum = 0;
 
@@ -1827,32 +1827,32 @@ int get_worst_case(int *board, bool white_flg)
 
     int sim_board[CHESS_BOARD_LEN];
 
-    int worst_case;
+    int worst_eval;
 
     if (white_flg)
     {
-        worst_case = INT_MAX;
+        worst_eval = INT_MAX;
 
-        for (int i = 0; i < CHESS_BOARD_LEN; i++)
+        for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
         {
-            if (is_piece_white((ChessPiece)board[i]) == 1)
+            if (is_piece_white((ChessPiece)board[piece_idx]) == 1)
             {
-                get_legal_moves(board, i, legal_moves, 1);
+                get_legal_moves(board, piece_idx, legal_moves, 1);
 
-                for (int j = 0; j < CHESS_MAX_LEGAL_MOVE_CNT; j++)
+                for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
                 {
-                    if (legal_moves[j] == CHESS_INVALID_VALUE)
+                    if (legal_moves[mov_idx] == CHESS_INVALID_VALUE)
                     {
                         break;
                     }
 
-                    simulate_board_change_w_srcdst_idx(board, i, legal_moves[j], sim_board);
+                    simulate_board_change_w_srcdst_idx(board, piece_idx, legal_moves[mov_idx], sim_board);
 
-                    int cur_case = simple_eval(sim_board);
+                    int cur_eval = eval_board(sim_board);
 
-                    if (cur_case < worst_case)
+                    if (cur_eval < worst_eval)
                     {
-                        worst_case = cur_case;
+                        worst_eval = cur_eval;
                     }
                 }
             }
@@ -1860,7 +1860,103 @@ int get_worst_case(int *board, bool white_flg)
     }
     else
     {
+        worst_eval = INT_MIN;
+
+        for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
+        {
+            if (is_piece_black((ChessPiece)board[piece_idx]) == 1)
+            {
+                get_legal_moves(board, piece_idx, legal_moves, 1);
+
+                for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
+                {
+                    if (legal_moves[mov_idx] == CHESS_INVALID_VALUE)
+                    {
+                        break;
+                    }
+
+                    simulate_board_change_w_srcdst_idx(board, piece_idx, legal_moves[mov_idx], sim_board);
+
+                    int cur_eval = eval_board(sim_board);
+
+                    if (cur_eval > worst_eval)
+                    {
+                        worst_eval = cur_eval;
+                    }
+                }
+            }
+        }
     }
 
-    return worst_case;
+    return worst_eval;
+}
+
+int get_best_case(int *board, bool white_flg)
+{
+    int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
+
+    int sim_board[CHESS_BOARD_LEN];
+
+    int best_eval;
+
+    if (white_flg)
+    {
+        best_eval = INT_MIN;
+
+        for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
+        {
+            if (is_piece_white((ChessPiece)board[piece_idx]) == 1)
+            {
+                get_legal_moves(board, piece_idx, legal_moves, 1);
+
+                for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
+                {
+                    if (legal_moves[mov_idx] == CHESS_INVALID_VALUE)
+                    {
+                        break;
+                    }
+
+                    simulate_board_change_w_srcdst_idx(board, piece_idx, legal_moves[mov_idx], sim_board);
+
+                    int cur_eval = eval_board(sim_board);
+
+                    if (cur_eval > best_eval)
+                    {
+                        best_eval = cur_eval;
+                    }
+                }
+            }
+        }
+    }
+    else
+    {
+        best_eval = INT_MAX;
+
+        for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
+        {
+            if (is_piece_black((ChessPiece)board[piece_idx]) == 1)
+            {
+                get_legal_moves(board, piece_idx, legal_moves, 1);
+
+                for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
+                {
+                    if (legal_moves[mov_idx] == CHESS_INVALID_VALUE)
+                    {
+                        break;
+                    }
+
+                    simulate_board_change_w_srcdst_idx(board, piece_idx, legal_moves[mov_idx], sim_board);
+
+                    int cur_eval = eval_board(sim_board);
+
+                    if (cur_eval < best_eval)
+                    {
+                        best_eval = cur_eval;
+                    }
+                }
+            }
+        }
+    }
+
+    return best_eval;
 }
