@@ -73,3 +73,5 @@ int boardcmp(int *a, int *b);
 void print_board(int *board);
 
 void one_hot_encode_board(int *board, int *out);
+
+int calc_advantage(int *board);

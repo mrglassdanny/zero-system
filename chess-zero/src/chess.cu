@@ -1808,3 +1808,15 @@ void one_hot_encode_board(int *board, int *out)
         }
     }
 }
+
+int simple_eval(int *board)
+{
+    int sum = 0;
+
+    for (int i = 0; i < CHESS_BOARD_LEN; i++)
+    {
+        sum += board[i];
+    }
+
+    return sum;
+}
