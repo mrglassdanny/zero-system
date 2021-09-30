@@ -10,11 +10,11 @@ Tensor *Tensor::one_hot_encode(int row_cnt, int col_cnt, TensorType typ, float *
     for (int i = 0; i < row_cnt; i++)
     {
         int col_idx = (int)cpu_arr[i];
-        if (col_idx < col_cnt)
+        if (col_idx >= 0 && col_idx < col_cnt)
         {
             tensor->set_rowcol(i, col_idx, 1.0f);
         }
-        // If column index is greater than or equal to column count, skip it!
+        // If column index is less than 0 or is greater than or equal to column count, skip it!
         // ^ this shouldn't happen...
     }
 
