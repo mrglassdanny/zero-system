@@ -477,7 +477,10 @@ MoveSearchResult get_best_move(int *immut_board, int white_mov_flg, NN *nn)
                         memset(mov, 0, CHESS_MAX_MOVE_LEN);
                         translate_srcdst_idx_to_mov(immut_board, piece_idx, legal_moves[mov_idx], mov);
 
-                        printf("MOVE: %s (%f)\n", mov, eval);
+                        if (eval > 0.25f)
+                        {
+                            printf("MOVE: %s (%f)\n", mov, eval);
+                        }
 
                         delete x;
                         delete pred;
@@ -519,7 +522,10 @@ MoveSearchResult get_best_move(int *immut_board, int white_mov_flg, NN *nn)
                         memset(mov, 0, CHESS_MAX_MOVE_LEN);
                         translate_srcdst_idx_to_mov(immut_board, piece_idx, legal_moves[mov_idx], mov);
 
-                        printf("MOVE: %s (%f)\n", mov, eval);
+                        if (eval > 0.25f)
+                        {
+                            printf("MOVE: %s (%f)\n", mov, eval);
+                        }
 
                         delete x;
                         delete pred;

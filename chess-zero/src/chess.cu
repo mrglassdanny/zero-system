@@ -315,9 +315,9 @@ int is_piece_same_color(ChessPiece a, ChessPiece b)
 
 bool is_piece_under_attack(int *board, int piece_idx)
 {
-    bool under_attack = false;
-    int test_moves[CHESS_MAX_LEGAL_MOVE_CNT];
-    memset(test_moves, CHESS_INVALID_VALUE, sizeof(int) * CHESS_MAX_LEGAL_MOVE_CNT);
+    bool under_attack_flg = false;
+    int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
+    memset(legal_moves, CHESS_INVALID_VALUE, sizeof(int) * CHESS_MAX_LEGAL_MOVE_CNT);
 
     bool white_piece;
     ChessPiece piece = (ChessPiece)board[piece_idx];
@@ -341,24 +341,24 @@ bool is_piece_under_attack(int *board, int piece_idx)
         {
             if (is_piece_black((ChessPiece)board[i]) == 1)
             {
-                get_legal_moves(board, i, test_moves, 0);
+                get_legal_moves(board, i, legal_moves, 1);
 
                 for (int j = 0; j < CHESS_MAX_LEGAL_MOVE_CNT; j++)
                 {
-                    if (test_moves[j] == CHESS_INVALID_VALUE)
+                    if (legal_moves[j] == CHESS_INVALID_VALUE)
                     {
                         break;
                     }
 
-                    if (test_moves[j] == piece_idx)
+                    if (legal_moves[j] == piece_idx)
                     {
-                        under_attack = true;
+                        under_attack_flg = true;
                         break;
                     }
                 }
             }
 
-            if (under_attack)
+            if (under_attack_flg)
             {
                 break;
             }
@@ -370,38 +370,38 @@ bool is_piece_under_attack(int *board, int piece_idx)
         {
             if (is_piece_white((ChessPiece)board[i]) == 1)
             {
-                get_legal_moves(board, i, test_moves, 0);
+                get_legal_moves(board, i, legal_moves, 1);
 
                 for (int j = 0; j < CHESS_MAX_LEGAL_MOVE_CNT; j++)
                 {
-                    if (test_moves[j] == CHESS_INVALID_VALUE)
+                    if (legal_moves[j] == CHESS_INVALID_VALUE)
                     {
                         break;
                     }
 
-                    if (test_moves[j] == piece_idx)
+                    if (legal_moves[j] == piece_idx)
                     {
-                        under_attack = true;
+                        under_attack_flg = true;
                         break;
                     }
                 }
             }
 
-            if (under_attack)
+            if (under_attack_flg)
             {
                 break;
             }
         }
     }
 
-    return under_attack;
+    return under_attack_flg;
 }
 
 int is_in_check(int *board, int white_mov_flg)
 {
     int in_check_flg = 0;
-    int check_test_moves[CHESS_MAX_LEGAL_MOVE_CNT];
-    memset(check_test_moves, CHESS_INVALID_VALUE, sizeof(int) * CHESS_MAX_LEGAL_MOVE_CNT);
+    int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
+    memset(legal_moves, CHESS_INVALID_VALUE, sizeof(int) * CHESS_MAX_LEGAL_MOVE_CNT);
 
     if (white_mov_flg == 1)
     {
@@ -409,16 +409,16 @@ int is_in_check(int *board, int white_mov_flg)
         {
             if (is_piece_black((ChessPiece)board[i]) == 1)
             {
-                get_legal_moves(board, i, check_test_moves, 0);
+                get_legal_moves(board, i, legal_moves, 0);
 
                 for (int j = 0; j < CHESS_MAX_LEGAL_MOVE_CNT; j++)
                 {
-                    if (check_test_moves[j] == CHESS_INVALID_VALUE)
+                    if (legal_moves[j] == CHESS_INVALID_VALUE)
                     {
                         break;
                     }
 
-                    if ((ChessPiece)board[check_test_moves[j]] == WhiteKing)
+                    if ((ChessPiece)board[legal_moves[j]] == WhiteKing)
                     {
                         in_check_flg = 1;
                         break;
@@ -438,16 +438,16 @@ int is_in_check(int *board, int white_mov_flg)
         {
             if (is_piece_white((ChessPiece)board[i]) == 1)
             {
-                get_legal_moves(board, i, check_test_moves, 0);
+                get_legal_moves(board, i, legal_moves, 0);
 
                 for (int j = 0; j < CHESS_MAX_LEGAL_MOVE_CNT; j++)
                 {
-                    if (check_test_moves[j] == CHESS_INVALID_VALUE)
+                    if (legal_moves[j] == CHESS_INVALID_VALUE)
                     {
                         break;
                     }
 
-                    if ((ChessPiece)board[check_test_moves[j]] == BlackKing)
+                    if ((ChessPiece)board[legal_moves[j]] == BlackKing)
                     {
                         in_check_flg = 1;
                         break;
@@ -1819,4 +1819,48 @@ int simple_eval(int *board)
     }
 
     return sum;
+}
+
+int get_worst_case(int *board, bool white_flg)
+{
+    int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
+
+    int sim_board[CHESS_BOARD_LEN];
+
+    int worst_case;
+
+    if (white_flg)
+    {
+        worst_case = INT_MAX;
+
+        for (int i = 0; i < CHESS_BOARD_LEN; i++)
+        {
+            if (is_piece_white((ChessPiece)board[i]) == 1)
+            {
+                get_legal_moves(board, i, legal_moves, 1);
+
+                for (int j = 0; j < CHESS_MAX_LEGAL_MOVE_CNT; j++)
+                {
+                    if (legal_moves[j] == CHESS_INVALID_VALUE)
+                    {
+                        break;
+                    }
+
+                    simulate_board_change_w_srcdst_idx(board, i, legal_moves[j], sim_board);
+
+                    int cur_case = simple_eval(sim_board);
+
+                    if (cur_case < worst_case)
+                    {
+                        worst_case = cur_case;
+                    }
+                }
+            }
+        }
+    }
+    else
+    {
+    }
+
+    return worst_case;
 }
