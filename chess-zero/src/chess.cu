@@ -313,6 +313,90 @@ int is_piece_same_color(ChessPiece a, ChessPiece b)
     }
 }
 
+bool is_piece_under_attack(int *board, int piece_idx)
+{
+    bool under_attack = false;
+    int test_moves[CHESS_MAX_LEGAL_MOVE_CNT];
+    memset(test_moves, CHESS_INVALID_VALUE, sizeof(int) * CHESS_MAX_LEGAL_MOVE_CNT);
+
+    bool white_piece;
+    ChessPiece piece = (ChessPiece)board[piece_idx];
+    if (is_piece_white(piece))
+    {
+        white_piece = true;
+    }
+    else if (is_piece_black(piece))
+    {
+        white_piece = false;
+    }
+    else
+    {
+        // Piece index is empty space.
+        return 0;
+    }
+
+    if (white_piece)
+    {
+        for (int i = 0; i < CHESS_BOARD_LEN; i++)
+        {
+            if (is_piece_black((ChessPiece)board[i]) == 1)
+            {
+                get_legal_moves(board, i, test_moves, 0);
+
+                for (int j = 0; j < CHESS_MAX_LEGAL_MOVE_CNT; j++)
+                {
+                    if (test_moves[j] == CHESS_INVALID_VALUE)
+                    {
+                        break;
+                    }
+
+                    if (test_moves[j] == piece_idx)
+                    {
+                        under_attack = true;
+                        break;
+                    }
+                }
+            }
+
+            if (under_attack)
+            {
+                break;
+            }
+        }
+    }
+    else
+    {
+        for (int i = 0; i < CHESS_BOARD_LEN; i++)
+        {
+            if (is_piece_white((ChessPiece)board[i]) == 1)
+            {
+                get_legal_moves(board, i, test_moves, 0);
+
+                for (int j = 0; j < CHESS_MAX_LEGAL_MOVE_CNT; j++)
+                {
+                    if (test_moves[j] == CHESS_INVALID_VALUE)
+                    {
+                        break;
+                    }
+
+                    if (test_moves[j] == piece_idx)
+                    {
+                        under_attack = true;
+                        break;
+                    }
+                }
+            }
+
+            if (under_attack)
+            {
+                break;
+            }
+        }
+    }
+
+    return under_attack;
+}
+
 int is_in_check(int *board, int white_mov_flg)
 {
     int in_check_flg = 0;
@@ -334,7 +418,7 @@ int is_in_check(int *board, int white_mov_flg)
                         break;
                     }
 
-                    if (board[check_test_moves[j]] == WhiteKing)
+                    if ((ChessPiece)board[check_test_moves[j]] == WhiteKing)
                     {
                         in_check_flg = 1;
                         break;
@@ -363,7 +447,7 @@ int is_in_check(int *board, int white_mov_flg)
                         break;
                     }
 
-                    if (board[check_test_moves[j]] == BlackKing)
+                    if ((ChessPiece)board[check_test_moves[j]] == BlackKing)
                     {
                         in_check_flg = 1;
                         break;
