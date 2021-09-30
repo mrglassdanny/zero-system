@@ -186,7 +186,7 @@ void train_nn(const char *pgn_name, bool white_flg)
     int stacked_oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2];
 
     std::vector<int> layer_cfg = {CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, 1024, 1024, 1024, 64, 16, 1};
-    NN *nn = new NN(layer_cfg, ReLU, Sigmoid, MSE, Xavier, 0.05f);
+    NN *nn = new NN(layer_cfg, ReLU, Sigmoid, MSE, Xavier, 0.01f);
 
     FILE *csv_file_ptr = fopen("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\chess-train.csv", "w");
     NN::write_csv_header(csv_file_ptr);
@@ -665,9 +665,9 @@ void play_nn(bool white_flg)
 
 int main(int argc, char **argv)
 {
-    //dump_pgn("TEST");
+    //dump_pgn("ALL");
 
-    //train_nn("TEST", true);
+    //train_nn("ALL", true);
 
     play_nn(true);
 
