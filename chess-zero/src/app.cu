@@ -17,6 +17,7 @@ struct MoveSearchResult
 {
     char mov[CHESS_MAX_MOVE_LEN];
     float eval;
+    int worst_case;
 };
 
 long long get_file_size(const char *name)
@@ -432,7 +433,7 @@ void train_nn(const char *pgn_name, bool white_flg)
     delete nn;
 }
 
-MoveSearchResult get_best_move(int *immut_board, int white_mov_flg, NN *nn)
+MoveSearchResult get_best_move(int *immut_board, int white_mov_flg, bool print_flg, NN *nn)
 {
     int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
     char mov[CHESS_MAX_MOVE_LEN];
@@ -442,10 +443,19 @@ MoveSearchResult get_best_move(int *immut_board, int white_mov_flg, NN *nn)
     int oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
     int stacked_oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2];
 
-    float best_eval;
-    char best_mov[CHESS_MAX_MOVE_LEN];
+    float best_eval = -FLT_MAX;
 
-    best_eval = -FLT_MAX;
+    int best_worst_case;
+    if (white_mov_flg == 1)
+    {
+        best_worst_case = -INT_MAX;
+    }
+    else
+    {
+        best_worst_case = INT_MAX;
+    }
+
+    char best_mov[CHESS_MAX_MOVE_LEN];
 
     for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
     {
@@ -466,6 +476,8 @@ MoveSearchResult get_best_move(int *immut_board, int white_mov_flg, NN *nn)
                         memcpy(stacked_oh_board, oh_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
 
                         simulate_board_change_w_srcdst_idx(immut_board, piece_idx, legal_moves[mov_idx], sim_board);
+                        int worst_case = get_worst_case(sim_board, true, false, 3, 1);
+
                         one_hot_encode_board(sim_board, oh_board);
                         memcpy(&stacked_oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], oh_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
 
@@ -477,18 +489,28 @@ MoveSearchResult get_best_move(int *immut_board, int white_mov_flg, NN *nn)
                         memset(mov, 0, CHESS_MAX_MOVE_LEN);
                         translate_srcdst_idx_to_mov(immut_board, piece_idx, legal_moves[mov_idx], mov);
 
-                        if (eval > 0.25f)
+                        if (print_flg)
                         {
-                            printf("MOVE: %s (%f)\n", mov, eval);
+                            printf("MOVE: %s (%f\t%d)\n", mov, eval, worst_case);
                         }
 
                         delete x;
                         delete pred;
 
-                        if (best_eval < eval)
+                        if (best_worst_case < worst_case)
                         {
+                            best_worst_case = worst_case;
                             best_eval = eval;
                             memcpy(best_mov, mov, CHESS_MAX_MOVE_LEN);
+                        }
+
+                        if (best_worst_case == worst_case)
+                        {
+                            if (best_eval < eval)
+                            {
+                                best_eval = eval;
+                                memcpy(best_mov, mov, CHESS_MAX_MOVE_LEN);
+                            }
                         }
                     }
                 }
@@ -511,6 +533,8 @@ MoveSearchResult get_best_move(int *immut_board, int white_mov_flg, NN *nn)
                         memcpy(stacked_oh_board, oh_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
 
                         simulate_board_change_w_srcdst_idx(immut_board, piece_idx, legal_moves[mov_idx], sim_board);
+                        int worst_case = get_worst_case(sim_board, false, true, 3, 1);
+
                         one_hot_encode_board(sim_board, oh_board);
                         memcpy(&stacked_oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], oh_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
 
@@ -522,18 +546,28 @@ MoveSearchResult get_best_move(int *immut_board, int white_mov_flg, NN *nn)
                         memset(mov, 0, CHESS_MAX_MOVE_LEN);
                         translate_srcdst_idx_to_mov(immut_board, piece_idx, legal_moves[mov_idx], mov);
 
-                        if (eval > 0.25f)
+                        if (print_flg)
                         {
-                            printf("MOVE: %s (%f)\n", mov, eval);
+                            printf("MOVE: %s (%f\t%d)\n", mov, eval, worst_case);
                         }
 
                         delete x;
                         delete pred;
 
-                        if (best_eval < eval)
+                        if (best_worst_case > worst_case)
                         {
+                            best_worst_case = worst_case;
                             best_eval = eval;
                             memcpy(best_mov, mov, CHESS_MAX_MOVE_LEN);
+                        }
+
+                        if (best_worst_case == worst_case)
+                        {
+                            if (best_eval < eval)
+                            {
+                                best_eval = eval;
+                                memcpy(best_mov, mov, CHESS_MAX_MOVE_LEN);
+                            }
                         }
                     }
                 }
@@ -543,6 +577,7 @@ MoveSearchResult get_best_move(int *immut_board, int white_mov_flg, NN *nn)
 
     MoveSearchResult mov_res;
     memcpy(mov_res.mov, best_mov, CHESS_MAX_MOVE_LEN);
+    mov_res.worst_case = best_worst_case;
     mov_res.eval = best_eval;
     return mov_res;
 }
@@ -606,8 +641,8 @@ void play_nn(bool white_flg)
 
             if (white_flg)
             {
-                mov_res = get_best_move(cpy_board, white_mov_flg, nn);
-                printf("%s\t%f\n", mov_res.mov, mov_res.eval);
+                mov_res = get_best_move(cpy_board, white_mov_flg, false, nn);
+                printf("%s\t%f\t%d\n", mov_res.mov, mov_res.eval, mov_res.worst_case);
             }
 
             // Now accept user input.
@@ -639,8 +674,8 @@ void play_nn(bool white_flg)
 
             if (!white_flg)
             {
-                mov_res = get_best_move(cpy_board, white_mov_flg, nn);
-                printf("%s\t%f\n", mov_res.mov, mov_res.eval);
+                mov_res = get_best_move(cpy_board, white_mov_flg, false, nn);
+                printf("%s\t%f\t%d\n", mov_res.mov, mov_res.eval, mov_res.worst_case);
             }
 
             // Now accept user input.
