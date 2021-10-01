@@ -186,7 +186,7 @@ void train_nn(const char *pgn_name, bool white_flg)
     int stacked_oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2];
 
     std::vector<int> layer_cfg = {CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, 2048, 2048, 1024, 1024, 256, 64, 16, 1};
-    NN *nn = new NN(layer_cfg, ReLU, ReLU, MSE, He, 0.01f);
+    NN *nn = new NN(layer_cfg, ReLU, ReLU, MSE, 0.01f);
 
     FILE *csv_file_ptr = fopen("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\chess-train.csv", "w");
     NN::write_csv_header(csv_file_ptr);
@@ -488,31 +488,31 @@ void play_nn(bool white_flg)
     int white_mov_flg = 1;
 
     // Go ahead and make opening moves since we do not train the model on openings.
-    // {
-    //     change_board_w_mov(board, "d4", white_mov_flg);
-    //     white_mov_flg = !white_mov_flg;
+    {
+        change_board_w_mov(board, "d4", white_mov_flg);
+        white_mov_flg = !white_mov_flg;
 
-    //     change_board_w_mov(board, "Nf6", white_mov_flg);
-    //     white_mov_flg = !white_mov_flg;
+        change_board_w_mov(board, "Nf6", white_mov_flg);
+        white_mov_flg = !white_mov_flg;
 
-    //     change_board_w_mov(board, "c4", white_mov_flg);
-    //     white_mov_flg = !white_mov_flg;
+        change_board_w_mov(board, "c4", white_mov_flg);
+        white_mov_flg = !white_mov_flg;
 
-    //     change_board_w_mov(board, "e6", white_mov_flg);
-    //     white_mov_flg = !white_mov_flg;
+        change_board_w_mov(board, "e6", white_mov_flg);
+        white_mov_flg = !white_mov_flg;
 
-    //     change_board_w_mov(board, "Nc3", white_mov_flg);
-    //     white_mov_flg = !white_mov_flg;
+        change_board_w_mov(board, "Nc3", white_mov_flg);
+        white_mov_flg = !white_mov_flg;
 
-    //     change_board_w_mov(board, "Bb4", white_mov_flg);
-    //     white_mov_flg = !white_mov_flg;
+        change_board_w_mov(board, "Bb4", white_mov_flg);
+        white_mov_flg = !white_mov_flg;
 
-    //     change_board_w_mov(board, "Qc2", white_mov_flg);
-    //     white_mov_flg = !white_mov_flg;
+        change_board_w_mov(board, "Qc2", white_mov_flg);
+        white_mov_flg = !white_mov_flg;
 
-    //     change_board_w_mov(board, "O-O", white_mov_flg);
-    //     white_mov_flg = !white_mov_flg;
-    // }
+        change_board_w_mov(board, "O-O", white_mov_flg);
+        white_mov_flg = !white_mov_flg;
+    }
 
     while (1)
     {
