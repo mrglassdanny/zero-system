@@ -1747,11 +1747,11 @@ int boardcmp(int *a, int *b)
 void print_board(int *board)
 {
     // Print in a more viewable format(a8 at top left of screen).
-    printf(" \t---------------------------------");
+    printf("   +---+---+---+---+---+---+---+---+");
     printf("\n");
     for (int i = CHESS_BOARD_ROW_CNT - 1; i >= 0; i--)
     {
-        printf("%d\t", i + 1);
+        printf("%d  ", i + 1);
         printf("|");
         for (int j = 0; j < CHESS_BOARD_COL_CNT; j++)
         {
@@ -1800,11 +1800,11 @@ void print_board(int *board)
             }
         }
         printf("\n");
-        printf(" \t---------------------------------");
+        printf("   +---+---+---+---+---+---+---+---+");
         printf("\n");
     }
 
-    printf(" \t ");
+    printf("    ");
     for (int j = 0; j < CHESS_BOARD_COL_CNT; j++)
     {
         printf(" %c  ", get_col_fr_adj_col(j));
