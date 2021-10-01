@@ -14,8 +14,6 @@ namespace zero
     {
         class CNN
         {
-        private:
-            NN *nn;
 
         public:
             CNN();
