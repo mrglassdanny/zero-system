@@ -185,8 +185,8 @@ void train_nn(const char *pgn_name, bool white_flg)
     int oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
     int stacked_oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2];
 
-    std::vector<int> layer_cfg = {CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, 1024, 1024, 1024, 64, 16, 1};
-    NN *nn = new NN(layer_cfg, ReLU, Sigmoid, MSE, Xavier, 0.01f);
+    std::vector<int> layer_cfg = {CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, 2048, 2048, 1024, 1024, 256, 64, 16, 1};
+    NN *nn = new NN(layer_cfg, ReLU, ReLU, MSE, He, 0.01f);
 
     FILE *csv_file_ptr = fopen("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\chess-train.csv", "w");
     NN::write_csv_header(csv_file_ptr);
@@ -285,11 +285,8 @@ void train_nn(const char *pgn_name, bool white_flg)
 
         if (batch->get_size() > 0)
         {
-            for (int sub_epoch_idx = 0; sub_epoch_idx < 3; sub_epoch_idx++)
-            {
-                Report train_rpt = nn->train(batch);
-                NN::write_to_csv(csv_file_ptr, epoch, train_rpt);
-            }
+            Report train_rpt = nn->train(batch);
+            NN::write_to_csv(csv_file_ptr, epoch, train_rpt);
         }
 
         delete batch;
