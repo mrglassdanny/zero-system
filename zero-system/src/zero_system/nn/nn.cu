@@ -488,15 +488,13 @@ NN::NN(std::vector<int> lyr_cfg, ActivationFunctionId hidden_layer_activation_fu
         {
         case None:
         case ReLU:
-            // He:
-            //w->set_all_rand(2.0f / sqrt(n_cnt));
+            // He (normal):
             w->set_all_rand_normal_distribution(0.0f, sqrt(2.0f / n_cnt));
             break;
         case Sigmoid:
         case Tanh:
-            // Xavier:
-            //w->set_all_rand(1.0f / sqrt(n_cnt));
-            w->set_all_rand_normal_distribution(0.0f, sqrt(1.0f / n_cnt));
+            // Xavier (normal):
+            w->set_all_rand_normal_distribution(0.0f, sqrt(2.0f / (n_cnt + nxt_n_cnt)));
             break;
         default:
             // Zeros:
