@@ -471,8 +471,6 @@ bool is_in_checkmate(int *board, bool white_mov_flg)
     int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
     memset(legal_moves, CHESS_INVALID_VALUE, sizeof(int) * CHESS_MAX_LEGAL_MOVE_CNT);
 
-    int sim_board[CHESS_BOARD_LEN];
-
     if (is_in_check(board, white_mov_flg))
     {
         in_checkmate_flg = true;
