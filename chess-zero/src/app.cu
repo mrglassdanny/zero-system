@@ -181,7 +181,6 @@ void train_nn(const char *pgn_name, bool white_flg)
     int pre_mov_board[CHESS_BOARD_LEN];
     int post_mov_board[CHESS_BOARD_LEN];
     int sim_board[CHESS_BOARD_LEN];
-    int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
 
     int oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
     int stacked_oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2];
@@ -207,7 +206,6 @@ void train_nn(const char *pgn_name, bool white_flg)
 
         if (white_flg)
         {
-            // Random moves:
 
             // Optimal move.
             {
@@ -244,64 +242,9 @@ void train_nn(const char *pgn_name, bool white_flg)
                     batch->add(new Record(x, y));
                 }
             }
-
-            // All moves:
-
-            // for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
-            // {
-            //     if (is_piece_white((ChessPiece)pre_mov_board[piece_idx]) == 1)
-            //     {
-            //         get_legal_moves(pre_mov_board, piece_idx, legal_moves, 1);
-            //         for (int mov_idx = 0; mov_idx < CHESS_BOARD_LEN; mov_idx++)
-            //         {
-            //             if (legal_moves[mov_idx] == CHESS_INVALID_VALUE)
-            //             {
-            //                 break;
-            //             }
-            //             else
-            //             {
-            //                 // Optimal move.
-            //                 {
-            //                     one_hot_encode_board(pre_mov_board, oh_board);
-            //                     memcpy(stacked_oh_board, oh_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-
-            //                     one_hot_encode_board(post_mov_board, oh_board);
-            //                     memcpy(&stacked_oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], oh_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-
-            //                     Tensor *x = new Tensor(1, CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, Gpu, stacked_oh_board);
-            //                     Tensor *y = new Tensor(1, 1, Gpu);
-            //                     y->set_idx(0, 1.0f);
-
-            //                     batch->add(new Record(x, y));
-            //                 }
-
-            //                 // Non-optimal move.
-            //                 {
-            //                     simulate_board_change_w_srcdst_idx(pre_mov_board, piece_idx, legal_moves[mov_idx], sim_board);
-            //                     if (boardcmp(post_mov_board, sim_board) != 0)
-            //                     {
-            //                         one_hot_encode_board(pre_mov_board, oh_board);
-            //                         memcpy(stacked_oh_board, oh_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-
-            //                         one_hot_encode_board(sim_board, oh_board);
-            //                         memcpy(&stacked_oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], oh_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-
-            //                         Tensor *x = new Tensor(1, CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, Gpu, stacked_oh_board);
-            //                         Tensor *y = new Tensor(1, 1, Gpu);
-            //                         y->set_idx(0, 0.0f);
-
-            //                         batch->add(new Record(x, y));
-            //                     }
-            //                 }
-            //             }
-            //         }
-            //     }
-            // }
         }
         else
         {
-
-            // Random moves:
 
             // Optimal move.
             {
@@ -338,59 +281,6 @@ void train_nn(const char *pgn_name, bool white_flg)
                     batch->add(new Record(x, y));
                 }
             }
-
-            // All moves:
-
-            // for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
-            // {
-            //     if (is_piece_black((ChessPiece)pre_mov_board[piece_idx]) == 1)
-            //     {
-            //         get_legal_moves(pre_mov_board, piece_idx, legal_moves, 1);
-            //         for (int mov_idx = 0; mov_idx < CHESS_BOARD_LEN; mov_idx++)
-            //         {
-            //             if (legal_moves[mov_idx] == CHESS_INVALID_VALUE)
-            //             {
-            //                 break;
-            //             }
-            //             else
-            //             {
-            //                 // Optimal move.
-            //                 {
-            //                     one_hot_encode_board(pre_mov_board, oh_board);
-            //                     memcpy(stacked_oh_board, oh_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-
-            //                     one_hot_encode_board(post_mov_board, oh_board);
-            //                     memcpy(&stacked_oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], oh_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-
-            //                     Tensor *x = new Tensor(1, CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, Gpu, stacked_oh_board);
-            //                     Tensor *y = new Tensor(1, 1, Gpu);
-            //                     y->set_idx(0, 1.0f);
-
-            //                     batch->add(new Record(x, y));
-            //                 }
-
-            //                 // Non-optimal move.
-            //                 {
-            //                     simulate_board_change_w_srcdst_idx(pre_mov_board, piece_idx, legal_moves[mov_idx], sim_board);
-            //                     if (boardcmp(post_mov_board, sim_board) != 0)
-            //                     {
-            //                         one_hot_encode_board(pre_mov_board, oh_board);
-            //                         memcpy(stacked_oh_board, oh_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-
-            //                         one_hot_encode_board(sim_board, oh_board);
-            //                         memcpy(&stacked_oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], oh_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-
-            //                         Tensor *x = new Tensor(1, CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, Gpu, stacked_oh_board);
-            //                         Tensor *y = new Tensor(1, 1, Gpu);
-            //                         y->set_idx(0, 0.0f);
-
-            //                         batch->add(new Record(x, y));
-            //                     }
-            //                 }
-            //             }
-            //         }
-            //     }
-            // }
         }
 
         if (batch->get_size() > 0)
@@ -596,10 +486,7 @@ void play_nn(bool white_flg)
 
     int *board = init_board();
     int cpy_board[CHESS_BOARD_LEN];
-    int sim_board[CHESS_BOARD_LEN];
     char mov[CHESS_MAX_MOVE_LEN];
-
-    int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
 
     int white_mov_flg = 1;
 
