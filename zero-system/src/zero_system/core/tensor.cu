@@ -490,6 +490,34 @@ void Tensor::set_all_rand(float upper)
     this->translate(orig_typ);
 }
 
+void Tensor::set_all_rand_gaussian(float scalar)
+{
+    int tot_cnt = this->row_cnt * this->col_cnt;
+
+    TensorType orig_typ = this->typ;
+
+    this->translate(Cpu);
+
+    // random device class instance, source of 'true' randomness for initializing random seed
+    std::random_device rd;
+
+    // Mersenne twister PRNG, initialized with seed from previous random device instance
+    std::mt19937 gen(rd());
+
+    for (int i = 0; i < tot_cnt; i++)
+    {
+        // instance of class std::normal_distribution with specific mean and stddev
+        std::normal_distribution<float> d(0, scalar);
+
+        // get random number with normal distribution using gen as random source
+        float val = d(gen);
+
+        this->arr[i] = val;
+    }
+
+    this->translate(orig_typ);
+}
+
 void Tensor::set_arr(float *cpu_arr)
 {
     int tot_cnt = this->row_cnt * this->col_cnt;

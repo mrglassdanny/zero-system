@@ -7,6 +7,7 @@
 #include <float.h>
 #include <time.h>
 #include <conio.h>
+#include <random>
 
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
@@ -66,6 +67,7 @@ namespace zero
             void set_rowcol(int row_idx, int col_idx, float val);
             void set_all(float val);
             void set_all_rand(float upper);
+            void set_all_rand_gaussian(float scalar);
             void set_arr(float *cpu_arr);
         };
     }
