@@ -341,7 +341,7 @@ bool is_piece_under_attack(int *board, int piece_idx)
         {
             if (is_piece_black((ChessPiece)board[piece_idx]))
             {
-                get_legal_moves(board, piece_idx, legal_moves, 1);
+                get_legal_moves(board, piece_idx, legal_moves, true);
 
                 for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
                 {
@@ -370,7 +370,7 @@ bool is_piece_under_attack(int *board, int piece_idx)
         {
             if (is_piece_white((ChessPiece)board[piece_idx]))
             {
-                get_legal_moves(board, piece_idx, legal_moves, 1);
+                get_legal_moves(board, piece_idx, legal_moves, true);
 
                 for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
                 {
@@ -409,7 +409,7 @@ bool is_in_check(int *board, bool white_mov_flg)
         {
             if (is_piece_black((ChessPiece)board[piece_idx]))
             {
-                get_legal_moves(board, piece_idx, legal_moves, 0);
+                get_legal_moves(board, piece_idx, legal_moves, false);
 
                 for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
                 {
@@ -438,7 +438,7 @@ bool is_in_check(int *board, bool white_mov_flg)
         {
             if (is_piece_white((ChessPiece)board[piece_idx]))
             {
-                get_legal_moves(board, piece_idx, legal_moves, 0);
+                get_legal_moves(board, piece_idx, legal_moves, false);
 
                 for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
                 {
@@ -481,7 +481,7 @@ bool is_in_checkmate(int *board, bool white_mov_flg)
             {
                 if (is_piece_white((ChessPiece)board[piece_idx]))
                 {
-                    get_legal_moves(board, piece_idx, legal_moves, 1);
+                    get_legal_moves(board, piece_idx, legal_moves, true);
 
                     if (legal_moves[0] != CHESS_INVALID_VALUE)
                     {
@@ -497,7 +497,7 @@ bool is_in_checkmate(int *board, bool white_mov_flg)
             {
                 if (is_piece_black((ChessPiece)board[piece_idx]))
                 {
-                    get_legal_moves(board, piece_idx, legal_moves, 1);
+                    get_legal_moves(board, piece_idx, legal_moves, true);
 
                     if (legal_moves[0] != CHESS_INVALID_VALUE)
                     {
@@ -1508,7 +1508,7 @@ void change_board_w_mov(int *board, const char *immut_mov, bool white_mov_flg)
                 {
                     if (board[i] == piece)
                     {
-                        get_legal_moves(board, i, legal_moves, 0);
+                        get_legal_moves(board, i, legal_moves, false);
                         for (int j = 0; j < CHESS_MAX_LEGAL_MOVE_CNT; j++)
                         {
                             if (legal_moves[j] == dst_idx)
@@ -1597,7 +1597,7 @@ void change_board_w_mov(int *board, const char *immut_mov, bool white_mov_flg)
                 {
                     if (board[i] == piece)
                     {
-                        get_legal_moves(board, i, legal_moves, 0);
+                        get_legal_moves(board, i, legal_moves, false);
                         for (int j = 0; j < CHESS_MAX_LEGAL_MOVE_CNT; j++)
                         {
                             if (legal_moves[j] == dst_idx)
@@ -1874,6 +1874,17 @@ int eval_board(int *board)
 
 int get_worst_case(int *board, bool white_flg, bool cur_white_flg, int depth, int cur_depth)
 {
+    if (is_in_checkmate(board, !white_flg))
+    {
+        if (white_flg)
+        {
+            return 1000;
+        }
+        else
+        {
+            return -1000;
+        }
+    }
 
     if (cur_depth == depth)
     {
@@ -1901,7 +1912,7 @@ int get_worst_case(int *board, bool white_flg, bool cur_white_flg, int depth, in
         {
             if (is_piece_white((ChessPiece)board[piece_idx]))
             {
-                get_legal_moves(board, piece_idx, legal_moves, 1);
+                get_legal_moves(board, piece_idx, legal_moves, true);
 
                 for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
                 {
@@ -1938,7 +1949,7 @@ int get_worst_case(int *board, bool white_flg, bool cur_white_flg, int depth, in
         {
             if (is_piece_black((ChessPiece)board[piece_idx]) == 1)
             {
-                get_legal_moves(board, piece_idx, legal_moves, 1);
+                get_legal_moves(board, piece_idx, legal_moves, true);
 
                 for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
                 {

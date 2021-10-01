@@ -320,7 +320,7 @@ void train_nn(const char *pgn_name, bool white_flg)
     delete nn;
 }
 
-MoveSearchResult get_best_move(int *immut_board, int white_mov_flg, bool print_flg, NN *nn)
+MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_flg, NN *nn)
 {
     int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
     char mov[CHESS_MAX_MOVE_LEN];
@@ -333,7 +333,7 @@ MoveSearchResult get_best_move(int *immut_board, int white_mov_flg, bool print_f
     float best_eval = -FLT_MAX;
 
     int best_worst_case;
-    if (white_mov_flg == 1)
+    if (white_mov_flg)
     {
         best_worst_case = -INT_MAX;
     }
@@ -346,11 +346,11 @@ MoveSearchResult get_best_move(int *immut_board, int white_mov_flg, bool print_f
 
     for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
     {
-        if (white_mov_flg == 1)
+        if (white_mov_flg)
         {
-            if (is_piece_white((ChessPiece)immut_board[piece_idx]) == 1)
+            if (is_piece_white((ChessPiece)immut_board[piece_idx]))
             {
-                get_legal_moves(immut_board, piece_idx, legal_moves, 1);
+                get_legal_moves(immut_board, piece_idx, legal_moves, true);
                 for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
                 {
                     if (legal_moves[mov_idx] == CHESS_INVALID_VALUE)
@@ -405,9 +405,9 @@ MoveSearchResult get_best_move(int *immut_board, int white_mov_flg, bool print_f
         }
         else
         {
-            if (is_piece_black((ChessPiece)immut_board[piece_idx]) == 1)
+            if (is_piece_black((ChessPiece)immut_board[piece_idx]))
             {
-                get_legal_moves(immut_board, piece_idx, legal_moves, 1);
+                get_legal_moves(immut_board, piece_idx, legal_moves, true);
                 for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
                 {
                     if (legal_moves[mov_idx] == CHESS_INVALID_VALUE)
@@ -485,7 +485,7 @@ void play_nn(bool white_flg)
     int cpy_board[CHESS_BOARD_LEN];
     char mov[CHESS_MAX_MOVE_LEN];
 
-    int white_mov_flg = 1;
+    bool white_mov_flg = true;
 
     // Go ahead and make opening moves since we do not train the model on openings.
     {
@@ -512,7 +512,15 @@ void play_nn(bool white_flg)
 
         change_board_w_mov(board, "O-O", white_mov_flg);
         white_mov_flg = !white_mov_flg;
+
+        change_board_w_mov(board, "Nf3", white_mov_flg);
+        white_mov_flg = !white_mov_flg;
+
+        change_board_w_mov(board, "a3", white_mov_flg);
+        white_mov_flg = !white_mov_flg;
     }
+
+    print_board(board);
 
     while (1)
     {
