@@ -59,6 +59,9 @@ void dump_pgn(const char *pgn_name)
 
     int *board = init_board();
 
+    // Skip openings!
+    int start_mov_idx = 10;
+
     printf("Total Games: %d\n", pgn->cnt);
 
     for (int game_idx = 0; game_idx < pgn->cnt; game_idx++)
@@ -67,7 +70,7 @@ void dump_pgn(const char *pgn_name)
 
         white_mov_flg = true;
 
-        for (int mov_idx = 10; mov_idx < pl->cnt; mov_idx++)
+        for (int mov_idx = start_mov_idx; mov_idx < pl->cnt; mov_idx++)
         {
             FILE *boards_file = nullptr;
 
@@ -577,11 +580,11 @@ void play_nn(bool white_flg)
 
 int main(int argc, char **argv)
 {
-    //dump_pgn("ALL");
+    dump_pgn("ALL");
 
     //train_nn("ALL", true);
 
-    play_nn(true);
+    //play_nn(true);
 
     return 0;
 }
