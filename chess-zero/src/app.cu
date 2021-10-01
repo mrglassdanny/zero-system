@@ -102,13 +102,13 @@ void dump_pgn(const char *pgn_name)
 
     printf("Total Games: %d\n", pgn->cnt);
 
-    for (int game_idx = 8; game_idx < pgn->cnt; game_idx++)
+    for (int game_idx = 0; game_idx < pgn->cnt; game_idx++)
     {
         PGNMoveList *pl = pgn->games[game_idx];
 
         white_mov_flg = true;
 
-        for (int mov_idx = 0; mov_idx < pl->cnt; mov_idx++)
+        for (int mov_idx = 10; mov_idx < pl->cnt; mov_idx++)
         {
             FILE *boards_file = nullptr;
 
@@ -491,43 +491,53 @@ void play_nn(bool white_flg)
     int white_mov_flg = 1;
 
     // Go ahead and make opening moves since we do not train the model on openings.
-    {
-        change_board_w_mov(board, "d4", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
+    // {
+    //     change_board_w_mov(board, "d4", white_mov_flg);
+    //     white_mov_flg = !white_mov_flg;
 
-        change_board_w_mov(board, "Nf6", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
+    //     change_board_w_mov(board, "Nf6", white_mov_flg);
+    //     white_mov_flg = !white_mov_flg;
 
-        change_board_w_mov(board, "c4", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
+    //     change_board_w_mov(board, "c4", white_mov_flg);
+    //     white_mov_flg = !white_mov_flg;
 
-        change_board_w_mov(board, "e6", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
+    //     change_board_w_mov(board, "e6", white_mov_flg);
+    //     white_mov_flg = !white_mov_flg;
 
-        change_board_w_mov(board, "Nc3", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
+    //     change_board_w_mov(board, "Nc3", white_mov_flg);
+    //     white_mov_flg = !white_mov_flg;
 
-        change_board_w_mov(board, "Bb4", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
+    //     change_board_w_mov(board, "Bb4", white_mov_flg);
+    //     white_mov_flg = !white_mov_flg;
 
-        change_board_w_mov(board, "Qc2", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
+    //     change_board_w_mov(board, "Qc2", white_mov_flg);
+    //     white_mov_flg = !white_mov_flg;
 
-        change_board_w_mov(board, "O-O", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-    }
+    //     change_board_w_mov(board, "O-O", white_mov_flg);
+    //     white_mov_flg = !white_mov_flg;
+    // }
 
     while (1)
     {
 
         // White move:
         {
-            copy_board(board, cpy_board);
+
+            if (is_in_checkmate(board, true))
+            {
+                printf(" *** CHECKMATE!\n");
+                break;
+            }
+
+            if (is_in_check(board, true))
+            {
+                printf(" *** CHECK!\n");
+            }
 
             MoveSearchResult mov_res;
-
             if (white_flg)
             {
+                copy_board(board, cpy_board);
                 mov_res = get_best_move(cpy_board, white_mov_flg, false, nn);
                 printf("%s\t%f\t%d\n", mov_res.mov, mov_res.eval, mov_res.worst_case);
             }
@@ -535,6 +545,7 @@ void play_nn(bool white_flg)
             // Now accept user input.
             memset(mov, 0, CHESS_MAX_MOVE_LEN);
             printf("ENTER MOVE (WHITE): ");
+
             std::cin >> mov;
             system("cls");
 
@@ -555,12 +566,21 @@ void play_nn(bool white_flg)
         // Black move:
         {
 
-            copy_board(board, cpy_board);
+            if (is_in_checkmate(board, false))
+            {
+                printf(" *** CHECKMATE!\n");
+                break;
+            }
+
+            if (is_in_check(board, false))
+            {
+                printf(" *** CHECK!\n");
+            }
 
             MoveSearchResult mov_res;
-
             if (!white_flg)
             {
+                copy_board(board, cpy_board);
                 mov_res = get_best_move(cpy_board, white_mov_flg, false, nn);
                 printf("%s\t%f\t%d\n", mov_res.mov, mov_res.eval, mov_res.worst_case);
             }
