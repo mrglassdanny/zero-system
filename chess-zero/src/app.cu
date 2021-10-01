@@ -40,47 +40,6 @@ long long get_file_size(const char *name)
     return size.QuadPart;
 }
 
-void test_pgn_import(const char *pgn_name)
-{
-    char file_name_buf[256];
-    memset(file_name_buf, 0, 256);
-    sprintf(file_name_buf, "c:\\users\\d0g0825\\ml-data\\chess-zero\\%s.pgn", pgn_name);
-    PGNImport *pgn = PGNImport_init(file_name_buf);
-
-    int *board = init_board();
-    int white_mov_flg;
-
-    for (int i = 0; i < pgn->cnt; i++)
-    {
-        printf("###############################################################\n");
-        printf("########################### GAME %d ############################\n", i + 1);
-        printf("###############################################################\n");
-        white_mov_flg = 1;
-        for (int j = 0; j < pgn->games[i]->cnt; j++)
-        {
-            change_board_w_mov(board, pgn->games[i]->arr[j], white_mov_flg);
-            printf("=============================== ===============================\n");
-            if (white_mov_flg == 1)
-            {
-                printf("WHITE: ");
-            }
-            else
-            {
-                printf("BLACK: ");
-            }
-            printf("%s  (move %d)\n", pgn->games[i]->arr[j], j + 1);
-            print_board(board);
-            white_mov_flg = !white_mov_flg;
-            _getch();
-        }
-        reset_board(board);
-    }
-
-    free(board);
-
-    PGNImport_free(pgn);
-}
-
 void dump_pgn(const char *pgn_name)
 {
     char file_name_buf[256];
@@ -513,10 +472,10 @@ void play_nn(bool white_flg)
         change_board_w_mov(board, "O-O", white_mov_flg);
         white_mov_flg = !white_mov_flg;
 
-        change_board_w_mov(board, "Nf3", white_mov_flg);
+        change_board_w_mov(board, "a3", white_mov_flg);
         white_mov_flg = !white_mov_flg;
 
-        change_board_w_mov(board, "a3", white_mov_flg);
+        change_board_w_mov(board, "Bxc3+", white_mov_flg);
         white_mov_flg = !white_mov_flg;
     }
 
