@@ -522,13 +522,13 @@ void play_nn(bool white_flg)
 
             if (is_in_checkmate(board, true))
             {
-                printf(" *** CHECKMATE!\n");
+                printf("CHECKMATE!\n");
                 break;
             }
 
             if (is_in_check(board, true))
             {
-                printf(" *** CHECK!\n");
+                printf("CHECK!\n");
             }
 
             MoveSearchResult mov_res;
@@ -565,13 +565,13 @@ void play_nn(bool white_flg)
 
             if (is_in_checkmate(board, false))
             {
-                printf(" *** CHECKMATE!\n");
+                printf("CHECKMATE!\n");
                 break;
             }
 
             if (is_in_check(board, false))
             {
-                printf(" *** CHECK!\n");
+                printf("CHECK!\n");
             }
 
             MoveSearchResult mov_res;
