@@ -1878,22 +1878,10 @@ int eval_board(int *board)
 
 int get_worst_case(int *board, bool white_flg, bool cur_white_flg, int depth, int cur_depth)
 {
-    int checkmate_bonus = 0;
-    if (is_in_checkmate(board, !cur_white_flg))
-    {
-        if (white_flg)
-        {
-            checkmate_bonus = 100000;
-        }
-        else
-        {
-            checkmate_bonus = -100000;
-        }
-    }
 
     if (cur_depth == depth)
     {
-        return eval_board(board) + checkmate_bonus;
+        return eval_board(board);
     }
 
     int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
@@ -1992,5 +1980,5 @@ int get_worst_case(int *board, bool white_flg, bool cur_white_flg, int depth, in
         worst_eval = 0;
     }
 
-    return eval_board(board) + checkmate_bonus + worst_eval;
+    return eval_board(board) + worst_eval;
 }
