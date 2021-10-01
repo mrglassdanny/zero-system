@@ -486,9 +486,8 @@ bool is_in_checkmate(int *board, bool white_mov_flg)
                     if (legal_moves[0] != CHESS_INVALID_VALUE)
                     {
                         in_checkmate_flg = false;
+                        break;
                     }
-
-                    break;
                 }
             }
         }
@@ -503,9 +502,8 @@ bool is_in_checkmate(int *board, bool white_mov_flg)
                     if (legal_moves[0] != CHESS_INVALID_VALUE)
                     {
                         in_checkmate_flg = false;
+                        break;
                     }
-
-                    break;
                 }
             }
         }
