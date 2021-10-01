@@ -188,7 +188,7 @@ void train_nn(const char *pgn_name, bool white_flg)
             {
                 for (int rand_mov_idx = 0; rand_mov_idx < 3; rand_mov_idx++)
                 {
-                    SrcDst_Idx sdi = get_random_move(pre_mov_board, 1, post_mov_board);
+                    SrcDst_Idx sdi = get_random_move(pre_mov_board, true, post_mov_board);
                     simulate_board_change_w_srcdst_idx(pre_mov_board, sdi.src_idx, sdi.dst_idx, sim_board);
 
                     one_hot_encode_board(pre_mov_board, oh_board);
@@ -227,7 +227,7 @@ void train_nn(const char *pgn_name, bool white_flg)
             {
                 for (int rand_mov_idx = 0; rand_mov_idx < 3; rand_mov_idx++)
                 {
-                    SrcDst_Idx sdi = get_random_move(pre_mov_board, 0, post_mov_board);
+                    SrcDst_Idx sdi = get_random_move(pre_mov_board, false, post_mov_board);
                     simulate_board_change_w_srcdst_idx(pre_mov_board, sdi.src_idx, sdi.dst_idx, sim_board);
 
                     one_hot_encode_board(pre_mov_board, oh_board);
@@ -580,9 +580,9 @@ void play_nn(bool white_flg)
 
 int main(int argc, char **argv)
 {
-    dump_pgn("ALL");
+    //dump_pgn("ALL");
 
-    //train_nn("ALL", true);
+    train_nn("ALL", true);
 
     //play_nn(true);
 
