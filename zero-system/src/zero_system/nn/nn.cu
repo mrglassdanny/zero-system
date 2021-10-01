@@ -456,33 +456,50 @@ void NN::write_to_csv(FILE *csv_file_ptr, int epoch, Report rpt)
 // NN member functions:
 
 NN::NN(std::vector<int> lyr_cfg, ActivationFunctionId hidden_layer_activation_func_id,
-       ActivationFunctionId output_layer_activation_func_id, CostFunctionId cost_func_id, InitializationMethodId init_mthd_id, float learning_rate)
+       ActivationFunctionId output_layer_activation_func_id, CostFunctionId cost_func_id, float learning_rate)
 {
 
     int lyr_cnt = lyr_cfg.size();
+    int lst_lyr_idx = lyr_cnt - 1;
+
+    this->hidden_layer_activation_func_id = hidden_layer_activation_func_id;
+    this->output_layer_activation_func_id = output_layer_activation_func_id;
+
+    this->cost_func_id = cost_func_id;
+
+    this->learning_rate = learning_rate;
 
     // Leave input neurons NULL for now!
     this->neurons.push_back(nullptr);
 
-    for (int lyr_idx = 0; lyr_idx < lyr_cnt - 1; lyr_idx++)
+    for (int lyr_idx = 0; lyr_idx < lst_lyr_idx; lyr_idx++)
     {
         int n_cnt = lyr_cfg[lyr_idx];
         int nxt_n_cnt = lyr_cfg[lyr_idx + 1];
+
+        ActivationFunctionId activation_func_id = (lyr_idx == lst_lyr_idx - 1) ? this->output_layer_activation_func_id : this->hidden_layer_activation_func_id;
 
         Tensor *n = new Tensor(1, nxt_n_cnt, Gpu);
         n->set_all(0.0f);
         this->neurons.push_back(n);
 
         Tensor *w = new Tensor(nxt_n_cnt, n_cnt, Gpu);
-        switch (init_mthd_id)
+        switch (activation_func_id)
         {
-        case Xavier:
-            w->set_all_rand(1.0f / sqrt(n_cnt));
+        case None:
+        case ReLU:
+            // He:
+            //w->set_all_rand(2.0f / sqrt(n_cnt));
+            w->set_all_rand_gaussian(sqrt(2.0f / n_cnt));
             break;
-        case He:
-            w->set_all_rand(2.0f / sqrt(n_cnt));
+        case Sigmoid:
+        case Tanh:
+            // Xavier:
+            //w->set_all_rand(1.0f / sqrt(n_cnt));
+            w->set_all_rand_gaussian(sqrt(1.0f / n_cnt));
             break;
         default:
+            // Zeros:
             w->set_all(0.0f);
             break;
         }
@@ -500,13 +517,6 @@ NN::NN(std::vector<int> lyr_cfg, ActivationFunctionId hidden_layer_activation_fu
         db->set_all(0.0f);
         this->bias_derivatives.push_back(db);
     }
-
-    this->hidden_layer_activation_func_id = hidden_layer_activation_func_id;
-    this->output_layer_activation_func_id = output_layer_activation_func_id;
-
-    this->cost_func_id = cost_func_id;
-
-    this->learning_rate = learning_rate;
 
     cudaMalloc(&this->d_cost, sizeof(float));
     cudaMemset(this->d_cost, 0, sizeof(float));
