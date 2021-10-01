@@ -47,6 +47,7 @@ void kmeans_test()
 
 int main(int argc, char **argv)
 {
+	srand(time(NULL));
 
 	nn_test();
 
