@@ -45,13 +45,56 @@ void kmeans_test()
 	delete x;
 }
 
+void nn_performance_test()
+{
+	int epoch_cnt = 100;
+	int batch_size = 100;
+
+	int x_col_cnt = 26;
+	int y_col_cnt = 1;
+
+	std::vector<int> layer_config = {x_col_cnt, 16, 8, 6, 4, y_col_cnt};
+
+	// -----------------------------------------------------------------
+
+	Tensor *x = new Tensor(1, x_col_cnt, Gpu);
+	x->set_all(0.5f);
+
+	Tensor *y = new Tensor(1, y_col_cnt, Gpu);
+	y->set_all(0.0f);
+	y->set_idx(0, 1.0f);
+
+	NN *nn = new NN(layer_config, ReLU, ReLU, MSE, 0.01f);
+
+	printf("Starting Performance Test...\n");
+	clock_t t;
+	t = clock();
+
+	for (int i = 0; i < epoch_cnt; i++)
+	{
+		for (int j = 0; j < batch_size; j++)
+		{
+			nn->feed_forward(x);
+			nn->back_propagate(y);
+		}
+	}
+
+	t = clock() - t;
+	double time_taken = ((double)t) / CLOCKS_PER_SEC;
+
+	printf("Performance Test Complete!\n");
+	printf("Elapsed Seconds: %f\t(%f)\n\n", time_taken, t);
+}
+
 int main(int argc, char **argv)
 {
 	srand(time(NULL));
 
-	nn_test();
+	//nn_test();
 
 	//kmeans_test();
+
+	nn_performance_test();
 
 	return 0;
 }
