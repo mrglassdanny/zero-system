@@ -465,7 +465,7 @@ void play_nn(bool white_flg)
             if (white_flg)
             {
                 copy_board(board, cpy_board);
-                mov_res = get_best_move(cpy_board, white_mov_flg, false, nn);
+                mov_res = get_best_move(cpy_board, white_mov_flg, true, nn);
                 printf("%s\t%f\t%d\n", mov_res.mov, mov_res.eval, mov_res.worst_case);
             }
 
@@ -542,9 +542,9 @@ int main(int argc, char **argv)
 {
     //dump_pgn("ALL");
 
-    train_nn("ALL", true);
+    //train_nn("ALL", true);
 
-    //play_nn(true);
+    play_nn(true);
 
     return 0;
 }
