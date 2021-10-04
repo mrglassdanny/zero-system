@@ -84,6 +84,11 @@ void nn_performance_test()
 
 	printf("Performance Test Complete!\n");
 	printf("Elapsed Seconds: %f\n\n", time_taken);
+
+	delete nn;
+
+	delete x;
+	delete y;
 }
 
 int main(int argc, char **argv)
