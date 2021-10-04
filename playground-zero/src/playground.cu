@@ -17,12 +17,12 @@ void nn_test()
 
 	Tensor *y = new Tensor(1, y_col_cnt, Gpu);
 	y->set_all(0.0f);
-	y->set_idx(1, 1.0f);
+	y->set_idx(0, 1.0f);
 
 	std::vector<int> layer_config = {x_col_cnt, 16, 8, 6, 4, y_col_cnt};
-	NN *nn = new NN(layer_config, None, Tanh, MSE, 0.01f);
+	NN *nn = new NN(layer_config, Tanh, Sigmoid, MSE, 0.01f);
 
-	nn->check_gradient(x, y, false);
+	nn->check_gradient(x, y, true);
 
 	delete nn;
 
@@ -50,10 +50,10 @@ void nn_performance_test()
 	int epoch_cnt = 100;
 	int batch_size = 100;
 
-	int x_col_cnt = 26;
+	int x_col_cnt = 832 * 2;
 	int y_col_cnt = 1;
 
-	std::vector<int> layer_config = {x_col_cnt, 16, 8, 6, 4, y_col_cnt};
+	std::vector<int> layer_config = {x_col_cnt, 2048, 2048, 1024, 1024, 256, 64, 16, y_col_cnt};
 
 	// -----------------------------------------------------------------
 
@@ -83,7 +83,7 @@ void nn_performance_test()
 	double time_taken = ((double)t) / CLOCKS_PER_SEC;
 
 	printf("Performance Test Complete!\n");
-	printf("Elapsed Seconds: %f\t(%f)\n\n", time_taken, t);
+	printf("Elapsed Seconds: %f\n\n", time_taken);
 }
 
 int main(int argc, char **argv)
