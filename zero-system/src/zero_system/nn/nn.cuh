@@ -70,18 +70,18 @@ namespace zero
 
             void set_learning_rate(float learning_rate);
 
-            void feed_forward(Tensor *x);
+            void feed_forward(Tensor *x, float dropout);
             float get_cost(Tensor *y);
             void back_propagate(Tensor *y);
             void optimize(int batch_size);
 
             void check_gradient(Tensor *x, Tensor *y, bool print_flg);
 
-            Report train(Batch *batch);
+            Report train(Batch *batch, float dropout);
             Report validate(Batch *batch);
             Report test(Batch *batch);
 
-            void all(Supervisor *supervisor, int train_batch_size, int validation_chk_freq, const char *csv_path);
+            void all(Supervisor *supervisor, float dropout, int train_batch_size, int validation_chk_freq, const char *csv_path);
 
             Tensor *predict(Tensor *x);
         };

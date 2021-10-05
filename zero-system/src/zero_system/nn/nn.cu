@@ -59,6 +59,19 @@ __device__ float d_derive_cross_entropy_cost(float n_val, float y_val)
 
 // Kernel functions:
 
+__global__ void k_process_dropout(float *arr, int cnt, float p)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < cnt)
+    {
+        if (((float)rand() / (float)RAND_MAX) < p)
+        {
+            arr[tid] = 0.0f;
+        }
+    }
+}
+
 __global__ void k_set_arr(float *arr, int cnt, float val)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -701,7 +714,7 @@ void NN::set_learning_rate(float learning_rate)
     this->learning_rate = learning_rate;
 }
 
-void NN::feed_forward(Tensor *x)
+void NN::feed_forward(Tensor *x, float dropout)
 {
     x->translate(Gpu);
     this->neurons[0] = x;
@@ -721,11 +734,19 @@ void NN::feed_forward(Tensor *x)
 
         ActivationFunctionId activation_func_id = (lyr_idx == lst_lyr_idx - 1) ? this->output_layer_activation_func_id : this->hidden_layer_activation_func_id;
 
-        // Need to reset neurons before we do anything:
+        // Need to reset next layer neurons before we do anything:
         {
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks((nxt_n_cnt / threads_per_block) + 1);
             k_set_arr<<<num_blocks, threads_per_block>>>(nxt_n->get_arr(Gpu), nxt_n_cnt, 0.0f);
+        }
+
+        // Process dropout before we start calculations:
+        if (dropout > 0.0f && dropout < 1.0f && lyr_idx > 0)
+        {
+            int threads_per_block(THREADS_PER_BLOCK);
+            int num_blocks((n_cnt / threads_per_block) + 1);
+            k_process_dropout<<<num_blocks, threads_per_block>>>(n->get_arr(Gpu), n_cnt, dropout);
         }
 
         // Dot product:
@@ -906,7 +927,7 @@ void NN::check_gradient(Tensor *x, Tensor *y, bool print_flg)
 
     // Analytical gradients:
     {
-        this->feed_forward(x);
+        this->feed_forward(x, 0.0f);
         this->back_propagate(y);
     }
 
@@ -938,14 +959,14 @@ void NN::check_gradient(Tensor *x, Tensor *y, bool print_flg)
                 // Left:
                 w->set_idx(w_idx, left_w_val);
                 {
-                    this->feed_forward(x);
+                    this->feed_forward(x, 0.0f);
                     left_cost += this->get_cost(y);
                 }
 
                 // Right:
                 w->set_idx(w_idx, right_w_val);
                 {
-                    this->feed_forward(x);
+                    this->feed_forward(x, 0.0f);
                     right_cost += this->get_cost(y);
                 }
 
@@ -979,14 +1000,14 @@ void NN::check_gradient(Tensor *x, Tensor *y, bool print_flg)
                 // Left:
                 b->set_idx(b_idx, left_b_val);
                 {
-                    this->feed_forward(x);
+                    this->feed_forward(x, 0.0f);
                     left_cost += this->get_cost(y);
                 }
 
                 // Right:
                 b->set_idx(b_idx, right_b_val);
                 {
-                    this->feed_forward(x);
+                    this->feed_forward(x, 0.0f);
                     right_cost += this->get_cost(y);
                 }
 
@@ -1016,7 +1037,7 @@ void NN::check_gradient(Tensor *x, Tensor *y, bool print_flg)
     }
 }
 
-Report NN::train(Batch *batch)
+Report NN::train(Batch *batch, float dropout)
 {
     Report rpt;
 
@@ -1034,7 +1055,7 @@ Report NN::train(Batch *batch)
         Tensor *x = batch->get_x(i);
         Tensor *y = batch->get_y(i);
 
-        this->feed_forward(x);
+        this->feed_forward(x, dropout);
         cost += this->get_cost(y);
         this->back_propagate(y);
 
@@ -1073,7 +1094,7 @@ Report NN::validate(Batch *batch)
         Tensor *x = batch->get_x(i);
         Tensor *y = batch->get_y(i);
 
-        this->feed_forward(x);
+        this->feed_forward(x, 0.0f);
         cost += this->get_cost(y);
 
         rpt.update_correct_cnt(this->neurons[lst_lyr_idx], y);
@@ -1109,7 +1130,7 @@ Report NN::test(Batch *batch)
         Tensor *x = batch->get_x(i);
         Tensor *y = batch->get_y(i);
 
-        this->feed_forward(x);
+        this->feed_forward(x, 0.0f);
         cost += this->get_cost(y);
 
         rpt.update_correct_cnt(this->neurons[lst_lyr_idx], y);
@@ -1128,7 +1149,7 @@ Report NN::test(Batch *batch)
 }
 
 // Trains, validates, and tests. Press 'q' to force quit.
-void NN::all(Supervisor *supervisor, int train_batch_size, int validation_chk_freq, const char *csv_path)
+void NN::all(Supervisor *supervisor, float dropout, int train_batch_size, int validation_chk_freq, const char *csv_path)
 {
     FILE *csv_file_ptr;
 
@@ -1147,7 +1168,7 @@ void NN::all(Supervisor *supervisor, int train_batch_size, int validation_chk_fr
     while (true)
     {
         Batch *train_batch = supervisor->create_train_batch(train_batch_size);
-        Report train_rpt = this->train(train_batch);
+        Report train_rpt = this->train(train_batch, dropout);
 
         if (csv_path != nullptr)
         {
@@ -1200,7 +1221,7 @@ void NN::all(Supervisor *supervisor, int train_batch_size, int validation_chk_fr
 
 Tensor *NN::predict(Tensor *x)
 {
-    this->feed_forward(x);
+    this->feed_forward(x, 0.0f);
     Tensor *pred = new Tensor(*this->neurons[this->neurons.size() - 1], Cpu);
     return pred;
 }
