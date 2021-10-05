@@ -12,14 +12,12 @@
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="src\zero_system\cluster\kmeans.cu" />
-    <CudaCompile Include="src\zero_system\nn\cnn.cu" />
     <CudaCompile Include="src\zero_system\nn\nn.cu" />
     <CudaCompile Include="src\zero_system\nn\supervisor.cu" />
     <CudaCompile Include="src\zero_system\core\tensor.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\zero_system\cluster\kmeans.cuh" />
-    <ClInclude Include="src\zero_system\nn\cnn.cuh" />
     <ClInclude Include="src\zero_system\nn\nn.cuh" />
     <ClInclude Include="src\zero_system\nn\supervisor.cuh" />
     <ClInclude Include="src\zero_system\core\tensor.cuh" />

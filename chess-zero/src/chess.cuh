@@ -5,6 +5,10 @@
 #include <string.h>
 #include <ctype.h>
 
+#include <vector>
+
+#include <zero_system/core/tensor.cuh>
+
 #define CHESS_BOARD_ROW_CNT 8
 #define CHESS_BOARD_COL_CNT 8
 #define CHESS_BOARD_LEN (CHESS_BOARD_COL_CNT * CHESS_BOARD_ROW_CNT)
@@ -18,6 +22,8 @@
 
 #define CHESS_ONE_HOT_ENCODE_COMBINATION_CNT 13
 #define CHESS_ONE_HOT_ENCODED_BOARD_LEN (CHESS_BOARD_LEN * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT)
+
+using namespace zero::core;
 
 typedef enum ChessPiece
 {
@@ -54,13 +60,15 @@ bool is_piece_black(ChessPiece piece);
 
 bool is_piece_same_color(ChessPiece a, ChessPiece b);
 
-bool is_piece_under_attack(int *board, int piece_idx);
+bool is_cell_under_attack(int *board, int cell_idx, bool white_pov_flg);
 
 bool is_in_check(int *board, bool white_mov_flg);
 
 bool is_in_checkmate(int *board, bool white_mov_flg);
 
 void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg);
+
+void get_piece_influence(int *board, int piece_idx, int *out);
 
 SrcDst_Idx get_random_move(int *board, bool white_mov_flg, int *cmp_board);
 
@@ -79,3 +87,5 @@ void one_hot_encode_board(int *board, int *out);
 int eval_board(int *board);
 
 int get_worst_case(int *board, bool white_flg, bool cur_white_flg, int depth, int cur_depth);
+
+Tensor *process_convolutions(int *board);
