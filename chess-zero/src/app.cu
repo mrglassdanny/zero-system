@@ -207,7 +207,7 @@ void train_nn(const char *pgn_name, bool white_flg)
         // Only train if batch has something in it.
         if (batch->get_size() > 0)
         {
-            Report train_rpt = nn->train(batch);
+            Report train_rpt = nn->train(batch, 0.0f);
             NN::write_to_csv(csv_file_ptr, epoch, train_rpt);
         }
 

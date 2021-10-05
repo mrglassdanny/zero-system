@@ -74,7 +74,7 @@ void nn_performance_test()
 	{
 		for (int j = 0; j < batch_size; j++)
 		{
-			nn->feed_forward(x);
+			nn->feed_forward(x, 0.0f);
 			nn->back_propagate(y);
 		}
 	}
@@ -95,11 +95,11 @@ int main(int argc, char **argv)
 {
 	srand(time(NULL));
 
-	//nn_test();
+	nn_test();
 
 	//kmeans_test();
 
-	nn_performance_test();
+	//nn_performance_test();
 
 	return 0;
 }

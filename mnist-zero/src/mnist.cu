@@ -60,7 +60,7 @@ void mnist_test()
     std::vector<int> layer_config = {784, 1024, 1024, 512, 512, 10};
     NN *nn = new NN(layer_config, ReLU, ReLU, MSE, 0.01f);
 
-    nn->all(sup, 100, 1000, "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist-train.csv");
+    nn->all(sup, 0.3f, 100, 1000, "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist-train.csv");
 
     nn->dump("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist.nn");
 
