@@ -56,13 +56,15 @@ bool is_piece_black(ChessPiece piece);
 
 bool is_piece_same_color(ChessPiece a, ChessPiece b);
 
-bool is_piece_under_attack(int *board, int piece_idx);
+bool is_cell_under_attack(int *board, int cell_idx, bool white_pov_flg);
 
 bool is_in_check(int *board, bool white_mov_flg);
 
 bool is_in_checkmate(int *board, bool white_mov_flg);
 
 void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg);
+
+void get_piece_influence(int *board, int piece_idx, int *out);
 
 SrcDst_Idx get_random_move(int *board, bool white_mov_flg, int *cmp_board);
 

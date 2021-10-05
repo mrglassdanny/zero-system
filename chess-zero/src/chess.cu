@@ -313,29 +313,13 @@ bool is_piece_same_color(ChessPiece a, ChessPiece b)
     }
 }
 
-bool is_piece_under_attack(int *board, int piece_idx)
+bool is_cell_under_attack(int *board, int cell_idx, bool white_pov_flg)
 {
     bool under_attack_flg = false;
     int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
     memset(legal_moves, CHESS_INVALID_VALUE, sizeof(int) * CHESS_MAX_LEGAL_MOVE_CNT);
 
-    bool white_piece;
-    ChessPiece piece = (ChessPiece)board[piece_idx];
-    if (is_piece_white(piece))
-    {
-        white_piece = true;
-    }
-    else if (is_piece_black(piece))
-    {
-        white_piece = false;
-    }
-    else
-    {
-        // Piece index is empty space.
-        return false;
-    }
-
-    if (white_piece)
+    if (white_pov_flg)
     {
         for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
         {
@@ -350,7 +334,7 @@ bool is_piece_under_attack(int *board, int piece_idx)
                         break;
                     }
 
-                    if (legal_moves[mov_idx] == piece_idx)
+                    if (legal_moves[mov_idx] == cell_idx)
                     {
                         under_attack_flg = true;
                         break;
@@ -379,7 +363,7 @@ bool is_piece_under_attack(int *board, int piece_idx)
                         break;
                     }
 
-                    if (legal_moves[mov_idx] == piece_idx)
+                    if (legal_moves[mov_idx] == cell_idx)
                     {
                         under_attack_flg = true;
                         break;
@@ -1184,7 +1168,8 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
                 // Queen side castle.
                 if (board[get_idx_fr_colrow('a', 1)] == WhiteRook)
                 {
-                    if (board[get_idx_fr_colrow('b', 1)] == Empty && board[get_idx_fr_colrow('c', 1)] == Empty && board[get_idx_fr_colrow('d', 1)] == Empty)
+                    if (board[get_idx_fr_colrow('b', 1)] == Empty && board[get_idx_fr_colrow('c', 1)] == Empty && board[get_idx_fr_colrow('d', 1)] == Empty &&
+                        !is_cell_under_attack(board, get_idx_fr_colrow('b', 1), true) && !is_cell_under_attack(board, get_idx_fr_colrow('c', 1), true) && !is_cell_under_attack(board, get_idx_fr_colrow('d', 1), true))
                     {
                         out[mov_ctr++] = get_idx_fr_colrow('c', 1);
                     }
@@ -1193,7 +1178,8 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
                 // King side castle.
                 if (board[get_idx_fr_colrow('h', 1)] == WhiteRook)
                 {
-                    if (board[get_idx_fr_colrow('f', 1)] == Empty && board[get_idx_fr_colrow('g', 1)] == Empty)
+                    if (board[get_idx_fr_colrow('f', 1)] == Empty && board[get_idx_fr_colrow('g', 1)] == Empty &&
+                        !is_cell_under_attack(board, get_idx_fr_colrow('f', 1), true) && !is_cell_under_attack(board, get_idx_fr_colrow('g', 1), true))
                     {
                         out[mov_ctr++] = get_idx_fr_colrow('g', 1);
                     }
@@ -1207,7 +1193,8 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
                 // Queen side castle.
                 if (board[get_idx_fr_colrow('a', 8)] == BlackRook)
                 {
-                    if (board[get_idx_fr_colrow('b', 8)] == Empty && board[get_idx_fr_colrow('c', 8)] == Empty && board[get_idx_fr_colrow('d', 8)] == Empty)
+                    if (board[get_idx_fr_colrow('b', 8)] == Empty && board[get_idx_fr_colrow('c', 8)] == Empty && board[get_idx_fr_colrow('d', 8)] == Empty &&
+                        !is_cell_under_attack(board, get_idx_fr_colrow('b', 8), false) && !is_cell_under_attack(board, get_idx_fr_colrow('c', 8), false) && !is_cell_under_attack(board, get_idx_fr_colrow('d', 8), false))
                     {
                         out[mov_ctr++] = get_idx_fr_colrow('c', 8);
                     }
@@ -1216,7 +1203,8 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
                 // King side castle.
                 if (board[get_idx_fr_colrow('h', 8)] == BlackRook)
                 {
-                    if (board[get_idx_fr_colrow('f', 8)] == Empty && board[get_idx_fr_colrow('g', 8)] == Empty)
+                    if (board[get_idx_fr_colrow('f', 8)] == Empty && board[get_idx_fr_colrow('g', 8)] == Empty &&
+                        !is_cell_under_attack(board, get_idx_fr_colrow('f', 8), false) && !is_cell_under_attack(board, get_idx_fr_colrow('g', 8), false))
                     {
                         out[mov_ctr++] = get_idx_fr_colrow('g', 8);
                     }
@@ -1230,6 +1218,646 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
     }
 
     if (test_in_check_flg)
+    {
+        int check_out[CHESS_MAX_LEGAL_MOVE_CNT];
+        memset(check_out, CHESS_INVALID_VALUE, sizeof(int) * CHESS_MAX_LEGAL_MOVE_CNT);
+        int check_mov_ctr = 0;
+        int cpy_board[CHESS_BOARD_LEN];
+        for (int i = 0; i < mov_ctr; i++)
+        {
+            simulate_board_change_w_srcdst_idx(board, piece_idx, out[i], cpy_board);
+            if (!is_in_check(cpy_board, white_mov_flg))
+            {
+                check_out[check_mov_ctr++] = out[i];
+            }
+        }
+
+        memcpy(out, check_out, sizeof(int) * mov_ctr);
+    }
+}
+
+void get_piece_influence(int *board, int piece_idx, int *out)
+{
+    memset(out, CHESS_INVALID_VALUE, sizeof(int) * CHESS_MAX_LEGAL_MOVE_CNT);
+    int mov_ctr = 0;
+
+    ChessPiece piece = (ChessPiece)board[piece_idx];
+
+    char col = get_col_fr_idx(piece_idx);
+    int row = get_row_fr_idx(piece_idx);
+
+    int adj_col = get_adj_col_fr_idx(piece_idx);
+    int adj_row = get_adj_row_fr_idx(piece_idx);
+
+    int white_mov_flg;
+    if (is_piece_white(piece))
+    {
+        white_mov_flg = 1;
+    }
+    else
+    {
+        white_mov_flg = 0;
+    }
+
+    int test_idx;
+
+    switch (piece)
+    {
+    case WhitePawn:
+        // TODO: au passant
+        {
+            test_idx = get_idx_fr_colrow(col, row + 1);
+            if (is_row_valid(row + 1) && board[test_idx] == Empty)
+            {
+                out[mov_ctr++] = test_idx;
+            }
+
+            test_idx = get_idx_fr_adj_colrow(adj_col - 1, adj_row + 1);
+            if (is_adj_colrow_valid(adj_col - 1, adj_row + 1))
+            {
+                out[mov_ctr++] = test_idx;
+            }
+
+            test_idx = get_idx_fr_adj_colrow(adj_col + 1, adj_row + 1);
+            if (is_adj_colrow_valid(adj_col + 1, adj_row + 1))
+            {
+                out[mov_ctr++] = test_idx;
+            }
+
+            if (row == 2)
+            {
+                // Dont need to check if row adjustments are valid since we know that starting row is 2.
+                test_idx = get_idx_fr_colrow(col, row + 1);
+                if (board[test_idx] == Empty)
+                {
+                    test_idx = get_idx_fr_colrow(col, row + 2);
+                    if (board[test_idx] == Empty)
+                    {
+                        out[mov_ctr++] = test_idx;
+                    }
+                }
+            }
+        }
+
+        break;
+    case BlackPawn:
+        // TODO: au passant
+        {
+            test_idx = get_idx_fr_colrow(col, row - 1);
+            if (is_row_valid(row - 1) && board[test_idx] == Empty)
+            {
+                out[mov_ctr++] = test_idx;
+            }
+
+            test_idx = get_idx_fr_adj_colrow(adj_col - 1, adj_row - 1);
+            if (is_adj_colrow_valid(adj_col - 1, adj_row - 1))
+            {
+                out[mov_ctr++] = test_idx;
+            }
+
+            test_idx = get_idx_fr_adj_colrow(adj_col + 1, adj_row - 1);
+            if (is_adj_colrow_valid(adj_col + 1, adj_row - 1))
+            {
+                out[mov_ctr++] = test_idx;
+            }
+
+            if (row == 7)
+            {
+                // Dont need to check if row adjustments are valid since we know that starting row is 7.
+                test_idx = get_idx_fr_colrow(col, row - 1);
+                if (board[test_idx] == Empty)
+                {
+                    test_idx = get_idx_fr_colrow(col, row - 2);
+                    if (board[test_idx] == Empty)
+                    {
+                        out[mov_ctr++] = test_idx;
+                    }
+                }
+            }
+        }
+
+        break;
+    case WhiteKnight:
+    case BlackKnight:
+    {
+
+        if (is_adj_colrow_valid(adj_col + 1, adj_row + 2))
+        {
+            test_idx = get_idx_fr_adj_colrow(adj_col + 1, adj_row + 2);
+            out[mov_ctr++] = test_idx;
+        }
+
+        if (is_adj_colrow_valid(adj_col + 1, adj_row - 2))
+        {
+            test_idx = get_idx_fr_adj_colrow(adj_col + 1, adj_row - 2);
+            out[mov_ctr++] = test_idx;
+        }
+
+        if (is_adj_colrow_valid(adj_col - 1, adj_row + 2))
+        {
+            test_idx = get_idx_fr_adj_colrow(adj_col - 1, adj_row + 2);
+            out[mov_ctr++] = test_idx;
+        }
+
+        if (is_adj_colrow_valid(adj_col - 1, adj_row - 2))
+        {
+            test_idx = get_idx_fr_adj_colrow(adj_col - 1, adj_row - 2);
+            out[mov_ctr++] = test_idx;
+        }
+
+        if (is_adj_colrow_valid(adj_col + 2, adj_row + 1))
+        {
+            test_idx = get_idx_fr_adj_colrow(adj_col + 2, adj_row + 1);
+            out[mov_ctr++] = test_idx;
+        }
+
+        if (is_adj_colrow_valid(adj_col + 2, adj_row - 1))
+        {
+            test_idx = get_idx_fr_adj_colrow(adj_col + 2, adj_row - 1);
+            out[mov_ctr++] = test_idx;
+        }
+
+        if (is_adj_colrow_valid(adj_col - 2, adj_row + 1))
+        {
+            test_idx = get_idx_fr_adj_colrow(adj_col - 2, adj_row + 1);
+            out[mov_ctr++] = test_idx;
+        }
+
+        if (is_adj_colrow_valid(adj_col - 2, adj_row - 1))
+        {
+            test_idx = get_idx_fr_adj_colrow(adj_col - 2, adj_row - 1);
+            out[mov_ctr++] = test_idx;
+        }
+    }
+
+    break;
+    case WhiteBishop:
+    case BlackBishop:
+    {
+        int ne = 0;
+        int sw = 0;
+        int se = 0;
+        int nw = 0;
+        for (int i = 1; i < 8; i++)
+        {
+
+            if (is_adj_colrow_valid(adj_col + i, adj_row + i) && ne == 0)
+            {
+                test_idx = get_idx_fr_adj_colrow(adj_col + i, adj_row + i);
+                if (board[test_idx] != Empty)
+                {
+                    ne = 1;
+                    out[mov_ctr++] = test_idx;
+                }
+                else
+                {
+                    out[mov_ctr++] = test_idx;
+                }
+            }
+
+            if (is_adj_colrow_valid(adj_col - i, adj_row - i) && sw == 0)
+            {
+                test_idx = get_idx_fr_adj_colrow(adj_col - i, adj_row - i);
+                if (board[test_idx] != Empty)
+                {
+                    sw = 1;
+                    out[mov_ctr++] = test_idx;
+                }
+                else
+                {
+                    out[mov_ctr++] = test_idx;
+                }
+            }
+
+            if (is_adj_colrow_valid(adj_col + i, adj_row - i) && se == 0)
+            {
+                test_idx = get_idx_fr_adj_colrow(adj_col + i, adj_row - i);
+                if (board[test_idx] != Empty)
+                {
+                    se = 1;
+                    out[mov_ctr++] = test_idx;
+                }
+                else
+                {
+                    out[mov_ctr++] = test_idx;
+                }
+            }
+
+            if (is_adj_colrow_valid(adj_col - i, adj_row + i) && nw == 0)
+            {
+                test_idx = get_idx_fr_adj_colrow(adj_col - i, adj_row + i);
+                if (board[test_idx] != Empty)
+                {
+                    nw = 1;
+                    out[mov_ctr++] = test_idx;
+                }
+                else
+                {
+                    out[mov_ctr++] = test_idx;
+                }
+            }
+        }
+    }
+
+    break;
+    case WhiteRook:
+    case BlackRook:
+    {
+        int n = 0;
+        int s = 0;
+        int e = 0;
+        int w = 0;
+        for (int i = 1; i < 8; i++)
+        {
+
+            if (is_adj_colrow_valid(adj_col + i, adj_row) && e == 0)
+            {
+                test_idx = get_idx_fr_adj_colrow(adj_col + i, adj_row);
+                if (board[test_idx] != Empty)
+                {
+                    e = 1;
+                    out[mov_ctr++] = test_idx;
+                }
+                else
+                {
+                    out[mov_ctr++] = test_idx;
+                }
+            }
+
+            if (is_adj_colrow_valid(adj_col - i, adj_row) && w == 0)
+            {
+                test_idx = get_idx_fr_adj_colrow(adj_col - i, adj_row);
+                if (board[test_idx] != Empty)
+                {
+                    w = 1;
+                    out[mov_ctr++] = test_idx;
+                }
+                else
+                {
+                    out[mov_ctr++] = test_idx;
+                }
+            }
+
+            if (is_adj_colrow_valid(adj_col, adj_row + i) && n == 0)
+            {
+                test_idx = get_idx_fr_adj_colrow(adj_col, adj_row + i);
+                if (board[test_idx] != Empty)
+                {
+                    n = 1;
+                    out[mov_ctr++] = test_idx;
+                }
+                else
+                {
+                    out[mov_ctr++] = test_idx;
+                }
+            }
+
+            if (is_adj_colrow_valid(adj_col, adj_row - i) && s == 0)
+            {
+                test_idx = get_idx_fr_adj_colrow(adj_col, adj_row - i);
+                if (board[test_idx] != Empty)
+                {
+                    s = 1;
+                    out[mov_ctr++] = test_idx;
+                }
+                else
+                {
+                    out[mov_ctr++] = test_idx;
+                }
+            }
+        }
+    }
+
+    break;
+    case WhiteQueen:
+    case BlackQueen:
+        // ne,sw,se,nw
+        {
+            int ne = 0;
+            int sw = 0;
+            int se = 0;
+            int nw = 0;
+            for (int i = 1; i < 8; i++)
+            {
+
+                if (is_adj_colrow_valid(adj_col + i, adj_row + i) && ne == 0)
+                {
+                    test_idx = get_idx_fr_adj_colrow(adj_col + i, adj_row + i);
+                    if (board[test_idx] != Empty)
+                    {
+                        ne = 1;
+                        out[mov_ctr++] = test_idx;
+                    }
+                    else
+                    {
+                        out[mov_ctr++] = test_idx;
+                    }
+                }
+
+                if (is_adj_colrow_valid(adj_col - i, adj_row - i) && sw == 0)
+                {
+                    test_idx = get_idx_fr_adj_colrow(adj_col - i, adj_row - i);
+                    if (board[test_idx] != Empty)
+                    {
+                        sw = 1;
+                        out[mov_ctr++] = test_idx;
+                    }
+                    else
+                    {
+                        out[mov_ctr++] = test_idx;
+                    }
+                }
+
+                if (is_adj_colrow_valid(adj_col + i, adj_row - i) && se == 0)
+                {
+                    test_idx = get_idx_fr_adj_colrow(adj_col + i, adj_row - i);
+                    if (board[test_idx] != Empty)
+                    {
+                        se = 1;
+                        out[mov_ctr++] = test_idx;
+                    }
+                    else
+                    {
+                        out[mov_ctr++] = test_idx;
+                    }
+                }
+
+                if (is_adj_colrow_valid(adj_col - i, adj_row + i) && nw == 0)
+                {
+                    test_idx = get_idx_fr_adj_colrow(adj_col - i, adj_row + i);
+                    if (board[test_idx] != Empty)
+                    {
+                        nw = 1;
+                        out[mov_ctr++] = test_idx;
+                    }
+                    else
+                    {
+                        out[mov_ctr++] = test_idx;
+                    }
+                }
+            }
+        }
+        // n,s,e,w
+        {
+            int n = 0;
+            int s = 0;
+            int e = 0;
+            int w = 0;
+            for (int i = 1; i < 8; i++)
+            {
+
+                if (is_adj_colrow_valid(adj_col + i, adj_row) && e == 0)
+                {
+                    test_idx = get_idx_fr_adj_colrow(adj_col + i, adj_row);
+                    if (board[test_idx] != Empty)
+                    {
+                        e = 1;
+                        out[mov_ctr++] = test_idx;
+                    }
+                    else
+                    {
+                        out[mov_ctr++] = test_idx;
+                    }
+                }
+
+                if (is_adj_colrow_valid(adj_col - i, adj_row) && w == 0)
+                {
+                    test_idx = get_idx_fr_adj_colrow(adj_col - i, adj_row);
+                    if (board[test_idx] != Empty)
+                    {
+                        w = 1;
+                        out[mov_ctr++] = test_idx;
+                    }
+                    else
+                    {
+                        out[mov_ctr++] = test_idx;
+                    }
+                }
+
+                if (is_adj_colrow_valid(adj_col, adj_row + i) && n == 0)
+                {
+                    test_idx = get_idx_fr_adj_colrow(adj_col, adj_row + i);
+                    if (board[test_idx] != Empty)
+                    {
+                        n = 1;
+                        out[mov_ctr++] = test_idx;
+                    }
+                    else
+                    {
+                        out[mov_ctr++] = test_idx;
+                    }
+                }
+
+                if (is_adj_colrow_valid(adj_col, adj_row - i) && s == 0)
+                {
+                    test_idx = get_idx_fr_adj_colrow(adj_col, adj_row - i);
+                    if (board[test_idx] != Empty)
+                    {
+                        s = 1;
+                        out[mov_ctr++] = test_idx;
+                    }
+                    else
+                    {
+                        out[mov_ctr++] = test_idx;
+                    }
+                }
+            }
+        }
+
+        break;
+    case WhiteKing:
+    case BlackKing:
+        // ne,sw,se,nw
+        {
+            int ne = 0;
+            int sw = 0;
+            int se = 0;
+            int nw = 0;
+            for (int i = 1; i < 2; i++)
+            {
+
+                if (is_adj_colrow_valid(adj_col + i, adj_row + i) && ne == 0)
+                {
+                    test_idx = get_idx_fr_adj_colrow(adj_col + i, adj_row + i);
+                    if (board[test_idx] != Empty)
+                    {
+                        ne = 1;
+                        out[mov_ctr++] = test_idx;
+                    }
+                    else
+                    {
+                        out[mov_ctr++] = test_idx;
+                    }
+                }
+
+                if (is_adj_colrow_valid(adj_col - i, adj_row - i) && sw == 0)
+                {
+                    test_idx = get_idx_fr_adj_colrow(adj_col - i, adj_row - i);
+                    if (board[test_idx] != Empty)
+                    {
+                        sw = 1;
+                        out[mov_ctr++] = test_idx;
+                    }
+                    else
+                    {
+                        out[mov_ctr++] = test_idx;
+                    }
+                }
+
+                if (is_adj_colrow_valid(adj_col + i, adj_row - i) && se == 0)
+                {
+                    test_idx = get_idx_fr_adj_colrow(adj_col + i, adj_row - i);
+                    if (board[test_idx] != Empty)
+                    {
+                        se = 1;
+                        out[mov_ctr++] = test_idx;
+                    }
+                    else
+                    {
+                        out[mov_ctr++] = test_idx;
+                    }
+                }
+
+                if (is_adj_colrow_valid(adj_col - i, adj_row + i) && nw == 0)
+                {
+                    test_idx = get_idx_fr_adj_colrow(adj_col - i, adj_row + i);
+                    if (board[test_idx] != Empty)
+                    {
+                        nw = 1;
+                        out[mov_ctr++] = test_idx;
+                    }
+                    else
+                    {
+                        out[mov_ctr++] = test_idx;
+                    }
+                }
+            }
+        }
+        // n,s,e,w
+        {
+            int n = 0;
+            int s = 0;
+            int e = 0;
+            int w = 0;
+            for (int i = 1; i < 2; i++)
+            {
+
+                if (is_adj_colrow_valid(adj_col + i, adj_row) && e == 0)
+                {
+                    test_idx = get_idx_fr_adj_colrow(adj_col + i, adj_row);
+                    if (board[test_idx] != Empty)
+                    {
+                        e = 1;
+                        out[mov_ctr++] = test_idx;
+                    }
+                    else
+                    {
+                        out[mov_ctr++] = test_idx;
+                    }
+                }
+
+                if (is_adj_colrow_valid(adj_col - i, adj_row) && w == 0)
+                {
+                    test_idx = get_idx_fr_adj_colrow(adj_col - i, adj_row);
+                    if (board[test_idx] != Empty)
+                    {
+                        w = 1;
+                        out[mov_ctr++] = test_idx;
+                    }
+                    else
+                    {
+                        out[mov_ctr++] = test_idx;
+                    }
+                }
+
+                if (is_adj_colrow_valid(adj_col, adj_row + i) && n == 0)
+                {
+                    test_idx = get_idx_fr_adj_colrow(adj_col, adj_row + i);
+                    if (board[test_idx] != Empty)
+                    {
+                        n = 1;
+                        out[mov_ctr++] = test_idx;
+                    }
+                    else
+                    {
+                        out[mov_ctr++] = test_idx;
+                    }
+                }
+
+                if (is_adj_colrow_valid(adj_col, adj_row - i) && s == 0)
+                {
+                    test_idx = get_idx_fr_adj_colrow(adj_col, adj_row - i);
+                    if (board[test_idx] != Empty)
+                    {
+                        s = 1;
+                        out[mov_ctr++] = test_idx;
+                    }
+                    else
+                    {
+                        out[mov_ctr++] = test_idx;
+                    }
+                }
+            }
+        }
+
+        // Castles.
+        if (piece == WhiteKing)
+        {
+            if (col == 'e' && row == 1)
+            {
+                // Queen side castle.
+                if (board[get_idx_fr_colrow('a', 1)] == WhiteRook)
+                {
+                    if (board[get_idx_fr_colrow('b', 1)] == Empty && board[get_idx_fr_colrow('c', 1)] == Empty && board[get_idx_fr_colrow('d', 1)] == Empty &&
+                        !is_cell_under_attack(board, get_idx_fr_colrow('b', 1), true) && !is_cell_under_attack(board, get_idx_fr_colrow('c', 1), true) && !is_cell_under_attack(board, get_idx_fr_colrow('d', 1), true))
+                    {
+                        out[mov_ctr++] = get_idx_fr_colrow('c', 1);
+                    }
+                }
+
+                // King side castle.
+                if (board[get_idx_fr_colrow('h', 1)] == WhiteRook)
+                {
+                    if (board[get_idx_fr_colrow('f', 1)] == Empty && board[get_idx_fr_colrow('g', 1)] == Empty &&
+                        !is_cell_under_attack(board, get_idx_fr_colrow('f', 1), true) && !is_cell_under_attack(board, get_idx_fr_colrow('g', 1), true))
+                    {
+                        out[mov_ctr++] = get_idx_fr_colrow('g', 1);
+                    }
+                }
+            }
+        }
+        else
+        {
+            if (col == 'e' && row == 8)
+            {
+                // Queen side castle.
+                if (board[get_idx_fr_colrow('a', 8)] == BlackRook)
+                {
+                    if (board[get_idx_fr_colrow('b', 8)] == Empty && board[get_idx_fr_colrow('c', 8)] == Empty && board[get_idx_fr_colrow('d', 8)] == Empty &&
+                        !is_cell_under_attack(board, get_idx_fr_colrow('b', 8), false) && !is_cell_under_attack(board, get_idx_fr_colrow('c', 8), false) && !is_cell_under_attack(board, get_idx_fr_colrow('d', 8), false))
+                    {
+                        out[mov_ctr++] = get_idx_fr_colrow('c', 8);
+                    }
+                }
+
+                // King side castle.
+                if (board[get_idx_fr_colrow('h', 8)] == BlackRook)
+                {
+                    if (board[get_idx_fr_colrow('f', 8)] == Empty && board[get_idx_fr_colrow('g', 8)] == Empty &&
+                        !is_cell_under_attack(board, get_idx_fr_colrow('f', 8), false) && !is_cell_under_attack(board, get_idx_fr_colrow('g', 8), false))
+                    {
+                        out[mov_ctr++] = get_idx_fr_colrow('g', 8);
+                    }
+                }
+            }
+        }
+
+        break;
+    default: // Nothing...
+        break;
+    }
+
+    // Test in check:
     {
         int check_out[CHESS_MAX_LEGAL_MOVE_CNT];
         memset(check_out, CHESS_INVALID_VALUE, sizeof(int) * CHESS_MAX_LEGAL_MOVE_CNT);
