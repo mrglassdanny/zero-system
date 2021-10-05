@@ -5,6 +5,8 @@
 #include <string.h>
 #include <ctype.h>
 
+#include <vector>
+
 #define CHESS_BOARD_ROW_CNT 8
 #define CHESS_BOARD_COL_CNT 8
 #define CHESS_BOARD_LEN (CHESS_BOARD_COL_CNT * CHESS_BOARD_ROW_CNT)

@@ -1989,3 +1989,45 @@ int get_worst_case(int *board, bool white_flg, bool cur_white_flg, int depth, in
 
     return eval_board(board) + worst_eval;
 }
+
+int *process_convolutions(int *board)
+{
+    int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
+
+    int *cpy_board = copy_board(board, NULL);
+    int piece_cnt = 0;
+
+    for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
+    {
+        ChessPiece piece = (ChessPiece)board[piece_idx];
+
+        if (piece != Empty)
+        {
+            piece_cnt++;
+        }
+    }
+
+    std::vector<int *> filters;
+    filters.reserve(piece_cnt);
+
+    for (int piece_idx = 0; piece_idx < piece_cnt; piece_idx++)
+    {
+        int *dup_board = copy_board(board, NULL);
+
+        filters.push_back(dup_board);
+    }
+
+    for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
+    {
+        ChessPiece piece = (ChessPiece)board[piece_idx];
+
+        get_legal_moves(board, piece_idx, legal_moves, true);
+
+        if (is_piece_white(piece))
+        {
+        }
+        else if (is_piece_black(piece))
+        {
+        }
+    }
+}
