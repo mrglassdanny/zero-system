@@ -65,6 +65,8 @@ __global__ void k_process_dropout(float *arr, int cnt, float p)
 
     if (tid < cnt)
     {
+
+        // TODO
         curandState state;
         curand_init(clock64(), tid, 0, &state);
 
@@ -72,6 +74,20 @@ __global__ void k_process_dropout(float *arr, int cnt, float p)
         {
             arr[tid] = 0.0f;
         }
+        else
+        {
+            arr[tid] /= (1.0f - p);
+        }
+    }
+}
+
+__global__ void k_derive_dropout(float *arr, int cnt, float p)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < cnt)
+    {
+        arr[tid] *= (1.0f / (1.0f - p));
     }
 }
 
@@ -744,14 +760,6 @@ void NN::feed_forward(Tensor *x, float dropout)
             k_set_arr<<<num_blocks, threads_per_block>>>(nxt_n->get_arr(Gpu), nxt_n_cnt, 0.0f);
         }
 
-        // Process dropout before we start calculations:
-        if (dropout > 0.0f && dropout < 1.0f && lyr_idx > 0)
-        {
-            int threads_per_block(THREADS_PER_BLOCK);
-            int num_blocks((n_cnt / threads_per_block) + 1);
-            k_process_dropout<<<num_blocks, threads_per_block>>>(n->get_arr(Gpu), n_cnt, dropout);
-        }
-
         // Dot product:
         {
             int threads_per_block(THREADS_PER_BLOCK);
@@ -773,6 +781,14 @@ void NN::feed_forward(Tensor *x, float dropout)
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks((nxt_n_cnt / threads_per_block) + 1);
             k_activate<<<num_blocks, threads_per_block>>>(nxt_n->get_arr(Gpu), nxt_n_cnt, activation_func_id);
+        }
+
+        // Process dropout for next layer now that we have completed calculations:
+        if (dropout > 0.0f && dropout < 1.0f && lyr_idx < lst_lyr_idx - 1)
+        {
+            int threads_per_block(THREADS_PER_BLOCK);
+            int num_blocks((nxt_n_cnt / threads_per_block) + 1);
+            k_process_dropout<<<num_blocks, threads_per_block>>>(nxt_n->get_arr(Gpu), nxt_n_cnt, dropout);
         }
     }
 }
@@ -838,12 +854,21 @@ void NN::back_propagate(Tensor *y)
 
         ActivationFunctionId activation_func_id = (lyr_idx == lst_lyr_idx) ? this->output_layer_activation_func_id : this->hidden_layer_activation_func_id;
 
-        // Derive activation (z):
+        // Derive activation (dropout OR z):
         {
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks((n_cnt / threads_per_block) + 1);
             k_derive_activation<<<num_blocks, threads_per_block>>>(n->get_arr(Gpu),
                                                                    agg_derivatives->get_arr(Gpu), n_cnt, activation_func_id);
+        }
+
+        // Derive dropout (z):
+        if (lyr_idx < lst_lyr_idx)
+        {
+            int threads_per_block(THREADS_PER_BLOCK);
+            int num_blocks((n_cnt / threads_per_block) + 1);
+            k_derive_dropout<<<num_blocks, threads_per_block>>>(agg_derivatives->get_arr(Gpu),
+                                                                n_cnt, 0.2f);
         }
 
         // Derive z (weight):
