@@ -11,6 +11,18 @@ namespace zero
 
     namespace nn
     {
+
+        class Report
+        {
+        public:
+            float cost;
+            int correct_cnt;
+            int total_cnt;
+
+            void print();
+            void update_correct_cnt(Tensor *n, Tensor *y);
+        };
+
         enum ActivationFunctionId
         {
             None,
@@ -80,17 +92,6 @@ namespace zero
             void all(Supervisor *supervisor, int train_batch_size, int validation_chk_freq, const char *csv_path);
 
             Tensor *predict(Tensor *x);
-        };
-
-        class Report
-        {
-        public:
-            float cost;
-            int correct_cnt;
-            int total_cnt;
-
-            void print();
-            void update_correct_cnt(Tensor *n, Tensor *y);
         };
     }
 }
