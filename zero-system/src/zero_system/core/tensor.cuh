@@ -9,9 +9,11 @@
 #include <conio.h>
 #include <random>
 
-#include "cuda_runtime.h"
-#include "device_launch_parameters.h"
-#include "device_atomic_functions.h"
+#include <cuda_runtime.h>
+#include <curand.h>
+#include <curand_kernel.h>
+#include <device_launch_parameters.h>
+#include <device_atomic_functions.h>
 
 namespace zero
 {

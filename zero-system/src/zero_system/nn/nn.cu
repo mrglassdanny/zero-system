@@ -65,7 +65,10 @@ __global__ void k_process_dropout(float *arr, int cnt, float p)
 
     if (tid < cnt)
     {
-        if (((float)rand() / (float)RAND_MAX) < p)
+        curandState state;
+        curand_init(clock64(), tid, 0, &state);
+
+        if (curand_uniform(&state) < p)
         {
             arr[tid] = 0.0f;
         }
