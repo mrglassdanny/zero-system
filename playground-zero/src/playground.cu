@@ -9,8 +9,8 @@ using namespace zero::cluster;
 
 void nn_test()
 {
-	int x_col_cnt = 784;
-	int y_col_cnt = 10;
+	int x_col_cnt = 64;
+	int y_col_cnt = 4;
 
 	Tensor *x = new Tensor(1, x_col_cnt, Gpu);
 	x->set_all(0.5f);
@@ -19,8 +19,9 @@ void nn_test()
 	y->set_all(0.0f);
 	y->set_idx(0, 1.0f);
 
-	std::vector<int> layer_config = {x_col_cnt, 200, 100, 60, 30, y_col_cnt};
-	NN *nn = new NN(layer_config, None, Sigmoid, MSE, 0.01f);
+	std::vector<LayerConfiguration> layer_configs = {LayerConfiguration(x_col_cnt, None, 0.0f), LayerConfiguration(56, Tanh, 0.0f), LayerConfiguration(36, None, 0.0f),
+													 LayerConfiguration(24, Sigmoid, 0.0f), LayerConfiguration(12, Tanh, 0.0f), LayerConfiguration(y_col_cnt, Sigmoid, 0.0f)};
+	NN *nn = new NN(layer_configs, MSE, 0.01f);
 
 	nn->check_gradient(x, y, true);
 
@@ -53,7 +54,7 @@ void nn_performance_test()
 	int x_col_cnt = 832 * 2;
 	int y_col_cnt = 1;
 
-	std::vector<int> layer_config = {x_col_cnt, 2048, 2048, 1024, 1024, 256, 64, 16, y_col_cnt};
+	std::vector<LayerConfiguration> layer_configs = {LayerConfiguration(x_col_cnt, None, 0.0f), LayerConfiguration(56, Tanh, 0.0f), LayerConfiguration(y_col_cnt, Sigmoid, 0.0f)};
 
 	// -----------------------------------------------------------------
 
@@ -64,7 +65,7 @@ void nn_performance_test()
 	y->set_all(0.0f);
 	y->set_idx(0, 1.0f);
 
-	NN *nn = new NN(layer_config, ReLU, ReLU, MSE, 0.01f);
+	NN *nn = new NN(layer_configs, MSE, 0.01f);
 
 	printf("Starting Performance Test...\n");
 	clock_t t;
@@ -74,7 +75,7 @@ void nn_performance_test()
 	{
 		for (int j = 0; j < batch_size; j++)
 		{
-			nn->feed_forward(x, 0.0f);
+			nn->feed_forward(x);
 			nn->back_propagate(y);
 		}
 	}
