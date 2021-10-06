@@ -6,9 +6,9 @@
 
 #include "../core/tensor.cuh"
 
-#define SUPERVISOR_TRAIN_SPLIT 0.95f
-#define SUPERVISOR_VALIDATION_SPLIT 0.025f
-#define SUPERVISOR_TEST_SPLIT 0.025f
+#define SUPERVISOR_TRAIN_SPLIT 0.60f
+#define SUPERVISOR_VALIDATION_SPLIT 0.20f
+#define SUPERVISOR_TEST_SPLIT 0.20f
 
 namespace zero
 {
