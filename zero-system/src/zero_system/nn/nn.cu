@@ -59,38 +59,6 @@ __device__ float d_derive_cross_entropy_cost(float n_val, float y_val)
 
 // Kernel functions:
 
-__global__ void k_process_dropout(float *arr, int cnt, float p)
-{
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (tid < cnt)
-    {
-
-        // TODO
-        curandState state;
-        curand_init(clock64(), tid, 0, &state);
-
-        if (curand_uniform(&state) < p)
-        {
-            arr[tid] = 0.0f;
-        }
-        else
-        {
-            arr[tid] /= (1.0f - p);
-        }
-    }
-}
-
-__global__ void k_derive_dropout(float *arr, int cnt, float p)
-{
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (tid < cnt)
-    {
-        arr[tid] *= (1.0f / (1.0f - p));
-    }
-}
-
 __global__ void k_set_arr(float *arr, int cnt, float val)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -219,6 +187,27 @@ __global__ void k_activate(float *n_arr, int n_cnt, ActivationFunctionId activat
     }
 }
 
+__global__ void k_dropout(float *n_arr, int n_cnt, float dr)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < n_cnt)
+    {
+        // TODO
+        curandState state;
+        curand_init(clock64(), tid, 0, &state);
+
+        if (curand_uniform(&state) < dr)
+        {
+            n_arr[tid] = 0.0f;
+        }
+        else
+        {
+            n_arr[tid] /= (1.0f - dr);
+        }
+    }
+}
+
 __global__ void k_cost(float *n_arr, float *y_arr, float *cost, int n_cnt, CostFunctionId cost_func_id)
 {
     __shared__ float temp[THREADS_PER_BLOCK];
@@ -274,6 +263,16 @@ __global__ void k_derive_cost(float *n_arr, float *y_arr, float *agg_derivatives
         default:
             break;
         }
+    }
+}
+
+__global__ void k_derive_dropout(float *n_arr, float *agg_derivatives_arr, int n_cnt, float dr)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < n_cnt)
+    {
+        agg_derivatives_arr[tid] *= (1.0f / (1.0f - dr));
     }
 }
 
@@ -433,44 +432,24 @@ __global__ void k_adjust_bias(float *b_arr, float *db_arr, int batch_size, float
     }
 }
 
-// Report member functions:
-void Report::print()
+// Layer member functions:
+
+LayerConfiguration::LayerConfiguration()
 {
-    printf("COST: %f\tACCURACY: %f%%\n", this->cost, ((float)this->correct_cnt / (float)this->total_cnt) * 100.0f);
+    this->neuron_cnt = 0;
+    this->activation_func_id = None;
+    this->dropout_rate = 0.0f;
 }
 
-void Report::update_correct_cnt(Tensor *n, Tensor *y)
+LayerConfiguration::LayerConfiguration(int neuron_cnt, ActivationFunctionId activation_func_id, float dropout_rate)
 {
-    int lst_lyr_n_cnt = n->get_col_cnt();
+    this->neuron_cnt = neuron_cnt;
+    this->activation_func_id = activation_func_id;
+    this->dropout_rate = dropout_rate;
+}
 
-    if (lst_lyr_n_cnt > 1)
-    {
-        // One hot encoded:
-
-        TensorTuple max_tup = n->get_max();
-        if (y->get_idx(max_tup.idx) == 1.0f)
-        {
-            this->correct_cnt++;
-        }
-    }
-    else
-    {
-        // Single value:
-
-        float y_val = y->get_idx(0);
-        float n_val = n->get_idx(0);
-
-        float lower = y_val < n_val ? y_val : n_val;
-        float upper = y_val < n_val ? n_val : y_val;
-
-        float prcnt = 1.0f - (lower / upper);
-
-        // 10% is our number.
-        if (prcnt <= 0.10f)
-        {
-            this->correct_cnt++;
-        }
-    }
+LayerConfiguration::~LayerConfiguration()
+{
 }
 
 // NN static functions:
@@ -487,36 +466,32 @@ void NN::write_to_csv(FILE *csv_file_ptr, int epoch, Report rpt)
 
 // NN member functions:
 
-NN::NN(std::vector<int> lyr_cfg, ActivationFunctionId hidden_layer_activation_func_id,
-       ActivationFunctionId output_layer_activation_func_id, CostFunctionId cost_func_id, float learning_rate)
+NN::NN(std::vector<LayerConfiguration> layer_configurations, CostFunctionId cost_func_id, float learning_rate)
 {
-
-    int lyr_cnt = lyr_cfg.size();
-    int lst_lyr_idx = lyr_cnt - 1;
-
-    this->hidden_layer_activation_func_id = hidden_layer_activation_func_id;
-    this->output_layer_activation_func_id = output_layer_activation_func_id;
-
+    this->layer_configurations = layer_configurations;
     this->cost_func_id = cost_func_id;
-
     this->learning_rate = learning_rate;
 
-    // Leave input neurons NULL for now!
+    int lyr_cnt = this->layer_configurations.size();
+    int lst_lyr_idx = lyr_cnt - 1;
+
+    // Leave input neurons NULL for now -- they get set in feed forward!
     this->neurons.push_back(nullptr);
 
     for (int lyr_idx = 0; lyr_idx < lst_lyr_idx; lyr_idx++)
     {
-        int n_cnt = lyr_cfg[lyr_idx];
-        int nxt_n_cnt = lyr_cfg[lyr_idx + 1];
+        LayerConfiguration *lyr_cfg = &this->layer_configurations[lyr_idx];
+        LayerConfiguration *nxt_lyr_cfg = &this->layer_configurations[lyr_idx + 1];
 
-        ActivationFunctionId activation_func_id = (lyr_idx == lst_lyr_idx - 1) ? this->output_layer_activation_func_id : this->hidden_layer_activation_func_id;
+        int n_cnt = lyr_cfg->neuron_cnt;
+        int nxt_n_cnt = nxt_lyr_cfg->neuron_cnt;
 
         Tensor *n = new Tensor(1, nxt_n_cnt, Gpu);
         n->set_all(0.0f);
         this->neurons.push_back(n);
 
         Tensor *w = new Tensor(nxt_n_cnt, n_cnt, Gpu);
-        switch (activation_func_id)
+        switch (nxt_lyr_cfg->activation_func_id)
         {
         case None:
         case ReLU:
@@ -559,27 +534,26 @@ NN::NN(const char *path)
     int lyr_cnt = 0;
     fread(&lyr_cnt, sizeof(int), 1, file_ptr);
 
-    std::vector<int> lyr_cfg;
-
-    for (int i = 0; i < lyr_cnt; i++)
+    for (int lyr_idx = 0; lyr_idx < lyr_cnt; lyr_idx++)
     {
-        int n_cnt = 0;
-        fread(&n_cnt, sizeof(int), 1, file_ptr);
-        lyr_cfg.push_back(n_cnt);
+        LayerConfiguration lyr_cfg;
+        fread(&lyr_cfg, sizeof(LayerConfiguration), 1, file_ptr);
+        this->layer_configurations.push_back(lyr_cfg);
     }
 
-    fread(&this->hidden_layer_activation_func_id, sizeof(ActivationFunctionId), 1, file_ptr);
-    fread(&this->output_layer_activation_func_id, sizeof(ActivationFunctionId), 1, file_ptr);
     fread(&this->cost_func_id, sizeof(CostFunctionId), 1, file_ptr);
     fread(&this->learning_rate, sizeof(float), 1, file_ptr);
 
-    // Leave input neurons NULL for now!
+    // Leave input neurons NULL for now -- they get set in feed forward!
     this->neurons.push_back(nullptr);
 
     for (int lyr_idx = 0; lyr_idx < lyr_cnt - 1; lyr_idx++)
     {
-        int n_cnt = lyr_cfg[lyr_idx];
-        int nxt_n_cnt = lyr_cfg[lyr_idx + 1];
+        LayerConfiguration *lyr_cfg = &this->layer_configurations[lyr_idx];
+        LayerConfiguration *nxt_lyr_cfg = &this->layer_configurations[lyr_idx + 1];
+
+        int n_cnt = lyr_cfg->neuron_cnt;
+        int nxt_n_cnt = nxt_lyr_cfg->neuron_cnt;
 
         int w_cnt = n_cnt * nxt_n_cnt;
         int b_cnt = nxt_n_cnt;
@@ -617,7 +591,7 @@ NN::NN(const char *path)
 
 NN::~NN()
 {
-    int lyr_cnt = this->neurons.size();
+    int lyr_cnt = this->layer_configurations.size();
 
     // Do not free input neurons since we do not own the Tensor!
     this->neurons[0] = nullptr;
@@ -636,7 +610,7 @@ NN::~NN()
 
 void NN::print()
 {
-    int lyr_cnt = this->neurons.size();
+    int lyr_cnt = this->layer_configurations.size();
 
     for (int lyr_idx = 0; lyr_idx < lyr_cnt; lyr_idx++)
     {
@@ -667,52 +641,15 @@ void NN::dump(const char *path)
 {
     FILE *file_ptr = fopen(path, "wb");
 
-    int lyr_cnt = this->neurons.size();
+    int lyr_cnt = this->layer_configurations.size();
     fwrite(&lyr_cnt, sizeof(int), 1, file_ptr);
 
     for (int lyr_idx = 0; lyr_idx < lyr_cnt; lyr_idx++)
     {
-        int n_cnt = this->neurons[lyr_idx]->get_col_cnt();
-        fwrite(&n_cnt, sizeof(int), 1, file_ptr);
+        LayerConfiguration *lyr_cfg = &this->layer_configurations[lyr_idx];
+        fwrite(lyr_cfg, sizeof(LayerConfiguration), 1, file_ptr);
     }
 
-    fwrite(&this->hidden_layer_activation_func_id, sizeof(ActivationFunctionId), 1, file_ptr);
-    fwrite(&this->output_layer_activation_func_id, sizeof(ActivationFunctionId), 1, file_ptr);
-    fwrite(&this->cost_func_id, sizeof(CostFunctionId), 1, file_ptr);
-    fwrite(&this->learning_rate, sizeof(float), 1, file_ptr);
-
-    for (int lyr_idx = 0; lyr_idx < lyr_cnt - 1; lyr_idx++)
-    {
-        Tensor *w = this->weights[lyr_idx];
-        fwrite(w->get_arr(Cpu), sizeof(float), (w->get_row_cnt() * w->get_col_cnt()), file_ptr);
-
-        Tensor *b = this->biases[lyr_idx];
-        fwrite(b->get_arr(Cpu), sizeof(float), (b->get_row_cnt()), file_ptr);
-    }
-
-    fclose(file_ptr);
-}
-
-// If reference to input neurons is no longer valid, we can no longer get input neuron count.
-// This overload on dump gives us the ability to manually pass it in.
-void NN::dump(const char *path, int input_lyr_n_cnt)
-{
-    FILE *file_ptr = fopen(path, "wb");
-
-    int lyr_cnt = this->neurons.size();
-    fwrite(&lyr_cnt, sizeof(int), 1, file_ptr);
-
-    // Assume first layer memory is no longer available to us.
-    fwrite(&input_lyr_n_cnt, sizeof(int), 1, file_ptr);
-
-    for (int lyr_idx = 1; lyr_idx < lyr_cnt; lyr_idx++)
-    {
-        int n_cnt = this->neurons[lyr_idx]->get_col_cnt();
-        fwrite(&n_cnt, sizeof(int), 1, file_ptr);
-    }
-
-    fwrite(&this->hidden_layer_activation_func_id, sizeof(ActivationFunctionId), 1, file_ptr);
-    fwrite(&this->output_layer_activation_func_id, sizeof(ActivationFunctionId), 1, file_ptr);
     fwrite(&this->cost_func_id, sizeof(CostFunctionId), 1, file_ptr);
     fwrite(&this->learning_rate, sizeof(float), 1, file_ptr);
 
@@ -733,25 +670,33 @@ void NN::set_learning_rate(float learning_rate)
     this->learning_rate = learning_rate;
 }
 
-void NN::feed_forward(Tensor *x, float dropout)
+// Assumed that we are not training.
+void NN::feed_forward(Tensor *x)
 {
+    this->feed_forward(x, false);
+}
+
+void NN::feed_forward(Tensor *x, bool train_flg)
+{
+    // Need to set input neurons before we do anything.
     x->translate(Gpu);
     this->neurons[0] = x;
 
-    int lyr_cnt = this->neurons.size();
+    int lyr_cnt = this->layer_configurations.size();
     int lst_lyr_idx = lyr_cnt - 1;
 
     for (int lyr_idx = 0; lyr_idx < lst_lyr_idx; lyr_idx++)
     {
+        LayerConfiguration *lyr_cfg = &this->layer_configurations[lyr_idx];
+        LayerConfiguration *nxt_lyr_cfg = &this->layer_configurations[lyr_idx + 1];
+
+        int n_cnt = lyr_cfg->neuron_cnt;
+        int nxt_n_cnt = nxt_lyr_cfg->neuron_cnt;
+
         Tensor *n = this->neurons[lyr_idx];
         Tensor *w = this->weights[lyr_idx];
         Tensor *b = this->biases[lyr_idx];
         Tensor *nxt_n = this->neurons[lyr_idx + 1];
-
-        int n_cnt = w->get_col_cnt();
-        int nxt_n_cnt = w->get_row_cnt();
-
-        ActivationFunctionId activation_func_id = (lyr_idx == lst_lyr_idx - 1) ? this->output_layer_activation_func_id : this->hidden_layer_activation_func_id;
 
         // Need to reset next layer neurons before we do anything:
         {
@@ -780,15 +725,17 @@ void NN::feed_forward(Tensor *x, float dropout)
         {
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks((nxt_n_cnt / threads_per_block) + 1);
-            k_activate<<<num_blocks, threads_per_block>>>(nxt_n->get_arr(Gpu), nxt_n_cnt, activation_func_id);
+            k_activate<<<num_blocks, threads_per_block>>>(nxt_n->get_arr(Gpu), nxt_n_cnt, nxt_lyr_cfg->activation_func_id);
         }
 
-        // Process dropout for next layer now that we have completed calculations:
-        if (dropout > 0.0f && dropout < 1.0f && lyr_idx < lst_lyr_idx - 1)
+        // Dropout:
         {
-            int threads_per_block(THREADS_PER_BLOCK);
-            int num_blocks((nxt_n_cnt / threads_per_block) + 1);
-            k_process_dropout<<<num_blocks, threads_per_block>>>(nxt_n->get_arr(Gpu), nxt_n_cnt, dropout);
+            if (train_flg && nxt_lyr_cfg->dropout_rate > 0.0f && nxt_lyr_cfg->dropout_rate < 1.0f)
+            {
+                int threads_per_block(THREADS_PER_BLOCK);
+                int num_blocks((nxt_n_cnt / threads_per_block) + 1);
+                k_dropout<<<num_blocks, threads_per_block>>>(nxt_n->get_arr(Gpu), nxt_n_cnt, nxt_lyr_cfg->dropout_rate);
+            }
         }
     }
 }
@@ -799,12 +746,11 @@ float NN::get_cost(Tensor *y)
 
     float h_cost = 0.0f;
 
-    int lyr_cnt = this->neurons.size();
+    int lyr_cnt = this->layer_configurations.size();
     int lst_lyr_idx = lyr_cnt - 1;
+    int lst_lyr_n_cnt = this->layer_configurations[lst_lyr_idx].neuron_cnt;
 
     Tensor *lst_lyr_n = this->neurons[lst_lyr_idx];
-
-    int lst_lyr_n_cnt = lst_lyr_n->get_col_cnt();
 
     {
         int threads_per_block(THREADS_PER_BLOCK);
@@ -825,14 +771,14 @@ void NN::back_propagate(Tensor *y)
 {
     y->translate(Gpu);
 
-    int lyr_cnt = this->neurons.size();
+    int lyr_cnt = this->layer_configurations.size();
     int lst_lyr_idx = lyr_cnt - 1;
-    int lst_lyr_n_cnt = this->neurons[lst_lyr_idx]->get_col_cnt();
+    int lst_lyr_n_cnt = this->layer_configurations[lst_lyr_idx].neuron_cnt;
 
     Tensor *agg_derivatives = new Tensor(1, lst_lyr_n_cnt, Gpu);
     agg_derivatives->set_all(1.0f);
 
-    // Derive cost (activation):
+    // Derive cost (with respect to dropout activation):
     {
         int threads_per_block(THREADS_PER_BLOCK);
         int num_blocks((lst_lyr_n_cnt / threads_per_block) + 1);
@@ -842,6 +788,12 @@ void NN::back_propagate(Tensor *y)
 
     for (int lyr_idx = lst_lyr_idx; lyr_idx > 0; lyr_idx--)
     {
+        LayerConfiguration *lyr_cfg = &this->layer_configurations[lyr_idx];
+        LayerConfiguration *nxt_lyr_cfg = &this->layer_configurations[lyr_idx - 1];
+
+        int n_cnt = lyr_cfg->neuron_cnt;
+        int nxt_n_cnt = nxt_lyr_cfg->neuron_cnt;
+
         Tensor *n = this->neurons[lyr_idx];
         Tensor *nxt_n = this->neurons[lyr_idx - 1];
         Tensor *nxt_w = this->weights[lyr_idx - 1];
@@ -849,29 +801,26 @@ void NN::back_propagate(Tensor *y)
         Tensor *nxt_dw = this->weight_derivatives[lyr_idx - 1];
         Tensor *nxt_db = this->bias_derivatives[lyr_idx - 1];
 
-        int n_cnt = nxt_w->get_row_cnt();
-        int nxt_n_cnt = nxt_w->get_col_cnt();
+        // Derive dropout (with respect to activation):
+        {
+            if (lyr_cfg->dropout_rate > 0.0f && lyr_cfg->dropout_rate < 1.0f)
+            {
+                int threads_per_block(THREADS_PER_BLOCK);
+                int num_blocks((n_cnt / threads_per_block) + 1);
+                k_derive_dropout<<<num_blocks, threads_per_block>>>(n->get_arr(Gpu), agg_derivatives->get_arr(Gpu),
+                                                                    n_cnt, lyr_cfg->dropout_rate);
+            }
+        }
 
-        ActivationFunctionId activation_func_id = (lyr_idx == lst_lyr_idx) ? this->output_layer_activation_func_id : this->hidden_layer_activation_func_id;
-
-        // Derive activation (dropout OR z):
+        // Derive activation (with respect to z):
         {
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks((n_cnt / threads_per_block) + 1);
             k_derive_activation<<<num_blocks, threads_per_block>>>(n->get_arr(Gpu),
-                                                                   agg_derivatives->get_arr(Gpu), n_cnt, activation_func_id);
+                                                                   agg_derivatives->get_arr(Gpu), n_cnt, lyr_cfg->activation_func_id);
         }
 
-        // Derive dropout (z):
-        if (lyr_idx < lst_lyr_idx)
-        {
-            int threads_per_block(THREADS_PER_BLOCK);
-            int num_blocks((n_cnt / threads_per_block) + 1);
-            k_derive_dropout<<<num_blocks, threads_per_block>>>(agg_derivatives->get_arr(Gpu),
-                                                                n_cnt, 0.2f);
-        }
-
-        // Derive z (weight):
+        // Derive z (with respect to weight):
         {
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks(((n_cnt * nxt_n_cnt) / threads_per_block) + 1);
@@ -881,14 +830,14 @@ void NN::back_propagate(Tensor *y)
                                                                                           n_cnt, nxt_n_cnt);
         }
 
-        // Derive z (bias):
+        // Derive z (with respect to bias):
         {
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks((n_cnt / threads_per_block) + 1);
             k_derive_z_and_increment_bias_derivative<<<num_blocks, threads_per_block>>>(agg_derivatives->get_arr(Gpu), nxt_db->get_arr(Gpu), n_cnt);
         }
 
-        // Derive z (activation) and aggregate derivatives:
+        // Derive z (with respect to activation) and aggregate derivatives:
         {
             if (lyr_idx > 1)
             {
@@ -914,19 +863,21 @@ void NN::back_propagate(Tensor *y)
 
 void NN::optimize(int batch_size)
 {
-
-    int lyr_cnt = this->neurons.size();
+    int lyr_cnt = this->layer_configurations.size();
     int lst_lyr_idx = lyr_cnt - 1;
 
     for (int lyr_idx = 0; lyr_idx < lst_lyr_idx; lyr_idx++)
     {
+        LayerConfiguration *lyr_cfg = &this->layer_configurations[lyr_idx];
+        LayerConfiguration *nxt_lyr_cfg = &this->layer_configurations[lyr_idx + 1];
+
+        int n_cnt = lyr_cfg->neuron_cnt;
+        int nxt_n_cnt = nxt_lyr_cfg->neuron_cnt;
+
         Tensor *w = this->weights[lyr_idx];
         Tensor *b = this->biases[lyr_idx];
         Tensor *dw = this->weight_derivatives[lyr_idx];
         Tensor *db = this->bias_derivatives[lyr_idx];
-
-        int n_cnt = w->get_col_cnt();
-        int nxt_n_cnt = w->get_row_cnt();
 
         // Weights:
         {
@@ -955,24 +906,30 @@ void NN::check_gradient(Tensor *x, Tensor *y, bool print_flg)
 
     // Analytical gradients:
     {
-        this->feed_forward(x, 0.0f);
+        this->feed_forward(x);
         this->back_propagate(y);
     }
 
     // Numerical gradients:
     {
-        int lyr_cnt = this->neurons.size();
+        int lyr_cnt = this->layer_configurations.size();
         int lst_lyr_idx = lyr_cnt - 1;
 
         for (int lyr_idx = 0; lyr_idx < lst_lyr_idx; lyr_idx++)
         {
+            LayerConfiguration *lyr_cfg = &this->layer_configurations[lyr_idx];
+            LayerConfiguration *nxt_lyr_cfg = &this->layer_configurations[lyr_idx + 1];
+
+            int n_cnt = lyr_cfg->neuron_cnt;
+            int nxt_n_cnt = nxt_lyr_cfg->neuron_cnt;
+
             Tensor *w = this->weights[lyr_idx];
             Tensor *b = this->biases[lyr_idx];
             Tensor *dw = this->weight_derivatives[lyr_idx];
             Tensor *db = this->bias_derivatives[lyr_idx];
 
             // Weights:
-            for (int w_idx = 0; w_idx < w->get_row_cnt() * w->get_col_cnt(); w_idx++)
+            for (int w_idx = 0; w_idx < nxt_n_cnt * n_cnt; w_idx++)
             {
                 float left_cost = 0.0;
                 float right_cost = 0.0;
@@ -987,14 +944,14 @@ void NN::check_gradient(Tensor *x, Tensor *y, bool print_flg)
                 // Left:
                 w->set_idx(w_idx, left_w_val);
                 {
-                    this->feed_forward(x, 0.0f);
+                    this->feed_forward(x);
                     left_cost += this->get_cost(y);
                 }
 
                 // Right:
                 w->set_idx(w_idx, right_w_val);
                 {
-                    this->feed_forward(x, 0.0f);
+                    this->feed_forward(x);
                     right_cost += this->get_cost(y);
                 }
 
@@ -1013,7 +970,7 @@ void NN::check_gradient(Tensor *x, Tensor *y, bool print_flg)
             }
 
             // Biases:
-            for (int b_idx = 0; b_idx < b->get_row_cnt(); b_idx++)
+            for (int b_idx = 0; b_idx < nxt_n_cnt; b_idx++)
             {
                 float left_cost = 0.0;
                 float right_cost = 0.0;
@@ -1028,14 +985,14 @@ void NN::check_gradient(Tensor *x, Tensor *y, bool print_flg)
                 // Left:
                 b->set_idx(b_idx, left_b_val);
                 {
-                    this->feed_forward(x, 0.0f);
+                    this->feed_forward(x);
                     left_cost += this->get_cost(y);
                 }
 
                 // Right:
                 b->set_idx(b_idx, right_b_val);
                 {
-                    this->feed_forward(x, 0.0f);
+                    this->feed_forward(x);
                     right_cost += this->get_cost(y);
                 }
 
@@ -1065,7 +1022,7 @@ void NN::check_gradient(Tensor *x, Tensor *y, bool print_flg)
     }
 }
 
-Report NN::train(Batch *batch, float dropout)
+Report NN::train(Batch *batch)
 {
     Report rpt;
 
@@ -1076,14 +1033,14 @@ Report NN::train(Batch *batch, float dropout)
 
     float cost = 0.0f;
 
-    int lst_lyr_idx = this->neurons.size() - 1;
+    int lst_lyr_idx = this->layer_configurations.size() - 1;
 
     for (int i = 0; i < batch_size; i++)
     {
         Tensor *x = batch->get_x(i);
         Tensor *y = batch->get_y(i);
 
-        this->feed_forward(x, dropout);
+        this->feed_forward(x, true);
         cost += this->get_cost(y);
         this->back_propagate(y);
 
@@ -1115,14 +1072,14 @@ Report NN::validate(Batch *batch)
 
     float cost = 0.0f;
 
-    int lst_lyr_idx = this->neurons.size() - 1;
+    int lst_lyr_idx = this->layer_configurations.size() - 1;
 
     for (int i = 0; i < batch_size; i++)
     {
         Tensor *x = batch->get_x(i);
         Tensor *y = batch->get_y(i);
 
-        this->feed_forward(x, 0.0f);
+        this->feed_forward(x);
         cost += this->get_cost(y);
 
         rpt.update_correct_cnt(this->neurons[lst_lyr_idx], y);
@@ -1151,14 +1108,14 @@ Report NN::test(Batch *batch)
 
     float cost = 0.0f;
 
-    int lst_lyr_idx = this->neurons.size() - 1;
+    int lst_lyr_idx = this->layer_configurations.size() - 1;
 
     for (int i = 0; i < batch_size; i++)
     {
         Tensor *x = batch->get_x(i);
         Tensor *y = batch->get_y(i);
 
-        this->feed_forward(x, 0.0f);
+        this->feed_forward(x);
         cost += this->get_cost(y);
 
         rpt.update_correct_cnt(this->neurons[lst_lyr_idx], y);
@@ -1177,7 +1134,7 @@ Report NN::test(Batch *batch)
 }
 
 // Trains, validates, and tests. Press 'q' to force quit.
-void NN::all(Supervisor *supervisor, float dropout, int train_batch_size, int validation_chk_freq, const char *csv_path)
+void NN::all(Supervisor *supervisor, int train_batch_size, int validation_chk_freq, const char *csv_path)
 {
     FILE *csv_file_ptr;
 
@@ -1196,7 +1153,7 @@ void NN::all(Supervisor *supervisor, float dropout, int train_batch_size, int va
     while (true)
     {
         Batch *train_batch = supervisor->create_train_batch(train_batch_size);
-        Report train_rpt = this->train(train_batch, dropout);
+        Report train_rpt = this->train(train_batch);
 
         if (csv_path != nullptr)
         {
@@ -1209,7 +1166,7 @@ void NN::all(Supervisor *supervisor, float dropout, int train_batch_size, int va
         if (epoch % validation_chk_freq == 0)
         {
             Report validation_rpt = this->validate(validation_batch);
-            printf("VALIDATION: ");
+            printf("VALIDATION\t");
             validation_rpt.print();
 
             if (prv_validation_cost <= validation_rpt.cost)
@@ -1235,7 +1192,7 @@ void NN::all(Supervisor *supervisor, float dropout, int train_batch_size, int va
     }
 
     Report test_rpt = this->test(test_batch);
-    printf("TEST: ");
+    printf("TEST\t\t");
     test_rpt.print();
 
     delete validation_batch;
@@ -1249,7 +1206,47 @@ void NN::all(Supervisor *supervisor, float dropout, int train_batch_size, int va
 
 Tensor *NN::predict(Tensor *x)
 {
-    this->feed_forward(x, 0.0f);
+    this->feed_forward(x);
     Tensor *pred = new Tensor(*this->neurons[this->neurons.size() - 1], Cpu);
     return pred;
+}
+
+// Report member functions:
+void Report::print()
+{
+    printf("COST: %f\tACCURACY: %f%%\n", this->cost, ((float)this->correct_cnt / (float)this->total_cnt) * 100.0f);
+}
+
+void Report::update_correct_cnt(Tensor *n, Tensor *y)
+{
+    int lst_lyr_n_cnt = n->get_col_cnt();
+
+    if (lst_lyr_n_cnt > 1)
+    {
+        // One hot encoded:
+
+        TensorTuple max_tup = n->get_max();
+        if (y->get_idx(max_tup.idx) == 1.0f)
+        {
+            this->correct_cnt++;
+        }
+    }
+    else
+    {
+        // Single value:
+
+        float y_val = y->get_idx(0);
+        float n_val = n->get_idx(0);
+
+        float lower = y_val < n_val ? y_val : n_val;
+        float upper = y_val < n_val ? n_val : y_val;
+
+        float prcnt = 1.0f - (lower / upper);
+
+        // 10% is our number.
+        if (prcnt <= 0.10f)
+        {
+            this->correct_cnt++;
+        }
+    }
 }
