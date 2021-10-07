@@ -9,7 +9,7 @@ using namespace zero::cluster;
 
 void nn_test()
 {
-	int x_col_cnt = 64;
+	int x_col_cnt = 20;
 	int y_col_cnt = 4;
 
 	Tensor *x = new Tensor(1, x_col_cnt, Gpu);
@@ -20,10 +20,10 @@ void nn_test()
 	y->set_idx(0, 1.0f);
 
 	NN *nn = new NN(MSE, 0.01f);
-	nn->add_layer(x_col_cnt);
-	nn->add_layer(50, Tanh, 0.0f);
-	nn->add_layer(30, None, 0.0f);
-	nn->add_layer(10, Sigmoid);
+	nn->add_layer(x_col_cnt, None, 0.5f);
+	nn->add_layer(16, Tanh, 0.5f);
+	nn->add_layer(12, None, 0.5f);
+	nn->add_layer(8, Sigmoid);
 	nn->add_layer(y_col_cnt, Sigmoid);
 	nn->compile();
 
