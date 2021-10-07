@@ -147,10 +147,10 @@ void train_nn(const char *pgn_name, bool white_flg)
     int oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
     int stacked_oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2];
 
-    // std::vector<int> layer_cfg = {CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, 2048, 2048, 1024, 1024, 256, 64, 16, 1};
-    // NN *nn = new NN(layer_cfg, ReLU, ReLU, MSE, 0.01f);
+    std::vector<LayerConfiguration> layer_configs = {LayerConfiguration(CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, None, 0.0f), LayerConfiguration(256, ReLU, 0.0f), LayerConfiguration(1, Sigmoid, 0.0f)};
+    NN *nn = new NN(layer_configs, MSE, 0.01f);
 
-    NN *nn = new NN(WHITE_NN_DUMP_PATH);
+    //NN *nn = new NN(WHITE_NN_DUMP_PATH);
 
     FILE *csv_file_ptr = fopen("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\chess-train.csv", "w");
     NN::write_csv_header(csv_file_ptr);
@@ -207,7 +207,7 @@ void train_nn(const char *pgn_name, bool white_flg)
         // Only train if batch has something in it.
         if (batch->get_size() > 0)
         {
-            Report train_rpt = nn->train(batch, 0.0f);
+            Report train_rpt = nn->train(batch, true);
             NN::write_to_csv(csv_file_ptr, epoch, train_rpt);
         }
 
@@ -232,11 +232,11 @@ void train_nn(const char *pgn_name, bool white_flg)
 
     if (white_flg)
     {
-        nn->dump(WHITE_NN_DUMP_PATH, CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2);
+        nn->dump(WHITE_NN_DUMP_PATH);
     }
     else
     {
-        nn->dump(BLACK_NN_DUMP_PATH, CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2);
+        nn->dump(BLACK_NN_DUMP_PATH);
     }
 
     delete nn;

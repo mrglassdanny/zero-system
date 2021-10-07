@@ -522,3 +522,23 @@ void Tensor::set_arr(float *cpu_arr)
 
     this->translate(orig_typ);
 }
+
+void Tensor::set_arr(float *arr, TensorType typ)
+{
+    int tot_cnt = this->row_cnt * this->col_cnt;
+
+    TensorType orig_typ = this->typ;
+
+    this->translate(typ);
+
+    if (typ == Gpu)
+    {
+        cudaMemcpy(this->arr, arr, sizeof(float) * tot_cnt, cudaMemcpyDeviceToDevice);
+    }
+    else
+    {
+        memcpy(this->arr, arr, sizeof(float) * tot_cnt);
+    }
+
+    this->translate(orig_typ);
+}

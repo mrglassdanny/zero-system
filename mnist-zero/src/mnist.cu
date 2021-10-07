@@ -57,14 +57,25 @@ void mnist_test()
 
     Supervisor *sup = init_mnist_supervisor();
 
-    std::vector<int> layer_config = {784, 256, 256, 64, 10};
-    NN *nn = new NN(layer_config, ReLU, ReLU, MSE, 0.01f);
+    NN *nn = new NN(MSE, 0.1f);
 
-    nn->all(sup, 0.2f, 100, 100, "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist-train.csv");
+    nn->add_layer(784);
+    nn->add_layer(512, ReLU, 0.5f);
+    nn->add_layer(512, ReLU, 0.5f);
+    nn->add_layer(256, ReLU, 0.5f);
+    nn->add_layer(10, Sigmoid);
+
+    nn->compile();
+
+    nn->all(sup, 10, 100, "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist-train.csv");
 
     nn->dump("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist.nn");
 
     //NN *nn = new NN("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist.nn");
+
+    //nn->all(sup, 100, 100, "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist-train.csv");
+
+    //nn->dump("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist.nn");
 
     //nn->test(sup->create_test_batch()).print();
 
