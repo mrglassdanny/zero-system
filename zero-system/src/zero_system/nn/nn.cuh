@@ -84,7 +84,6 @@ namespace zero
 
             void set_learning_rate(float learning_rate);
 
-            void feed_forward(Tensor *x);
             void feed_forward(Tensor *x, bool train_flg);
             float get_cost(Tensor *y);
             void back_propagate(Tensor *y);
