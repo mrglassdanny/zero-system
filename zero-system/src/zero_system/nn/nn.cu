@@ -79,7 +79,6 @@ __global__ void k_dot(float *n_arr, float *w_arr, float *nxt_n_arr, int n_cnt, i
     int w_cnt = n_cnt * nxt_n_cnt;
 
     int n_idx = tid % n_cnt;
-    int nxt_n_idx = tid / n_cnt;
     int w_idx = tid;
 
     if (w_idx < w_cnt)
@@ -718,12 +717,6 @@ void NN::set_learning_rate(float learning_rate)
     this->learning_rate = learning_rate;
 }
 
-// Assumed that we are not training.
-void NN::feed_forward(Tensor *x)
-{
-    this->feed_forward(x, false);
-}
-
 void NN::feed_forward(Tensor *x, bool train_flg)
 {
     // Need to set input neurons before we do anything.
@@ -992,14 +985,14 @@ void NN::check_gradient(Tensor *x, Tensor *y, bool print_flg)
                 // Left:
                 w->set_idx(w_idx, left_w_val);
                 {
-                    this->feed_forward(x);
+                    this->feed_forward(x, true);
                     left_cost += this->get_cost(y);
                 }
 
                 // Right:
                 w->set_idx(w_idx, right_w_val);
                 {
-                    this->feed_forward(x);
+                    this->feed_forward(x, true);
                     right_cost += this->get_cost(y);
                 }
 
@@ -1033,14 +1026,14 @@ void NN::check_gradient(Tensor *x, Tensor *y, bool print_flg)
                 // Left:
                 b->set_idx(b_idx, left_b_val);
                 {
-                    this->feed_forward(x);
+                    this->feed_forward(x, true);
                     left_cost += this->get_cost(y);
                 }
 
                 // Right:
                 b->set_idx(b_idx, right_b_val);
                 {
-                    this->feed_forward(x);
+                    this->feed_forward(x, true);
                     right_cost += this->get_cost(y);
                 }
 
@@ -1127,7 +1120,7 @@ Report NN::validate(Batch *batch)
         Tensor *x = batch->get_x(i);
         Tensor *y = batch->get_y(i);
 
-        this->feed_forward(x);
+        this->feed_forward(x, false);
         cost += this->get_cost(y);
 
         rpt.update_correct_cnt(this->neurons[lst_lyr_idx], y);
@@ -1163,7 +1156,7 @@ Report NN::test(Batch *batch)
         Tensor *x = batch->get_x(i);
         Tensor *y = batch->get_y(i);
 
-        this->feed_forward(x);
+        this->feed_forward(x, false);
         cost += this->get_cost(y);
 
         rpt.update_correct_cnt(this->neurons[lst_lyr_idx], y);
@@ -1254,7 +1247,7 @@ void NN::all(Supervisor *supervisor, int train_batch_size, int validation_chk_fr
 
 Tensor *NN::predict(Tensor *x)
 {
-    this->feed_forward(x);
+    this->feed_forward(x, false);
     Tensor *pred = new Tensor(*this->neurons[this->neurons.size() - 1], Cpu);
     return pred;
 }
