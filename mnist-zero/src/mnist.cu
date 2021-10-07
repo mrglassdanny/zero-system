@@ -60,9 +60,9 @@ void mnist_test()
     NN *nn = new NN(MSE, 0.1f);
 
     nn->add_layer(784);
-    nn->add_layer(256, Sigmoid, 0.5f);
-    nn->add_layer(256, Sigmoid, 0.5f);
-    nn->add_layer(256, Sigmoid, 0.5f);
+    nn->add_layer(512, ReLU, 0.5f);
+    nn->add_layer(512, ReLU, 0.5f);
+    nn->add_layer(256, ReLU, 0.5f);
     nn->add_layer(10, Sigmoid);
 
     nn->compile();
