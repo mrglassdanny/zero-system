@@ -79,6 +79,7 @@ namespace zero
 
             void add_layer(int neuron_cnt);
             void add_layer(int neuron_cnt, ActivationFunctionId activation_func_id);
+            void add_layer(int neuron_cnt, float dropout_rate);
             void add_layer(int neuron_cnt, ActivationFunctionId activation_func_id, float dropout_rate);
 
             void compile();
