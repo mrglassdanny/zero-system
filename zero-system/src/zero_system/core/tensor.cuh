@@ -71,6 +71,7 @@ namespace zero
             void set_all_rand(float upper);
             void set_all_rand_normal_distribution(float mean, float stddev);
             void set_arr(float *cpu_arr);
+            void set_arr(float *arr, TensorType typ);
         };
     }
 }
