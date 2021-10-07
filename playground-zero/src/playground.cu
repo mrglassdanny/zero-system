@@ -21,8 +21,8 @@ void nn_test()
 
 	NN *nn = new NN(MSE, 0.01f);
 	nn->add_layer(x_col_cnt);
-	nn->add_layer(50, Tanh, 0.5f);
-	nn->add_layer(30, None, 0.5f);
+	nn->add_layer(50, Tanh, 0.0f);
+	nn->add_layer(30, None, 0.0f);
 	nn->add_layer(10, Sigmoid);
 	nn->add_layer(y_col_cnt, Sigmoid);
 	nn->compile();
