@@ -20,11 +20,13 @@ void nn_test()
 	y->set_idx(0, 1.0f);
 
 	NN *nn = new NN(MSE, 0.01f);
-	nn->add_layer(x_col_cnt, None, 0.5f);
-	nn->add_layer(16, Tanh, 0.5f);
-	nn->add_layer(12, None, 0.5f);
+
+	nn->add_layer(x_col_cnt, 0.50f);
+	nn->add_layer(16, Sigmoid, 0.0f);
+	nn->add_layer(12, Sigmoid, 0.0f);
 	nn->add_layer(8, Sigmoid);
 	nn->add_layer(y_col_cnt, Sigmoid);
+
 	nn->compile();
 
 	nn->check_gradient(x, y, true);
