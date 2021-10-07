@@ -37,6 +37,26 @@ __device__ float d_derive_tanh(float val)
     return (1 - (val * val));
 }
 
+__device__ float d_sine(float val)
+{
+    return sin(val);
+}
+
+__device__ float d_derive_sine(float val)
+{
+    return cos(val);
+}
+
+__device__ float d_cosine(float val)
+{
+    return cos(val);
+}
+
+__device__ float d_derive_cosine(float val)
+{
+    return -sin(val);
+}
+
 __device__ float d_mse_cost(float n_val, float y_val)
 {
     return ((n_val - y_val) * (n_val - y_val));
@@ -200,6 +220,12 @@ __global__ void k_activate(float *n_arr, int n_cnt, ActivationFunctionId activat
         case Tanh:
             n_arr[tid] = d_tanh(n_arr[tid]);
             break;
+        case Sine:
+            n_arr[tid] = d_sine(n_arr[tid]);
+            break;
+        case Cosine:
+            n_arr[tid] = d_cosine(n_arr[tid]);
+            break;
         default:
             // None
             break;
@@ -303,6 +329,12 @@ __global__ void k_derive_activation(float *n_arr, float *agg_derivatives_arr, in
             break;
         case Tanh:
             agg_derivatives_arr[tid] *= d_derive_tanh(n_arr[tid]);
+            break;
+        case Sine:
+            agg_derivatives_arr[tid] *= d_derive_sine(n_arr[tid]);
+            break;
+        case Cosine:
+            agg_derivatives_arr[tid] *= d_derive_cosine(n_arr[tid]);
             break;
         default:
             // None

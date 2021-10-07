@@ -27,7 +27,9 @@ namespace zero
             None,
             ReLU,
             Sigmoid,
-            Tanh
+            Tanh,
+            Sine,
+            Cosine
         };
 
         enum CostFunctionId
