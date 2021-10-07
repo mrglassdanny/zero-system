@@ -5,46 +5,6 @@
 using namespace zero::core;
 using namespace zero::nn;
 
-// Report member functions:
-void Report::print()
-{
-    printf("COST: %f\tACCURACY: %f%%\n", this->cost, ((float)this->correct_cnt / (float)this->total_cnt) * 100.0f);
-}
-
-void Report::update_correct_cnt(Tensor *n, Tensor *y)
-{
-    int lst_lyr_n_cnt = n->get_col_cnt();
-
-    if (lst_lyr_n_cnt > 1)
-    {
-        // One hot encoded:
-
-        TensorTuple max_tup = n->get_max();
-        if (y->get_idx(max_tup.idx) == 1.0f)
-        {
-            this->correct_cnt++;
-        }
-    }
-    else
-    {
-        // Single value:
-
-        float y_val = y->get_idx(0);
-        float n_val = n->get_idx(0);
-
-        float lower = y_val < n_val ? y_val : n_val;
-        float upper = y_val < n_val ? n_val : y_val;
-
-        float prcnt = 1.0f - (lower / upper);
-
-        // 10% is our number.
-        if (prcnt <= 0.10f)
-        {
-            this->correct_cnt++;
-        }
-    }
-}
-
 // Device functions:
 
 __device__ float d_relu(float val)
@@ -472,8 +432,47 @@ __global__ void k_adjust_bias(float *b_arr, float *db_arr, int batch_size, float
     }
 }
 
-// Layer member functions:
+// Report member functions:
+void Report::print()
+{
+    printf("COST: %f\tACCURACY: %f%%\n", this->cost, ((float)this->correct_cnt / (float)this->total_cnt) * 100.0f);
+}
 
+void Report::update_correct_cnt(Tensor *n, Tensor *y)
+{
+    int lst_lyr_n_cnt = n->get_col_cnt();
+
+    if (lst_lyr_n_cnt > 1)
+    {
+        // One hot encoded:
+
+        TensorTuple max_tup = n->get_max();
+        if (y->get_idx(max_tup.idx) == 1.0f)
+        {
+            this->correct_cnt++;
+        }
+    }
+    else
+    {
+        // Single value:
+
+        float y_val = y->get_idx(0);
+        float n_val = n->get_idx(0);
+
+        float lower = y_val < n_val ? y_val : n_val;
+        float upper = y_val < n_val ? n_val : y_val;
+
+        float prcnt = 1.0f - (lower / upper);
+
+        // 10% is our number.
+        if (prcnt <= 0.10f)
+        {
+            this->correct_cnt++;
+        }
+    }
+}
+
+// LayerConfiguration member functions:
 LayerConfiguration::LayerConfiguration()
 {
     this->neuron_cnt = 0;
@@ -506,65 +505,15 @@ void NN::write_to_csv(FILE *csv_file_ptr, int epoch, Report rpt)
 
 // NN member functions:
 
-NN::NN(std::vector<LayerConfiguration> layer_configurations, CostFunctionId cost_func_id, float learning_rate)
+NN::NN(CostFunctionId cost_func_id, float learning_rate)
 {
-    this->layer_configurations = layer_configurations;
     this->cost_func_id = cost_func_id;
     this->learning_rate = learning_rate;
 
-    int lyr_cnt = this->layer_configurations.size();
-    int lst_lyr_idx = lyr_cnt - 1;
-
-    // Leave input neurons NULL for now -- they get set in feed forward!
-    this->neurons.push_back(nullptr);
-
-    for (int lyr_idx = 0; lyr_idx < lst_lyr_idx; lyr_idx++)
-    {
-        LayerConfiguration *lyr_cfg = &this->layer_configurations[lyr_idx];
-        LayerConfiguration *nxt_lyr_cfg = &this->layer_configurations[lyr_idx + 1];
-
-        int n_cnt = lyr_cfg->neuron_cnt;
-        int nxt_n_cnt = nxt_lyr_cfg->neuron_cnt;
-
-        Tensor *n = new Tensor(1, nxt_n_cnt, Gpu);
-        n->set_all(0.0f);
-        this->neurons.push_back(n);
-
-        Tensor *w = new Tensor(nxt_n_cnt, n_cnt, Gpu);
-        switch (nxt_lyr_cfg->activation_func_id)
-        {
-        case None:
-        case ReLU:
-            // He (normal):
-            w->set_all_rand_normal_distribution(0.0f, sqrt(2.0f / n_cnt));
-            break;
-        case Sigmoid:
-        case Tanh:
-            // Xavier (normal):
-            w->set_all_rand_normal_distribution(0.0f, sqrt(2.0f / (n_cnt + nxt_n_cnt)));
-            break;
-        default:
-            // Zeros:
-            w->set_all(0.0f);
-            break;
-        }
-        this->weights.push_back(w);
-
-        Tensor *b = new Tensor(nxt_n_cnt, 1, Gpu);
-        b->set_all(0.0f);
-        this->biases.push_back(b);
-
-        Tensor *dw = new Tensor(nxt_n_cnt, n_cnt, Gpu);
-        dw->set_all(0.0f);
-        this->weight_derivatives.push_back(dw);
-
-        Tensor *db = new Tensor(nxt_n_cnt, 1, Gpu);
-        db->set_all(0.0f);
-        this->bias_derivatives.push_back(db);
-    }
-
     cudaMalloc(&this->d_cost, sizeof(float));
     cudaMemset(this->d_cost, 0, sizeof(float));
+
+    this->compiled_flg = false;
 }
 
 NN::NN(const char *path)
@@ -584,9 +533,9 @@ NN::NN(const char *path)
     fread(&this->cost_func_id, sizeof(CostFunctionId), 1, file_ptr);
     fread(&this->learning_rate, sizeof(float), 1, file_ptr);
 
-    // Leave input neurons NULL for now -- they get set in feed forward!
-    this->neurons.push_back(nullptr);
+    this->compile();
 
+    // Read weights/biases into NN from file.
     for (int lyr_idx = 0; lyr_idx < lyr_cnt - 1; lyr_idx++)
     {
         LayerConfiguration *lyr_cfg = &this->layer_configurations[lyr_idx];
@@ -598,29 +547,17 @@ NN::NN(const char *path)
         int w_cnt = n_cnt * nxt_n_cnt;
         int b_cnt = nxt_n_cnt;
 
-        Tensor *n = new Tensor(1, nxt_n_cnt, Gpu);
-        n->set_all(0.0f);
-        this->neurons.push_back(n);
-
         float *w_buf = (float *)malloc(sizeof(float) * w_cnt);
         fread(w_buf, sizeof(float), w_cnt, file_ptr);
-        Tensor *w = new Tensor(nxt_n_cnt, n_cnt, Gpu, w_buf);
-        this->weights.push_back(w);
+        this->weights[lyr_idx]->set_arr(w_buf);
+        this->weights[lyr_idx]->translate(Gpu);
         free(w_buf);
 
         float *b_buf = (float *)malloc(sizeof(float) * b_cnt);
         fread(b_buf, sizeof(float), b_cnt, file_ptr);
-        Tensor *b = new Tensor(nxt_n_cnt, 1, Gpu, b_buf);
-        this->biases.push_back(b);
+        this->biases[lyr_idx]->set_arr(b_buf);
+        this->biases[lyr_idx]->translate(Gpu);
         free(b_buf);
-
-        Tensor *dw = new Tensor(nxt_n_cnt, n_cnt, Gpu);
-        dw->set_all(0.0f);
-        this->weight_derivatives.push_back(dw);
-
-        Tensor *db = new Tensor(nxt_n_cnt, 1, Gpu);
-        db->set_all(0.0f);
-        this->bias_derivatives.push_back(db);
     }
 
     fclose(file_ptr);
@@ -703,6 +640,77 @@ void NN::dump(const char *path)
     }
 
     fclose(file_ptr);
+}
+
+void NN::add_layer(int neuron_cnt)
+{
+    this->layer_configurations.push_back(LayerConfiguration(neuron_cnt, None, 0.0f));
+}
+
+void NN::add_layer(int neuron_cnt, ActivationFunctionId activation_func_id)
+{
+    this->layer_configurations.push_back(LayerConfiguration(neuron_cnt, activation_func_id, 0.0f));
+}
+
+void NN::add_layer(int neuron_cnt, ActivationFunctionId activation_func_id, float dropout_rate)
+{
+    this->layer_configurations.push_back(LayerConfiguration(neuron_cnt, activation_func_id, dropout_rate));
+}
+
+void NN::compile()
+{
+    int lyr_cnt = this->layer_configurations.size();
+    int lst_lyr_idx = lyr_cnt - 1;
+
+    // Leave input neurons NULL for now -- they get set in feed forward!
+    this->neurons.push_back(nullptr);
+
+    for (int lyr_idx = 0; lyr_idx < lst_lyr_idx; lyr_idx++)
+    {
+        LayerConfiguration *lyr_cfg = &this->layer_configurations[lyr_idx];
+        LayerConfiguration *nxt_lyr_cfg = &this->layer_configurations[lyr_idx + 1];
+
+        int n_cnt = lyr_cfg->neuron_cnt;
+        int nxt_n_cnt = nxt_lyr_cfg->neuron_cnt;
+
+        Tensor *n = new Tensor(1, nxt_n_cnt, Gpu);
+        n->set_all(0.0f);
+        this->neurons.push_back(n);
+
+        Tensor *w = new Tensor(nxt_n_cnt, n_cnt, Gpu);
+        switch (nxt_lyr_cfg->activation_func_id)
+        {
+        case None:
+        case ReLU:
+            // He (normal):
+            w->set_all_rand_normal_distribution(0.0f, sqrt(2.0f / n_cnt));
+            break;
+        case Sigmoid:
+        case Tanh:
+            // Xavier (normal):
+            w->set_all_rand_normal_distribution(0.0f, sqrt(2.0f / (n_cnt + nxt_n_cnt)));
+            break;
+        default:
+            // Zeros:
+            w->set_all(0.0f);
+            break;
+        }
+        this->weights.push_back(w);
+
+        Tensor *b = new Tensor(nxt_n_cnt, 1, Gpu);
+        b->set_all(0.0f);
+        this->biases.push_back(b);
+
+        Tensor *dw = new Tensor(nxt_n_cnt, n_cnt, Gpu);
+        dw->set_all(0.0f);
+        this->weight_derivatives.push_back(dw);
+
+        Tensor *db = new Tensor(nxt_n_cnt, 1, Gpu);
+        db->set_all(0.0f);
+        this->bias_derivatives.push_back(db);
+    }
+
+    this->compiled_flg = true;
 }
 
 void NN::set_learning_rate(float learning_rate)

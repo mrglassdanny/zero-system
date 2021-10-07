@@ -11,7 +11,6 @@ namespace zero
 
     namespace nn
     {
-
         class Report
         {
         public:
@@ -61,19 +60,27 @@ namespace zero
             std::vector<Tensor *> biases;
             std::vector<Tensor *> weight_derivatives;
             std::vector<Tensor *> bias_derivatives;
+
             float *d_cost;
+            bool compiled_flg;
 
         public:
-            NN(std::vector<LayerConfiguration> layers, CostFunctionId cost_func_id, float learning_rate);
-            NN(const char *path);
-            ~NN();
-
             static void write_csv_header(FILE *csv_file_ptr);
             static void write_to_csv(FILE *csv_file_ptr, int epoch, Report rpt);
+
+            NN(CostFunctionId cost_func_id, float learning_rate);
+            NN(const char *path);
+            ~NN();
 
             void print();
 
             void dump(const char *path);
+
+            void add_layer(int neuron_cnt);
+            void add_layer(int neuron_cnt, ActivationFunctionId activation_func_id);
+            void add_layer(int neuron_cnt, ActivationFunctionId activation_func_id, float dropout_rate);
+
+            void compile();
 
             void set_learning_rate(float learning_rate);
 
