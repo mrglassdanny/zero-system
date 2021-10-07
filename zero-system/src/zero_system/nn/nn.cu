@@ -90,17 +90,6 @@ __global__ void k_set_arr(float *arr, int cnt, float val)
     }
 }
 
-__global__ void k_dropout(float *n_arr, float *dr_m_arr, int n_cnt, float dr)
-{
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (tid < n_cnt)
-    {
-        n_arr[tid] *= dr_m_arr[tid];
-        n_arr[tid] *= (1.0f / (1.0f - dr));
-    }
-}
-
 __global__ void k_dot(float *n_arr, float *w_arr, float *nxt_n_arr, int n_cnt, int nxt_n_cnt)
 {
     __shared__ float temp[THREADS_PER_BLOCK];
@@ -218,6 +207,17 @@ __global__ void k_activate(float *n_arr, int n_cnt, ActivationFunctionId activat
     }
 }
 
+__global__ void k_dropout(float *n_arr, float *dr_m_arr, int n_cnt, float dr)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < n_cnt)
+    {
+        n_arr[tid] *= dr_m_arr[tid];
+        n_arr[tid] *= (1.0f / (1.0f - dr));
+    }
+}
+
 __global__ void k_cost(float *n_arr, float *y_arr, float *cost, int n_cnt, CostFunctionId cost_func_id)
 {
     __shared__ float temp[THREADS_PER_BLOCK];
@@ -276,12 +276,13 @@ __global__ void k_derive_cost(float *n_arr, float *y_arr, float *agg_derivatives
     }
 }
 
-__global__ void k_derive_dropout(float *agg_derivatives_arr, int n_cnt, float dr)
+__global__ void k_derive_dropout(float *agg_derivatives_arr, float *dr_m_arr, int n_cnt, float dr)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (tid < n_cnt)
     {
+        agg_derivatives_arr[tid] *= dr_m_arr[tid];
         agg_derivatives_arr[tid] *= (1.0f / (1.0f - dr));
     }
 }
@@ -752,12 +753,14 @@ void NN::set_dropout_masks()
     {
         LayerConfiguration *lyr_cfg = &this->layer_configurations[lyr_idx];
 
+        int n_cnt = lyr_cfg->neuron_cnt;
+
         Tensor *dr_m = this->dropout_masks[lyr_idx];
 
         {
             int threads_per_block(THREADS_PER_BLOCK);
-            int num_blocks((lyr_cfg->neuron_cnt / threads_per_block) + 1);
-            k_set_dropout_mask<<<num_blocks, threads_per_block>>>(dr_m->get_arr(Gpu), lyr_cfg->neuron_cnt, lyr_cfg->dropout_rate);
+            int num_blocks((n_cnt / threads_per_block) + 1);
+            k_set_dropout_mask<<<num_blocks, threads_per_block>>>(dr_m->get_arr(Gpu), n_cnt, lyr_cfg->dropout_rate);
         }
     }
 }
@@ -898,6 +901,7 @@ void NN::back_propagate(Tensor *y)
         int nxt_n_cnt = nxt_lyr_cfg->neuron_cnt;
 
         Tensor *n = this->neurons[lyr_idx];
+        Tensor *dr_m = this->dropout_masks[lyr_idx];
         Tensor *nxt_n = this->neurons[lyr_idx - 1];
         Tensor *nxt_w = this->weights[lyr_idx - 1];
         Tensor *nxt_b = this->biases[lyr_idx - 1];
@@ -907,8 +911,8 @@ void NN::back_propagate(Tensor *y)
         // Derive post-dropout activation (with respect to activation):
         {
             int threads_per_block(THREADS_PER_BLOCK);
-            int num_blocks((nxt_n_cnt / threads_per_block) + 1);
-            k_derive_dropout<<<num_blocks, threads_per_block>>>(agg_derivatives->get_arr(Gpu),
+            int num_blocks((n_cnt / threads_per_block) + 1);
+            k_derive_dropout<<<num_blocks, threads_per_block>>>(agg_derivatives->get_arr(Gpu), dr_m->get_arr(Gpu),
                                                                 n_cnt, lyr_cfg->dropout_rate);
         }
 
@@ -937,13 +941,13 @@ void NN::back_propagate(Tensor *y)
             k_derive_z_and_increment_bias_derivative<<<num_blocks, threads_per_block>>>(agg_derivatives->get_arr(Gpu), nxt_db->get_arr(Gpu), n_cnt);
         }
 
+        // Derive z (with respect to activation) and aggregate derivatives:
         {
             if (lyr_idx > 1)
             {
                 Tensor *nxt_agg_derivatives = new Tensor(1, nxt_n_cnt, Gpu);
                 nxt_agg_derivatives->set_all(0.0f);
 
-                // Derive z (with respect to activation) and aggregate derivatives:
                 {
                     int threads_per_block(THREADS_PER_BLOCK);
                     int num_blocks(((nxt_n_cnt * n_cnt) / threads_per_block) + 1);
