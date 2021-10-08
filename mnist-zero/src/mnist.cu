@@ -57,17 +57,18 @@ void mnist_test()
 
     Supervisor *sup = init_mnist_supervisor();
 
-    NN *nn = new NN(MSE, 0.1f);
+    NN *nn = new NN(MSE, 0.01f);
 
     nn->add_layer(784);
-    nn->add_layer(512, ReLU, 0.5f);
-    nn->add_layer(512, ReLU, 0.5f);
-    nn->add_layer(256, ReLU, 0.5f);
+    nn->add_layer(2048, ReLU, 0.0f);
+    nn->add_layer(1024, ReLU, 0.0f);
+    nn->add_layer(512, ReLU, 0.0f);
+    nn->add_layer(256, ReLU, 0.0f);
     nn->add_layer(10, Sigmoid);
 
     nn->compile();
 
-    nn->all(sup, 10, 100, "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist-train.csv");
+    nn->train_and_test(sup, 100, "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist-train.csv");
 
     nn->dump("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist.nn");
 
