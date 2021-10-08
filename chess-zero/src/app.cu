@@ -147,8 +147,7 @@ void train_nn(const char *pgn_name, bool white_flg)
     int oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
     int stacked_oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2];
 
-    std::vector<LayerConfiguration> layer_configs = {LayerConfiguration(CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, None, 0.0f), LayerConfiguration(256, ReLU, 0.0f), LayerConfiguration(1, Sigmoid, 0.0f)};
-    NN *nn = new NN(layer_configs, MSE, 0.01f);
+    NN *nn = new NN(MSE, 0.01f);
 
     //NN *nn = new NN(WHITE_NN_DUMP_PATH);
 
@@ -207,7 +206,7 @@ void train_nn(const char *pgn_name, bool white_flg)
         // Only train if batch has something in it.
         if (batch->get_size() > 0)
         {
-            Report train_rpt = nn->train(batch, true);
+            Report train_rpt = nn->train(batch);
             NN::write_to_csv(csv_file_ptr, epoch, train_rpt);
         }
 
@@ -535,8 +534,6 @@ void play_nn(bool white_flg)
 
     free(board);
 }
-
-
 
 int main(int argc, char **argv)
 {
