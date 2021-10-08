@@ -738,8 +738,8 @@ void NN::compile()
             w->set_all_rand_normal_distribution(0.0f, sqrt(2.0f / (n_cnt + nxt_n_cnt)));
             break;
         default:
-            // Zeros:
-            w->set_all(0.0f);
+            // Xavier-like (normal):
+            w->set_all_rand_normal_distribution(0.0f, sqrt(1.0f / n_cnt));
             break;
         }
         this->weights.push_back(w);
@@ -1190,13 +1190,13 @@ Report NN::train(Batch *batch)
 
     int lst_lyr_idx = this->layer_configurations.size() - 1;
 
-    // Dropout:
-    this->set_dropout_masks();
-
     for (int i = 0; i < batch_size; i++)
     {
         Tensor *x = batch->get_x(i);
         Tensor *y = batch->get_y(i);
+
+        // Dropout:
+        this->set_dropout_masks();
 
         this->feed_forward(x, true);
         cost += this->get_cost(y);
@@ -1289,6 +1289,66 @@ Report NN::test(Batch *batch)
     rpt.cost = cost;
 
     return rpt;
+}
+
+// Trains and tests. Press 'q' to force quit.
+void NN::train_and_test(Supervisor *supervisor, int train_batch_size, const char *csv_path)
+{
+    FILE *csv_file_ptr;
+
+    if (csv_path != nullptr)
+    {
+        csv_file_ptr = fopen(csv_path, "w");
+        NN::write_csv_header(csv_file_ptr);
+    }
+
+    Batch *test_batch = supervisor->create_test_batch();
+
+    unsigned long int epoch = 1;
+    while (true)
+    {
+        Batch *train_batch = supervisor->create_train_batch(train_batch_size);
+        Report train_rpt = this->train(train_batch);
+
+        if (csv_path != nullptr)
+        {
+            NN::write_to_csv(csv_file_ptr, epoch, train_rpt);
+        }
+        else
+        {
+            if (epoch % 100 == 0)
+            {
+                printf("TRAIN\t\t");
+                train_rpt.print();
+            }
+        }
+
+        delete train_batch;
+
+        // Allow for manual override.
+        {
+            if (_kbhit())
+            {
+                if (_getch() == 'q')
+                {
+                    break;
+                }
+            }
+        }
+
+        epoch++;
+    }
+
+    Report test_rpt = this->test(test_batch);
+    printf("TEST\t\t");
+    test_rpt.print();
+
+    delete test_batch;
+
+    if (csv_path != nullptr)
+    {
+        fclose(csv_file_ptr);
+    }
 }
 
 // Trains, validates, and tests. Press 'q' to force quit.
