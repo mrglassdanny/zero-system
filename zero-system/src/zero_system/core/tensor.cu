@@ -437,6 +437,24 @@ TensorTuple Tensor::get_max()
     return tup;
 }
 
+float Tensor::get_mean()
+{
+    int tot_cnt = this->row_cnt * this->col_cnt;
+
+    TensorType orig_typ = this->typ;
+
+    this->translate(Cpu);
+
+    float mean = 0.0f;
+
+    for (int i = 0; i < tot_cnt; i++)
+    {
+        mean += this->arr[i];
+    }
+
+    return mean / tot_cnt;
+}
+
 void Tensor::set_idx(int idx, float val)
 {
     if (this->typ == Gpu)

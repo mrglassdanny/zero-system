@@ -64,6 +64,7 @@ namespace zero
             float *get_slice(int idx, TensorType typ);
             TensorTuple get_min();
             TensorTuple get_max();
+            float get_mean();
 
             void set_idx(int idx, float val);
             void set_rowcol(int row_idx, int col_idx, float val);
