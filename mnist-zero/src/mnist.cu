@@ -57,28 +57,27 @@ void mnist_test()
 
     Supervisor *sup = init_mnist_supervisor();
 
-    NN *nn = new NN(MSE, 0.01f);
+    // NN *nn = new NN(MSE, 0.1f);
 
-    nn->add_layer(784);
-    nn->add_layer(2048, ReLU, 0.0f);
-    nn->add_layer(1024, ReLU, 0.0f);
-    nn->add_layer(512, ReLU, 0.0f);
-    nn->add_layer(256, ReLU, 0.0f);
-    nn->add_layer(10, Sigmoid);
+    // nn->add_layer(784);
+    // nn->add_layer(2048, ReLU, 0.3f);
+    // nn->add_layer(1024, ReLU, 0.25f);
+    // nn->add_layer(512, ReLU, 0.2f);
+    // nn->add_layer(10, Sigmoid);
 
-    nn->compile();
+    // nn->compile();
 
-    nn->train_and_test(sup, 100, "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist-train.csv");
+    // nn->train_and_test(sup, 100, "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist-train-dr.csv");
 
-    nn->dump("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist.nn");
+    // nn->dump("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist-dr.nn");
 
-    //NN *nn = new NN("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist.nn");
+    NN *nn = new NN("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist-dr.nn");
 
-    //nn->all(sup, 100, 100, "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist-train.csv");
+    //nn->train_and_test(sup, 100, "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist-train-dr.csv");
 
-    //nn->dump("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist.nn");
+    //nn->dump("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist-dr.nn");
 
-    //nn->test(sup->create_test_batch()).print();
+    nn->test(sup->create_test_batch()).print();
 
     delete nn;
 
