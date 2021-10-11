@@ -518,21 +518,21 @@ void Report::update_correct_cnt(Tensor *n, Tensor *y)
 
 // LayerConfiguration member functions:
 
-LayerConfiguration::LayerConfiguration()
+NNLayerConfiguration::NNLayerConfiguration()
 {
     this->neuron_cnt = 0;
     this->activation_func_id = None;
     this->dropout_rate = 0.0f;
 }
 
-LayerConfiguration::LayerConfiguration(int neuron_cnt, ActivationFunctionId activation_func_id, float dropout_rate)
+NNLayerConfiguration::NNLayerConfiguration(int neuron_cnt, ActivationFunctionId activation_func_id, float dropout_rate)
 {
     this->neuron_cnt = neuron_cnt;
     this->activation_func_id = activation_func_id;
     this->dropout_rate = dropout_rate;
 }
 
-LayerConfiguration::~LayerConfiguration()
+NNLayerConfiguration::~NNLayerConfiguration()
 {
 }
 
@@ -570,8 +570,8 @@ NN::NN(const char *path)
 
     for (int lyr_idx = 0; lyr_idx < lyr_cnt; lyr_idx++)
     {
-        LayerConfiguration lyr_cfg;
-        fread(&lyr_cfg, sizeof(LayerConfiguration), 1, file_ptr);
+        NNLayerConfiguration lyr_cfg;
+        fread(&lyr_cfg, sizeof(NNLayerConfiguration), 1, file_ptr);
         this->layer_configurations.push_back(lyr_cfg);
     }
 
@@ -583,8 +583,8 @@ NN::NN(const char *path)
     // Read weights/biases into NN from file.
     for (int lyr_idx = 0; lyr_idx < lyr_cnt - 1; lyr_idx++)
     {
-        LayerConfiguration *lyr_cfg = &this->layer_configurations[lyr_idx];
-        LayerConfiguration *nxt_lyr_cfg = &this->layer_configurations[lyr_idx + 1];
+        NNLayerConfiguration *lyr_cfg = &this->layer_configurations[lyr_idx];
+        NNLayerConfiguration *nxt_lyr_cfg = &this->layer_configurations[lyr_idx + 1];
 
         int n_cnt = lyr_cfg->neuron_cnt;
         int nxt_n_cnt = nxt_lyr_cfg->neuron_cnt;
@@ -666,8 +666,8 @@ void NN::dump(const char *path)
 
     for (int lyr_idx = 0; lyr_idx < lyr_cnt; lyr_idx++)
     {
-        LayerConfiguration *lyr_cfg = &this->layer_configurations[lyr_idx];
-        fwrite(lyr_cfg, sizeof(LayerConfiguration), 1, file_ptr);
+        NNLayerConfiguration *lyr_cfg = &this->layer_configurations[lyr_idx];
+        fwrite(lyr_cfg, sizeof(NNLayerConfiguration), 1, file_ptr);
     }
 
     fwrite(&this->cost_func_id, sizeof(CostFunctionId), 1, file_ptr);
@@ -702,7 +702,7 @@ void NN::add_layer(int neuron_cnt, float dropout_rate)
 
 void NN::add_layer(int neuron_cnt, ActivationFunctionId activation_func_id, float dropout_rate)
 {
-    this->layer_configurations.push_back(LayerConfiguration(neuron_cnt, activation_func_id, dropout_rate));
+    this->layer_configurations.push_back(NNLayerConfiguration(neuron_cnt, activation_func_id, dropout_rate));
 }
 
 void NN::compile()
@@ -712,8 +712,8 @@ void NN::compile()
 
     for (int lyr_idx = 0; lyr_idx < lst_lyr_idx; lyr_idx++)
     {
-        LayerConfiguration *lyr_cfg = &this->layer_configurations[lyr_idx];
-        LayerConfiguration *nxt_lyr_cfg = &this->layer_configurations[lyr_idx + 1];
+        NNLayerConfiguration *lyr_cfg = &this->layer_configurations[lyr_idx];
+        NNLayerConfiguration *nxt_lyr_cfg = &this->layer_configurations[lyr_idx + 1];
 
         int n_cnt = lyr_cfg->neuron_cnt;
         int nxt_n_cnt = nxt_lyr_cfg->neuron_cnt;
@@ -761,7 +761,7 @@ void NN::compile()
 
     // Dont forget about the output layer!
     {
-        LayerConfiguration *lyr_cfg = &this->layer_configurations[lst_lyr_idx];
+        NNLayerConfiguration *lyr_cfg = &this->layer_configurations[lst_lyr_idx];
 
         int n_cnt = lyr_cfg->neuron_cnt;
 
@@ -788,7 +788,7 @@ void NN::set_dropout_masks()
 
     for (int lyr_idx = 0; lyr_idx < lyr_cnt; lyr_idx++)
     {
-        LayerConfiguration *lyr_cfg = &this->layer_configurations[lyr_idx];
+        NNLayerConfiguration *lyr_cfg = &this->layer_configurations[lyr_idx];
 
         int n_cnt = lyr_cfg->neuron_cnt;
 
@@ -813,7 +813,7 @@ void NN::feed_forward(Tensor *x, bool train_flg)
     // Activate (input layer):
     // It is unlikely that we will ever activate the input layer, but we might as well allow the option!
     {
-        LayerConfiguration *lyr_cfg = &this->layer_configurations[0];
+        NNLayerConfiguration *lyr_cfg = &this->layer_configurations[0];
 
         int n_cnt = lyr_cfg->neuron_cnt;
 
@@ -828,7 +828,7 @@ void NN::feed_forward(Tensor *x, bool train_flg)
     {
         if (train_flg)
         {
-            LayerConfiguration *lyr_cfg = &this->layer_configurations[0];
+            NNLayerConfiguration *lyr_cfg = &this->layer_configurations[0];
 
             int n_cnt = lyr_cfg->neuron_cnt;
 
@@ -843,8 +843,8 @@ void NN::feed_forward(Tensor *x, bool train_flg)
 
     for (int lyr_idx = 0; lyr_idx < lst_lyr_idx; lyr_idx++)
     {
-        LayerConfiguration *lyr_cfg = &this->layer_configurations[lyr_idx];
-        LayerConfiguration *nxt_lyr_cfg = &this->layer_configurations[lyr_idx + 1];
+        NNLayerConfiguration *lyr_cfg = &this->layer_configurations[lyr_idx];
+        NNLayerConfiguration *nxt_lyr_cfg = &this->layer_configurations[lyr_idx + 1];
 
         int n_cnt = lyr_cfg->neuron_cnt;
         int nxt_n_cnt = nxt_lyr_cfg->neuron_cnt;
@@ -945,8 +945,8 @@ void NN::back_propagate(Tensor *y)
 
     for (int lyr_idx = lst_lyr_idx; lyr_idx > 0; lyr_idx--)
     {
-        LayerConfiguration *lyr_cfg = &this->layer_configurations[lyr_idx];
-        LayerConfiguration *nxt_lyr_cfg = &this->layer_configurations[lyr_idx - 1];
+        NNLayerConfiguration *lyr_cfg = &this->layer_configurations[lyr_idx];
+        NNLayerConfiguration *nxt_lyr_cfg = &this->layer_configurations[lyr_idx - 1];
 
         int n_cnt = lyr_cfg->neuron_cnt;
         int nxt_n_cnt = nxt_lyr_cfg->neuron_cnt;
@@ -1023,8 +1023,8 @@ void NN::optimize(int batch_size)
 
     for (int lyr_idx = 0; lyr_idx < lst_lyr_idx; lyr_idx++)
     {
-        LayerConfiguration *lyr_cfg = &this->layer_configurations[lyr_idx];
-        LayerConfiguration *nxt_lyr_cfg = &this->layer_configurations[lyr_idx + 1];
+        NNLayerConfiguration *lyr_cfg = &this->layer_configurations[lyr_idx];
+        NNLayerConfiguration *nxt_lyr_cfg = &this->layer_configurations[lyr_idx + 1];
 
         int n_cnt = lyr_cfg->neuron_cnt;
         int nxt_n_cnt = nxt_lyr_cfg->neuron_cnt;
@@ -1074,8 +1074,8 @@ void NN::check_gradient(Tensor *x, Tensor *y, bool print_flg)
 
         for (int lyr_idx = 0; lyr_idx < lst_lyr_idx; lyr_idx++)
         {
-            LayerConfiguration *lyr_cfg = &this->layer_configurations[lyr_idx];
-            LayerConfiguration *nxt_lyr_cfg = &this->layer_configurations[lyr_idx + 1];
+            NNLayerConfiguration *lyr_cfg = &this->layer_configurations[lyr_idx];
+            NNLayerConfiguration *nxt_lyr_cfg = &this->layer_configurations[lyr_idx + 1];
 
             int n_cnt = lyr_cfg->neuron_cnt;
             int nxt_n_cnt = nxt_lyr_cfg->neuron_cnt;

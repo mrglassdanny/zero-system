@@ -38,22 +38,22 @@ namespace zero
             CrossEntropy
         };
 
-        class LayerConfiguration
+        class NNLayerConfiguration
         {
         public:
             int neuron_cnt;
             ActivationFunctionId activation_func_id;
             float dropout_rate;
 
-            LayerConfiguration();
-            LayerConfiguration(int neuron_cnt, ActivationFunctionId activation_func_id, float dropout_rate);
-            ~LayerConfiguration();
+            NNLayerConfiguration();
+            NNLayerConfiguration(int neuron_cnt, ActivationFunctionId activation_func_id, float dropout_rate);
+            ~NNLayerConfiguration();
         };
 
         class NN
         {
         private:
-            std::vector<LayerConfiguration> layer_configurations;
+            std::vector<NNLayerConfiguration> layer_configurations;
             CostFunctionId cost_func_id;
             float learning_rate;
 
