@@ -10,7 +10,7 @@ namespace zero
 {
     namespace nn
     {
-        class ConvaLayer
+        class ConvLayer
         {
         public:
             std::vector<Tensor *> inputs;
@@ -18,14 +18,14 @@ namespace zero
             std::vector<Tensor *> outputs;
             ActivationFunctionId activation_func_id;
 
-            ConvaLayer();
-            ~ConvaLayer();
+            ConvLayer();
+            ~ConvLayer();
         };
 
         class CNN
         {
         private:
-            std::vector<ConvaLayer> layers;
+            std::vector<ConvLayer> layers;
             NN *nn;
 
         public:
