@@ -543,50 +543,5 @@ int main(int argc, char **argv)
 
     //play_nn(true);
 
-    int *board = init_board();
-
-    bool white_mov_flg = true;
-
-    // Go ahead and make opening moves since we do not train the model on openings.
-    {
-        change_board_w_mov(board, "d4", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-
-        change_board_w_mov(board, "Nf6", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-
-        change_board_w_mov(board, "c4", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-
-        change_board_w_mov(board, "e6", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-
-        change_board_w_mov(board, "Nc3", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-
-        change_board_w_mov(board, "Bb4", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-
-        change_board_w_mov(board, "Qc2", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-
-        change_board_w_mov(board, "O-O", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-
-        change_board_w_mov(board, "a3", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-
-        change_board_w_mov(board, "Bxc3+", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-    }
-
-    print_board(board);
-
-    Tensor *conv = process_convolutions(board);
-
-    conv->print();
-
-    free(board);
-
     return 0;
 }

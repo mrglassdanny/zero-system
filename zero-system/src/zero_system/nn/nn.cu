@@ -476,6 +476,7 @@ __global__ void k_adjust_bias(float *b_arr, float *db_arr, int batch_size, float
 }
 
 // Report member functions:
+
 void Report::print()
 {
     printf("COST: %f\tACCURACY: %f%%\n", this->cost, ((float)this->correct_cnt / (float)this->total_cnt) * 100.0f);
@@ -516,6 +517,7 @@ void Report::update_correct_cnt(Tensor *n, Tensor *y)
 }
 
 // LayerConfiguration member functions:
+
 LayerConfiguration::LayerConfiguration()
 {
     this->neuron_cnt = 0;

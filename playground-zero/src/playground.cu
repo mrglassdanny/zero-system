@@ -36,21 +36,6 @@ void nn_test()
 	delete y;
 }
 
-void kmeans_test()
-{
-	Tensor *x = Tensor::from_csv("C:\\Users\\d0g0825\\Desktop\\temp\\kmeans\\data.csv");
-
-	KMeans::dump_best(x, 3, 10000, "C:\\Users\\d0g0825\\Desktop\\temp\\kmeans\\model.km");
-
-	KMeans *km = new KMeans("C:\\Users\\d0g0825\\Desktop\\temp\\kmeans\\model.km");
-
-	km->print();
-
-	delete km;
-
-	delete x;
-}
-
 void nn_performance_test()
 {
 	int epoch_cnt = 100;
@@ -99,15 +84,53 @@ void nn_performance_test()
 	delete y;
 }
 
+void kmeans_test()
+{
+	Tensor *x = Tensor::from_csv("C:\\Users\\d0g0825\\Desktop\\temp\\kmeans\\data.csv");
+
+	KMeans::dump_best(x, 3, 10000, "C:\\Users\\d0g0825\\Desktop\\temp\\kmeans\\model.km");
+
+	KMeans *km = new KMeans("C:\\Users\\d0g0825\\Desktop\\temp\\kmeans\\model.km");
+
+	km->print();
+
+	delete km;
+
+	delete x;
+}
+
+void cnn_test()
+{
+	Tensor *x = new Tensor(4, 4, Cpu);
+	Tensor *k = new Tensor(2, 2, Cpu);
+
+	x->set_all_rand(1.0f);
+	k->set_all(1.0f);
+
+	Tensor *y = Tensor::cross_correlate(x, k);
+
+	x->print();
+	k->print();
+
+	y->print();
+
+	delete x;
+	delete k;
+
+	delete y;
+}
+
 int main(int argc, char **argv)
 {
 	srand(time(NULL));
 
-	nn_test();
+	//nn_test();
+
+	//nn_performance_test();
 
 	//kmeans_test();
 
-	//nn_performance_test();
+	cnn_test();
 
 	return 0;
 }
