@@ -79,23 +79,23 @@ __device__ float d_derive_cross_entropy_cost(float n_val, float y_val)
 
 // Kernel functions:
 
-__global__ void k_set_dropout_mask(float *dr_m_arr, int dr_m_cnt, float dr)
+__global__ void k_set_dropout_mask(float *dropout_mask_arr, int dropout_mask_cnt, float dropout_rate)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (tid < dr_m_cnt)
+    if (tid < dropout_mask_cnt)
     {
         // TODO
         curandState state;
         curand_init(clock64(), tid, 0, &state);
 
-        if (curand_uniform(&state) < dr)
+        if (curand_uniform(&state) < dropout_rate)
         {
-            dr_m_arr[tid] = 0.0f;
+            dropout_mask_arr[tid] = 0.0f;
         }
         else
         {
-            dr_m_arr[tid] = 1.0f;
+            dropout_mask_arr[tid] = 1.0f;
         }
     }
 }
@@ -233,14 +233,14 @@ __global__ void k_activate(float *n_arr, int n_cnt, ActivationFunctionId activat
     }
 }
 
-__global__ void k_dropout(float *n_arr, float *dr_m_arr, int n_cnt, float dr)
+__global__ void k_dropout(float *n_arr, float *dropout_mask_arr, int n_cnt, float dropout_rate)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (tid < n_cnt)
     {
-        n_arr[tid] *= dr_m_arr[tid];
-        n_arr[tid] *= (1.0f / (1.0f - dr));
+        n_arr[tid] *= dropout_mask_arr[tid];
+        n_arr[tid] *= (1.0f / (1.0f - dropout_rate));
     }
 }
 
@@ -302,14 +302,14 @@ __global__ void k_derive_cost(float *n_arr, float *y_arr, float *agg_derivatives
     }
 }
 
-__global__ void k_derive_dropout(float *agg_derivatives_arr, float *dr_m_arr, int n_cnt, float dr)
+__global__ void k_derive_dropout(float *agg_derivatives_arr, float *dropout_mask_arr, int n_cnt, float dropout_rate)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (tid < n_cnt)
     {
-        agg_derivatives_arr[tid] *= dr_m_arr[tid];
-        agg_derivatives_arr[tid] *= (1.0f / (1.0f - dr));
+        agg_derivatives_arr[tid] *= dropout_mask_arr[tid];
+        agg_derivatives_arr[tid] *= (1.0f / (1.0f - dropout_rate));
     }
 }
 
