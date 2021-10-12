@@ -102,3 +102,42 @@ __global__ void k_cross_correlate(float *x_arr, float *f_arr, float *b_arr, floa
         }
     }
 }
+
+// CNNLayerConfiguration member functions:
+
+CNNLayerConfiguration::CNNLayerConfiguration()
+{
+}
+
+CNNLayerConfiguration::CNNLayerConfiguration(int channel_cnt, int neuron_row_cnt, int neuron_col_cnt,
+                                             int filter_cnt, int filter_row_cnt, int filter_col_cnt,
+                                             ActivationFunctionId activation_func_id)
+{
+    this->channel_cnt = channel_cnt;
+    this->neuron_row_cnt = neuron_row_cnt;
+    this->neuron_col_cnt = neuron_col_cnt;
+    this->filter_cnt = filter_cnt;
+    this->filter_row_cnt = this->filter_row_cnt;
+    this->filter_col_cnt = filter_col_cnt;
+    this->activation_func_id = activation_func_id;
+}
+
+CNNLayerConfiguration::~CNNLayerConfiguration()
+{
+}
+
+// CNN member functions:
+
+CNN::CNN()
+{
+}
+
+CNN::~CNN()
+{
+}
+
+void add_layer(int channel_cnt, int neuron_row_cnt, int neuron_col_cnt,
+               int filter_cnt, int filter_row_cnt, int filter_col_cnt,
+               ActivationFunctionId activation_func_id)
+{
+}
