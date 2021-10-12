@@ -516,7 +516,7 @@ void Report::update_correct_cnt(Tensor *n, Tensor *y)
     }
 }
 
-// LayerConfiguration member functions:
+// NNLayerConfiguration member functions:
 
 NNLayerConfiguration::NNLayerConfiguration()
 {
