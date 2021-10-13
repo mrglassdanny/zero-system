@@ -103,7 +103,7 @@ void mnist_cnn()
 
     Batch *batch = sup->create_batch(1, 0, 1);
 
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 1; i++)
     {
         cnn->feed_forward(batch->get_x(0), true);
         printf("COST: %f\n", cnn->get_cost(batch->get_y(0)));

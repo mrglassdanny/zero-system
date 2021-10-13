@@ -530,7 +530,7 @@ void CNN::back_propagate(Tensor *y)
             }
         }
 
-        // Derive z (with respect to activation) and aggregate derivatives:
+        // TODO: Derive z (with respect to activation) and aggregate derivatives:
         {
             if (lyr_idx > 1)
             {
