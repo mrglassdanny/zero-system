@@ -853,7 +853,7 @@ void NN::feed_forward(Tensor *x, bool train_flg)
         Tensor *w = this->weights[lyr_idx];
         Tensor *b = this->biases[lyr_idx];
         Tensor *nxt_n = this->neurons[lyr_idx + 1];
-        Tensor *nxt_dr_m = this->dropout_masks[lyr_idx + 1];
+        Tensor *nxt_dropout_mask = this->dropout_masks[lyr_idx + 1];
 
         // Need to reset next layer neurons before we do anything:
         {
@@ -891,7 +891,7 @@ void NN::feed_forward(Tensor *x, bool train_flg)
             {
                 int threads_per_block(THREADS_PER_BLOCK);
                 int num_blocks((nxt_n_cnt / threads_per_block) + 1);
-                k_dropout<<<num_blocks, threads_per_block>>>(nxt_n->get_arr(Gpu), nxt_dr_m->get_arr(Gpu), nxt_n_cnt, nxt_lyr_cfg->dropout_rate);
+                k_dropout<<<num_blocks, threads_per_block>>>(nxt_n->get_arr(Gpu), nxt_dropout_mask->get_arr(Gpu), nxt_n_cnt, nxt_lyr_cfg->dropout_rate);
             }
         }
     }
