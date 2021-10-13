@@ -146,6 +146,52 @@ __global__ void k_cnn_activate(float *n_arr, int n_cnt, ActivationFunctionId act
     }
 }
 
+__global__ void k_cnn_derive_activation(float *n_arr, float *agg_derivatives_arr, int n_cnt, ActivationFunctionId activation_func_id)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < n_cnt)
+    {
+        switch (activation_func_id)
+        {
+        case ReLU:
+            agg_derivatives_arr[tid] *= d_cnn_derive_relu(n_arr[tid]);
+            break;
+        case Sigmoid:
+            agg_derivatives_arr[tid] *= d_cnn_derive_sigmoid(n_arr[tid]);
+            break;
+        case Tanh:
+            agg_derivatives_arr[tid] *= d_cnn_derive_tanh(n_arr[tid]);
+            break;
+        case Sine:
+            agg_derivatives_arr[tid] *= d_cnn_derive_sine(n_arr[tid]);
+            break;
+        case Cosine:
+            agg_derivatives_arr[tid] *= d_cnn_derive_cosine(n_arr[tid]);
+            break;
+        default:
+            // None
+            break;
+        }
+    }
+}
+
+__global__ void k_derive_z_and_increment_filter_derivative(float *agg_derivatives_arr, float *n_arr, float *df_arr, int n_cnt, int nxt_n_cnt)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    int w_cnt = n_cnt * nxt_n_cnt;
+
+    int nxt_n_idx = tid % nxt_n_cnt;
+    int n_idx = tid / nxt_n_cnt;
+    int w_idx = n_idx * nxt_n_cnt + nxt_n_idx;
+
+    if (w_idx < w_cnt)
+    {
+        df_arr[w_idx] += (agg_derivatives_arr[n_idx] * n_arr[nxt_n_idx]);
+    }
+}
+
 // CNNLayerConfiguration member functions:
 
 CNNLayerConfiguration::CNNLayerConfiguration()
@@ -181,7 +227,7 @@ CNN::~CNN()
     int lyr_cnt = this->layer_configurations.size();
     int lst_lyr_idx = lyr_cnt - 1;
 
-    for (int lyr_idx = 0; lyr_idx < lyr_cnt; lyr_idx++)
+    for (int lyr_idx = 0; lyr_idx < lst_lyr_idx; lyr_idx++)
     {
         CNNLayerConfiguration *lyr_cfg = &this->layer_configurations[lyr_idx];
 
@@ -196,12 +242,38 @@ CNN::~CNN()
         }
     }
 
-    // Dont forget about the ouput of the last layer!
+    // Dont forget about the output layer!
     {
-        delete this->neurons[lyr_cnt];
+        delete this->neurons[lst_lyr_idx];
     }
 
     delete this->nn;
+}
+
+void CNN::add_layer(ActivationFunctionId activation_func_id)
+{
+    this->add_layer(1, 0, 0, activation_func_id);
+}
+
+void CNN::add_layer(int filter_cnt, int filter_row_cnt, int filter_col_cnt,
+                    ActivationFunctionId activation_func_id)
+{
+    int lyr_cnt = this->layer_configurations.size();
+    CNNLayerConfiguration *prv_lyr_cfg = &this->layer_configurations[lyr_cnt - 1];
+
+    int chan_cnt = prv_lyr_cfg->filter_cnt;
+    int n_row_cnt = prv_lyr_cfg->neuron_row_cnt - prv_lyr_cfg->filter_row_cnt + 1;
+    int n_col_cnt = prv_lyr_cfg->neuron_col_cnt - prv_lyr_cfg->filter_col_cnt + 1;
+
+    this->add_layer(chan_cnt, n_row_cnt, n_col_cnt,
+                    filter_cnt, filter_row_cnt, filter_col_cnt, activation_func_id);
+}
+
+void CNN::add_layer(int channel_cnt, int neuron_row_cnt, int neuron_col_cnt,
+                    int filter_cnt, int filter_row_cnt, int filter_col_cnt)
+{
+    this->add_layer(channel_cnt, neuron_row_cnt, neuron_col_cnt,
+                    filter_cnt, filter_row_cnt, filter_col_cnt, None);
 }
 
 void CNN::add_layer(int channel_cnt, int neuron_row_cnt, int neuron_col_cnt,
@@ -222,12 +294,10 @@ void CNN::compile()
     int lyr_cnt = this->layer_configurations.size();
     int lst_lyr_idx = lyr_cnt - 1;
 
-    for (int lyr_idx = 0; lyr_idx < lyr_cnt; lyr_idx++)
+    for (int lyr_idx = 0; lyr_idx < lst_lyr_idx; lyr_idx++)
     {
         CNNLayerConfiguration *lyr_cfg = &this->layer_configurations[lyr_idx];
-
-        int output_row_cnt = lyr_cfg->neuron_row_cnt - lyr_cfg->filter_row_cnt + 1;
-        int output_col_cnt = lyr_cfg->neuron_col_cnt - lyr_cfg->filter_col_cnt + 1;
+        CNNLayerConfiguration *nxt_lyr_cfg = &this->layer_configurations[lyr_idx + 1];
 
         Tensor *n = new Tensor(lyr_cfg->channel_cnt * lyr_cfg->neuron_row_cnt, lyr_cfg->neuron_col_cnt, Gpu);
         n->set_all(0.0f);
@@ -244,7 +314,7 @@ void CNN::compile()
             f->set_all_rand_normal_distribution(0.0f, sqrt(2.0f / (lyr_cfg->neuron_row_cnt * lyr_cfg->neuron_col_cnt)));
             this->filters[lyr_idx].push_back(f);
 
-            Tensor *b = new Tensor(output_row_cnt, output_col_cnt, Gpu);
+            Tensor *b = new Tensor(nxt_lyr_cfg->neuron_row_cnt, nxt_lyr_cfg->neuron_col_cnt, Gpu);
             b->set_all(0.0f);
             this->biases[lyr_idx].push_back(b);
 
@@ -252,20 +322,17 @@ void CNN::compile()
             df->set_all(0.0f);
             this->filter_derivatives[lyr_idx].push_back(df);
 
-            Tensor *db = new Tensor(output_row_cnt, output_col_cnt, Gpu);
+            Tensor *db = new Tensor(nxt_lyr_cfg->neuron_row_cnt, nxt_lyr_cfg->neuron_col_cnt, Gpu);
             db->set_all(0.0f);
             this->bias_derivatives[lyr_idx].push_back(db);
         }
     }
 
-    // Dont forget about the ouput of the last layer!
+    // Dont forget about the output layer!
     {
         CNNLayerConfiguration *lyr_cfg = &this->layer_configurations[lst_lyr_idx];
 
-        int output_row_cnt = lyr_cfg->neuron_row_cnt - lyr_cfg->filter_row_cnt + 1;
-        int output_col_cnt = lyr_cfg->neuron_col_cnt - lyr_cfg->filter_col_cnt + 1;
-
-        Tensor *n = new Tensor(lyr_cfg->filter_cnt * output_row_cnt, output_col_cnt, Gpu);
+        Tensor *n = new Tensor(lyr_cfg->filter_cnt * lyr_cfg->neuron_row_cnt, lyr_cfg->neuron_col_cnt, Gpu);
         n->set_all(0.0f);
         this->neurons.push_back(n);
     }
@@ -274,30 +341,27 @@ void CNN::compile()
     {
         CNNLayerConfiguration *lyr_cfg = &this->layer_configurations[lst_lyr_idx];
 
-        int output_row_cnt = lyr_cfg->neuron_row_cnt - lyr_cfg->filter_row_cnt + 1;
-        int output_col_cnt = lyr_cfg->neuron_col_cnt - lyr_cfg->filter_col_cnt + 1;
-
-        this->nn->add_layer(lyr_cfg->filter_cnt * output_row_cnt * output_col_cnt);
+        this->nn->add_layer(lyr_cfg->filter_cnt * lyr_cfg->neuron_row_cnt, lyr_cfg->neuron_col_cnt);
     }
 }
 
 void CNN::feed_forward(Tensor *x, bool train_flg)
 {
+    x->translate(Gpu);
+
     // Need to set input neurons before we do anything.
     this->neurons[0]->set_arr(x->get_arr(Gpu), Gpu);
 
     int lyr_cnt = this->layer_configurations.size();
     int lst_lyr_idx = lyr_cnt - 1;
 
-    for (int lyr_idx = 0; lyr_idx < lyr_cnt; lyr_idx++)
+    for (int lyr_idx = 0; lyr_idx < lst_lyr_idx; lyr_idx++)
     {
         CNNLayerConfiguration *lyr_cfg = &this->layer_configurations[lyr_idx];
-
-        int nxt_n_row_cnt = lyr_cfg->neuron_row_cnt - lyr_cfg->filter_row_cnt + 1;
-        int nxt_n_col_cnt = lyr_cfg->neuron_col_cnt - lyr_cfg->filter_col_cnt + 1;
+        CNNLayerConfiguration *nxt_lyr_cfg = &this->layer_configurations[lyr_idx + 1];
 
         int n_cnt = lyr_cfg->channel_cnt * lyr_cfg->neuron_row_cnt * lyr_cfg->neuron_col_cnt;
-        int nxt_n_cnt = (lyr_cfg->filter_cnt * nxt_n_row_cnt * nxt_n_col_cnt);
+        int nxt_n_cnt = (lyr_cfg->filter_cnt * nxt_lyr_cfg->neuron_row_cnt * nxt_lyr_cfg->neuron_col_cnt);
 
         Tensor *n = this->neurons[lyr_idx];
         Tensor *nxt_n = this->neurons[lyr_idx + 1];
@@ -319,9 +383,9 @@ void CNN::feed_forward(Tensor *x, bool train_flg)
                 Tensor *f = this->filters[lyr_idx][filter_idx];
                 Tensor *b = this->biases[lyr_idx][filter_idx];
 
-                k_convolution<<<num_blocks, threads_per_block>>>(n->get_arr(Gpu), f->get_arr(Gpu), b->get_arr(Gpu), nxt_n->get_slice(filter_idx * nxt_n_row_cnt * nxt_n_col_cnt, Gpu),
+                k_convolution<<<num_blocks, threads_per_block>>>(n->get_arr(Gpu), f->get_arr(Gpu), b->get_arr(Gpu), nxt_n->get_slice(filter_idx * nxt_lyr_cfg->neuron_row_cnt * nxt_lyr_cfg->neuron_col_cnt, Gpu),
                                                                  lyr_cfg->channel_cnt, lyr_cfg->neuron_row_cnt, lyr_cfg->neuron_col_cnt, lyr_cfg->filter_row_cnt, lyr_cfg->filter_col_cnt,
-                                                                 nxt_n_row_cnt, nxt_n_col_cnt);
+                                                                 nxt_lyr_cfg->neuron_row_cnt, nxt_lyr_cfg->neuron_col_cnt);
             }
         }
 
@@ -329,29 +393,66 @@ void CNN::feed_forward(Tensor *x, bool train_flg)
         {
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks((nxt_n_cnt / threads_per_block) + 1);
-            k_cnn_activate<<<num_blocks, threads_per_block>>>(n->get_arr(Gpu), nxt_n_cnt, lyr_cfg->activation_func_id);
+            k_cnn_activate<<<num_blocks, threads_per_block>>>(nxt_n->get_arr(Gpu), nxt_n_cnt, nxt_lyr_cfg->activation_func_id);
         }
     }
 
-    this->neurons[lyr_cnt]->print();
+    this->neurons[lst_lyr_idx]->print();
 
     // Fully connected:
     {
-        this->nn->feed_forward(this->neurons[lyr_cnt], train_flg);
+        this->nn->feed_forward(this->neurons[lst_lyr_idx], train_flg);
     }
 }
 
 float CNN::get_cost(Tensor *y)
 {
+    y->translate(Gpu);
+
     return this->nn->get_cost(y);
 }
 
 void CNN::back_propagate(Tensor *y)
 {
+    y->translate(Gpu);
+
     Tensor *agg_derivatives;
 
     // Fully connected:
     {
         agg_derivatives = this->nn->back_propagate(y, true);
     }
+
+    int lyr_cnt = this->layer_configurations.size();
+    int lst_lyr_idx = lyr_cnt - 1;
+
+    // for (int lyr_idx = lst_lyr_idx; lyr_idx > 0; lyr_idx--)
+    // {
+    //     CNNLayerConfiguration *lyr_cfg = &this->layer_configurations[lyr_idx];
+    //     CNNLayerConfiguration *nxt_lyr_cfg = &this->layer_configurations[lyr_idx - 1];
+
+    //     int out_n_row_cnt = lyr_cfg->neuron_row_cnt - lyr_cfg->filter_row_cnt + 1;
+    //     int out_n_col_cnt = lyr_cfg->neuron_col_cnt - lyr_cfg->filter_col_cnt + 1;
+    //     int out_n_cnt = lyr_cfg->filter_cnt * out_n_row_cnt * out_n_col_cnt;
+
+    //     Tensor *out_n = this->neurons[lyr_idx + 1];
+
+    //     // Derive activation (with respect to z):
+    //     {
+    //         int threads_per_block(THREADS_PER_BLOCK);
+    //         int num_blocks((out_n_cnt / threads_per_block) + 1);
+    //         k_derive_activation<<<num_blocks, threads_per_block>>>(out_n->get_arr(Gpu),
+    //                                                                agg_derivatives->get_arr(Gpu), out_n_cnt, lyr_cfg->activation_func_id);
+    //     }
+
+    //     // Derive z (with respect to weight):
+    //     {
+    //         int threads_per_block(THREADS_PER_BLOCK);
+    //         int num_blocks(((n_cnt * nxt_n_cnt) / threads_per_block) + 1);
+    //         k_derive_z_and_increment_weight_derivative<<<num_blocks, threads_per_block>>>(agg_derivatives->get_arr(Gpu),
+    //                                                                                       nxt_n->get_arr(Gpu),
+    //                                                                                       nxt_dw->get_arr(Gpu),
+    //                                                                                       n_cnt, nxt_n_cnt);
+    //     }
+    // }
 }
