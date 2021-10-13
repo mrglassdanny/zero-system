@@ -34,11 +34,13 @@ namespace zero
         private:
             std::vector<CNNLayerConfiguration> layer_configurations;
 
-            std::vector<std::vector<Tensor *>> neurons;
+            // Channels are stacked in single tensor.
+            // Filters get their own vector(channels are still stacked).
+            std::vector<Tensor *> neurons;
             std::vector<std::vector<Tensor *>> filters;
-            std::vector<Tensor *> biases;
+            std::vector<std::vector<Tensor *>> biases;
             std::vector<std::vector<Tensor *>> filter_derivatives;
-            std::vector<Tensor *> bias_derivatives;
+            std::vector<std::vector<Tensor *>> bias_derivatives;
 
             NN *nn;
 
@@ -55,6 +57,7 @@ namespace zero
             void compile();
 
             void feed_forward(Tensor *x, bool train_flg);
+            float get_cost(Tensor *y);
             void back_propagate(Tensor *y);
             void optimize(int batch_size);
         };
