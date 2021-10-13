@@ -91,21 +91,25 @@ void mnist_cnn()
 
     Supervisor *sup = init_mnist_supervisor();
 
-    CNN *cnn = new CNN(MSE, 0.01f);
+    CNN *cnn = new CNN(MSE, 1.0f);
 
     cnn->add_layer(1, 28, 28, 1, 4, 4);
-    cnn->add_layer(ReLU);
+    cnn->add_layer(None);
     cnn->compile();
 
-    cnn->fully_connected()->add_layer(64, ReLU);
+    cnn->fully_connected()->add_layer(64, Sigmoid);
     cnn->fully_connected()->add_layer(10, Sigmoid);
     cnn->fully_connected()->compile();
 
     Batch *batch = sup->create_batch(1, 0, 1);
 
-    cnn->feed_forward(batch->get_x(0), true);
-    printf("COST: %f\n", cnn->get_cost(batch->get_y(0)));
-    cnn->back_propagate(batch->get_y(0));
+    for (int i = 0; i < 3; i++)
+    {
+        cnn->feed_forward(batch->get_x(0), true);
+        printf("COST: %f\n", cnn->get_cost(batch->get_y(0)));
+        cnn->back_propagate(batch->get_y(0));
+        cnn->optimize(1);
+    }
 
     delete batch;
 
