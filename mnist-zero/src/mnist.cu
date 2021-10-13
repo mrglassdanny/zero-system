@@ -93,7 +93,8 @@ void mnist_cnn()
 
     CNN *cnn = new CNN(MSE, 0.01f);
 
-    cnn->add_layer(1, 28, 28, 1, 4, 4, None);
+    cnn->add_layer(1, 28, 28, 1, 4, 4);
+    cnn->add_layer(ReLU);
     cnn->compile();
 
     cnn->fully_connected()->add_layer(64, ReLU);
@@ -104,6 +105,7 @@ void mnist_cnn()
 
     cnn->feed_forward(batch->get_x(0), true);
     printf("COST: %f\n", cnn->get_cost(batch->get_y(0)));
+    cnn->back_propagate(batch->get_y(0));
 
     delete batch;
 
