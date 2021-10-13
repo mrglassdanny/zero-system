@@ -790,14 +790,17 @@ void NN::set_dropout_masks()
     {
         NNLayerConfiguration *lyr_cfg = &this->layer_configurations[lyr_idx];
 
-        int n_cnt = lyr_cfg->neuron_cnt;
-
-        Tensor *dropout_mask = this->dropout_masks[lyr_idx];
-
+        if (lyr_cfg->dropout_rate > 0.0f)
         {
-            int threads_per_block(THREADS_PER_BLOCK);
-            int num_blocks((n_cnt / threads_per_block) + 1);
-            k_set_dropout_mask<<<num_blocks, threads_per_block>>>(dropout_mask->get_arr(Gpu), n_cnt, lyr_cfg->dropout_rate);
+            int n_cnt = lyr_cfg->neuron_cnt;
+
+            Tensor *dropout_mask = this->dropout_masks[lyr_idx];
+
+            {
+                int threads_per_block(THREADS_PER_BLOCK);
+                int num_blocks((n_cnt / threads_per_block) + 1);
+                k_set_dropout_mask<<<num_blocks, threads_per_block>>>(dropout_mask->get_arr(Gpu), n_cnt, lyr_cfg->dropout_rate);
+            }
         }
     }
 }
@@ -810,34 +813,32 @@ void NN::feed_forward(Tensor *x, bool train_flg)
     int lyr_cnt = this->layer_configurations.size();
     int lst_lyr_idx = lyr_cnt - 1;
 
+    NNLayerConfiguration *input_lyr_cfg = &this->layer_configurations[0];
+
     // Activate (input layer):
     // It is unlikely that we will ever activate the input layer, but we might as well allow the option!
     {
-        NNLayerConfiguration *lyr_cfg = &this->layer_configurations[0];
-
-        int n_cnt = lyr_cfg->neuron_cnt;
+        int n_cnt = input_lyr_cfg->neuron_cnt;
 
         Tensor *n = this->neurons[0];
 
         int threads_per_block(THREADS_PER_BLOCK);
         int num_blocks((n_cnt / threads_per_block) + 1);
-        k_activate<<<num_blocks, threads_per_block>>>(n->get_arr(Gpu), n_cnt, lyr_cfg->activation_func_id);
+        k_activate<<<num_blocks, threads_per_block>>>(n->get_arr(Gpu), n_cnt, input_lyr_cfg->activation_func_id);
     }
 
     // Dropout (input layer):
     {
-        if (train_flg)
+        if (train_flg && input_lyr_cfg->dropout_rate > 0.0f)
         {
-            NNLayerConfiguration *lyr_cfg = &this->layer_configurations[0];
-
-            int n_cnt = lyr_cfg->neuron_cnt;
+            int n_cnt = input_lyr_cfg->neuron_cnt;
 
             Tensor *n = this->neurons[0];
             Tensor *dropout_mask = this->dropout_masks[0];
 
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks((n_cnt / threads_per_block) + 1);
-            k_dropout<<<num_blocks, threads_per_block>>>(n->get_arr(Gpu), dropout_mask->get_arr(Gpu), n_cnt, lyr_cfg->dropout_rate);
+            k_dropout<<<num_blocks, threads_per_block>>>(n->get_arr(Gpu), dropout_mask->get_arr(Gpu), n_cnt, input_lyr_cfg->dropout_rate);
         }
     }
 
@@ -887,7 +888,7 @@ void NN::feed_forward(Tensor *x, bool train_flg)
 
         // Dropout:
         {
-            if (train_flg)
+            if (train_flg && nxt_lyr_cfg->dropout_rate > 0.0f)
             {
                 int threads_per_block(THREADS_PER_BLOCK);
                 int num_blocks((nxt_n_cnt / threads_per_block) + 1);
@@ -961,10 +962,13 @@ Tensor *NN::back_propagate(Tensor *y, bool keep_agg_derivatives_flg)
 
         // Derive post-dropout activation (with respect to activation):
         {
-            int threads_per_block(THREADS_PER_BLOCK);
-            int num_blocks((n_cnt / threads_per_block) + 1);
-            k_derive_dropout<<<num_blocks, threads_per_block>>>(agg_derivatives->get_arr(Gpu), dropout_mask->get_arr(Gpu),
-                                                                n_cnt, lyr_cfg->dropout_rate);
+            if (lyr_cfg->dropout_rate > 0.0f)
+            {
+                int threads_per_block(THREADS_PER_BLOCK);
+                int num_blocks((n_cnt / threads_per_block) + 1);
+                k_derive_dropout<<<num_blocks, threads_per_block>>>(agg_derivatives->get_arr(Gpu), dropout_mask->get_arr(Gpu),
+                                                                    n_cnt, lyr_cfg->dropout_rate);
+            }
         }
 
         // Derive activation (with respect to z):
