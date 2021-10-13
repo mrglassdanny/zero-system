@@ -34,16 +34,16 @@ namespace zero
         private:
             std::vector<CNNLayerConfiguration> layer_configurations;
 
-            std::vector<Tensor *> neurons;
-            std::vector<Tensor *> filters;
+            std::vector<std::vector<Tensor *>> neurons;
+            std::vector<std::vector<Tensor *>> filters;
             std::vector<Tensor *> biases;
-            std::vector<Tensor *> filter_derivatives;
+            std::vector<std::vector<Tensor *>> filter_derivatives;
             std::vector<Tensor *> bias_derivatives;
 
             NN *nn;
 
         public:
-            CNN();
+            CNN(CostFunctionId cost_func_id, float learning_rate);
             ~CNN();
 
             void add_layer(int channel_cnt, int neuron_row_cnt, int neuron_col_cnt,
