@@ -33,6 +33,7 @@ namespace zero
         {
         private:
             std::vector<CNNLayerConfiguration> layer_configurations;
+            float learning_rate;
 
             // Channels are stacked in single tensor.
             // Filters get their own vector(channels are still stacked).
