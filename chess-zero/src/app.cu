@@ -177,7 +177,7 @@ void train_nn(const char *pgn_name, bool white_flg)
 
             Tensor *x = new Tensor(1, CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, Gpu, stacked_oh_board);
             Tensor *y = new Tensor(1, 1, Gpu);
-            y->set_idx(0, 1.0f);
+            y->set_val(0, 1.0f);
 
             batch->add(new Record(x, y));
         }
@@ -197,7 +197,7 @@ void train_nn(const char *pgn_name, bool white_flg)
 
                 Tensor *x = new Tensor(1, CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, Gpu, stacked_oh_board);
                 Tensor *y = new Tensor(1, 1, Gpu);
-                y->set_idx(0, 0.0f);
+                y->set_val(0, 0.0f);
 
                 batch->add(new Record(x, y));
             }
@@ -292,7 +292,7 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
                         Tensor *x = new Tensor(1, CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, Gpu, stacked_oh_board);
                         Tensor *pred = nn->predict(x);
 
-                        float eval = pred->get_idx(0);
+                        float eval = pred->get_val(0);
 
                         memset(mov, 0, CHESS_MAX_MOVE_LEN);
                         translate_srcdst_idx_to_mov(immut_board, piece_idx, legal_moves[mov_idx], mov);
@@ -349,7 +349,7 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
                         Tensor *x = new Tensor(1, CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, Gpu, stacked_oh_board);
                         Tensor *pred = nn->predict(x);
 
-                        float eval = pred->get_idx(0);
+                        float eval = pred->get_val(0);
 
                         memset(mov, 0, CHESS_MAX_MOVE_LEN);
                         translate_srcdst_idx_to_mov(immut_board, piece_idx, legal_moves[mov_idx], mov);

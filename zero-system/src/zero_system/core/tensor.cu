@@ -12,7 +12,7 @@ Tensor *Tensor::one_hot_encode(int row_cnt, int col_cnt, TensorType typ, float *
         int col_idx = (int)cpu_arr[i];
         if (col_idx >= 0 && col_idx < col_cnt)
         {
-            tensor->set_rowcol(i, col_idx, 1.0f);
+            tensor->set_val(i, col_idx, 1.0f);
         }
         // If column index is less than 0 or is greater than or equal to column count, skip it!
         // ^ this shouldn't happen...
@@ -92,14 +92,14 @@ Tensor *Tensor::from_csv(const char *csv_file_name)
 
         if (buf[buf_idx] == ',')
         {
-            tensor->set_rowcol(row_idx, col_idx, (float)atof(temp_buf));
+            tensor->set_val(row_idx, col_idx, (float)atof(temp_buf));
             memset(temp_buf, 0, 64);
             col_idx++;
             temp_buf_idx = 0;
         }
         else if (buf[buf_idx] == '\n')
         {
-            tensor->set_rowcol(row_idx, col_idx, (float)atof(temp_buf));
+            tensor->set_val(row_idx, col_idx, (float)atof(temp_buf));
             memset(temp_buf, 0, 64);
             row_idx++;
             col_idx = 0;
@@ -110,7 +110,7 @@ Tensor *Tensor::from_csv(const char *csv_file_name)
     // Make sure to grab the last bit before we finish up!
     if (temp_buf_idx > 0)
     {
-        tensor->set_rowcol(row_idx, col_idx, (float)atof(temp_buf));
+        tensor->set_val(row_idx, col_idx, (float)atof(temp_buf));
         memset(temp_buf, 0, 64);
         row_idx++;
         col_idx = 0;
@@ -139,9 +139,9 @@ Tensor *Tensor::cross_correlate(Tensor *x, Tensor *k)
             {
                 for (int k_col_idx = 0, k_rot_col_idx = k->col_cnt - 1; k_col_idx < k->col_cnt; k_col_idx++, k_rot_col_idx--)
                 {
-                    float val = x->get_rowcol(y_row_idx + k_row_idx, y_col_idx + k_col_idx) * k->get_rowcol(k_rot_row_idx, k_rot_col_idx);
-                    val += y->get_rowcol(y_row_idx, y_col_idx);
-                    y->set_rowcol(y_row_idx, y_col_idx, val);
+                    float val = x->get_val(y_row_idx + k_row_idx, y_col_idx + k_col_idx) * k->get_val(k_rot_row_idx, k_rot_col_idx);
+                    val += y->get_val(y_row_idx, y_col_idx);
+                    y->set_val(y_row_idx, y_col_idx, val);
                 }
             }
         }
@@ -167,10 +167,10 @@ Tensor *Tensor::cross_correlate_w_bias(Tensor *x, Tensor *k, Tensor *b)
             {
                 for (int k_col_idx = 0, k_rot_col_idx = k->col_cnt - 1; k_col_idx < k->col_cnt; k_col_idx++, k_rot_col_idx--)
                 {
-                    float val = x->get_rowcol(y_row_idx + k_row_idx, y_col_idx + k_col_idx) * k->get_rowcol(k_rot_row_idx, k_rot_col_idx);
-                    val += y->get_rowcol(y_row_idx, y_col_idx);
-                    val += b->get_rowcol(y_row_idx, y_col_idx);
-                    y->set_rowcol(y_row_idx, y_col_idx, val);
+                    float val = x->get_val(y_row_idx + k_row_idx, y_col_idx + k_col_idx) * k->get_val(k_rot_row_idx, k_rot_col_idx);
+                    val += y->get_val(y_row_idx, y_col_idx);
+                    val += b->get_val(y_row_idx, y_col_idx);
+                    y->set_val(y_row_idx, y_col_idx, val);
                 }
             }
         }
@@ -371,11 +371,11 @@ void Tensor::dump_to_csv(const char *csv_file_name)
         {
             if (j < this->col_cnt - 1)
             {
-                fprintf(file_ptr, "%f,", this->get_rowcol(i, j));
+                fprintf(file_ptr, "%f,", this->get_val(i, j));
             }
             else
             {
-                fprintf(file_ptr, "%f", this->get_rowcol(i, j));
+                fprintf(file_ptr, "%f", this->get_val(i, j));
             }
         }
         fprintf(file_ptr, "\n");
@@ -422,7 +422,7 @@ int Tensor::get_col_cnt()
     return this->col_cnt;
 }
 
-float Tensor::get_idx(int idx)
+float Tensor::get_val(int idx)
 {
     if (this->typ == Gpu)
     {
@@ -436,10 +436,10 @@ float Tensor::get_idx(int idx)
     }
 }
 
-float Tensor::get_rowcol(int row_idx, int col_idx)
+float Tensor::get_val(int row_idx, int col_idx)
 {
     int idx = row_idx * this->col_cnt + col_idx;
-    return this->get_idx(idx);
+    return this->get_val(idx);
 }
 
 float *Tensor::get_arr(TensorType typ)
@@ -463,7 +463,7 @@ TensorTuple Tensor::get_min()
 
     for (int i = 0; i < this->row_cnt * this->col_cnt; i++)
     {
-        float cur_val = this->get_idx(i);
+        float cur_val = this->get_val(i);
         if (cur_val < tup.val)
         {
             tup.idx = i;
@@ -483,7 +483,7 @@ TensorTuple Tensor::get_max()
 
     for (int i = 0; i < this->row_cnt * this->col_cnt; i++)
     {
-        float cur_val = this->get_idx(i);
+        float cur_val = this->get_val(i);
         if (cur_val > tup.val)
         {
             tup.idx = i;
@@ -512,7 +512,7 @@ float Tensor::get_mean()
     return mean / tot_cnt;
 }
 
-void Tensor::set_idx(int idx, float val)
+void Tensor::set_val(int idx, float val)
 {
     if (this->typ == Gpu)
     {
@@ -524,10 +524,10 @@ void Tensor::set_idx(int idx, float val)
     }
 }
 
-void Tensor::set_rowcol(int row_idx, int col_idx, float val)
+void Tensor::set_val(int row_idx, int col_idx, float val)
 {
     int idx = row_idx * this->col_cnt + col_idx;
-    return this->set_idx(idx, val);
+    return this->set_val(idx, val);
 }
 
 void Tensor::set_all(float val)

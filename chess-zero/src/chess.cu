@@ -2644,7 +2644,7 @@ Tensor *process_convolutions(int *board)
                     break;
                 }
 
-                float val = out->get_idx(mov_dst_idx);
+                float val = out->get_val(mov_dst_idx);
 
                 if (is_piece_white(piece))
                 {
@@ -2655,7 +2655,7 @@ Tensor *process_convolutions(int *board)
                     val += (-(abs((int)board[mov_dst_idx]) * 1.0f) + -0.1f);
                 }
 
-                out->set_idx(mov_dst_idx, val);
+                out->set_val(mov_dst_idx, val);
             }
         }
     }

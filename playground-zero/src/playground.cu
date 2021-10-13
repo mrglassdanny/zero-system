@@ -17,7 +17,7 @@ void nn_test()
 
 	Tensor *y = new Tensor(1, y_col_cnt, Gpu);
 	y->set_all(0.0f);
-	y->set_idx(0, 1.0f);
+	y->set_val(0, 1.0f);
 
 	NN *nn = new NN(MSE, 0.01f);
 
@@ -57,7 +57,7 @@ void nn_performance_test()
 
 	Tensor *y = new Tensor(1, y_col_cnt, Gpu);
 	y->set_all(0.0f);
-	y->set_idx(0, 1.0f);
+	y->set_val(0, 1.0f);
 
 	printf("Starting Performance Test...\n");
 	clock_t t;

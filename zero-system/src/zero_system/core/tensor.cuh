@@ -60,16 +60,16 @@ namespace zero
 
             int get_row_cnt();
             int get_col_cnt();
-            float get_idx(int idx);
-            float get_rowcol(int row_idx, int col_idx);
+            float get_val(int idx);
+            float get_val(int row_idx, int col_idx);
             float *get_arr(TensorType typ);
             float *get_slice(int idx, TensorType typ);
             TensorTuple get_min();
             TensorTuple get_max();
             float get_mean();
 
-            void set_idx(int idx, float val);
-            void set_rowcol(int row_idx, int col_idx, float val);
+            void set_val(int idx, float val);
+            void set_val(int row_idx, int col_idx, float val);
             void set_all(float val);
             void set_all_rand(float upper);
             void set_all_rand_normal_distribution(float mean, float stddev);

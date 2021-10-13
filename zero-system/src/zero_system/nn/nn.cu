@@ -491,7 +491,7 @@ void Report::update_correct_cnt(Tensor *n, Tensor *y)
         // One hot encoded:
 
         TensorTuple max_tup = n->get_max();
-        if (y->get_idx(max_tup.idx) == 1.0f)
+        if (y->get_val(max_tup.idx) == 1.0f)
         {
             this->correct_cnt++;
         }
@@ -500,8 +500,8 @@ void Report::update_correct_cnt(Tensor *n, Tensor *y)
     {
         // Single value:
 
-        float y_val = y->get_idx(0);
-        float n_val = n->get_idx(0);
+        float y_val = y->get_val(0);
+        float n_val = n->get_val(0);
 
         float lower = y_val < n_val ? y_val : n_val;
         float upper = y_val < n_val ? n_val : y_val;
@@ -1091,22 +1091,22 @@ void NN::check_gradient(Tensor *x, Tensor *y, bool print_flg)
                 float left_cost = 0.0;
                 float right_cost = 0.0;
 
-                float orig_w_val = w->get_idx(w_idx);
+                float orig_w_val = w->get_val(w_idx);
 
                 float left_w_val = orig_w_val - epsilon;
                 float right_w_val = orig_w_val + epsilon;
 
-                float ana_grad = dw->get_idx(w_idx);
+                float ana_grad = dw->get_val(w_idx);
 
                 // Left:
-                w->set_idx(w_idx, left_w_val);
+                w->set_val(w_idx, left_w_val);
                 {
                     this->feed_forward(x, true);
                     left_cost += this->get_cost(y);
                 }
 
                 // Right:
-                w->set_idx(w_idx, right_w_val);
+                w->set_val(w_idx, right_w_val);
                 {
                     this->feed_forward(x, true);
                     right_cost += this->get_cost(y);
@@ -1123,7 +1123,7 @@ void NN::check_gradient(Tensor *x, Tensor *y, bool print_flg)
                 agg_num_grad += (num_grad * num_grad);
                 agg_grad_diff += ((ana_grad - num_grad) * (ana_grad - num_grad));
 
-                w->set_idx(w_idx, orig_w_val);
+                w->set_val(w_idx, orig_w_val);
             }
 
             // Biases:
@@ -1132,22 +1132,22 @@ void NN::check_gradient(Tensor *x, Tensor *y, bool print_flg)
                 float left_cost = 0.0;
                 float right_cost = 0.0;
 
-                float orig_b_val = b->get_idx(b_idx);
+                float orig_b_val = b->get_val(b_idx);
 
                 float left_b_val = orig_b_val - epsilon;
                 float right_b_val = orig_b_val + epsilon;
 
-                float ana_grad = db->get_idx(b_idx);
+                float ana_grad = db->get_val(b_idx);
 
                 // Left:
-                b->set_idx(b_idx, left_b_val);
+                b->set_val(b_idx, left_b_val);
                 {
                     this->feed_forward(x, true);
                     left_cost += this->get_cost(y);
                 }
 
                 // Right:
-                b->set_idx(b_idx, right_b_val);
+                b->set_val(b_idx, right_b_val);
                 {
                     this->feed_forward(x, true);
                     right_cost += this->get_cost(y);
@@ -1164,7 +1164,7 @@ void NN::check_gradient(Tensor *x, Tensor *y, bool print_flg)
                 agg_num_grad += (num_grad * num_grad);
                 agg_grad_diff += ((ana_grad - num_grad) * (ana_grad - num_grad));
 
-                b->set_idx(b_idx, orig_b_val);
+                b->set_val(b_idx, orig_b_val);
             }
         }
     }
