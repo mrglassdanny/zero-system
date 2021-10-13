@@ -722,9 +722,9 @@ void NN::compile()
         n->set_all(0.0f);
         this->neurons.push_back(n);
 
-        Tensor *dr_m = new Tensor(1, n_cnt, Gpu);
-        dr_m->set_all(0.0f);
-        this->dropout_masks.push_back(dr_m);
+        Tensor *dropout_mask = new Tensor(1, n_cnt, Gpu);
+        dropout_mask->set_all(0.0f);
+        this->dropout_masks.push_back(dropout_mask);
 
         Tensor *w = new Tensor(nxt_n_cnt, n_cnt, Gpu);
         switch (nxt_lyr_cfg->activation_func_id)
@@ -769,9 +769,9 @@ void NN::compile()
         n->set_all(0.0f);
         this->neurons.push_back(n);
 
-        Tensor *dr_m = new Tensor(1, n_cnt, Gpu);
-        dr_m->set_all(0.0f);
-        this->dropout_masks.push_back(dr_m);
+        Tensor *dropout_mask = new Tensor(1, n_cnt, Gpu);
+        dropout_mask->set_all(0.0f);
+        this->dropout_masks.push_back(dropout_mask);
     }
 
     this->compiled_flg = true;
@@ -792,12 +792,12 @@ void NN::set_dropout_masks()
 
         int n_cnt = lyr_cfg->neuron_cnt;
 
-        Tensor *dr_m = this->dropout_masks[lyr_idx];
+        Tensor *dropout_mask = this->dropout_masks[lyr_idx];
 
         {
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks((n_cnt / threads_per_block) + 1);
-            k_set_dropout_mask<<<num_blocks, threads_per_block>>>(dr_m->get_arr(Gpu), n_cnt, lyr_cfg->dropout_rate);
+            k_set_dropout_mask<<<num_blocks, threads_per_block>>>(dropout_mask->get_arr(Gpu), n_cnt, lyr_cfg->dropout_rate);
         }
     }
 }
@@ -833,11 +833,11 @@ void NN::feed_forward(Tensor *x, bool train_flg)
             int n_cnt = lyr_cfg->neuron_cnt;
 
             Tensor *n = this->neurons[0];
-            Tensor *dr_m = this->dropout_masks[0];
+            Tensor *dropout_mask = this->dropout_masks[0];
 
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks((n_cnt / threads_per_block) + 1);
-            k_dropout<<<num_blocks, threads_per_block>>>(n->get_arr(Gpu), dr_m->get_arr(Gpu), n_cnt, lyr_cfg->dropout_rate);
+            k_dropout<<<num_blocks, threads_per_block>>>(n->get_arr(Gpu), dropout_mask->get_arr(Gpu), n_cnt, lyr_cfg->dropout_rate);
         }
     }
 
@@ -952,7 +952,7 @@ void NN::back_propagate(Tensor *y)
         int nxt_n_cnt = nxt_lyr_cfg->neuron_cnt;
 
         Tensor *n = this->neurons[lyr_idx];
-        Tensor *dr_m = this->dropout_masks[lyr_idx];
+        Tensor *dropout_mask = this->dropout_masks[lyr_idx];
         Tensor *nxt_n = this->neurons[lyr_idx - 1];
         Tensor *nxt_w = this->weights[lyr_idx - 1];
         Tensor *nxt_b = this->biases[lyr_idx - 1];
@@ -963,7 +963,7 @@ void NN::back_propagate(Tensor *y)
         {
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks((n_cnt / threads_per_block) + 1);
-            k_derive_dropout<<<num_blocks, threads_per_block>>>(agg_derivatives->get_arr(Gpu), dr_m->get_arr(Gpu),
+            k_derive_dropout<<<num_blocks, threads_per_block>>>(agg_derivatives->get_arr(Gpu), dropout_mask->get_arr(Gpu),
                                                                 n_cnt, lyr_cfg->dropout_rate);
         }
 
