@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include <zero_system/nn/nn.cuh>
+#include <zero_system/nn/cnn.cuh>
 
 using namespace zero::core;
 using namespace zero::nn;
@@ -51,7 +52,7 @@ Supervisor *init_mnist_supervisor()
     return sup;
 }
 
-void mnist_test()
+void mnist_nn()
 {
     srand(time(NULL));
 
@@ -84,9 +85,38 @@ void mnist_test()
     delete sup;
 }
 
+void mnist_cnn()
+{
+    srand(time(NULL));
+
+    Supervisor *sup = init_mnist_supervisor();
+
+    CNN *cnn = new CNN(MSE, 0.01f);
+
+    cnn->add_layer(1, 28, 28, 1, 4, 4, None);
+    cnn->compile();
+
+    cnn->fully_connected()->add_layer(64, ReLU);
+    cnn->fully_connected()->add_layer(10, Sigmoid);
+    cnn->fully_connected()->compile();
+
+    Batch *batch = sup->create_batch(1, 0, 1);
+
+    cnn->feed_forward(batch->get_x(0), true);
+    printf("COST: %f\n", cnn->get_cost(batch->get_y(0)));
+
+    delete batch;
+
+    delete cnn;
+
+    delete sup;
+}
+
 int main(int argc, char **argv)
 {
-    mnist_test();
+    //mnist_nn();
+
+    mnist_cnn();
 
     return 0;
 }
