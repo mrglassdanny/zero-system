@@ -91,7 +91,7 @@ namespace zero
             void set_dropout_masks();
             void feed_forward(Tensor *x, bool train_flg);
             float get_cost(Tensor *y);
-            void back_propagate(Tensor *y);
+            Tensor *back_propagate(Tensor *y, bool keep_agg_derivatives_flg);
             void optimize(int batch_size);
 
             void check_gradient(Tensor *x, Tensor *y, bool print_flg);

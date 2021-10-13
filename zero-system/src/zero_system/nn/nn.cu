@@ -924,7 +924,7 @@ float NN::get_cost(Tensor *y)
     return h_cost;
 }
 
-void NN::back_propagate(Tensor *y)
+Tensor *NN::back_propagate(Tensor *y, bool keep_agg_derivatives_flg)
 {
     y->translate(Gpu);
 
@@ -994,7 +994,7 @@ void NN::back_propagate(Tensor *y)
 
         // Derive z (with respect to activation) and aggregate derivatives:
         {
-            if (lyr_idx > 1)
+            if (lyr_idx > 1 || keep_agg_derivatives_flg)
             {
                 Tensor *nxt_agg_derivatives = new Tensor(1, nxt_n_cnt, Gpu);
                 nxt_agg_derivatives->set_all(0.0f);
@@ -1013,7 +1013,15 @@ void NN::back_propagate(Tensor *y)
         }
     }
 
-    delete agg_derivatives;
+    if (keep_agg_derivatives_flg)
+    {
+        return agg_derivatives;
+    }
+    else
+    {
+        delete agg_derivatives;
+        return nullptr;
+    }
 }
 
 void NN::optimize(int batch_size)
@@ -1064,7 +1072,7 @@ void NN::check_gradient(Tensor *x, Tensor *y, bool print_flg)
     // Analytical gradients:
     {
         this->feed_forward(x, true);
-        this->back_propagate(y);
+        this->back_propagate(y, false);
     }
 
     // Numerical gradients:
@@ -1202,7 +1210,7 @@ Report NN::train(Batch *batch)
 
         this->feed_forward(x, true);
         cost += this->get_cost(y);
-        this->back_propagate(y);
+        this->back_propagate(y, false);
 
         rpt.update_correct_cnt(this->neurons[lst_lyr_idx], y);
 
