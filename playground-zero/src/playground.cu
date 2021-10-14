@@ -102,7 +102,7 @@ void kmeans_test()
 
 void cnn_test()
 {
-	int x_col_cnt = 2 * 8 * 8;
+	int x_col_cnt = 2 * 16 * 16;
 	int y_col_cnt = 4;
 
 	Tensor *x = new Tensor(1, x_col_cnt, Gpu);
@@ -114,8 +114,9 @@ void cnn_test()
 	y->set_val(0, 1.0f);
 
 	CNN *cnn = new CNN(MSE, 0.001f);
-	cnn->add_layer(2, 8, 8, 4, 4, 4);
-	cnn->add_layer(3, 2, 2, None);
+	cnn->add_layer(2, 16, 16, 4, 4, 4);
+	cnn->add_layer(3, 2, 2, Sigmoid);
+	cnn->add_layer(3, 2, 2, Tanh);
 	cnn->add_layer(Sigmoid);
 	cnn->compile();
 
