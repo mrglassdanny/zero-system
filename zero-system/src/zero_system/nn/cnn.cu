@@ -686,7 +686,7 @@ void CNN::check_gradient(Tensor *x, Tensor *y, bool print_flg)
 
                     if (print_flg)
                     {
-                        printf("W: %d  %d\t%f : %f  (%f)\n", lyr_idx, w_idx, ana_grad, num_grad, fabs(ana_grad - num_grad));
+                        printf("W: %d  %d  %d\t%f : %f  (%f)\n", lyr_idx, filter_idx, w_idx, ana_grad, num_grad, fabs(ana_grad - num_grad));
                     }
 
                     agg_ana_grad += (ana_grad * ana_grad);
@@ -727,7 +727,7 @@ void CNN::check_gradient(Tensor *x, Tensor *y, bool print_flg)
 
                     if (print_flg)
                     {
-                        printf("B: %d  %d\t%f : %f  (%f)\n", lyr_idx, b_idx, ana_grad, num_grad, fabs(ana_grad - num_grad));
+                        printf("B: %d  %d  %d\t%f : %f  (%f)\n", lyr_idx, filter_idx, b_idx, ana_grad, num_grad, fabs(ana_grad - num_grad));
                     }
 
                     agg_ana_grad += (ana_grad * ana_grad);
