@@ -122,63 +122,6 @@ Tensor *Tensor::from_csv(const char *csv_file_name)
     return tensor;
 }
 
-Tensor *Tensor::cross_correlate(Tensor *x, Tensor *k)
-{
-    int y_row_cnt = x->row_cnt - k->row_cnt + 1;
-    int y_col_cnt = x->col_cnt - k->col_cnt + 1;
-    Tensor *y = new Tensor(y_row_cnt, y_col_cnt, Cpu);
-    y->set_all(0.0f);
-
-    int stride = 1;
-
-    for (int y_row_idx = 0; y_row_idx < y_row_cnt; y_row_idx++)
-    {
-        for (int y_col_idx = 0; y_col_idx < y_col_cnt; y_col_idx++)
-        {
-            for (int k_row_idx = 0, k_rot_row_idx = k->row_cnt - 1; k_row_idx < k->row_cnt; k_row_idx++, k_rot_row_idx--)
-            {
-                for (int k_col_idx = 0, k_rot_col_idx = k->col_cnt - 1; k_col_idx < k->col_cnt; k_col_idx++, k_rot_col_idx--)
-                {
-                    float val = x->get_val(y_row_idx + k_row_idx, y_col_idx + k_col_idx) * k->get_val(k_rot_row_idx, k_rot_col_idx);
-                    val += y->get_val(y_row_idx, y_col_idx);
-                    y->set_val(y_row_idx, y_col_idx, val);
-                }
-            }
-        }
-    }
-
-    return y;
-}
-
-Tensor *Tensor::cross_correlate_w_bias(Tensor *x, Tensor *k, Tensor *b)
-{
-    int y_row_cnt = x->row_cnt - k->row_cnt + 1;
-    int y_col_cnt = x->col_cnt - k->col_cnt + 1;
-    Tensor *y = new Tensor(y_row_cnt, y_col_cnt, Cpu);
-    y->set_all(0.0f);
-
-    int stride = 1;
-
-    for (int y_row_idx = 0; y_row_idx < y_row_cnt; y_row_idx++)
-    {
-        for (int y_col_idx = 0; y_col_idx < y_col_cnt; y_col_idx++)
-        {
-            for (int k_row_idx = 0, k_rot_row_idx = k->row_cnt - 1; k_row_idx < k->row_cnt; k_row_idx++, k_rot_row_idx--)
-            {
-                for (int k_col_idx = 0, k_rot_col_idx = k->col_cnt - 1; k_col_idx < k->col_cnt; k_col_idx++, k_rot_col_idx--)
-                {
-                    float val = x->get_val(y_row_idx + k_row_idx, y_col_idx + k_col_idx) * k->get_val(k_rot_row_idx, k_rot_col_idx);
-                    val += y->get_val(y_row_idx, y_col_idx);
-                    val += b->get_val(y_row_idx, y_col_idx);
-                    y->set_val(y_row_idx, y_col_idx, val);
-                }
-            }
-        }
-    }
-
-    return y;
-}
-
 Tensor::Tensor(int row_cnt, int col_cnt, TensorType typ)
 {
     if (typ == Gpu)

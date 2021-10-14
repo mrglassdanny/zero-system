@@ -42,8 +42,6 @@ namespace zero
         public:
             static Tensor *one_hot_encode(int row_cnt, int col_cnt, TensorType typ, float *cpu_arr);
             static Tensor *from_csv(const char *csv_file_name);
-            static Tensor *cross_correlate(Tensor *x, Tensor *k);
-            static Tensor *cross_correlate_w_bias(Tensor *x, Tensor *k, Tensor *b);
 
             Tensor(int row_cnt, int col_cnt, TensorType typ);
             Tensor(const Tensor &src);
