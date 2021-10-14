@@ -115,7 +115,7 @@ void cnn_test()
 
 	CNN *cnn = new CNN(MSE, 0.001f);
 	cnn->add_layer(2, 8, 8, 4, 4, 4);
-	//cnn->add_layer(1, 8, 8, 1, 4, 4);
+	cnn->add_layer(3, 2, 2, None);
 	cnn->add_layer(Sigmoid);
 	cnn->compile();
 
