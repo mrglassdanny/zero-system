@@ -401,7 +401,7 @@ void CNN::compile()
     {
         CNNLayerConfiguration *lyr_cfg = &this->layer_configurations[lst_lyr_idx];
 
-        Tensor *n = new Tensor(lyr_cfg->filter_cnt * lyr_cfg->neuron_row_cnt, lyr_cfg->neuron_col_cnt, Gpu);
+        Tensor *n = new Tensor(lyr_cfg->channel_cnt * lyr_cfg->neuron_row_cnt, lyr_cfg->neuron_col_cnt, Gpu);
         n->set_all(0.0f);
         this->neurons.push_back(n);
     }
@@ -410,7 +410,7 @@ void CNN::compile()
     {
         CNNLayerConfiguration *lyr_cfg = &this->layer_configurations[lst_lyr_idx];
 
-        this->nn->add_layer(lyr_cfg->filter_cnt * lyr_cfg->neuron_row_cnt * lyr_cfg->neuron_col_cnt);
+        this->nn->add_layer(lyr_cfg->channel_cnt * lyr_cfg->neuron_row_cnt * lyr_cfg->neuron_col_cnt);
     }
 }
 
@@ -517,7 +517,7 @@ void CNN::back_propagate(Tensor *y)
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks(((nxt_lyr_cfg->channel_cnt * nxt_lyr_cfg->filter_row_cnt * nxt_lyr_cfg->filter_col_cnt) / threads_per_block) + 1);
 
-            for (int filter_idx = 0; filter_idx < lyr_cfg->filter_cnt; filter_idx++)
+            for (int filter_idx = 0; filter_idx < nxt_lyr_cfg->filter_cnt; filter_idx++)
             {
                 Tensor *nxt_df = this->filter_derivatives[lyr_idx - 1][filter_idx];
 
@@ -534,7 +534,7 @@ void CNN::back_propagate(Tensor *y)
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks(((lyr_cfg->neuron_row_cnt * lyr_cfg->neuron_col_cnt) / threads_per_block) + 1);
 
-            for (int filter_idx = 0; filter_idx < lyr_cfg->filter_cnt; filter_idx++)
+            for (int filter_idx = 0; filter_idx < nxt_lyr_cfg->filter_cnt; filter_idx++)
             {
                 Tensor *nxt_db = this->bias_derivatives[lyr_idx - 1][filter_idx];
 
@@ -555,7 +555,7 @@ void CNN::back_propagate(Tensor *y)
                     int threads_per_block(THREADS_PER_BLOCK);
                     int num_blocks((nxt_n_cnt / threads_per_block) + 1);
 
-                    for (int filter_idx = 0; filter_idx < lyr_cfg->filter_cnt; filter_idx++)
+                    for (int filter_idx = 0; filter_idx < nxt_lyr_cfg->filter_cnt; filter_idx++)
                     {
                         Tensor *nxt_f = this->filters[lyr_idx - 1][filter_idx];
 
