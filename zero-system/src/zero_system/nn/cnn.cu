@@ -96,22 +96,24 @@ __global__ void k_cnn_convolution(float *n_arr, float *f_arr, float *b_arr, floa
 
     int nxt_n_idx = tid;
 
-    if (nxt_n_idx < (chan_cnt * nxt_n_row_cnt * nxt_n_col_cnt))
+    if (nxt_n_idx < (nxt_n_row_cnt * nxt_n_col_cnt))
     {
         int nxt_n_row_idx = nxt_n_idx / nxt_n_col_cnt;
         int nxt_n_col_idx = nxt_n_idx % nxt_n_col_cnt;
 
         for (int chan_idx = 0; chan_idx < chan_cnt; chan_idx++)
         {
-            for (int f_row_idx = 0, f_rot_row_idx = f_row_cnt - 1; f_row_idx < f_row_cnt; f_row_idx++, f_rot_row_idx--)
+            for (int f_row_idx = 0; f_row_idx < f_row_cnt; f_row_idx++)
             {
-                for (int f_col_idx = 0, f_rot_col_idx = f_col_cnt - 1; f_col_idx < f_col_cnt; f_col_idx++, f_rot_col_idx--)
+                for (int f_col_idx = 0; f_col_idx < f_col_cnt; f_col_idx++)
                 {
-                    int n_row_idx = (chan_idx * n_row_cnt) + nxt_n_row_idx + f_row_idx;
-                    int n_col_idx = nxt_n_col_idx + f_col_idx;
+                    int n_local_row_idx = nxt_n_row_idx + f_row_idx;
+                    int n_local_col_idx = nxt_n_col_idx + f_col_idx;
 
-                    float val = n_arr[n_row_idx * n_col_cnt + n_col_idx];
-                    val *= f_arr[(chan_idx * f_row_cnt) + (f_rot_row_idx * f_col_cnt) + f_rot_col_idx];
+                    int f_local_rot_idx = (f_row_cnt * f_col_cnt) - (f_row_idx * f_col_cnt + f_col_idx);
+
+                    float val = n_arr[(chan_idx * n_row_cnt * n_col_cnt) + (n_local_row_idx * n_col_cnt) + n_local_col_idx];
+                    val *= f_arr[(chan_idx * f_row_cnt * f_col_cnt) + f_local_rot_idx];
                     val += b_arr[nxt_n_idx];
                     nxt_n_arr[nxt_n_idx] += val;
                 }
@@ -187,7 +189,7 @@ __global__ void k_cnn_derive_z_and_increment_filter_derivative(float *agg_deriva
     int f_idx = tid;
     int f_local_cnt = (f_row_cnt * f_col_cnt);
     int chan_idx = f_idx / f_local_cnt;
-    int f_local_idx = f_idx % f_local_cnt;
+    int f_local_idx = f_idx - (chan_idx * f_local_cnt);
     int f_local_rot_idx = f_local_cnt - f_local_idx;
     int f_local_row_idx = f_local_idx / f_col_cnt;
     int f_local_col_idx = f_local_idx % f_col_cnt;
@@ -205,7 +207,7 @@ __global__ void k_cnn_derive_z_and_increment_filter_derivative(float *agg_deriva
             {
                 int col_idx = (j + f_local_col_idx);
 
-                val += (agg_derivatives_arr[i * prv_n_col_cnt + j] * n_arr[row_idx * prv_n_col_cnt + col_idx]);
+                val += (agg_derivatives_arr[(i * prv_n_col_cnt + j)] * n_arr[(chan_idx * n_row_cnt * n_col_cnt) + (row_idx * n_col_cnt) + col_idx]);
             }
         }
 
@@ -223,7 +225,18 @@ __global__ void k_cnn_derive_z_and_increment_bias_derivative(float *agg_derivati
     }
 }
 
-__global__ void k_cnn_adjust_filter(float *f_arr, float *df_arr, int batch_size, float learning_rate, int cnt)
+__global__ void k_cnn_derive_z_and_aggregate_derivatives(float *agg_derivatives_arr, float *f_arr, float *nxt_agg_derivatives_arr,
+                                                         int n_row_cnt, int n_col_cnt, int nxt_f_row_cnt, int nxt_f_col_cnt, int nxt_n_row_cnt, int nxt_n_col_cnt)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    int nxt_n_idx = tid;
+
+    //nxt_agg_derivatives_arr[nxt_n_idx] += (agg_derivatives_arr[n_idx] * f_arr[w_idx]);
+}
+
+__global__ void
+k_cnn_adjust_filter(float *f_arr, float *df_arr, int batch_size, float learning_rate, int cnt)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -415,7 +428,7 @@ void CNN::feed_forward(Tensor *x, bool train_flg)
         CNNLayerConfiguration *lyr_cfg = &this->layer_configurations[lyr_idx];
         CNNLayerConfiguration *nxt_lyr_cfg = &this->layer_configurations[lyr_idx + 1];
 
-        int n_cnt = lyr_cfg->channel_cnt * lyr_cfg->neuron_row_cnt * lyr_cfg->neuron_col_cnt;
+        int n_cnt = (lyr_cfg->channel_cnt * lyr_cfg->neuron_row_cnt * lyr_cfg->neuron_col_cnt);
         int nxt_n_cnt = (lyr_cfg->filter_cnt * nxt_lyr_cfg->neuron_row_cnt * nxt_lyr_cfg->neuron_col_cnt);
 
         Tensor *n = this->neurons[lyr_idx];
@@ -501,14 +514,14 @@ void CNN::back_propagate(Tensor *y)
         // Derive z (with respect to filter):
         {
             int threads_per_block(THREADS_PER_BLOCK);
-            int num_blocks(((nxt_n_cnt / lyr_cfg->filter_cnt) / threads_per_block) + 1);
+            int num_blocks(((nxt_lyr_cfg->channel_cnt * nxt_lyr_cfg->filter_row_cnt * nxt_lyr_cfg->filter_col_cnt) / threads_per_block) + 1);
 
             for (int filter_idx = 0; filter_idx < lyr_cfg->filter_cnt; filter_idx++)
             {
                 Tensor *nxt_df = this->filter_derivatives[lyr_idx - 1][filter_idx];
 
-                k_cnn_derive_z_and_increment_filter_derivative<<<num_blocks, threads_per_block>>>(agg_derivatives->get_arr(Gpu),
-                                                                                                  nxt_n->get_slice(filter_idx * nxt_lyr_cfg->neuron_row_cnt * nxt_lyr_cfg->neuron_col_cnt, Gpu),
+                k_cnn_derive_z_and_increment_filter_derivative<<<num_blocks, threads_per_block>>>(agg_derivatives->get_slice(filter_idx * lyr_cfg->neuron_row_cnt * lyr_cfg->neuron_col_cnt, Gpu),
+                                                                                                  nxt_n->get_arr(Gpu),
                                                                                                   nxt_df->get_arr(Gpu),
                                                                                                   nxt_lyr_cfg->channel_cnt, nxt_lyr_cfg->neuron_row_cnt, nxt_lyr_cfg->neuron_col_cnt,
                                                                                                   nxt_lyr_cfg->filter_row_cnt, nxt_lyr_cfg->filter_col_cnt, lyr_cfg->neuron_row_cnt, lyr_cfg->neuron_col_cnt);
@@ -530,10 +543,31 @@ void CNN::back_propagate(Tensor *y)
             }
         }
 
-        // TODO: Derive z (with respect to activation) and aggregate derivatives:
+        // Derive z (with respect to activation) and aggregate derivatives:
         {
             if (lyr_idx > 1)
             {
+                Tensor *nxt_agg_derivatives = new Tensor(1, nxt_n_cnt, Gpu);
+                nxt_agg_derivatives->set_all(0.0f);
+
+                {
+                    int threads_per_block(THREADS_PER_BLOCK);
+                    int num_blocks((nxt_n_cnt / threads_per_block) + 1);
+
+                    for (int filter_idx = 0; filter_idx < lyr_cfg->filter_cnt; filter_idx++)
+                    {
+                        Tensor *nxt_f = this->filters[lyr_idx - 1][filter_idx];
+
+                        k_cnn_derive_z_and_aggregate_derivatives<<<num_blocks, threads_per_block>>>(agg_derivatives->get_arr(Gpu), nxt_f->get_arr(Gpu),
+                                                                                                    nxt_agg_derivatives->get_arr(Gpu),
+                                                                                                    lyr_cfg->neuron_row_cnt, lyr_cfg->neuron_col_cnt,
+                                                                                                    nxt_lyr_cfg->filter_row_cnt, nxt_lyr_cfg->filter_col_cnt,
+                                                                                                    nxt_lyr_cfg->neuron_row_cnt, nxt_lyr_cfg->neuron_col_cnt);
+                    }
+                }
+
+                delete agg_derivatives;
+                agg_derivatives = nxt_agg_derivatives;
             }
         }
     }
@@ -586,5 +620,131 @@ void CNN::optimize(int batch_size)
     // Fully connected:
     {
         this->nn->optimize(batch_size);
+    }
+}
+
+void CNN::check_gradient(Tensor *x, Tensor *y, bool print_flg)
+{
+    float agg_ana_grad = 0.0f;
+    float agg_num_grad = 0.0f;
+    float agg_grad_diff = 0.0f;
+
+    float epsilon = 0.001f;
+
+    // Analytical gradients:
+    {
+        this->feed_forward(x, true);
+        this->back_propagate(y);
+    }
+
+    // Numerical gradients:
+    {
+        int lyr_cnt = this->layer_configurations.size();
+        int lst_lyr_idx = lyr_cnt - 1;
+
+        for (int lyr_idx = 0; lyr_idx < lst_lyr_idx; lyr_idx++)
+        {
+            CNNLayerConfiguration *lyr_cfg = &this->layer_configurations[lyr_idx];
+            CNNLayerConfiguration *nxt_lyr_cfg = &this->layer_configurations[lyr_idx + 1];
+
+            for (int filter_idx = 0; filter_idx < lyr_cfg->filter_cnt; filter_idx++)
+            {
+                Tensor *w = this->filters[lyr_idx][filter_idx];
+                Tensor *dw = this->filter_derivatives[lyr_idx][filter_idx];
+                Tensor *b = this->biases[lyr_idx][filter_idx];
+                Tensor *db = this->bias_derivatives[lyr_idx][filter_idx];
+
+                // Filters:
+                for (int w_idx = 0; w_idx < (lyr_cfg->channel_cnt * lyr_cfg->filter_row_cnt * lyr_cfg->filter_col_cnt); w_idx++)
+                {
+                    float left_cost = 0.0;
+                    float right_cost = 0.0;
+
+                    float orig_w_val = w->get_val(w_idx);
+
+                    float left_w_val = orig_w_val - epsilon;
+                    float right_w_val = orig_w_val + epsilon;
+
+                    float ana_grad = dw->get_val(w_idx);
+
+                    // Left:
+                    w->set_val(w_idx, left_w_val);
+                    {
+                        this->feed_forward(x, true);
+                        left_cost += this->get_cost(y);
+                    }
+
+                    // Right:
+                    w->set_val(w_idx, right_w_val);
+                    {
+                        this->feed_forward(x, true);
+                        right_cost += this->get_cost(y);
+                    }
+
+                    float num_grad = (right_cost - left_cost) / (2.0f * epsilon);
+
+                    if (print_flg)
+                    {
+                        printf("W: %d  %d\t%f : %f  (%f)\n", lyr_idx, w_idx, ana_grad, num_grad, fabs(ana_grad - num_grad));
+                    }
+
+                    agg_ana_grad += (ana_grad * ana_grad);
+                    agg_num_grad += (num_grad * num_grad);
+                    agg_grad_diff += ((ana_grad - num_grad) * (ana_grad - num_grad));
+
+                    w->set_val(w_idx, orig_w_val);
+                }
+
+                // Biases:
+                for (int b_idx = 0; b_idx < nxt_lyr_cfg->neuron_row_cnt * nxt_lyr_cfg->neuron_col_cnt; b_idx++)
+                {
+                    float left_cost = 0.0;
+                    float right_cost = 0.0;
+
+                    float orig_b_val = b->get_val(b_idx);
+
+                    float left_b_val = orig_b_val - epsilon;
+                    float right_b_val = orig_b_val + epsilon;
+
+                    float ana_grad = db->get_val(b_idx);
+
+                    // Left:
+                    b->set_val(b_idx, left_b_val);
+                    {
+                        this->feed_forward(x, true);
+                        left_cost += this->get_cost(y);
+                    }
+
+                    // Right:
+                    b->set_val(b_idx, right_b_val);
+                    {
+                        this->feed_forward(x, true);
+                        right_cost += this->get_cost(y);
+                    }
+
+                    float num_grad = (right_cost - left_cost) / (2.0f * epsilon);
+
+                    if (print_flg)
+                    {
+                        printf("B: %d  %d\t%f : %f  (%f)\n", lyr_idx, b_idx, ana_grad, num_grad, fabs(ana_grad - num_grad));
+                    }
+
+                    agg_ana_grad += (ana_grad * ana_grad);
+                    agg_num_grad += (num_grad * num_grad);
+                    agg_grad_diff += ((ana_grad - num_grad) * (ana_grad - num_grad));
+
+                    b->set_val(b_idx, orig_b_val);
+                }
+            }
+        }
+    }
+
+    if ((agg_grad_diff) == 0.0f && (agg_ana_grad + agg_num_grad) == 0.0f)
+    {
+        printf("GRADIENT CHECK RESULT: %f\n", 0.0f);
+    }
+    else
+    {
+        printf("GRADIENT CHECK RESULT: %f\n", (agg_grad_diff) / (agg_ana_grad + agg_num_grad));
     }
 }

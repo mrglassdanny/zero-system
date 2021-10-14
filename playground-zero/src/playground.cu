@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include <zero_system/nn/nn.cuh>
+#include <zero_system/nn/cnn.cuh>
 #include <zero_system/cluster/kmeans.cuh>
 
 using namespace zero::core;
@@ -68,7 +69,7 @@ void nn_performance_test()
 		for (int j = 0; j < batch_size; j++)
 		{
 			nn->feed_forward(x, false);
-			nn->back_propagate(y);
+			nn->back_propagate(y, false);
 		}
 	}
 
@@ -101,22 +102,31 @@ void kmeans_test()
 
 void cnn_test()
 {
-	Tensor *x = new Tensor(4, 4, Cpu);
-	Tensor *k = new Tensor(2, 2, Cpu);
+	int x_col_cnt = 8 * 8;
+	int y_col_cnt = 4;
 
+	Tensor *x = new Tensor(1, x_col_cnt, Gpu);
+	//x->set_all(0.12f);
 	x->set_all_rand(1.0f);
-	k->set_all(1.0f);
 
-	Tensor *y = Tensor::cross_correlate(x, k);
+	Tensor *y = new Tensor(1, y_col_cnt, Gpu);
+	y->set_all(0.0f);
+	y->set_val(0, 1.0f);
 
-	x->print();
-	k->print();
+	CNN *cnn = new CNN(MSE, 0.001f);
+	cnn->add_layer(1, 8, 8, 1, 4, 4);
+	cnn->add_layer(None);
+	cnn->compile();
 
-	y->print();
+	cnn->fully_connected()->add_layer(8, None);
+	cnn->fully_connected()->add_layer(y_col_cnt, None);
+	cnn->fully_connected()->compile();
+
+	cnn->check_gradient(x, y, true);
+
+	delete cnn;
 
 	delete x;
-	delete k;
-
 	delete y;
 }
 

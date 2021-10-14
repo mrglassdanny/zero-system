@@ -97,17 +97,19 @@ void mnist_cnn()
     cnn->add_layer(None);
     cnn->compile();
 
-    cnn->fully_connected()->add_layer(64, Sigmoid);
-    cnn->fully_connected()->add_layer(10, Sigmoid);
+    cnn->fully_connected()->add_layer(64, None);
+    cnn->fully_connected()->add_layer(10, None);
     cnn->fully_connected()->compile();
 
     Batch *batch = sup->create_batch(1, 0, 1);
+    Tensor *x = batch->get_x(0);
+    Tensor *y = batch->get_y(0);
 
     for (int i = 0; i < 1; i++)
     {
-        cnn->feed_forward(batch->get_x(0), true);
-        printf("COST: %f\n", cnn->get_cost(batch->get_y(0)));
-        cnn->back_propagate(batch->get_y(0));
+        cnn->feed_forward(x, true);
+        printf("COST: %f\n", cnn->get_cost(y));
+        cnn->back_propagate(y);
         cnn->optimize(1);
     }
 
