@@ -114,11 +114,12 @@ __global__ void k_cnn_convolution(float *n_arr, float *f_arr, float *b_arr, floa
 
                     float val = n_arr[(chan_idx * n_row_cnt * n_col_cnt) + (n_local_row_idx * n_col_cnt) + n_local_col_idx];
                     val *= f_arr[(chan_idx * f_row_cnt * f_col_cnt) + f_local_rot_idx];
-                    val += b_arr[nxt_n_idx];
                     nxt_n_arr[nxt_n_idx] += val;
                 }
             }
         }
+
+        nxt_n_arr[nxt_n_idx] += b_arr[nxt_n_idx];
     }
 }
 
@@ -531,15 +532,15 @@ void CNN::back_propagate(Tensor *y)
         // Derive z (with respect to bias):
         {
             int threads_per_block(THREADS_PER_BLOCK);
-            int num_blocks(((n_cnt / lyr_cfg->filter_cnt) / threads_per_block) + 1);
+            int num_blocks(((lyr_cfg->neuron_row_cnt * lyr_cfg->neuron_col_cnt) / threads_per_block) + 1);
 
             for (int filter_idx = 0; filter_idx < lyr_cfg->filter_cnt; filter_idx++)
             {
                 Tensor *nxt_db = this->bias_derivatives[lyr_idx - 1][filter_idx];
 
-                k_cnn_derive_z_and_increment_bias_derivative<<<num_blocks, threads_per_block>>>(agg_derivatives->get_arr(Gpu),
+                k_cnn_derive_z_and_increment_bias_derivative<<<num_blocks, threads_per_block>>>(agg_derivatives->get_slice(filter_idx * lyr_cfg->neuron_row_cnt * lyr_cfg->neuron_col_cnt, Gpu),
                                                                                                 nxt_db->get_arr(Gpu),
-                                                                                                n_cnt);
+                                                                                                (lyr_cfg->neuron_row_cnt * lyr_cfg->neuron_col_cnt));
             }
         }
 
