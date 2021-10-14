@@ -93,19 +93,19 @@ void mnist_cnn()
 
     CNN *cnn = new CNN(MSE, 1.0f);
 
-    cnn->add_layer(1, 28, 28, 1, 4, 4);
-    cnn->add_layer(None);
+    cnn->add_layer(1, 28, 28, 3, 4, 4);
+    cnn->add_layer(Sigmoid);
     cnn->compile();
 
-    cnn->fully_connected()->add_layer(64, None);
-    cnn->fully_connected()->add_layer(10, None);
+    cnn->fully_connected()->add_layer(64, ReLU);
+    cnn->fully_connected()->add_layer(10, Sigmoid);
     cnn->fully_connected()->compile();
 
     Batch *batch = sup->create_batch(1, 0, 1);
     Tensor *x = batch->get_x(0);
     Tensor *y = batch->get_y(0);
 
-    for (int i = 0; i < 1; i++)
+    for (int i = 0; i < 10; i++)
     {
         cnn->feed_forward(x, true);
         printf("COST: %f\n", cnn->get_cost(y));
