@@ -432,17 +432,17 @@ void CNN::add_layer(int channel_cnt, int neuron_row_cnt, int neuron_col_cnt,
                                                                filter_cnt, filter_row_cnt, filter_col_cnt, activation_func_id));
 }
 
+void CNN::add_layer(ActivationFunctionId activation_func_id)
+{
+    this->add_layer(1, 0, 0, activation_func_id);
+}
+
 void CNN::input_layer(int channel_cnt, int neuron_row_cnt, int neuron_col_cnt,
                       int filter_cnt, int filter_row_cnt, int filter_col_cnt,
                       ActivationFunctionId activation_func_id)
 {
     this->add_layer(channel_cnt, neuron_row_cnt, neuron_col_cnt,
                     filter_cnt, filter_row_cnt, filter_col_cnt, activation_func_id);
-}
-
-void CNN::add_layer(ActivationFunctionId activation_func_id)
-{
-    this->add_layer(1, 0, 0, activation_func_id);
 }
 
 void CNN::add_layer(int filter_cnt, int filter_row_cnt, int filter_col_cnt,
@@ -586,7 +586,6 @@ void CNN::feed_forward(Tensor *x, bool train_flg)
         CNNLayerConfiguration *lyr_cfg = &this->layer_configurations[lyr_idx];
         CNNLayerConfiguration *nxt_lyr_cfg = &this->layer_configurations[lyr_idx + 1];
 
-        int n_global_cnt = (lyr_cfg->channel_cnt * lyr_cfg->neuron_row_cnt * lyr_cfg->neuron_col_cnt);
         int nxt_n_global_cnt = (lyr_cfg->filter_cnt * nxt_lyr_cfg->neuron_row_cnt * nxt_lyr_cfg->neuron_col_cnt);
 
         Tensor *n = this->neurons[lyr_idx];

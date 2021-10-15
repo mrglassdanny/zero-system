@@ -452,6 +452,8 @@ float Tensor::get_mean()
         mean += this->arr[i];
     }
 
+    this->translate(orig_typ);
+
     return mean / tot_cnt;
 }
 

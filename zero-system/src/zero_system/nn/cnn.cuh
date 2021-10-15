@@ -45,6 +45,7 @@ namespace zero
             void add_layer(int channel_cnt, int neuron_row_cnt, int neuron_col_cnt,
                            int filter_cnt, int filter_row_cnt, int filter_col_cnt,
                            ActivationFunctionId activation_func_id);
+            void add_layer(ActivationFunctionId activation_func_id);
 
         public:
             CNN(CostFunctionId cost_func_id, float learning_rate);
@@ -56,7 +57,7 @@ namespace zero
             void input_layer(int channel_cnt, int neuron_row_cnt, int neuron_col_cnt,
                              int filter_cnt, int filter_row_cnt, int filter_col_cnt,
                              ActivationFunctionId activation_func_id);
-            void add_layer(ActivationFunctionId activation_func_id);
+
             void add_layer(int filter_cnt, int filter_row_cnt, int filter_col_cnt,
                            ActivationFunctionId activation_func_id);
 
