@@ -241,10 +241,13 @@ __global__ void k_cnn_convolve(float *n_arr, float *f_arr, float *b_arr, float *
         int nxt_n_row_idx = nxt_n_idx / nxt_n_col_cnt;
         int nxt_n_col_idx = nxt_n_idx % nxt_n_col_cnt;
 
+#pragma unroll
         for (int chan_idx = 0; chan_idx < chan_cnt; chan_idx++)
         {
+#pragma unroll
             for (int f_row_idx = 0; f_row_idx < f_row_cnt; f_row_idx++)
             {
+#pragma unroll
                 for (int f_col_idx = 0; f_col_idx < f_col_cnt; f_col_idx++)
                 {
                     int n_row_idx = nxt_n_row_idx + f_row_idx;
@@ -282,10 +285,12 @@ __global__ void k_cnn_derive_z_and_increment_filter_derivative(float *agg_deriva
 
         float val = 0.0f;
 
+#pragma unroll
         for (int n_row_idx = 0; n_row_idx < n_row_cnt; n_row_idx++)
         {
             int nxt_n_row_idx = (n_row_idx + nxt_f_row_idx);
 
+#pragma unroll
             for (int n_col_idx = 0; n_col_idx < n_col_cnt; n_col_idx++)
             {
                 int nxt_n_col_idx = (n_col_idx + nxt_f_col_idx);
@@ -327,8 +332,10 @@ __global__ void k_cnn_derive_z_and_aggregate_derivatives(float *agg_derivatives_
 
         float val = 0.0f;
 
+#pragma unroll
         for (int nxt_f_row_idx = 0; nxt_f_row_idx < nxt_f_row_cnt; nxt_f_row_idx++)
         {
+#pragma unroll
             for (int nxt_f_col_idx = 0; nxt_f_col_idx < nxt_f_col_cnt; nxt_f_col_idx++)
             {
                 int n_row_idx = nxt_n_row_idx - nxt_f_row_idx;
