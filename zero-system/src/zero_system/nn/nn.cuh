@@ -42,9 +42,6 @@ namespace zero
             float *d_cost;
 
         public:
-            static void write_csv_header(FILE *csv_file_ptr);
-            static void write_to_csv(FILE *csv_file_ptr, int epoch, Report rpt);
-
             NN(CostFunctionId cost_func_id, float learning_rate);
             NN(const char *path);
             ~NN();
@@ -68,7 +65,11 @@ namespace zero
             Tensor *back_propagate(Tensor *y, bool keep_agg_derivatives_flg);
             void optimize(int batch_size);
 
+            Tensor *get_output(TensorType typ);
+
             void check_gradient(Tensor *x, Tensor *y, bool print_flg);
+
+            void update_report(Report *rpt, Tensor *y);
 
             Report train(Batch *batch);
             Report validate(Batch *batch);

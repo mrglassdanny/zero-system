@@ -37,5 +37,7 @@ namespace zero
             void update_correct_cnt(Tensor *n, Tensor *y);
         };
 
+        void write_csv_header(FILE *csv_file_ptr);
+        void write_to_csv(FILE *csv_file_ptr, int epoch, Report rpt);
     }
 }

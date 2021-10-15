@@ -43,3 +43,13 @@ void Report::update_correct_cnt(Tensor *n, Tensor *y)
         }
     }
 }
+
+void write_csv_header(FILE *csv_file_ptr)
+{
+    fprintf(csv_file_ptr, "epoch,cost,accuracy,correct_cnt,total_cnt\n");
+}
+
+void write_to_csv(FILE *csv_file_ptr, int epoch, Report rpt)
+{
+    fprintf(csv_file_ptr, "%d,%f,%f,%d,%d\n", epoch, rpt.cost, ((float)rpt.correct_cnt / (float)rpt.total_cnt) * 100.0f, rpt.correct_cnt, rpt.total_cnt);
+}

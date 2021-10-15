@@ -495,18 +495,6 @@ NNLayerConfiguration::~NNLayerConfiguration()
 {
 }
 
-// NN static functions:
-
-void NN::write_csv_header(FILE *csv_file_ptr)
-{
-    fprintf(csv_file_ptr, "epoch,cost,accuracy,correct_cnt,total_cnt\n");
-}
-
-void NN::write_to_csv(FILE *csv_file_ptr, int epoch, Report rpt)
-{
-    fprintf(csv_file_ptr, "%d,%f,%f,%d,%d\n", epoch, rpt.cost, ((float)rpt.correct_cnt / (float)rpt.total_cnt) * 100.0f, rpt.correct_cnt, rpt.total_cnt);
-}
-
 // NN member functions:
 
 NN::NN(CostFunctionId cost_func_id, float learning_rate)
@@ -1022,6 +1010,11 @@ void NN::optimize(int batch_size)
     }
 }
 
+Tensor *NN::get_output(TensorType typ)
+{
+    return new Tensor(*this->neurons[this->neurons.size() - 1], typ);
+}
+
 void NN::check_gradient(Tensor *x, Tensor *y, bool print_flg)
 {
     float agg_ana_grad = 0.0f;
@@ -1150,6 +1143,12 @@ void NN::check_gradient(Tensor *x, Tensor *y, bool print_flg)
     }
 }
 
+void NN::update_report(Report *rpt, Tensor *y)
+{
+    int lst_lyr_idx = this->layer_configurations.size() - 1;
+    rpt->update_correct_cnt(this->neurons[lst_lyr_idx], y);
+}
+
 Report NN::train(Batch *batch)
 {
     Report rpt;
@@ -1271,7 +1270,7 @@ void NN::train_and_test(Supervisor *supervisor, int train_batch_size, const char
     if (csv_path != nullptr)
     {
         csv_file_ptr = fopen(csv_path, "w");
-        NN::write_csv_header(csv_file_ptr);
+        write_csv_header(csv_file_ptr);
     }
 
     Batch *test_batch = supervisor->create_test_batch();
@@ -1284,7 +1283,7 @@ void NN::train_and_test(Supervisor *supervisor, int train_batch_size, const char
 
         if (csv_path != nullptr)
         {
-            NN::write_to_csv(csv_file_ptr, epoch, train_rpt);
+            write_to_csv(csv_file_ptr, epoch, train_rpt);
         }
         else
         {
@@ -1331,7 +1330,7 @@ void NN::all(Supervisor *supervisor, int train_batch_size, int validation_chk_fr
     if (csv_path != nullptr)
     {
         csv_file_ptr = fopen(csv_path, "w");
-        NN::write_csv_header(csv_file_ptr);
+        write_csv_header(csv_file_ptr);
     }
 
     Batch *validation_batch = supervisor->create_validation_batch();
@@ -1347,7 +1346,7 @@ void NN::all(Supervisor *supervisor, int train_batch_size, int validation_chk_fr
 
         if (csv_path != nullptr)
         {
-            NN::write_to_csv(csv_file_ptr, epoch, train_rpt);
+            write_to_csv(csv_file_ptr, epoch, train_rpt);
         }
 
         delete train_batch;
@@ -1397,6 +1396,6 @@ void NN::all(Supervisor *supervisor, int train_batch_size, int validation_chk_fr
 Tensor *NN::predict(Tensor *x)
 {
     this->feed_forward(x, false);
-    Tensor *pred = new Tensor(*this->neurons[this->neurons.size() - 1], Cpu);
+    Tensor *pred = this->get_output(Cpu);
     return pred;
 }
