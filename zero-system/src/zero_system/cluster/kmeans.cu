@@ -148,7 +148,7 @@ void KMeans::print()
     this->clusters->print();
 }
 
-void KMeans::dump(const char *path)
+void KMeans::save(const char *path)
 {
     FILE *file_ptr = fopen(path, "wb");
 
@@ -304,7 +304,7 @@ Tensor *KMeans::predict(Tensor *x)
 
 // KMeans static functions:
 
-void KMeans::dump_best(Tensor *x, int cluster_cnt, int iter_cnt, const char *path)
+void KMeans::save_best(Tensor *x, int cluster_cnt, int iter_cnt, const char *path)
 {
     KMeans *kmeans = new KMeans(cluster_cnt, x->get_col_cnt());
     KMeans *best_kmeans = new KMeans(cluster_cnt, x->get_col_cnt());
@@ -326,7 +326,7 @@ void KMeans::dump_best(Tensor *x, int cluster_cnt, int iter_cnt, const char *pat
         kmeans->reset_clusters();
     }
 
-    best_kmeans->dump(path);
+    best_kmeans->save(path);
 
     delete kmeans;
     delete best_kmeans;

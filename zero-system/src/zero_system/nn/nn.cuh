@@ -48,7 +48,7 @@ namespace zero
 
             void print();
 
-            void dump(const char *path);
+            void save(const char *path);
 
             void add_layer(int neuron_cnt);
             void add_layer(int neuron_cnt, ActivationFunctionId activation_func_id);

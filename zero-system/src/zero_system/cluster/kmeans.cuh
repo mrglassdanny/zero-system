@@ -24,7 +24,7 @@ namespace zero
 
             void print();
 
-            void dump(const char *path);
+            void save(const char *path);
 
             void initialize_clusters(Tensor *x);
             void reset_clusters();
@@ -32,7 +32,7 @@ namespace zero
             float train(Tensor *x);
             Tensor *predict(Tensor *x);
 
-            static void dump_best(Tensor *x, int cluster_cnt, int iter_cnt, const char *path);
+            static void save_best(Tensor *x, int cluster_cnt, int iter_cnt, const char *path);
         };
     }
 }
