@@ -983,7 +983,7 @@ void CNN::train_and_test(Supervisor *supervisor, int train_batch_size, const cha
     if (csv_path != nullptr)
     {
         csv_file_ptr = fopen(csv_path, "w");
-        write_csv_header(csv_file_ptr);
+        CSVUtils::write_csv_header(csv_file_ptr);
     }
 
     Batch *test_batch = supervisor->create_test_batch();
@@ -996,7 +996,7 @@ void CNN::train_and_test(Supervisor *supervisor, int train_batch_size, const cha
 
         if (csv_path != nullptr)
         {
-            write_to_csv(csv_file_ptr, epoch, train_rpt);
+            CSVUtils::write_to_csv(csv_file_ptr, epoch, train_rpt);
         }
         else
         {
@@ -1043,7 +1043,7 @@ void CNN::all(Supervisor *supervisor, int train_batch_size, int validation_chk_f
     if (csv_path != nullptr)
     {
         csv_file_ptr = fopen(csv_path, "w");
-        write_csv_header(csv_file_ptr);
+        CSVUtils::write_csv_header(csv_file_ptr);
     }
 
     Batch *validation_batch = supervisor->create_validation_batch();
@@ -1059,7 +1059,7 @@ void CNN::all(Supervisor *supervisor, int train_batch_size, int validation_chk_f
 
         if (csv_path != nullptr)
         {
-            write_to_csv(csv_file_ptr, epoch, train_rpt);
+            CSVUtils::write_to_csv(csv_file_ptr, epoch, train_rpt);
         }
 
         delete train_batch;
