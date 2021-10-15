@@ -113,7 +113,7 @@ void cnn_test()
 	y->set_val(0, 1.0f);
 
 	CNN *cnn = new CNN(MSE, 0.001f);
-	cnn->add_layer(2, 16, 16, 4, 4, 4);
+	cnn->add_layer(2, 16, 16, 4, 4, 4, Sigmoid);
 	cnn->add_layer(3, 2, 2, None);
 	cnn->add_layer(None);
 	cnn->compile();
@@ -134,13 +134,13 @@ int main(int argc, char **argv)
 {
 	srand(time(NULL));
 
-	nn_test();
+	//nn_test();
 
 	//nn_performance_test();
 
 	//kmeans_test();
 
-	//cnn_test();
+	cnn_test();
 
 	return 0;
 }
