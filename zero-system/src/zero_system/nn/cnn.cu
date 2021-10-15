@@ -406,12 +406,33 @@ CNN::~CNN()
         }
     }
 
-    // Dont forget about the output layer!
+    // Dont forget about the last conv layer!
     {
         delete this->neurons[lst_lyr_idx];
     }
 
     delete this->nn;
+}
+
+void CNN::save(const char *path)
+{
+    // TODO
+}
+
+void CNN::add_layer(int channel_cnt, int neuron_row_cnt, int neuron_col_cnt,
+                    int filter_cnt, int filter_row_cnt, int filter_col_cnt,
+                    ActivationFunctionId activation_func_id)
+{
+    this->layer_configurations.push_back(CNNLayerConfiguration(channel_cnt, neuron_row_cnt, neuron_col_cnt,
+                                                               filter_cnt, filter_row_cnt, filter_col_cnt, activation_func_id));
+}
+
+void CNN::input_layer(int channel_cnt, int neuron_row_cnt, int neuron_col_cnt,
+                      int filter_cnt, int filter_row_cnt, int filter_col_cnt,
+                      ActivationFunctionId activation_func_id)
+{
+    this->add_layer(channel_cnt, neuron_row_cnt, neuron_col_cnt,
+                    filter_cnt, filter_row_cnt, filter_col_cnt, activation_func_id);
 }
 
 void CNN::add_layer(ActivationFunctionId activation_func_id)
@@ -433,19 +454,20 @@ void CNN::add_layer(int filter_cnt, int filter_row_cnt, int filter_col_cnt,
                     filter_cnt, filter_row_cnt, filter_col_cnt, activation_func_id);
 }
 
-void CNN::add_layer(int channel_cnt, int neuron_row_cnt, int neuron_col_cnt,
-                    int filter_cnt, int filter_row_cnt, int filter_col_cnt)
+void CNN::flatten(ActivationFunctionId activation_func_id)
 {
-    this->add_layer(channel_cnt, neuron_row_cnt, neuron_col_cnt,
-                    filter_cnt, filter_row_cnt, filter_col_cnt, None);
-}
+    // Add last conv layer.
+    this->add_layer(activation_func_id);
 
-void CNN::add_layer(int channel_cnt, int neuron_row_cnt, int neuron_col_cnt,
-                    int filter_cnt, int filter_row_cnt, int filter_col_cnt,
-                    ActivationFunctionId activation_func_id)
-{
-    this->layer_configurations.push_back(CNNLayerConfiguration(channel_cnt, neuron_row_cnt, neuron_col_cnt,
-                                                               filter_cnt, filter_row_cnt, filter_col_cnt, activation_func_id));
+    int lyr_cnt = this->layer_configurations.size();
+    int lst_lyr_idx = lyr_cnt - 1;
+
+    // Add input layer of fully connected:
+    {
+        CNNLayerConfiguration *lyr_cfg = &this->layer_configurations[lst_lyr_idx];
+
+        this->nn->add_layer(lyr_cfg->channel_cnt * lyr_cfg->neuron_row_cnt * lyr_cfg->neuron_col_cnt);
+    }
 }
 
 NN *CNN::fully_connected()
@@ -475,7 +497,23 @@ void CNN::compile()
         for (int filter_idx = 0; filter_idx < lyr_cfg->filter_cnt; filter_idx++)
         {
             Tensor *f = new Tensor(lyr_cfg->channel_cnt * lyr_cfg->filter_row_cnt, lyr_cfg->filter_col_cnt, Gpu);
-            f->set_all_rand_normal_distribution(0.0f, sqrt(2.0f / (lyr_cfg->neuron_row_cnt * lyr_cfg->neuron_col_cnt)));
+            switch (nxt_lyr_cfg->activation_func_id)
+            {
+            case None:
+            case ReLU:
+                // He (normal):
+                f->set_all_rand_normal_distribution(0.0f, sqrt(2.0f / (lyr_cfg->neuron_row_cnt * lyr_cfg->neuron_col_cnt)));
+                break;
+            case Sigmoid:
+            case Tanh:
+                // Xavier (normal):
+                f->set_all_rand_normal_distribution(0.0f, sqrt(2.0f / ((lyr_cfg->neuron_row_cnt * lyr_cfg->neuron_col_cnt) + (nxt_lyr_cfg->neuron_row_cnt * nxt_lyr_cfg->neuron_col_cnt))));
+                break;
+            default:
+                // Xavier-like (normal):
+                f->set_all_rand_normal_distribution(0.0f, sqrt(1.0f / (lyr_cfg->neuron_row_cnt * lyr_cfg->neuron_col_cnt)));
+                break;
+            }
             this->filters[lyr_idx].push_back(f);
 
             Tensor *b = new Tensor(nxt_lyr_cfg->neuron_row_cnt, nxt_lyr_cfg->neuron_col_cnt, Gpu);
@@ -492,7 +530,7 @@ void CNN::compile()
         }
     }
 
-    // Dont forget about the output layer!
+    // Dont forget about the last conv layer!
     {
         CNNLayerConfiguration *lyr_cfg = &this->layer_configurations[lst_lyr_idx];
 
@@ -501,11 +539,9 @@ void CNN::compile()
         this->neurons.push_back(n);
     }
 
-    // Add input layer of fully connected nn:
+    // Now compile fully connected:
     {
-        CNNLayerConfiguration *lyr_cfg = &this->layer_configurations[lst_lyr_idx];
-
-        this->nn->add_layer(lyr_cfg->channel_cnt * lyr_cfg->neuron_row_cnt * lyr_cfg->neuron_col_cnt);
+        this->nn->compile();
     }
 }
 
