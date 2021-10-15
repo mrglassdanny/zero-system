@@ -365,7 +365,7 @@ __global__ void k_nn_add_bias(float *b_arr, float *nxt_n_arr, int nxt_n_cnt)
     }
 }
 
-__global__ void k_nn_derive_z_and_increment_weight_derivative(float *agg_derivatives_arr, float *n_arr, float *dw_arr, int n_cnt, int nxt_n_cnt)
+__global__ void k_nn_derive_z_and_increment_weight_derivative(float *agg_derivatives_arr, float *nxt_n_arr, float *nxt_dw_arr, int n_cnt, int nxt_n_cnt)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -377,21 +377,21 @@ __global__ void k_nn_derive_z_and_increment_weight_derivative(float *agg_derivat
 
     if (w_idx < w_cnt)
     {
-        dw_arr[w_idx] += (agg_derivatives_arr[n_idx] * n_arr[nxt_n_idx]);
+        nxt_dw_arr[w_idx] += (agg_derivatives_arr[n_idx] * nxt_n_arr[nxt_n_idx]);
     }
 }
 
-__global__ void k_nn_derive_z_and_increment_bias_derivative(float *agg_derivatives_arr, float *db_arr, int n_cnt)
+__global__ void k_nn_derive_z_and_increment_bias_derivative(float *agg_derivatives_arr, float *nxt_db_arr, int n_cnt)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (tid < n_cnt)
     {
-        db_arr[tid] += (agg_derivatives_arr[tid]);
+        nxt_db_arr[tid] += (agg_derivatives_arr[tid]);
     }
 }
 
-__global__ void k_nn_derive_z_and_aggregate_derivatives(float *agg_derivatives_arr, float *w_arr, float *nxt_agg_derivatives_arr, int n_cnt, int nxt_n_cnt)
+__global__ void k_nn_derive_z_and_aggregate_derivatives(float *agg_derivatives_arr, float *nxt_w_arr, float *nxt_agg_derivatives_arr, int n_cnt, int nxt_n_cnt)
 {
     __shared__ float temp[THREADS_PER_BLOCK];
     memset(temp, 0, THREADS_PER_BLOCK * sizeof(float));
@@ -407,7 +407,7 @@ __global__ void k_nn_derive_z_and_aggregate_derivatives(float *agg_derivatives_a
 
     if (w_idx < w_cnt)
     {
-        temp[threadIdx.x] = (agg_derivatives_arr[n_idx] * w_arr[w_idx]);
+        temp[threadIdx.x] = (agg_derivatives_arr[n_idx] * nxt_w_arr[w_idx]);
     }
 
     __syncthreads();
@@ -960,7 +960,11 @@ Tensor *NN::back_propagate(Tensor *y, bool keep_agg_derivatives_flg)
             if (lyr_idx > 1 || keep_agg_derivatives_flg)
             {
                 Tensor *nxt_agg_derivatives = new Tensor(1, nxt_n_cnt, Gpu);
-                nxt_agg_derivatives->set_all(0.0f);
+                {
+                    int threads_per_block(THREADS_PER_BLOCK);
+                    int num_blocks((nxt_n_cnt / threads_per_block) + 1);
+                    k_nn_set_arr<<<num_blocks, threads_per_block>>>(nxt_agg_derivatives->get_arr(Gpu), nxt_n_cnt, 0.0f);
+                }
 
                 {
                     int threads_per_block(THREADS_PER_BLOCK);
