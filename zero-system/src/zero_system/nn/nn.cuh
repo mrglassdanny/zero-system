@@ -5,38 +5,14 @@
 #include "../core/tensor.cuh"
 #include "supervisor.cuh"
 
+#include "util.cuh"
+
 namespace zero
 {
     using namespace core;
 
     namespace nn
     {
-        class Report
-        {
-        public:
-            float cost;
-            int correct_cnt;
-            int total_cnt;
-
-            void print();
-            void update_correct_cnt(Tensor *n, Tensor *y);
-        };
-
-        enum ActivationFunctionId
-        {
-            None,
-            ReLU,
-            Sigmoid,
-            Tanh,
-            Sine,
-            Cosine
-        };
-
-        enum CostFunctionId
-        {
-            MSE,
-            CrossEntropy
-        };
 
         class NNLayerConfiguration
         {

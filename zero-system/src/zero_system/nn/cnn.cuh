@@ -1,13 +1,11 @@
 #pragma once
 
-#include <vector>
-
-#include "../core/tensor.cuh"
 #include "nn.cuh"
-#include "supervisor.cuh"
 
 namespace zero
 {
+    using namespace core;
+
     namespace nn
     {
 

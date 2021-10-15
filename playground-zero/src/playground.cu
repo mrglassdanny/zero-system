@@ -23,7 +23,7 @@ void nn_test()
 	NN *nn = new NN(MSE, 0.01f);
 
 	nn->add_layer(x_col_cnt, 0.2f);
-	nn->add_layer(90, Sine, 0.5f);
+	nn->add_layer(90, None, 0.5f);
 	nn->add_layer(28, None, 0.35f);
 	nn->add_layer(y_col_cnt, Tanh);
 
@@ -106,7 +106,6 @@ void cnn_test()
 	int y_col_cnt = 4;
 
 	Tensor *x = new Tensor(1, x_col_cnt, Gpu);
-	//x->set_all(0.12f);
 	x->set_all_rand(1.0f);
 
 	Tensor *y = new Tensor(1, y_col_cnt, Gpu);
@@ -115,8 +114,7 @@ void cnn_test()
 
 	CNN *cnn = new CNN(MSE, 0.001f);
 	cnn->add_layer(2, 16, 16, 4, 4, 4);
-	cnn->add_layer(3, 2, 2, Sigmoid);
-	cnn->add_layer(3, 2, 2, Tanh);
+	//cnn->add_layer(3, 2, 2, Sigmoid);
 	cnn->add_layer(Sigmoid);
 	cnn->compile();
 

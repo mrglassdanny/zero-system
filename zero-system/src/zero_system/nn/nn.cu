@@ -7,79 +7,229 @@ using namespace zero::nn;
 
 // Device functions:
 
-__device__ float d_relu(float val)
+__device__ float d_nn_relu(float val)
 {
     return val > 0.0f ? val : 0.0f;
 }
 
-__device__ float d_derive_relu(float val)
+__device__ float d_nn_derive_relu(float val)
 {
     return val > 0.0f ? 1.0f : 0.0f;
 }
 
-__device__ float d_sigmoid(float val)
+__device__ float d_nn_sigmoid(float val)
 {
     return (1.0 / (1.0 + exp(-val)));
 }
 
-__device__ float d_derive_sigmoid(float val)
+__device__ float d_nn_derive_sigmoid(float val)
 {
     return (val) * (1.0 - val);
 }
 
-__device__ float d_tanh(float val)
+__device__ float d_nn_tanh(float val)
 {
     return ((exp(val) - exp(-val)) / (exp(val) + exp(-val)));
 }
 
-__device__ float d_derive_tanh(float val)
+__device__ float d_nn_derive_tanh(float val)
 {
     return (1 - (val * val));
 }
 
-__device__ float d_sine(float val)
+__device__ float d_nn_sine(float val)
 {
     return sin(val);
 }
 
-__device__ float d_derive_sine(float val)
+__device__ float d_nn_derive_sine(float val)
 {
     return cos(val);
 }
 
-__device__ float d_cosine(float val)
+__device__ float d_nn_cosine(float val)
 {
     return cos(val);
 }
 
-__device__ float d_derive_cosine(float val)
+__device__ float d_nn_derive_cosine(float val)
 {
     return -sin(val);
 }
 
-__device__ float d_mse_cost(float n_val, float y_val)
+__device__ float d_nn_mse_cost(float n_val, float y_val)
 {
     return ((n_val - y_val) * (n_val - y_val));
 }
 
-__device__ float d_derive_mse_cost(float n_val, float y_val)
+__device__ float d_nn_derive_mse_cost(float n_val, float y_val)
 {
     return 2.0f * (n_val - y_val);
 }
 
-__device__ float d_cross_entropy_cost(float n_val, float y_val)
+__device__ float d_nn_cross_entropy_cost(float n_val, float y_val)
 {
     return (float)((y_val * log(n_val)) + ((1.0 - y_val) * log(1.0 - n_val)));
 }
 
-__device__ float d_derive_cross_entropy_cost(float n_val, float y_val)
+__device__ float d_nn_derive_cross_entropy_cost(float n_val, float y_val)
 {
     return (n_val - y_val);
 }
 
 // Kernel functions:
 
-__global__ void k_set_dropout_mask(float *dropout_mask_arr, int dropout_mask_cnt, float dropout_rate)
+__global__ void k_nn_set_arr(float *arr, int cnt, float val)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < cnt)
+    {
+        arr[tid] = val;
+    }
+}
+
+__global__ void k_nn_activate(float *n_arr, int n_cnt, ActivationFunctionId activation_func_id)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < n_cnt)
+    {
+        switch (activation_func_id)
+        {
+        case ReLU:
+            n_arr[tid] = d_nn_relu(n_arr[tid]);
+            break;
+        case Sigmoid:
+            n_arr[tid] = d_nn_sigmoid(n_arr[tid]);
+            break;
+        case Tanh:
+            n_arr[tid] = d_nn_tanh(n_arr[tid]);
+            break;
+        case Sine:
+            n_arr[tid] = d_nn_sine(n_arr[tid]);
+            break;
+        case Cosine:
+            n_arr[tid] = d_nn_cosine(n_arr[tid]);
+            break;
+        default:
+            // None
+            break;
+        }
+    }
+}
+
+__global__ void k_nn_derive_activation(float *n_arr, float *agg_derivatives_arr, int n_cnt, ActivationFunctionId activation_func_id)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < n_cnt)
+    {
+        switch (activation_func_id)
+        {
+        case ReLU:
+            agg_derivatives_arr[tid] *= d_nn_derive_relu(n_arr[tid]);
+            break;
+        case Sigmoid:
+            agg_derivatives_arr[tid] *= d_nn_derive_sigmoid(n_arr[tid]);
+            break;
+        case Tanh:
+            agg_derivatives_arr[tid] *= d_nn_derive_tanh(n_arr[tid]);
+            break;
+        case Sine:
+            agg_derivatives_arr[tid] *= d_nn_derive_sine(n_arr[tid]);
+            break;
+        case Cosine:
+            agg_derivatives_arr[tid] *= d_nn_derive_cosine(n_arr[tid]);
+            break;
+        default:
+            // None
+            break;
+        }
+    }
+}
+
+__global__ void k_nn_cost(float *n_arr, float *y_arr, float *cost, int n_cnt, CostFunctionId cost_func_id)
+{
+    __shared__ float temp[THREADS_PER_BLOCK];
+    memset(temp, 0, THREADS_PER_BLOCK * sizeof(float));
+
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < n_cnt)
+    {
+        switch (cost_func_id)
+        {
+        case MSE:
+            temp[threadIdx.x] = d_nn_mse_cost(n_arr[tid], y_arr[tid]);
+            break;
+        case CrossEntropy:
+            temp[threadIdx.x] = d_nn_cross_entropy_cost(n_arr[tid], y_arr[tid]);
+            break;
+        default:
+            break;
+        }
+    }
+
+    __syncthreads();
+
+    if (threadIdx.x == 0)
+    {
+        float sum = 0.0f;
+
+#pragma unroll
+        for (int i = 0; i < THREADS_PER_BLOCK; i++)
+        {
+            sum += temp[i];
+        }
+
+        atomicAdd(cost, sum);
+    }
+}
+
+__global__ void k_nn_derive_cost(float *n_arr, float *y_arr, float *agg_derivatives_arr, int n_cnt, CostFunctionId cost_func_id)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < n_cnt)
+    {
+        switch (cost_func_id)
+        {
+        case MSE:
+            agg_derivatives_arr[tid] *= d_nn_derive_mse_cost(n_arr[tid], y_arr[tid]);
+            break;
+        case CrossEntropy:
+            agg_derivatives_arr[tid] *= d_nn_derive_cross_entropy_cost(n_arr[tid], y_arr[tid]);
+            break;
+        default:
+            break;
+        }
+    }
+}
+
+__global__ void k_nn_adjust_weight(float *w_arr, float *dw_arr, int batch_size, float learning_rate, int cnt)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < cnt)
+    {
+        w_arr[tid] -= ((dw_arr[tid] * learning_rate) / (float)batch_size);
+        dw_arr[tid] = 0.0f;
+    }
+}
+
+__global__ void k_nn_adjust_bias(float *b_arr, float *db_arr, int batch_size, float learning_rate, int cnt)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < cnt)
+    {
+        b_arr[tid] -= ((db_arr[tid] * learning_rate) / (float)batch_size);
+        db_arr[tid] = 0.0f;
+    }
+}
+
+__global__ void k_nn_set_dropout_mask(float *dropout_mask_arr, int dropout_mask_cnt, float dropout_rate)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -100,17 +250,29 @@ __global__ void k_set_dropout_mask(float *dropout_mask_arr, int dropout_mask_cnt
     }
 }
 
-__global__ void k_set_arr(float *arr, int cnt, float val)
+__global__ void k_nn_dropout(float *n_arr, float *dropout_mask_arr, int n_cnt, float dropout_rate)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (tid < cnt)
+    if (tid < n_cnt)
     {
-        arr[tid] = val;
+        n_arr[tid] *= dropout_mask_arr[tid];
+        n_arr[tid] *= (1.0f / (1.0f - dropout_rate));
     }
 }
 
-__global__ void k_dot(float *n_arr, float *w_arr, float *nxt_n_arr, int n_cnt, int nxt_n_cnt)
+__global__ void k_nn_derive_dropout(float *agg_derivatives_arr, float *dropout_mask_arr, int n_cnt, float dropout_rate)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < n_cnt)
+    {
+        agg_derivatives_arr[tid] *= dropout_mask_arr[tid];
+        agg_derivatives_arr[tid] *= (1.0f / (1.0f - dropout_rate));
+    }
+}
+
+__global__ void k_nn_dot(float *n_arr, float *w_arr, float *nxt_n_arr, int n_cnt, int nxt_n_cnt)
 {
     __shared__ float temp[THREADS_PER_BLOCK];
     memset(temp, 0, THREADS_PER_BLOCK * sizeof(float));
@@ -193,7 +355,7 @@ __global__ void k_dot(float *n_arr, float *w_arr, float *nxt_n_arr, int n_cnt, i
     }
 }
 
-__global__ void k_add_bias(float *b_arr, float *nxt_n_arr, int nxt_n_cnt)
+__global__ void k_nn_add_bias(float *b_arr, float *nxt_n_arr, int nxt_n_cnt)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -203,147 +365,7 @@ __global__ void k_add_bias(float *b_arr, float *nxt_n_arr, int nxt_n_cnt)
     }
 }
 
-__global__ void k_activate(float *n_arr, int n_cnt, ActivationFunctionId activation_func_id)
-{
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (tid < n_cnt)
-    {
-        switch (activation_func_id)
-        {
-        case ReLU:
-            n_arr[tid] = d_relu(n_arr[tid]);
-            break;
-        case Sigmoid:
-            n_arr[tid] = d_sigmoid(n_arr[tid]);
-            break;
-        case Tanh:
-            n_arr[tid] = d_tanh(n_arr[tid]);
-            break;
-        case Sine:
-            n_arr[tid] = d_sine(n_arr[tid]);
-            break;
-        case Cosine:
-            n_arr[tid] = d_cosine(n_arr[tid]);
-            break;
-        default:
-            // None
-            break;
-        }
-    }
-}
-
-__global__ void k_dropout(float *n_arr, float *dropout_mask_arr, int n_cnt, float dropout_rate)
-{
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (tid < n_cnt)
-    {
-        n_arr[tid] *= dropout_mask_arr[tid];
-        n_arr[tid] *= (1.0f / (1.0f - dropout_rate));
-    }
-}
-
-__global__ void k_cost(float *n_arr, float *y_arr, float *cost, int n_cnt, CostFunctionId cost_func_id)
-{
-    __shared__ float temp[THREADS_PER_BLOCK];
-    memset(temp, 0, THREADS_PER_BLOCK * sizeof(float));
-
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (tid < n_cnt)
-    {
-        switch (cost_func_id)
-        {
-        case MSE:
-            temp[threadIdx.x] = d_mse_cost(n_arr[tid], y_arr[tid]);
-            break;
-        case CrossEntropy:
-            temp[threadIdx.x] = d_cross_entropy_cost(n_arr[tid], y_arr[tid]);
-            break;
-        default:
-            break;
-        }
-    }
-
-    __syncthreads();
-
-    if (threadIdx.x == 0)
-    {
-        float sum = 0.0f;
-
-#pragma unroll
-        for (int i = 0; i < THREADS_PER_BLOCK; i++)
-        {
-            sum += temp[i];
-        }
-
-        atomicAdd(cost, sum);
-    }
-}
-
-__global__ void k_derive_cost(float *n_arr, float *y_arr, float *agg_derivatives_arr, int n_cnt, CostFunctionId cost_func_id)
-{
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (tid < n_cnt)
-    {
-        switch (cost_func_id)
-        {
-        case MSE:
-            agg_derivatives_arr[tid] *= d_derive_mse_cost(n_arr[tid], y_arr[tid]);
-            break;
-        case CrossEntropy:
-            agg_derivatives_arr[tid] *= d_derive_cross_entropy_cost(n_arr[tid], y_arr[tid]);
-            break;
-        default:
-            break;
-        }
-    }
-}
-
-__global__ void k_derive_dropout(float *agg_derivatives_arr, float *dropout_mask_arr, int n_cnt, float dropout_rate)
-{
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (tid < n_cnt)
-    {
-        agg_derivatives_arr[tid] *= dropout_mask_arr[tid];
-        agg_derivatives_arr[tid] *= (1.0f / (1.0f - dropout_rate));
-    }
-}
-
-__global__ void k_derive_activation(float *n_arr, float *agg_derivatives_arr, int n_cnt, ActivationFunctionId activation_func_id)
-{
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (tid < n_cnt)
-    {
-        switch (activation_func_id)
-        {
-        case ReLU:
-            agg_derivatives_arr[tid] *= d_derive_relu(n_arr[tid]);
-            break;
-        case Sigmoid:
-            agg_derivatives_arr[tid] *= d_derive_sigmoid(n_arr[tid]);
-            break;
-        case Tanh:
-            agg_derivatives_arr[tid] *= d_derive_tanh(n_arr[tid]);
-            break;
-        case Sine:
-            agg_derivatives_arr[tid] *= d_derive_sine(n_arr[tid]);
-            break;
-        case Cosine:
-            agg_derivatives_arr[tid] *= d_derive_cosine(n_arr[tid]);
-            break;
-        default:
-            // None
-            break;
-        }
-    }
-}
-
-__global__ void k_derive_z_and_increment_weight_derivative(float *agg_derivatives_arr, float *n_arr, float *dw_arr, int n_cnt, int nxt_n_cnt)
+__global__ void k_nn_derive_z_and_increment_weight_derivative(float *agg_derivatives_arr, float *n_arr, float *dw_arr, int n_cnt, int nxt_n_cnt)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -359,7 +381,7 @@ __global__ void k_derive_z_and_increment_weight_derivative(float *agg_derivative
     }
 }
 
-__global__ void k_derive_z_and_increment_bias_derivative(float *agg_derivatives_arr, float *db_arr, int n_cnt)
+__global__ void k_nn_derive_z_and_increment_bias_derivative(float *agg_derivatives_arr, float *db_arr, int n_cnt)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -369,7 +391,7 @@ __global__ void k_derive_z_and_increment_bias_derivative(float *agg_derivatives_
     }
 }
 
-__global__ void k_derive_z_and_aggregate_derivatives(float *agg_derivatives_arr, float *w_arr, float *nxt_agg_derivatives_arr, int n_cnt, int nxt_n_cnt)
+__global__ void k_nn_derive_z_and_aggregate_derivatives(float *agg_derivatives_arr, float *w_arr, float *nxt_agg_derivatives_arr, int n_cnt, int nxt_n_cnt)
 {
     __shared__ float temp[THREADS_PER_BLOCK];
     memset(temp, 0, THREADS_PER_BLOCK * sizeof(float));
@@ -449,69 +471,6 @@ __global__ void k_derive_z_and_aggregate_derivatives(float *agg_derivatives_arr,
             {
                 atomicAdd(&nxt_agg_derivatives_arr[(tid + i) / n_cnt], temp[i]);
             }
-        }
-    }
-}
-
-__global__ void k_adjust_weight(float *w_arr, float *dw_arr, int batch_size, float learning_rate, int cnt)
-{
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (tid < cnt)
-    {
-        w_arr[tid] -= ((dw_arr[tid] * learning_rate) / (float)batch_size);
-        dw_arr[tid] = 0.0f;
-    }
-}
-
-__global__ void k_adjust_bias(float *b_arr, float *db_arr, int batch_size, float learning_rate, int cnt)
-{
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (tid < cnt)
-    {
-        b_arr[tid] -= ((db_arr[tid] * learning_rate) / (float)batch_size);
-        db_arr[tid] = 0.0f;
-    }
-}
-
-// Report member functions:
-
-void Report::print()
-{
-    printf("COST: %f\tACCURACY: %f%%\n", this->cost, ((float)this->correct_cnt / (float)this->total_cnt) * 100.0f);
-}
-
-void Report::update_correct_cnt(Tensor *n, Tensor *y)
-{
-    int lst_lyr_n_cnt = n->get_col_cnt();
-
-    if (lst_lyr_n_cnt > 1)
-    {
-        // One hot encoded:
-
-        TensorTuple max_tup = n->get_max();
-        if (y->get_val(max_tup.idx) == 1.0f)
-        {
-            this->correct_cnt++;
-        }
-    }
-    else
-    {
-        // Single value:
-
-        float y_val = y->get_val(0);
-        float n_val = n->get_val(0);
-
-        float lower = y_val < n_val ? y_val : n_val;
-        float upper = y_val < n_val ? n_val : y_val;
-
-        float prcnt = 1.0f - (lower / upper);
-
-        // 10% is our number.
-        if (prcnt <= 0.10f)
-        {
-            this->correct_cnt++;
         }
     }
 }
@@ -799,7 +758,7 @@ void NN::set_dropout_masks()
             {
                 int threads_per_block(THREADS_PER_BLOCK);
                 int num_blocks((n_cnt / threads_per_block) + 1);
-                k_set_dropout_mask<<<num_blocks, threads_per_block>>>(dropout_mask->get_arr(Gpu), n_cnt, lyr_cfg->dropout_rate);
+                k_nn_set_dropout_mask<<<num_blocks, threads_per_block>>>(dropout_mask->get_arr(Gpu), n_cnt, lyr_cfg->dropout_rate);
             }
         }
     }
@@ -824,7 +783,7 @@ void NN::feed_forward(Tensor *x, bool train_flg)
 
         int threads_per_block(THREADS_PER_BLOCK);
         int num_blocks((n_cnt / threads_per_block) + 1);
-        k_activate<<<num_blocks, threads_per_block>>>(n->get_arr(Gpu), n_cnt, input_lyr_cfg->activation_func_id);
+        k_nn_activate<<<num_blocks, threads_per_block>>>(n->get_arr(Gpu), n_cnt, input_lyr_cfg->activation_func_id);
     }
 
     // Dropout (input layer):
@@ -838,7 +797,7 @@ void NN::feed_forward(Tensor *x, bool train_flg)
 
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks((n_cnt / threads_per_block) + 1);
-            k_dropout<<<num_blocks, threads_per_block>>>(n->get_arr(Gpu), dropout_mask->get_arr(Gpu), n_cnt, input_lyr_cfg->dropout_rate);
+            k_nn_dropout<<<num_blocks, threads_per_block>>>(n->get_arr(Gpu), dropout_mask->get_arr(Gpu), n_cnt, input_lyr_cfg->dropout_rate);
         }
     }
 
@@ -860,14 +819,14 @@ void NN::feed_forward(Tensor *x, bool train_flg)
         {
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks((nxt_n_cnt / threads_per_block) + 1);
-            k_set_arr<<<num_blocks, threads_per_block>>>(nxt_n->get_arr(Gpu), nxt_n_cnt, 0.0f);
+            k_nn_set_arr<<<num_blocks, threads_per_block>>>(nxt_n->get_arr(Gpu), nxt_n_cnt, 0.0f);
         }
 
         // Dot product:
         {
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks(((n_cnt * nxt_n_cnt) / threads_per_block) + 1);
-            k_dot<<<num_blocks, threads_per_block>>>(n->get_arr(Gpu), w->get_arr(Gpu),
+            k_nn_dot<<<num_blocks, threads_per_block>>>(n->get_arr(Gpu), w->get_arr(Gpu),
                                                      nxt_n->get_arr(Gpu), n_cnt, nxt_n_cnt);
         }
 
@@ -875,7 +834,7 @@ void NN::feed_forward(Tensor *x, bool train_flg)
         {
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks((nxt_n_cnt / threads_per_block) + 1);
-            k_add_bias<<<num_blocks, threads_per_block>>>(b->get_arr(Gpu), nxt_n->get_arr(Gpu),
+            k_nn_add_bias<<<num_blocks, threads_per_block>>>(b->get_arr(Gpu), nxt_n->get_arr(Gpu),
                                                           nxt_n_cnt);
         }
 
@@ -883,7 +842,7 @@ void NN::feed_forward(Tensor *x, bool train_flg)
         {
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks((nxt_n_cnt / threads_per_block) + 1);
-            k_activate<<<num_blocks, threads_per_block>>>(nxt_n->get_arr(Gpu), nxt_n_cnt, nxt_lyr_cfg->activation_func_id);
+            k_nn_activate<<<num_blocks, threads_per_block>>>(nxt_n->get_arr(Gpu), nxt_n_cnt, nxt_lyr_cfg->activation_func_id);
         }
 
         // Dropout:
@@ -892,7 +851,7 @@ void NN::feed_forward(Tensor *x, bool train_flg)
             {
                 int threads_per_block(THREADS_PER_BLOCK);
                 int num_blocks((nxt_n_cnt / threads_per_block) + 1);
-                k_dropout<<<num_blocks, threads_per_block>>>(nxt_n->get_arr(Gpu), nxt_dropout_mask->get_arr(Gpu), nxt_n_cnt, nxt_lyr_cfg->dropout_rate);
+                k_nn_dropout<<<num_blocks, threads_per_block>>>(nxt_n->get_arr(Gpu), nxt_dropout_mask->get_arr(Gpu), nxt_n_cnt, nxt_lyr_cfg->dropout_rate);
             }
         }
     }
@@ -914,8 +873,8 @@ float NN::get_cost(Tensor *y)
         int threads_per_block(THREADS_PER_BLOCK);
         int num_blocks((lst_lyr_n_cnt / threads_per_block) + 1);
 
-        k_cost<<<num_blocks, threads_per_block>>>(lst_lyr_n->get_arr(Gpu), y->get_arr(Gpu),
-                                                  this->d_cost, lst_lyr_n_cnt, this->cost_func_id);
+        k_nn_cost<<<num_blocks, threads_per_block>>>(lst_lyr_n->get_arr(Gpu), y->get_arr(Gpu),
+                                                     this->d_cost, lst_lyr_n_cnt, this->cost_func_id);
     }
 
     cudaMemcpy(&h_cost, this->d_cost, sizeof(float), cudaMemcpyDeviceToHost);
@@ -940,8 +899,8 @@ Tensor *NN::back_propagate(Tensor *y, bool keep_agg_derivatives_flg)
     {
         int threads_per_block(THREADS_PER_BLOCK);
         int num_blocks((lst_lyr_n_cnt / threads_per_block) + 1);
-        k_derive_cost<<<num_blocks, threads_per_block>>>(this->neurons[lst_lyr_idx]->get_arr(Gpu),
-                                                         y->get_arr(Gpu), agg_derivatives->get_arr(Gpu), lst_lyr_n_cnt, this->cost_func_id);
+        k_nn_derive_cost<<<num_blocks, threads_per_block>>>(this->neurons[lst_lyr_idx]->get_arr(Gpu),
+                                                            y->get_arr(Gpu), agg_derivatives->get_arr(Gpu), lst_lyr_n_cnt, this->cost_func_id);
     }
 
     for (int lyr_idx = lst_lyr_idx; lyr_idx > 0; lyr_idx--)
@@ -966,7 +925,7 @@ Tensor *NN::back_propagate(Tensor *y, bool keep_agg_derivatives_flg)
             {
                 int threads_per_block(THREADS_PER_BLOCK);
                 int num_blocks((n_cnt / threads_per_block) + 1);
-                k_derive_dropout<<<num_blocks, threads_per_block>>>(agg_derivatives->get_arr(Gpu), dropout_mask->get_arr(Gpu),
+                k_nn_derive_dropout<<<num_blocks, threads_per_block>>>(agg_derivatives->get_arr(Gpu), dropout_mask->get_arr(Gpu),
                                                                     n_cnt, lyr_cfg->dropout_rate);
             }
         }
@@ -975,15 +934,15 @@ Tensor *NN::back_propagate(Tensor *y, bool keep_agg_derivatives_flg)
         {
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks((n_cnt / threads_per_block) + 1);
-            k_derive_activation<<<num_blocks, threads_per_block>>>(n->get_arr(Gpu),
-                                                                   agg_derivatives->get_arr(Gpu), n_cnt, lyr_cfg->activation_func_id);
+            k_nn_derive_activation<<<num_blocks, threads_per_block>>>(n->get_arr(Gpu),
+                                                                      agg_derivatives->get_arr(Gpu), n_cnt, lyr_cfg->activation_func_id);
         }
 
         // Derive z (with respect to weight):
         {
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks(((n_cnt * nxt_n_cnt) / threads_per_block) + 1);
-            k_derive_z_and_increment_weight_derivative<<<num_blocks, threads_per_block>>>(agg_derivatives->get_arr(Gpu),
+            k_nn_derive_z_and_increment_weight_derivative<<<num_blocks, threads_per_block>>>(agg_derivatives->get_arr(Gpu),
                                                                                           nxt_n->get_arr(Gpu),
                                                                                           nxt_dw->get_arr(Gpu),
                                                                                           n_cnt, nxt_n_cnt);
@@ -993,7 +952,7 @@ Tensor *NN::back_propagate(Tensor *y, bool keep_agg_derivatives_flg)
         {
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks((n_cnt / threads_per_block) + 1);
-            k_derive_z_and_increment_bias_derivative<<<num_blocks, threads_per_block>>>(agg_derivatives->get_arr(Gpu), nxt_db->get_arr(Gpu), n_cnt);
+            k_nn_derive_z_and_increment_bias_derivative<<<num_blocks, threads_per_block>>>(agg_derivatives->get_arr(Gpu), nxt_db->get_arr(Gpu), n_cnt);
         }
 
         // Derive z (with respect to activation) and aggregate derivatives:
@@ -1006,7 +965,7 @@ Tensor *NN::back_propagate(Tensor *y, bool keep_agg_derivatives_flg)
                 {
                     int threads_per_block(THREADS_PER_BLOCK);
                     int num_blocks(((nxt_n_cnt * n_cnt) / threads_per_block) + 1);
-                    k_derive_z_and_aggregate_derivatives<<<num_blocks, threads_per_block>>>(agg_derivatives->get_arr(Gpu), nxt_w->get_arr(Gpu),
+                    k_nn_derive_z_and_aggregate_derivatives<<<num_blocks, threads_per_block>>>(agg_derivatives->get_arr(Gpu), nxt_w->get_arr(Gpu),
                                                                                             nxt_agg_derivatives->get_arr(Gpu),
                                                                                             n_cnt, nxt_n_cnt);
                 }
@@ -1050,15 +1009,15 @@ void NN::optimize(int batch_size)
         {
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks(((nxt_n_cnt * n_cnt) / threads_per_block) + 1);
-            k_adjust_weight<<<num_blocks, threads_per_block>>>(w->get_arr(Gpu), dw->get_arr(Gpu), batch_size, this->learning_rate,
-                                                               (nxt_n_cnt * n_cnt));
+            k_nn_adjust_weight<<<num_blocks, threads_per_block>>>(w->get_arr(Gpu), dw->get_arr(Gpu), batch_size, this->learning_rate,
+                                                                  (nxt_n_cnt * n_cnt));
         }
 
         // Biases:
         {
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks((nxt_n_cnt / threads_per_block) + 1);
-            k_adjust_bias<<<num_blocks, threads_per_block>>>(b->get_arr(Gpu), db->get_arr(Gpu), batch_size, this->learning_rate, nxt_n_cnt);
+            k_nn_adjust_bias<<<num_blocks, threads_per_block>>>(b->get_arr(Gpu), db->get_arr(Gpu), batch_size, this->learning_rate, nxt_n_cnt);
         }
     }
 }

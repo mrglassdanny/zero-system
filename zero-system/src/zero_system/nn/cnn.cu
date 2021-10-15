@@ -89,40 +89,6 @@ __global__ void k_cnn_set_arr(float *arr, int cnt, float val)
     }
 }
 
-__global__ void k_cnn_convolution(float *n_arr, float *f_arr, float *b_arr, float *nxt_n_arr, int chan_cnt, int n_row_cnt, int n_col_cnt,
-                                  int f_row_cnt, int f_col_cnt, int nxt_n_row_cnt, int nxt_n_col_cnt)
-{
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-
-    int nxt_n_idx = tid;
-
-    if (nxt_n_idx < (nxt_n_row_cnt * nxt_n_col_cnt))
-    {
-        int nxt_n_row_idx = nxt_n_idx / nxt_n_col_cnt;
-        int nxt_n_col_idx = nxt_n_idx % nxt_n_col_cnt;
-
-        for (int chan_idx = 0; chan_idx < chan_cnt; chan_idx++)
-        {
-            for (int f_row_idx = 0; f_row_idx < f_row_cnt; f_row_idx++)
-            {
-                for (int f_col_idx = 0; f_col_idx < f_col_cnt; f_col_idx++)
-                {
-                    int n_local_row_idx = nxt_n_row_idx + f_row_idx;
-                    int n_local_col_idx = nxt_n_col_idx + f_col_idx;
-
-                    int f_local_rot_idx = (f_row_cnt * f_col_cnt) - (f_row_idx * f_col_cnt + f_col_idx);
-
-                    float val = n_arr[(chan_idx * n_row_cnt * n_col_cnt) + (n_local_row_idx * n_col_cnt) + n_local_col_idx];
-                    val *= f_arr[(chan_idx * f_row_cnt * f_col_cnt) + f_local_rot_idx];
-                    nxt_n_arr[nxt_n_idx] += val;
-                }
-            }
-        }
-
-        nxt_n_arr[nxt_n_idx] += b_arr[nxt_n_idx];
-    }
-}
-
 __global__ void k_cnn_activate(float *n_arr, int n_cnt, ActivationFunctionId activation_func_id)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -180,6 +146,165 @@ __global__ void k_cnn_derive_activation(float *n_arr, float *agg_derivatives_arr
             // None
             break;
         }
+    }
+}
+
+__global__ void k_cnn_cost(float *n_arr, float *y_arr, float *cost, int n_cnt, CostFunctionId cost_func_id)
+{
+    __shared__ float temp[THREADS_PER_BLOCK];
+    memset(temp, 0, THREADS_PER_BLOCK * sizeof(float));
+
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < n_cnt)
+    {
+        switch (cost_func_id)
+        {
+        case MSE:
+            temp[threadIdx.x] = d_cnn_mse_cost(n_arr[tid], y_arr[tid]);
+            break;
+        case CrossEntropy:
+            temp[threadIdx.x] = d_cnn_cross_entropy_cost(n_arr[tid], y_arr[tid]);
+            break;
+        default:
+            break;
+        }
+    }
+
+    __syncthreads();
+
+    if (threadIdx.x == 0)
+    {
+        float sum = 0.0f;
+
+#pragma unroll
+        for (int i = 0; i < THREADS_PER_BLOCK; i++)
+        {
+            sum += temp[i];
+        }
+
+        atomicAdd(cost, sum);
+    }
+}
+
+__global__ void k_cnn_derive_cost(float *n_arr, float *y_arr, float *agg_derivatives_arr, int n_cnt, CostFunctionId cost_func_id)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < n_cnt)
+    {
+        switch (cost_func_id)
+        {
+        case MSE:
+            agg_derivatives_arr[tid] *= d_cnn_derive_mse_cost(n_arr[tid], y_arr[tid]);
+            break;
+        case CrossEntropy:
+            agg_derivatives_arr[tid] *= d_cnn_derive_cross_entropy_cost(n_arr[tid], y_arr[tid]);
+            break;
+        default:
+            break;
+        }
+    }
+}
+
+__global__ void k_cnn_adjust_weight(float *w_arr, float *dw_arr, int batch_size, float learning_rate, int cnt)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < cnt)
+    {
+        w_arr[tid] -= ((dw_arr[tid] * learning_rate) / (float)batch_size);
+        dw_arr[tid] = 0.0f;
+    }
+}
+
+__global__ void k_cnn_adjust_bias(float *b_arr, float *db_arr, int batch_size, float learning_rate, int cnt)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < cnt)
+    {
+        b_arr[tid] -= ((db_arr[tid] * learning_rate) / (float)batch_size);
+        db_arr[tid] = 0.0f;
+    }
+}
+
+__global__ void k_cnn_set_dropout_mask(float *dropout_mask_arr, int dropout_mask_cnt, float dropout_rate)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < dropout_mask_cnt)
+    {
+        // TODO
+        curandState state;
+        curand_init(clock64(), tid, 0, &state);
+
+        if (curand_uniform(&state) < dropout_rate)
+        {
+            dropout_mask_arr[tid] = 0.0f;
+        }
+        else
+        {
+            dropout_mask_arr[tid] = 1.0f;
+        }
+    }
+}
+
+__global__ void k_cnn_dropout(float *n_arr, float *dropout_mask_arr, int n_cnt, float dropout_rate)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < n_cnt)
+    {
+        n_arr[tid] *= dropout_mask_arr[tid];
+        n_arr[tid] *= (1.0f / (1.0f - dropout_rate));
+    }
+}
+
+__global__ void k_cnn_derive_dropout(float *agg_derivatives_arr, float *dropout_mask_arr, int n_cnt, float dropout_rate)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < n_cnt)
+    {
+        agg_derivatives_arr[tid] *= dropout_mask_arr[tid];
+        agg_derivatives_arr[tid] *= (1.0f / (1.0f - dropout_rate));
+    }
+}
+
+// Kernel functions:
+
+__global__ void k_convolution(float *n_arr, float *f_arr, float *b_arr, float *nxt_n_arr, int chan_cnt, int n_row_cnt, int n_col_cnt,
+                              int f_row_cnt, int f_col_cnt, int nxt_n_row_cnt, int nxt_n_col_cnt)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    int nxt_n_idx = tid;
+
+    if (nxt_n_idx < (nxt_n_row_cnt * nxt_n_col_cnt))
+    {
+        int nxt_n_row_idx = nxt_n_idx / nxt_n_col_cnt;
+        int nxt_n_col_idx = nxt_n_idx % nxt_n_col_cnt;
+
+        for (int chan_idx = 0; chan_idx < chan_cnt; chan_idx++)
+        {
+            for (int f_row_idx = 0; f_row_idx < f_row_cnt; f_row_idx++)
+            {
+                for (int f_col_idx = 0; f_col_idx < f_col_cnt; f_col_idx++)
+                {
+                    int n_local_row_idx = nxt_n_row_idx + f_row_idx;
+                    int n_local_col_idx = nxt_n_col_idx + f_col_idx;
+
+                    int f_local_rot_idx = (f_row_cnt * f_col_cnt) - (f_row_idx * f_col_cnt + f_col_idx);
+
+                    float val = n_arr[(chan_idx * n_row_cnt * n_col_cnt) + (n_local_row_idx * n_col_cnt) + n_local_col_idx];
+                    val *= f_arr[(chan_idx * f_row_cnt * f_col_cnt) + f_local_rot_idx];
+                    nxt_n_arr[nxt_n_idx] += val;
+                }
+            }
+        }
+
+        nxt_n_arr[nxt_n_idx] += b_arr[nxt_n_idx];
     }
 }
 
@@ -261,28 +386,6 @@ __global__ void k_cnn_derive_z_and_aggregate_derivatives(float *agg_derivatives_
         }
 
         nxt_agg_derivatives_arr[nxt_n_idx] += val;
-    }
-}
-
-__global__ void k_cnn_adjust_filter(float *f_arr, float *df_arr, int batch_size, float learning_rate, int cnt)
-{
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (tid < cnt)
-    {
-        f_arr[tid] -= ((df_arr[tid] * learning_rate) / (float)batch_size);
-        df_arr[tid] = 0.0f;
-    }
-}
-
-__global__ void k_cnn_adjust_bias(float *b_arr, float *db_arr, int batch_size, float learning_rate, int cnt)
-{
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (tid < cnt)
-    {
-        b_arr[tid] -= ((db_arr[tid] * learning_rate) / (float)batch_size);
-        db_arr[tid] = 0.0f;
     }
 }
 
@@ -479,9 +582,9 @@ void CNN::feed_forward(Tensor *x, bool train_flg)
                 Tensor *f = this->filters[lyr_idx][filter_idx];
                 Tensor *b = this->biases[lyr_idx][filter_idx];
 
-                k_cnn_convolution<<<num_blocks, threads_per_block>>>(n->get_arr(Gpu), f->get_arr(Gpu), b->get_arr(Gpu), nxt_n->get_slice(filter_idx * nxt_lyr_cfg->neuron_row_cnt * nxt_lyr_cfg->neuron_col_cnt, Gpu),
-                                                                     lyr_cfg->channel_cnt, lyr_cfg->neuron_row_cnt, lyr_cfg->neuron_col_cnt, lyr_cfg->filter_row_cnt, lyr_cfg->filter_col_cnt,
-                                                                     nxt_lyr_cfg->neuron_row_cnt, nxt_lyr_cfg->neuron_col_cnt);
+                k_convolution<<<num_blocks, threads_per_block>>>(n->get_arr(Gpu), f->get_arr(Gpu), b->get_arr(Gpu), nxt_n->get_slice(filter_idx * nxt_lyr_cfg->neuron_row_cnt * nxt_lyr_cfg->neuron_col_cnt, Gpu),
+                                                                 lyr_cfg->channel_cnt, lyr_cfg->neuron_row_cnt, lyr_cfg->neuron_col_cnt, lyr_cfg->filter_row_cnt, lyr_cfg->filter_col_cnt,
+                                                                 nxt_lyr_cfg->neuron_row_cnt, nxt_lyr_cfg->neuron_col_cnt);
             }
         }
 
@@ -625,7 +728,7 @@ void CNN::optimize(int batch_size)
                 Tensor *f = this->filters[lyr_idx][filter_idx];
                 Tensor *df = this->filter_derivatives[lyr_idx][filter_idx];
 
-                k_cnn_adjust_filter<<<num_blocks, threads_per_block>>>(f->get_arr(Gpu), df->get_arr(Gpu), batch_size, this->learning_rate,
+                k_cnn_adjust_weight<<<num_blocks, threads_per_block>>>(f->get_arr(Gpu), df->get_arr(Gpu), batch_size, this->learning_rate,
                                                                        (lyr_cfg->channel_cnt * lyr_cfg->filter_row_cnt * lyr_cfg->filter_col_cnt));
             }
         }
