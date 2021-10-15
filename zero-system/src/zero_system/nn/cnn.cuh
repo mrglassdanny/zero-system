@@ -48,6 +48,7 @@ namespace zero
 
         public:
             CNN(CostFunctionId cost_func_id, float learning_rate);
+            CNN(const char *path);
             ~CNN();
 
             void save(const char *path);

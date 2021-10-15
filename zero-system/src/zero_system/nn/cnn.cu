@@ -386,6 +386,11 @@ CNN::CNN(CostFunctionId cost_func_id, float learning_rate)
     this->nn = new NN(cost_func_id, learning_rate);
 }
 
+CNN::CNN(const char *path)
+{
+    // TODO
+}
+
 CNN::~CNN()
 {
     int lyr_cnt = this->layer_configurations.size();
