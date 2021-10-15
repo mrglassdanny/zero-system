@@ -229,51 +229,6 @@ __global__ void k_cnn_adjust_bias(float *b_arr, float *db_arr, int batch_size, f
     }
 }
 
-__global__ void k_cnn_set_dropout_mask(float *dropout_mask_arr, int dropout_mask_cnt, float dropout_rate)
-{
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (tid < dropout_mask_cnt)
-    {
-        // TODO
-        curandState state;
-        curand_init(clock64(), tid, 0, &state);
-
-        if (curand_uniform(&state) < dropout_rate)
-        {
-            dropout_mask_arr[tid] = 0.0f;
-        }
-        else
-        {
-            dropout_mask_arr[tid] = 1.0f;
-        }
-    }
-}
-
-__global__ void k_cnn_dropout(float *n_arr, float *dropout_mask_arr, int n_cnt, float dropout_rate)
-{
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (tid < n_cnt)
-    {
-        n_arr[tid] *= dropout_mask_arr[tid];
-        n_arr[tid] *= (1.0f / (1.0f - dropout_rate));
-    }
-}
-
-__global__ void k_cnn_derive_dropout(float *agg_derivatives_arr, float *dropout_mask_arr, int n_cnt, float dropout_rate)
-{
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (tid < n_cnt)
-    {
-        agg_derivatives_arr[tid] *= dropout_mask_arr[tid];
-        agg_derivatives_arr[tid] *= (1.0f / (1.0f - dropout_rate));
-    }
-}
-
-// Kernel functions:
-
 __global__ void k_cnn_convolve(float *n_arr, float *f_arr, float *b_arr, float *nxt_n_arr, int chan_cnt, int n_row_cnt, int n_col_cnt,
                                int f_row_cnt, int f_col_cnt, int nxt_n_row_cnt, int nxt_n_col_cnt)
 {
