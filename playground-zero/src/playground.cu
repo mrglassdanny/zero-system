@@ -106,6 +106,7 @@ void cnn_test()
 	int y_col_cnt = 4;
 
 	Tensor *x = new Tensor(1, x_col_cnt, Gpu);
+	//x->set_all(0.25f);
 	x->set_all_rand(1.0f);
 
 	Tensor *y = new Tensor(1, y_col_cnt, Gpu);
@@ -114,8 +115,8 @@ void cnn_test()
 
 	CNN *cnn = new CNN(MSE, 0.001f);
 	cnn->add_layer(2, 16, 16, 4, 4, 4);
-	//cnn->add_layer(3, 2, 2, Sigmoid);
-	cnn->add_layer(Sigmoid);
+	cnn->add_layer(3, 2, 2, None);
+	cnn->add_layer(None);
 	cnn->compile();
 
 	cnn->fully_connected()->add_layer(8, Sigmoid);
