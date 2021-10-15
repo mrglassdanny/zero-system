@@ -106,7 +106,6 @@ void cnn_test()
 	int y_col_cnt = 4;
 
 	Tensor *x = new Tensor(1, x_col_cnt, Gpu);
-	//x->set_all(0.25f);
 	x->set_all_rand(1.0f);
 
 	Tensor *y = new Tensor(1, y_col_cnt, Gpu);
@@ -119,7 +118,7 @@ void cnn_test()
 	cnn->add_layer(None);
 	cnn->compile();
 
-	cnn->fully_connected()->add_layer(8, Sigmoid);
+	cnn->fully_connected()->add_layer(24, Sigmoid);
 	cnn->fully_connected()->add_layer(y_col_cnt, Sigmoid);
 	cnn->fully_connected()->compile();
 
@@ -135,13 +134,13 @@ int main(int argc, char **argv)
 {
 	srand(time(NULL));
 
-	//nn_test();
+	nn_test();
 
 	//nn_performance_test();
 
 	//kmeans_test();
 
-	cnn_test();
+	//cnn_test();
 
 	return 0;
 }
