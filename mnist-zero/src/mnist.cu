@@ -6,6 +6,9 @@
 using namespace zero::core;
 using namespace zero::nn;
 
+#define IMAGE_ROW_CNT 28
+#define IMAGE_COL_CNT 28
+
 Supervisor *init_mnist_supervisor()
 {
 
@@ -58,27 +61,27 @@ void mnist_nn()
 
     Supervisor *sup = init_mnist_supervisor();
 
-    // NN *nn = new NN(MSE, 0.1f);
+    NN *nn = new NN(MSE, 0.1f);
 
-    // nn->add_layer(784);
-    // nn->add_layer(2048, ReLU, 0.3f);
-    // nn->add_layer(1024, ReLU, 0.25f);
-    // nn->add_layer(512, ReLU, 0.2f);
-    // nn->add_layer(10, Sigmoid);
+    nn->add_layer(784);
+    nn->add_layer(2048, ReLU, 0.3f);
+    nn->add_layer(1024, ReLU, 0.25f);
+    nn->add_layer(512, ReLU, 0.2f);
+    nn->add_layer(10, Sigmoid);
 
-    // nn->compile();
+    nn->compile();
 
-    // nn->train_and_test(sup, 100, "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist-train-dr.csv");
+    nn->train_and_test(sup, 100, "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist-train-dr.csv");
 
-    // nn->dump("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist-dr.nn");
+    nn->save("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist-dr.nn");
 
-    NN *nn = new NN("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist-dr.nn");
+    //NN *nn = new NN("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist-dr.nn");
 
     //nn->train_and_test(sup, 100, "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist-train-dr.csv");
 
-    //nn->dump("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist-dr.nn");
+    //nn->save("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist-dr.nn");
 
-    nn->test(sup->create_test_batch()).print();
+    //nn->test(sup->create_test_batch()).print();
 
     delete nn;
 
@@ -91,29 +94,21 @@ void mnist_cnn()
 
     Supervisor *sup = init_mnist_supervisor();
 
-    CNN *cnn = new CNN(MSE, 1.0f);
+    CNN *cnn = new CNN(MSE, 0.01f);
 
-    cnn->add_layer(1, 28, 28, 3, 4, 4);
-    cnn->add_layer(Sigmoid);
+    cnn->input_layer(1, IMAGE_ROW_CNT, IMAGE_COL_CNT, 32, 3, 3, None);
+    cnn->add_layer(16, 3, 3, ReLU);
+    cnn->flatten(ReLU, 0.2f);
+
+    cnn->fully_connected()->add_layer(256, ReLU, 0.3f);
+    cnn->fully_connected()->add_layer(64, ReLU, 0.3f);
+    cnn->fully_connected()->add_layer(10, ReLU);
+
     cnn->compile();
 
-    cnn->fully_connected()->add_layer(64, ReLU);
-    cnn->fully_connected()->add_layer(10, Sigmoid);
-    cnn->fully_connected()->compile();
+    cnn->train_and_test(sup, 100, "C:\\Users\\d0g0825\\Desktop\\cnn-mnist-train.csv");
 
-    Batch *batch = sup->create_batch(1, 0, 1);
-    Tensor *x = batch->get_x(0);
-    Tensor *y = batch->get_y(0);
-
-    for (int i = 0; i < 10; i++)
-    {
-        cnn->feed_forward(x, true);
-        printf("COST: %f\n", cnn->get_cost(y));
-        cnn->back_propagate(y);
-        cnn->optimize(1);
-    }
-
-    delete batch;
+    cnn->save("C:\\Users\\d0g0825\\Desktop\\mnist.cnn");
 
     delete cnn;
 
