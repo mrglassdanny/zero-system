@@ -457,7 +457,9 @@ void CNN::add_layer(int filter_cnt, int filter_row_cnt, int filter_col_cnt,
 void CNN::flatten(ActivationFunctionId activation_func_id)
 {
     // Add last conv layer.
-    this->add_layer(activation_func_id);
+    {
+        this->add_layer(activation_func_id);
+    }
 
     int lyr_cnt = this->layer_configurations.size();
     int lst_lyr_idx = lyr_cnt - 1;
