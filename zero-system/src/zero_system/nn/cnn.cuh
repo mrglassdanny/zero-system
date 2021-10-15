@@ -60,6 +60,7 @@ namespace zero
                            ActivationFunctionId activation_func_id);
 
             void flatten(ActivationFunctionId activation_func_id);
+            void flatten(ActivationFunctionId activation_func_id, float dropout_rate);
 
             NN *fully_connected();
 

@@ -456,6 +456,11 @@ void CNN::add_layer(int filter_cnt, int filter_row_cnt, int filter_col_cnt,
 
 void CNN::flatten(ActivationFunctionId activation_func_id)
 {
+    this->flatten(activation_func_id, 0.0f);
+}
+
+void CNN::flatten(ActivationFunctionId activation_func_id, float dropout_rate)
+{
     // Add last conv layer.
     {
         this->add_layer(activation_func_id);
@@ -468,7 +473,7 @@ void CNN::flatten(ActivationFunctionId activation_func_id)
     {
         CNNLayerConfiguration *lyr_cfg = &this->layer_configurations[lst_lyr_idx];
 
-        this->nn->add_layer(lyr_cfg->channel_cnt * lyr_cfg->neuron_row_cnt * lyr_cfg->neuron_col_cnt);
+        this->nn->add_layer(lyr_cfg->channel_cnt * lyr_cfg->neuron_row_cnt * lyr_cfg->neuron_col_cnt, dropout_rate);
     }
 }
 
