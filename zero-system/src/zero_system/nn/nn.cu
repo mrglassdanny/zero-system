@@ -516,8 +516,6 @@ NN::NN(CostFunctionId cost_func_id, float learning_rate)
 
     cudaMalloc(&this->d_cost, sizeof(float));
     cudaMemset(this->d_cost, 0, sizeof(float));
-
-    this->compiled_flg = false;
 }
 
 NN::NN(const char *path)
@@ -732,8 +730,6 @@ void NN::compile()
         dropout_mask->set_all(0.0f);
         this->dropout_masks.push_back(dropout_mask);
     }
-
-    this->compiled_flg = true;
 }
 
 void NN::set_learning_rate(float learning_rate)

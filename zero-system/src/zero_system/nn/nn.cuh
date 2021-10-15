@@ -39,9 +39,7 @@ namespace zero
             std::vector<Tensor *> biases;
             std::vector<Tensor *> weight_derivatives;
             std::vector<Tensor *> bias_derivatives;
-
             float *d_cost;
-            bool compiled_flg; // TODO
 
         public:
             static void write_csv_header(FILE *csv_file_ptr);
