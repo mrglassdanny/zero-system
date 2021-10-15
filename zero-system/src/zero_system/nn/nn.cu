@@ -1168,7 +1168,6 @@ Report NN::train(Batch *batch)
         Tensor *x = batch->get_x(i);
         Tensor *y = batch->get_y(i);
 
-        // Dropout:
         this->set_dropout_masks();
 
         this->feed_forward(x, true);
