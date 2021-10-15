@@ -89,7 +89,7 @@ void kmeans_test()
 {
 	Tensor *x = Tensor::from_csv("C:\\Users\\d0g0825\\Desktop\\temp\\kmeans\\data.csv");
 
-	KMeans::dump_best(x, 3, 10000, "C:\\Users\\d0g0825\\Desktop\\temp\\kmeans\\model.km");
+	KMeans::save_best(x, 3, 10000, "C:\\Users\\d0g0825\\Desktop\\temp\\kmeans\\model.km");
 
 	KMeans *km = new KMeans("C:\\Users\\d0g0825\\Desktop\\temp\\kmeans\\model.km");
 
@@ -116,13 +116,13 @@ void cnn_test()
 	y->set_val(5, 1.0f);
 
 	CNN *cnn = new CNN(MSE, 0.001f);
-	cnn->add_layer(x_channel_cnt, x_row_cnt, x_col_cnt, 16, 2, 2, None);
-	cnn->add_layer(None);
-	cnn->compile();
+	cnn->input_layer(x_channel_cnt, x_row_cnt, x_col_cnt, 16, 2, 2, None);
+	cnn->flatten(None);
 
 	cnn->fully_connected()->add_layer(64, Sigmoid);
 	cnn->fully_connected()->add_layer(y_col_cnt, Sigmoid);
-	cnn->fully_connected()->compile();
+
+	cnn->compile();
 
 	cnn->check_gradient(x, y, true);
 
