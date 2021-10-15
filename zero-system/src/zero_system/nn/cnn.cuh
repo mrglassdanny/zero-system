@@ -40,7 +40,6 @@ namespace zero
             std::vector<std::vector<Tensor *>> biases;
             std::vector<std::vector<Tensor *>> filter_derivatives;
             std::vector<std::vector<Tensor *>> bias_derivatives;
-
             NN *nn;
 
         public:
