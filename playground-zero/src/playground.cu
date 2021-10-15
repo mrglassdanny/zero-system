@@ -102,23 +102,25 @@ void kmeans_test()
 
 void cnn_test()
 {
-	int x_col_cnt = 2 * 16 * 16;
-	int y_col_cnt = 4;
+	int x_channel_cnt = 3;
+	int x_row_cnt = 28;
+	int x_col_cnt = 28;
 
-	Tensor *x = new Tensor(1, x_col_cnt, Gpu);
+	int y_col_cnt = 10;
+
+	Tensor *x = new Tensor(x_channel_cnt * x_row_cnt, x_col_cnt, Gpu);
 	x->set_all_rand(1.0f);
 
 	Tensor *y = new Tensor(1, y_col_cnt, Gpu);
 	y->set_all(0.0f);
-	y->set_val(0, 1.0f);
+	y->set_val(5, 1.0f);
 
 	CNN *cnn = new CNN(MSE, 0.001f);
-	cnn->add_layer(2, 16, 16, 4, 4, 4, Sigmoid);
-	cnn->add_layer(3, 2, 2, None);
+	cnn->add_layer(x_channel_cnt, x_row_cnt, x_col_cnt, 16, 2, 2, None);
 	cnn->add_layer(None);
 	cnn->compile();
 
-	cnn->fully_connected()->add_layer(24, Sigmoid);
+	cnn->fully_connected()->add_layer(64, Sigmoid);
 	cnn->fully_connected()->add_layer(y_col_cnt, Sigmoid);
 	cnn->fully_connected()->compile();
 
