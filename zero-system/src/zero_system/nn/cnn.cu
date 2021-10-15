@@ -519,6 +519,20 @@ void CNN::feed_forward(Tensor *x, bool train_flg)
     int lyr_cnt = this->layer_configurations.size();
     int lst_lyr_idx = lyr_cnt - 1;
 
+    CNNLayerConfiguration *input_lyr_cfg = &this->layer_configurations[0];
+
+    // Activate (input layer):
+    // It is unlikely that we will ever activate the input layer, but we might as well allow the option!
+    {
+        int n_global_cnt = (input_lyr_cfg->channel_cnt * input_lyr_cfg->neuron_row_cnt * input_lyr_cfg->neuron_col_cnt);
+
+        Tensor *n = this->neurons[0];
+
+        int threads_per_block(THREADS_PER_BLOCK);
+        int num_blocks((n_global_cnt / threads_per_block) + 1);
+        k_cnn_activate<<<num_blocks, threads_per_block>>>(n->get_arr(Gpu), n_global_cnt, input_lyr_cfg->activation_func_id);
+    }
+
     for (int lyr_idx = 0; lyr_idx < lst_lyr_idx; lyr_idx++)
     {
         CNNLayerConfiguration *lyr_cfg = &this->layer_configurations[lyr_idx];
@@ -848,4 +862,44 @@ void CNN::check_gradient(Tensor *x, Tensor *y, bool print_flg)
     {
         printf("GRADIENT CHECK RESULT: %f\n", (agg_grad_diff) / (agg_ana_grad + agg_num_grad));
     }
+}
+
+Report CNN::train(Batch *batch)
+{
+    Report rpt;
+
+    int batch_size = batch->get_size();
+
+    rpt.correct_cnt = 0;
+    rpt.total_cnt = batch_size;
+
+    float cost = 0.0f;
+
+    int lst_lyr_idx = this->layer_configurations.size() - 1;
+
+    for (int i = 0; i < batch_size; i++)
+    {
+        Tensor *x = batch->get_x(i);
+        Tensor *y = batch->get_y(i);
+
+        this->feed_forward(x, true);
+        cost += this->get_cost(y);
+        this->back_propagate(y);
+
+        // TODO
+        rpt.update_correct_cnt(this->neurons[lst_lyr_idx], y);
+
+        // Translate back to CPU as to not overload GPU.
+        x->translate(Cpu);
+        y->translate(Cpu);
+    }
+
+    // Get mean cost.
+    cost /= batch_size;
+
+    rpt.cost = cost;
+
+    this->optimize(batch_size);
+
+    return rpt;
 }
