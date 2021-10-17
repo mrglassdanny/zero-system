@@ -96,12 +96,12 @@ void mnist_cnn()
 
     CNN *cnn = new CNN(MSE, 0.1f);
 
-    cnn->input_layer(1, IMAGE_ROW_CNT, IMAGE_COL_CNT, 32, 3, 3, None);
-    cnn->add_layer(16, 3, 3, ReLU);
+    cnn->input_layer(1, IMAGE_ROW_CNT, IMAGE_COL_CNT, 64, 3, 3, None);
+    cnn->add_layer(64, 3, 3, ReLU);
+
     cnn->flatten(ReLU);
 
-    cnn->fully_connected()->add_layer(256, ReLU, 0.3f);
-    cnn->fully_connected()->add_layer(64, ReLU, 0.3f);
+    cnn->fully_connected()->add_layer(512, ReLU);
     cnn->fully_connected()->add_layer(10, ReLU);
 
     cnn->compile();
