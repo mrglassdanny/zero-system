@@ -115,13 +115,26 @@ Tensor::~Tensor()
     }
 }
 
-void Tensor::translate(TensorType typ)
+int Tensor::get_tot_cnt()
 {
     int tot_cnt = 1;
+
     for (int i = 0; i < this->shape.size(); i++)
     {
         tot_cnt *= this->shape[i];
     }
+
+    return tot_cnt;
+}
+
+float *Tensor::get_arr()
+{
+    return this->arr;
+}
+
+void Tensor::translate(TensorType typ)
+{
+    int tot_cnt = this->get_tot_cnt();
 
     if (typ == TensorType::Cpu)
     {
@@ -156,11 +169,7 @@ void Tensor::translate(TensorType typ)
 
 void Tensor::reset()
 {
-    int tot_cnt = 1;
-    for (int i = 0; i < this->shape.size(); i++)
-    {
-        tot_cnt *= this->shape[i];
-    }
+    int tot_cnt = this->get_tot_cnt();
 
     if (this->typ == TensorType::Cpu)
     {
@@ -174,11 +183,7 @@ void Tensor::reset()
 
 void Tensor::reset(float val)
 {
-    int tot_cnt = 1;
-    for (int i = 0; i < this->shape.size(); i++)
-    {
-        tot_cnt *= this->shape[i];
-    }
+    int tot_cnt = this->get_tot_cnt();
 
     if (this->typ == TensorType::Cpu)
     {
@@ -199,11 +204,7 @@ void Tensor::reset(float val)
 
 void Tensor::reset_rand(float mean, float stddev)
 {
-    int tot_cnt = 1;
-    for (int i = 0; i < this->shape.size(); i++)
-    {
-        tot_cnt *= this->shape[i];
-    }
+    int tot_cnt = this->get_tot_cnt();
 
     if (this->typ == TensorType::Cpu)
     {

@@ -40,6 +40,9 @@ namespace zero_v2
             Tensor(TensorType typ, int x_cnt, int y_cnt, int z_cnt);
             ~Tensor();
 
+            int get_tot_cnt();
+            float *get_arr();
+
             void translate(TensorType typ);
             void reset();
             void reset(float val);
