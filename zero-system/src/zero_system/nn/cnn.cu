@@ -119,6 +119,10 @@ __global__ void k_cnn_activate(float *n_arr, int n_cnt, ActivationFunctionId act
     }
 }
 
+__global__ void k_cnn_average_pool()
+{
+}
+
 __global__ void k_cnn_derive_activation(float *n_arr, float *agg_derivatives_arr, int n_cnt, ActivationFunctionId activation_func_id)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -459,6 +463,10 @@ void CNN::add_layer(int filter_cnt, int filter_row_cnt, int filter_col_cnt,
                     filter_cnt, filter_row_cnt, filter_col_cnt, activation_func_id);
 }
 
+void CNN::add_pooling_layer(PoolingType poolingTyp)
+{
+}
+
 void CNN::flatten(ActivationFunctionId activation_func_id)
 {
     this->flatten(activation_func_id, 0.0f);
@@ -619,6 +627,11 @@ void CNN::feed_forward(Tensor *x, bool train_flg)
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks((nxt_n_global_cnt / threads_per_block) + 1);
             k_cnn_activate<<<num_blocks, threads_per_block>>>(nxt_n->get_arr(Gpu), nxt_n_global_cnt, nxt_lyr_cfg->activation_func_id);
+        }
+
+        // Pooling:
+        {
+            // TODO
         }
     }
 

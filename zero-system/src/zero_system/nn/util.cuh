@@ -26,6 +26,13 @@ namespace zero
             CrossEntropy
         };
 
+        enum PoolingType
+        {
+            Average,
+            Max,
+            Global
+        };
+
         class Report
         {
         public:

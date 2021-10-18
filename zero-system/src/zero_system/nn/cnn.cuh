@@ -61,6 +61,8 @@ namespace zero
             void add_layer(int filter_cnt, int filter_row_cnt, int filter_col_cnt,
                            ActivationFunctionId activation_func_id);
 
+            void add_pooling_layer(PoolingType poolingTyp);
+
             void flatten(ActivationFunctionId activation_func_id);
             void flatten(ActivationFunctionId activation_func_id, float dropout_rate);
 
