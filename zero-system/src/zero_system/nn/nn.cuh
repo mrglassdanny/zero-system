@@ -46,8 +46,6 @@ namespace zero
             NN(const char *path);
             ~NN();
 
-            void print();
-
             void save(const char *path);
 
             void add_layer(int neuron_cnt);

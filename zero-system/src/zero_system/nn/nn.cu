@@ -580,28 +580,6 @@ NN::~NN()
     cudaFree(this->d_cost);
 }
 
-void NN::print()
-{
-    int lyr_cnt = this->layer_configurations.size();
-
-    for (int lyr_idx = 0; lyr_idx < lyr_cnt; lyr_idx++)
-    {
-        printf("\n\n==================== LAYER: %d ====================\n\n", lyr_idx + 1);
-
-        printf("NEURONS:\n");
-        this->neurons[lyr_idx]->print();
-
-        if (lyr_idx < lyr_cnt - 1)
-        {
-            printf("WEIGHTS:\n");
-            this->weights[lyr_idx]->print();
-
-            printf("BIASES:\n");
-            this->biases[lyr_idx]->print();
-        }
-    }
-}
-
 void NN::save(const char *path)
 {
     FILE *file_ptr = fopen(path, "wb");
