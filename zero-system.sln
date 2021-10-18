@@ -11,6 +11,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mnist-zero", "mnist-zero\mn
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "chess-zero", "chess-zero\chess-zero.vcxproj", "{E47D8E9F-A12D-49EE-BAA0-BA87CF0924BE}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lm-zero", "lm-zero\lm-zero.vcxproj", "{0BB72218-95DA-460B-AD83-7C58E92E0A42}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -33,6 +35,10 @@ Global
 		{E47D8E9F-A12D-49EE-BAA0-BA87CF0924BE}.Debug|x64.Build.0 = Debug|x64
 		{E47D8E9F-A12D-49EE-BAA0-BA87CF0924BE}.Release|x64.ActiveCfg = Release|x64
 		{E47D8E9F-A12D-49EE-BAA0-BA87CF0924BE}.Release|x64.Build.0 = Release|x64
+		{0BB72218-95DA-460B-AD83-7C58E92E0A42}.Debug|x64.ActiveCfg = Debug|x64
+		{0BB72218-95DA-460B-AD83-7C58E92E0A42}.Debug|x64.Build.0 = Debug|x64
+		{0BB72218-95DA-460B-AD83-7C58E92E0A42}.Release|x64.ActiveCfg = Release|x64
+		{0BB72218-95DA-460B-AD83-7C58E92E0A42}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
