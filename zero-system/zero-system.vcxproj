@@ -18,6 +18,9 @@
     <CudaCompile Include="src\zero_system\core\tensor.cu" />
     <CudaCompile Include="src\zero_system\nn\util.cu" />
     <CudaCompile Include="src\zero_system_v2\core\tensor.cu" />
+    <CudaCompile Include="src\zero_system_v2\nn\layer.cu" />
+    <CudaCompile Include="src\zero_system_v2\nn\network.cu" />
+    <CudaCompile Include="src\zero_system_v2\nn\util.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\zero_system\cluster\kmeans.cuh" />
@@ -27,6 +30,9 @@
     <ClInclude Include="src\zero_system\core\tensor.cuh" />
     <ClInclude Include="src\zero_system\nn\util.cuh" />
     <ClInclude Include="src\zero_system_v2\core\tensor.cuh" />
+    <ClInclude Include="src\zero_system_v2\nn\layer.cuh" />
+    <ClInclude Include="src\zero_system_v2\nn\network.cuh" />
+    <ClInclude Include="src\zero_system_v2\nn\util.cuh" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{D0F85482-BF6A-480C-B267-2F3EBA3807FC}</ProjectGuid>
