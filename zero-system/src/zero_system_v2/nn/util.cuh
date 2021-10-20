@@ -30,5 +30,12 @@ namespace zero_v2
             Max,
             Global
         };
+
+        enum WeightInitializationType
+        {
+            He,
+            Xavier,
+            Zeros
+        };
     }
 }

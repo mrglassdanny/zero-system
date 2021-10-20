@@ -19,7 +19,7 @@ namespace zero_v2
             virtual void derive(Tensor *d) = 0;
         };
 
-        class DenseLayer : public Layer
+        class LinearLayer : public Layer
         {
         private:
             Tensor *w;
@@ -28,8 +28,8 @@ namespace zero_v2
             Tensor *db;
 
         public:
-            DenseLayer();
-            ~DenseLayer();
+            LinearLayer(int n_cnt, int nxt_n_cnt, WeightInitializationType wgt_init_typ);
+            ~LinearLayer();
 
             virtual void evaluate(Tensor *n);
             virtual void derive(Tensor *dc);

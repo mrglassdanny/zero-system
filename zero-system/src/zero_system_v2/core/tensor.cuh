@@ -20,34 +20,38 @@ namespace zero_v2
 {
     namespace core
     {
-        enum TensorType
+        enum Device
         {
             Cpu,
-            Gpu
+            Cuda
         };
 
         class Tensor
         {
         private:
             float *arr;
-            TensorType typ;
+            Device device;
             std::vector<int> shape;
 
         public:
-            Tensor(TensorType typ);
-            Tensor(TensorType typ, int cnt);
-            Tensor(TensorType typ, int row_cnt, int col_cnt);
-            Tensor(TensorType typ, int x_cnt, int y_cnt, int z_cnt);
+            Tensor(Device device);
+            Tensor(Device device, int cnt);
+            Tensor(Device device, int row_cnt, int col_cnt);
+            Tensor(Device device, int x_cnt, int y_cnt, int z_cnt);
             ~Tensor();
 
-            int get_tot_cnt();
-            float *get_arr();
-
-            void translate(TensorType typ);
+            void to(Device device);
             void reset();
             void reset(float val);
             void reset_rand(float mean, float stddev);
             void print();
+
+            std::vector<int> get_shape();
+            int get_cnt();
+            float *get_arr();
+
+            float get_val(int idx);
+            void set_val(int idx, float val);
         };
     }
 }

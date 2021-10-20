@@ -4,6 +4,7 @@
 // #include <zero_system/nn/cnn.cuh>
 // #include <zero_system/cluster/kmeans.cuh>
 #include <zero_system_v2/core/tensor.cuh>
+#include <zero_system_v2/nn/layer.cuh>
 
 // using namespace zero::core;
 // using namespace zero::nn;
@@ -136,15 +137,7 @@
 void v2_test()
 {
 	using namespace zero_v2::core;
-
-	Tensor *t = new Tensor(Gpu, 5, 5, 3);
-
-	t->reset_rand(0.0f, 0.05f);
-	//t->reset(22.326546f);
-
-	t->print();
-
-	delete t;
+	using namespace zero_v2::nn;
 }
 
 int main(int argc, char **argv)

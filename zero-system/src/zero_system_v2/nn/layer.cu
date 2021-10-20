@@ -253,11 +253,39 @@ Layer::~Layer()
     }
 }
 
-DenseLayer::DenseLayer()
+LinearLayer::LinearLayer(int n_cnt, int nxt_n_cnt, WeightInitializationType wgt_init_typ)
 {
+    this->n = new Tensor(Device::Cuda, n_cnt);
+    this->n->reset();
+
+    this->w = new Tensor(Device::Cuda, n_cnt, nxt_n_cnt);
+    switch (wgt_init_typ)
+    {
+    case WeightInitializationType::He:
+        this->w->reset_rand(0.0f, sqrt(2.0f / n_cnt));
+        break;
+    case WeightInitializationType::Xavier:
+        this->w->reset_rand(0.0f, sqrt(1.0f / n_cnt));
+        break;
+    case WeightInitializationType::Zeros:
+        this->w->reset();
+        break;
+    default:
+        this->w->reset_rand(0.0f, 1.0f);
+        break;
+    }
+
+    this->b = new Tensor(Device::Cuda, nxt_n_cnt);
+    this->b->reset();
+
+    this->dw = new Tensor(Device::Cuda, n_cnt, nxt_n_cnt);
+    this->b->reset();
+
+    this->db = new Tensor(Device::Cuda, nxt_n_cnt);
+    this->db->reset();
 }
 
-DenseLayer::~DenseLayer()
+LinearLayer::~LinearLayer()
 {
     delete this->w;
     delete this->b;
@@ -265,10 +293,10 @@ DenseLayer::~DenseLayer()
     delete this->db;
 }
 
-void DenseLayer::evaluate(Tensor *nxt_n)
+void LinearLayer::evaluate(Tensor *nxt_n)
 {
-    int n_cnt = this->n->get_tot_cnt();
-    int nxt_n_cnt = nxt_n->get_tot_cnt();
+    int n_cnt = this->n->get_cnt();
+    int nxt_n_cnt = nxt_n->get_cnt();
 
     // Dot product:
     {
@@ -287,10 +315,10 @@ void DenseLayer::evaluate(Tensor *nxt_n)
     }
 }
 
-void DenseLayer::derive(Tensor *dc)
+void LinearLayer::derive(Tensor *dc)
 {
-    int dc_cnt = dc->get_tot_cnt();
-    int n_cnt = this->n->get_tot_cnt();
+    int dc_cnt = dc->get_cnt();
+    int n_cnt = this->n->get_cnt();
 
     // Weights:
     {
@@ -323,8 +351,8 @@ void ActivationLayer::evaluate(Tensor *nxt_n)
 {
     {
         int threads_per_block = THREADS_PER_BLOCK;
-        int num_blocks = (this->n->get_tot_cnt() / threads_per_block) + 1;
-        k_activate<<<num_blocks, threads_per_block>>>(this->n->get_arr(), nxt_n->get_arr(), this->n->get_tot_cnt(), this->typ);
+        int num_blocks = (this->n->get_cnt() / threads_per_block) + 1;
+        k_activate<<<num_blocks, threads_per_block>>>(this->n->get_arr(), nxt_n->get_arr(), this->n->get_cnt(), this->typ);
     }
 }
 
@@ -332,7 +360,7 @@ void ActivationLayer::derive(Tensor *dc)
 {
     {
         int threads_per_block = THREADS_PER_BLOCK;
-        int num_blocks = (this->n->get_tot_cnt() / threads_per_block) + 1;
-        k_derive_activation<<<num_blocks, threads_per_block>>>(this->n->get_arr(), dc->get_arr(), this->n->get_tot_cnt(), this->typ);
+        int num_blocks = (this->n->get_cnt() / threads_per_block) + 1;
+        k_derive_activation<<<num_blocks, threads_per_block>>>(this->n->get_arr(), dc->get_arr(), this->n->get_cnt(), this->typ);
     }
 }
