@@ -20,7 +20,7 @@
     <CudaCompile Include="src\zero_system_v2\core\tensor.cu" />
     <CudaCompile Include="src\zero_system_v2\core\util.cu" />
     <CudaCompile Include="src\zero_system_v2\nn\layer.cu" />
-    <CudaCompile Include="src\zero_system_v2\nn\network.cu" />
+    <CudaCompile Include="src\zero_system_v2\nn\model.cu" />
     <CudaCompile Include="src\zero_system_v2\nn\util.cu" />
   </ItemGroup>
   <ItemGroup>
@@ -33,7 +33,7 @@
     <ClInclude Include="src\zero_system_v2\core\tensor.cuh" />
     <ClInclude Include="src\zero_system_v2\core\util.cuh" />
     <ClInclude Include="src\zero_system_v2\nn\layer.cuh" />
-    <ClInclude Include="src\zero_system_v2\nn\network.cuh" />
+    <ClInclude Include="src\zero_system_v2\nn\model.cuh" />
     <ClInclude Include="src\zero_system_v2\nn\util.cuh" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

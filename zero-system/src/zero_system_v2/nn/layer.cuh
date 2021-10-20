@@ -15,8 +15,8 @@ namespace zero_v2
             Layer();
             ~Layer();
 
-            virtual void evaluate(Tensor *n) = 0;
-            virtual void derive(Tensor *d) = 0;
+            virtual void evaluate(Tensor *nxt_n) = 0;
+            virtual void derive(Tensor *dc) = 0;
         };
 
         class LinearLayer : public Layer
@@ -31,7 +31,7 @@ namespace zero_v2
             LinearLayer(int n_cnt, int nxt_n_cnt, WeightInitializationType wgt_init_typ);
             ~LinearLayer();
 
-            virtual void evaluate(Tensor *n);
+            virtual void evaluate(Tensor *nxt_n);
             virtual void derive(Tensor *dc);
         };
 
@@ -41,10 +41,10 @@ namespace zero_v2
             ActivationType typ;
 
         public:
-            ActivationLayer(ActivationType typ);
+            ActivationLayer(int n_cnt, ActivationType typ);
             ~ActivationLayer();
 
-            virtual void evaluate(Tensor *n);
+            virtual void evaluate(Tensor *nxt_n);
             virtual void derive(Tensor *dc);
         };
     }

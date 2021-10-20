@@ -254,6 +254,7 @@ Layer::~Layer()
 }
 
 LinearLayer::LinearLayer(int n_cnt, int nxt_n_cnt, WeightInitializationType wgt_init_typ)
+    : Layer()
 {
     this->n = new Tensor(Device::Cuda, n_cnt);
     this->n->reset();
@@ -262,16 +263,16 @@ LinearLayer::LinearLayer(int n_cnt, int nxt_n_cnt, WeightInitializationType wgt_
     switch (wgt_init_typ)
     {
     case WeightInitializationType::He:
-        this->w->reset_rand(0.0f, sqrt(2.0f / n_cnt));
+        this->w->set_all_rand(0.0f, sqrt(2.0f / n_cnt));
         break;
     case WeightInitializationType::Xavier:
-        this->w->reset_rand(0.0f, sqrt(1.0f / n_cnt));
+        this->w->set_all_rand(0.0f, sqrt(1.0f / n_cnt));
         break;
     case WeightInitializationType::Zeros:
         this->w->reset();
         break;
     default:
-        this->w->reset_rand(0.0f, 1.0f);
+        this->w->set_all_rand(0.0f, 1.0f);
         break;
     }
 
@@ -338,8 +339,12 @@ void LinearLayer::derive(Tensor *dc)
     }
 }
 
-ActivationLayer::ActivationLayer(ActivationType typ)
+ActivationLayer::ActivationLayer(int n_cnt, ActivationType typ)
+    : Layer()
 {
+    this->n = new Tensor(Device::Cuda, n_cnt);
+    this->n->reset();
+
     this->typ = typ;
 }
 

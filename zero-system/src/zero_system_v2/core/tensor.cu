@@ -32,6 +32,25 @@ __global__ void k_set_arr_rand(float *arr, int cnt, float mean, float stddev)
 
 // Tensor functions:
 
+Tensor::Tensor(Tensor &src)
+{
+    this->device = src.device;
+    this->shape = src.shape;
+
+    int cnt = this->get_cnt();
+
+    if (src.device == Device::Cpu)
+    {
+        this->arr = (float *)malloc(sizeof(float) * cnt);
+        memcpy(this->arr, src.arr, sizeof(float) * cnt);
+    }
+    else if (src.device == Device::Cuda)
+    {
+        cudaMalloc(&this->arr, sizeof(float) * cnt);
+        cudaMemcpy(this->arr, src.arr, sizeof(float) * cnt, cudaMemcpyHostToDevice);
+    }
+}
+
 Tensor::Tensor(Device device)
 {
     this->device = device;
@@ -103,6 +122,25 @@ Tensor::Tensor(Device device, int x_cnt, int y_cnt, int z_cnt)
     this->reset();
 }
 
+Tensor::Tensor(Device device, std::vector<int> shape)
+{
+    this->device = device;
+    this->shape = shape;
+
+    int cnt = this->get_cnt();
+
+    if (device == Device::Cpu)
+    {
+        this->arr = (float *)malloc(sizeof(float) * cnt);
+    }
+    else if (device == Device::Cuda)
+    {
+        cudaMalloc(&this->arr, sizeof(float) * cnt);
+    }
+
+    this->reset();
+}
+
 Tensor::~Tensor()
 {
     if (this->device == Device::Cpu)
@@ -150,64 +188,43 @@ void Tensor::to(Device device)
     }
 }
 
-void Tensor::reset()
+void Tensor::copy(Tensor *src)
 {
+    this->shape = src->shape;
+
     int cnt = this->get_cnt();
 
-    if (this->device == Device::Cpu)
+    if (src->device == Device::Cpu)
     {
-        memset(this->arr, 0, sizeof(float) * cnt);
-    }
-    else if (this->device == Device::Cuda)
-    {
-        cudaMemset(this->arr, 0, sizeof(float) * cnt);
-    }
-}
-
-void Tensor::reset(float val)
-{
-    int cnt = this->get_cnt();
-
-    if (this->device == Device::Cpu)
-    {
-        for (int i = 0; i < cnt; i++)
+        if (this->device == Device::Cpu)
         {
-            this->arr[i] = val;
+            this->arr = (float *)realloc(this->arr, sizeof(float) * cnt);
+            memcpy(this->arr, src->arr, sizeof(float) * cnt);
+        }
+        else if (this->device == Device::Cuda)
+        {
+            cudaFree(this->arr);
+            this->arr = (float *)malloc(sizeof(float) * cnt);
+            memcpy(this->arr, src->arr, sizeof(float) * cnt);
         }
     }
-    else if (this->device == Device::Cuda)
+    else if (src->device == Device::Cuda)
     {
+        if (this->device == Device::Cpu)
         {
-            int threads_per_block = THREADS_PER_BLOCK;
-            int num_blocks = (cnt / THREADS_PER_BLOCK) + 1;
-            k_set_arr<<<num_blocks, threads_per_block>>>(this->arr, cnt, val);
+            free(this->arr);
+            cudaMalloc(&this->arr, sizeof(float) * cnt);
+            cudaMemcpy(this->arr, src->arr, sizeof(float) * cnt, cudaMemcpyHostToDevice);
+        }
+        else if (this->device == Device::Cuda)
+        {
+            cudaFree(this->arr);
+            cudaMalloc(&this->arr, sizeof(float) * cnt);
+            cudaMemcpy(this->arr, src->arr, sizeof(float) * cnt, cudaMemcpyHostToDevice);
         }
     }
-}
 
-void Tensor::reset_rand(float mean, float stddev)
-{
-    int cnt = this->get_cnt();
-
-    if (this->device == Device::Cpu)
-    {
-        std::random_device rd;
-        std::mt19937 gen(rd());
-
-        for (int i = 0; i < cnt; i++)
-        {
-            std::normal_distribution<float> d(mean, stddev);
-            this->arr[i] = d(gen);
-        }
-    }
-    else if (this->device == Device::Cuda)
-    {
-        {
-            int threads_per_block = THREADS_PER_BLOCK;
-            int num_blocks = (cnt / THREADS_PER_BLOCK) + 1;
-            k_set_arr_rand<<<num_blocks, threads_per_block>>>(this->arr, cnt, mean, stddev);
-        }
-    }
+    this->device = src->device;
 }
 
 void Tensor::print()
@@ -397,5 +414,65 @@ void Tensor::set_val(int idx, float val)
     else
     {
         this->arr[idx] = val;
+    }
+}
+
+void Tensor::reset()
+{
+    int cnt = this->get_cnt();
+
+    if (this->device == Device::Cpu)
+    {
+        memset(this->arr, 0, sizeof(float) * cnt);
+    }
+    else if (this->device == Device::Cuda)
+    {
+        cudaMemset(this->arr, 0, sizeof(float) * cnt);
+    }
+}
+
+void Tensor::set_all(float val)
+{
+    int cnt = this->get_cnt();
+
+    if (this->device == Device::Cpu)
+    {
+        for (int i = 0; i < cnt; i++)
+        {
+            this->arr[i] = val;
+        }
+    }
+    else if (this->device == Device::Cuda)
+    {
+        {
+            int threads_per_block = THREADS_PER_BLOCK;
+            int num_blocks = (cnt / THREADS_PER_BLOCK) + 1;
+            k_set_arr<<<num_blocks, threads_per_block>>>(this->arr, cnt, val);
+        }
+    }
+}
+
+void Tensor::set_all_rand(float mean, float stddev)
+{
+    int cnt = this->get_cnt();
+
+    if (this->device == Device::Cpu)
+    {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+
+        for (int i = 0; i < cnt; i++)
+        {
+            std::normal_distribution<float> d(mean, stddev);
+            this->arr[i] = d(gen);
+        }
+    }
+    else if (this->device == Device::Cuda)
+    {
+        {
+            int threads_per_block = THREADS_PER_BLOCK;
+            int num_blocks = (cnt / THREADS_PER_BLOCK) + 1;
+            k_set_arr_rand<<<num_blocks, threads_per_block>>>(this->arr, cnt, mean, stddev);
+        }
     }
 }

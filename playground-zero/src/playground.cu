@@ -138,6 +138,20 @@ void v2_test()
 {
 	using namespace zero_v2::core;
 	using namespace zero_v2::nn;
+
+	Tensor *t1 = new Tensor(Device::Cpu, 5, 5);
+	t1->set_all_rand(0.0f, 1.0f);
+	t1->print();
+
+	Tensor *t2 = new Tensor(Device::Cuda, 3, 2);
+	t2->set_all(12.f);
+	t2->print();
+
+	t2->copy(t1);
+	t2->print();
+
+	delete t1;
+	delete t2;
 }
 
 int main(int argc, char **argv)

@@ -34,16 +34,18 @@ namespace zero_v2
             std::vector<int> shape;
 
         public:
+            Tensor(Tensor &src);
             Tensor(Device device);
             Tensor(Device device, int cnt);
             Tensor(Device device, int row_cnt, int col_cnt);
             Tensor(Device device, int x_cnt, int y_cnt, int z_cnt);
+            Tensor(Device device, std::vector<int> shape);
             ~Tensor();
 
             void to(Device device);
-            void reset();
-            void reset(float val);
-            void reset_rand(float mean, float stddev);
+
+            void copy(Tensor *src);
+
             void print();
 
             std::vector<int> get_shape();
@@ -52,6 +54,10 @@ namespace zero_v2
 
             float get_val(int idx);
             void set_val(int idx, float val);
+
+            void reset();
+            void set_all(float val);
+            void set_all_rand(float mean, float stddev);
         };
     }
 }

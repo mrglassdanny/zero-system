@@ -22,6 +22,20 @@ void Model::add_layer(Layer *lyr)
 
 void Model::forward(Tensor *x)
 {
+    int lst_lyr_idx = this->layers.size() - 1;
+
+    Layer *fst_lyr = this->layers[0];
+    Layer *lst_lyr = this->layers[lst_lyr_idx];
+
+    for (int i = 0; i < lst_lyr_idx; i++)
+    {
+        Layer *lyr = this->layers[i];
+        Layer *nxt_lyr = this->layers[i + 1];
+
+        lyr->evaluate(nxt_lyr->n);
+    }
+
+    //lst_lyr->evaluate();
 }
 
 void Model::backward(Tensor *y)
