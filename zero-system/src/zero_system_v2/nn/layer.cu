@@ -339,13 +339,13 @@ void LinearLayer::derive(Tensor *dc)
     }
 }
 
-ActivationLayer::ActivationLayer(int n_cnt, ActivationFunction typ)
+ActivationLayer::ActivationLayer(int n_cnt, ActivationFunction activation_fn)
     : Layer()
 {
     this->n = new Tensor(Device::Cuda, n_cnt);
     this->n->reset();
 
-    this->typ = typ;
+    this->activation_fn = activation_fn;
 }
 
 ActivationLayer::~ActivationLayer()
@@ -357,7 +357,7 @@ void ActivationLayer::evaluate(Tensor *nxt_n)
     {
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
         int num_blocks = (this->n->get_cnt() / threads_per_block) + 1;
-        k_activate<<<num_blocks, threads_per_block>>>(this->n->get_arr(), nxt_n->get_arr(), this->n->get_cnt(), this->typ);
+        k_activate<<<num_blocks, threads_per_block>>>(this->n->get_arr(), nxt_n->get_arr(), this->n->get_cnt(), this->activation_fn);
     }
 }
 
@@ -366,6 +366,6 @@ void ActivationLayer::derive(Tensor *dc)
     {
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
         int num_blocks = (this->n->get_cnt() / threads_per_block) + 1;
-        k_derive_activation<<<num_blocks, threads_per_block>>>(this->n->get_arr(), dc->get_arr(), this->n->get_cnt(), this->typ);
+        k_derive_activation<<<num_blocks, threads_per_block>>>(this->n->get_arr(), dc->get_arr(), this->n->get_cnt(), this->activation_fn);
     }
 }
