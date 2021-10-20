@@ -1,7 +1,5 @@
 #include "tensor.cuh"
 
-#define THREADS_PER_BLOCK 32
-
 using namespace zero_v2::core;
 
 // Device functions:
@@ -445,8 +443,8 @@ void Tensor::set_all(float val)
     else if (this->device == Device::Cuda)
     {
         {
-            int threads_per_block = THREADS_PER_BLOCK;
-            int num_blocks = (cnt / THREADS_PER_BLOCK) + 1;
+            int threads_per_block = CUDA_THREADS_PER_BLOCK;
+            int num_blocks = (cnt / CUDA_THREADS_PER_BLOCK) + 1;
             k_set_arr<<<num_blocks, threads_per_block>>>(this->arr, cnt, val);
         }
     }
@@ -470,8 +468,8 @@ void Tensor::set_all_rand(float mean, float stddev)
     else if (this->device == Device::Cuda)
     {
         {
-            int threads_per_block = THREADS_PER_BLOCK;
-            int num_blocks = (cnt / THREADS_PER_BLOCK) + 1;
+            int threads_per_block = CUDA_THREADS_PER_BLOCK;
+            int num_blocks = (cnt / CUDA_THREADS_PER_BLOCK) + 1;
             k_set_arr_rand<<<num_blocks, threads_per_block>>>(this->arr, cnt, mean, stddev);
         }
     }

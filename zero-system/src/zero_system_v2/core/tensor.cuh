@@ -16,10 +16,13 @@
 #include <device_launch_parameters.h>
 #include <device_atomic_functions.h>
 
+#define CUDA_THREADS_PER_BLOCK 32
+
 namespace zero_v2
 {
     namespace core
     {
+
         enum Device
         {
             Cpu,

@@ -1,7 +1,5 @@
 #include "layer.cuh"
 
-#define THREADS_PER_BLOCK 32
-
 using namespace zero_v2::core;
 using namespace zero_v2::nn;
 
@@ -61,8 +59,8 @@ __device__ float d_derive_cosine(float val)
 
 __global__ void k_dot(float *n_arr, float *w_arr, float *nxt_n_arr, int n_cnt, int nxt_n_cnt)
 {
-    __shared__ float temp[THREADS_PER_BLOCK];
-    memset(temp, 0, THREADS_PER_BLOCK * sizeof(float));
+    __shared__ float temp[CUDA_THREADS_PER_BLOCK];
+    memset(temp, 0, CUDA_THREADS_PER_BLOCK * sizeof(float));
 
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -90,16 +88,16 @@ __global__ void k_dot(float *n_arr, float *w_arr, float *nxt_n_arr, int n_cnt, i
         */
 
         int lower_idx = tid / n_cnt;
-        int upper_idx = ((tid + THREADS_PER_BLOCK) - 1) / n_cnt;
+        int upper_idx = ((tid + CUDA_THREADS_PER_BLOCK) - 1) / n_cnt;
 
-        if (n_cnt >= THREADS_PER_BLOCK)
+        if (n_cnt >= CUDA_THREADS_PER_BLOCK)
         {
             if (lower_idx == upper_idx)
             {
                 float sum = 0.0f;
 
 #pragma unroll
-                for (int i = 0; i < THREADS_PER_BLOCK; i++)
+                for (int i = 0; i < CUDA_THREADS_PER_BLOCK; i++)
                 {
                     sum += temp[i];
                 }
@@ -111,7 +109,7 @@ __global__ void k_dot(float *n_arr, float *w_arr, float *nxt_n_arr, int n_cnt, i
                 float sums[2] = {0.0f, 0.0f};
 
 #pragma unroll
-                for (int i = 0; i < THREADS_PER_BLOCK; i++)
+                for (int i = 0; i < CUDA_THREADS_PER_BLOCK; i++)
                 {
                     if ((tid + i) / n_cnt == lower_idx)
                     {
@@ -134,7 +132,7 @@ __global__ void k_dot(float *n_arr, float *w_arr, float *nxt_n_arr, int n_cnt, i
         {
 
 #pragma unroll
-            for (int i = 0; i < THREADS_PER_BLOCK; i++)
+            for (int i = 0; i < CUDA_THREADS_PER_BLOCK; i++)
             {
                 atomicAdd(&nxt_n_arr[(tid + i) / n_cnt], temp[i]);
             }
@@ -178,7 +176,7 @@ __global__ void k_derive_z_and_increment_bias_derivative(float *dc_arr, float *d
     }
 }
 
-__global__ void k_activate(float *n_arr, float *nxt_n_arr, int n_cnt, ActivationType typ)
+__global__ void k_activate(float *n_arr, float *nxt_n_arr, int n_cnt, ActivationFunction typ)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -186,19 +184,19 @@ __global__ void k_activate(float *n_arr, float *nxt_n_arr, int n_cnt, Activation
     {
         switch (typ)
         {
-        case ActivationType::ReLU:
+        case ActivationFunction::ReLU:
             nxt_n_arr[tid] = d_relu(n_arr[tid]);
             break;
-        case ActivationType::Sigmoid:
+        case ActivationFunction::Sigmoid:
             nxt_n_arr[tid] = d_sigmoid(n_arr[tid]);
             break;
-        case ActivationType::Tanh:
+        case ActivationFunction::Tanh:
             nxt_n_arr[tid] = d_tanh(n_arr[tid]);
             break;
-        case ActivationType::Sine:
+        case ActivationFunction::Sine:
             nxt_n_arr[tid] = d_sine(n_arr[tid]);
             break;
-        case ActivationType::Cosine:
+        case ActivationFunction::Cosine:
             nxt_n_arr[tid] = d_cosine(n_arr[tid]);
             break;
         default:
@@ -208,7 +206,7 @@ __global__ void k_activate(float *n_arr, float *nxt_n_arr, int n_cnt, Activation
     }
 }
 
-__global__ void k_derive_activation(float *n_arr, float *dc_arr, int n_cnt, ActivationType typ)
+__global__ void k_derive_activation(float *n_arr, float *dc_arr, int n_cnt, ActivationFunction typ)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -216,19 +214,19 @@ __global__ void k_derive_activation(float *n_arr, float *dc_arr, int n_cnt, Acti
     {
         switch (typ)
         {
-        case ActivationType::ReLU:
+        case ActivationFunction::ReLU:
             dc_arr[tid] *= d_derive_relu(n_arr[tid]);
             break;
-        case ActivationType::Sigmoid:
+        case ActivationFunction::Sigmoid:
             dc_arr[tid] *= d_derive_sigmoid(n_arr[tid]);
             break;
-        case ActivationType::Tanh:
+        case ActivationFunction::Tanh:
             dc_arr[tid] *= d_derive_tanh(n_arr[tid]);
             break;
-        case ActivationType::Sine:
+        case ActivationFunction::Sine:
             dc_arr[tid] *= d_derive_sine(n_arr[tid]);
             break;
-        case ActivationType::Cosine:
+        case ActivationFunction::Cosine:
             dc_arr[tid] *= d_derive_cosine(n_arr[tid]);
             break;
         default:
@@ -259,28 +257,30 @@ LinearLayer::LinearLayer(int n_cnt, int nxt_n_cnt, WeightInitializationType wgt_
     this->n = new Tensor(Device::Cuda, n_cnt);
     this->n->reset();
 
-    this->w = new Tensor(Device::Cuda, n_cnt, nxt_n_cnt);
+    this->w = new Tensor(Device::Cuda, nxt_n_cnt, n_cnt);
+    this->b = new Tensor(Device::Cuda, nxt_n_cnt);
     switch (wgt_init_typ)
     {
     case WeightInitializationType::He:
         this->w->set_all_rand(0.0f, sqrt(2.0f / n_cnt));
+        this->b->set_all_rand(0.0f, sqrt(2.0f / n_cnt));
         break;
     case WeightInitializationType::Xavier:
         this->w->set_all_rand(0.0f, sqrt(1.0f / n_cnt));
+        this->b->set_all_rand(0.0f, sqrt(1.0f / n_cnt));
         break;
     case WeightInitializationType::Zeros:
         this->w->reset();
+        this->b->reset();
         break;
     default:
         this->w->set_all_rand(0.0f, 1.0f);
+        this->b->set_all_rand(0.0f, 1.0f);
         break;
     }
 
-    this->b = new Tensor(Device::Cuda, nxt_n_cnt);
-    this->b->reset();
-
     this->dw = new Tensor(Device::Cuda, n_cnt, nxt_n_cnt);
-    this->b->reset();
+    this->dw->reset();
 
     this->db = new Tensor(Device::Cuda, nxt_n_cnt);
     this->db->reset();
@@ -301,7 +301,7 @@ void LinearLayer::evaluate(Tensor *nxt_n)
 
     // Dot product:
     {
-        int threads_per_block = THREADS_PER_BLOCK;
+        int threads_per_block = CUDA_THREADS_PER_BLOCK;
         int num_blocks = ((n_cnt * nxt_n_cnt) / threads_per_block) + 1;
         k_dot<<<num_blocks, threads_per_block>>>(this->n->get_arr(), w->get_arr(),
                                                  nxt_n->get_arr(), n_cnt, nxt_n_cnt);
@@ -309,7 +309,7 @@ void LinearLayer::evaluate(Tensor *nxt_n)
 
     // Add biases:
     {
-        int threads_per_block(THREADS_PER_BLOCK);
+        int threads_per_block(CUDA_THREADS_PER_BLOCK);
         int num_blocks((nxt_n_cnt / threads_per_block) + 1);
         k_add_bias<<<num_blocks, threads_per_block>>>(this->b->get_arr(), nxt_n->get_arr(),
                                                       nxt_n_cnt);
@@ -323,7 +323,7 @@ void LinearLayer::derive(Tensor *dc)
 
     // Weights:
     {
-        int threads_per_block = THREADS_PER_BLOCK;
+        int threads_per_block = CUDA_THREADS_PER_BLOCK;
         int num_blocks = ((dc_cnt * n_cnt) / threads_per_block) + 1;
         k_derive_z_and_increment_weight_derivative<<<num_blocks, threads_per_block>>>(dc->get_arr(),
                                                                                       this->n->get_arr(),
@@ -333,13 +333,13 @@ void LinearLayer::derive(Tensor *dc)
 
     // Biases:
     {
-        int threads_per_block = THREADS_PER_BLOCK;
+        int threads_per_block = CUDA_THREADS_PER_BLOCK;
         int num_blocks = (dc_cnt / threads_per_block) + 1;
         k_derive_z_and_increment_bias_derivative<<<num_blocks, threads_per_block>>>(dc->get_arr(), this->db->get_arr(), n_cnt);
     }
 }
 
-ActivationLayer::ActivationLayer(int n_cnt, ActivationType typ)
+ActivationLayer::ActivationLayer(int n_cnt, ActivationFunction typ)
     : Layer()
 {
     this->n = new Tensor(Device::Cuda, n_cnt);
@@ -355,7 +355,7 @@ ActivationLayer::~ActivationLayer()
 void ActivationLayer::evaluate(Tensor *nxt_n)
 {
     {
-        int threads_per_block = THREADS_PER_BLOCK;
+        int threads_per_block = CUDA_THREADS_PER_BLOCK;
         int num_blocks = (this->n->get_cnt() / threads_per_block) + 1;
         k_activate<<<num_blocks, threads_per_block>>>(this->n->get_arr(), nxt_n->get_arr(), this->n->get_cnt(), this->typ);
     }
@@ -364,7 +364,7 @@ void ActivationLayer::evaluate(Tensor *nxt_n)
 void ActivationLayer::derive(Tensor *dc)
 {
     {
-        int threads_per_block = THREADS_PER_BLOCK;
+        int threads_per_block = CUDA_THREADS_PER_BLOCK;
         int num_blocks = (this->n->get_cnt() / threads_per_block) + 1;
         k_derive_activation<<<num_blocks, threads_per_block>>>(this->n->get_arr(), dc->get_arr(), this->n->get_cnt(), this->typ);
     }

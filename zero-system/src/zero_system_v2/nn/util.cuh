@@ -8,7 +8,7 @@ namespace zero_v2
 
     namespace nn
     {
-        enum ActivationType
+        enum ActivationFunction
         {
             None,
             ReLU,
@@ -18,7 +18,7 @@ namespace zero_v2
             Cosine
         };
 
-        enum CostType
+        enum CostFunction
         {
             MSE,
             CrossEntropy

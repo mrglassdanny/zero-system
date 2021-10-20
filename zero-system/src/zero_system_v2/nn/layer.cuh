@@ -38,10 +38,10 @@ namespace zero_v2
         class ActivationLayer : public Layer
         {
         private:
-            ActivationType typ;
+            ActivationFunction typ;
 
         public:
-            ActivationLayer(int n_cnt, ActivationType typ);
+            ActivationLayer(int n_cnt, ActivationFunction typ);
             ~ActivationLayer();
 
             virtual void evaluate(Tensor *nxt_n);
