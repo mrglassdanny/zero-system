@@ -1,15 +1,15 @@
 #include <iostream>
 
 #include <zero_system/nn/nn.cuh>
-#include <zero_system/nn/cnn.cuh>
+#include <zero_system_v2/nn/model.cuh>
 
-using namespace zero::core;
-using namespace zero::nn;
+using namespace zero_v2::core;
+using namespace zero_v2::nn;
 
 #define IMAGE_ROW_CNT 28
 #define IMAGE_COL_CNT 28
 
-Supervisor *init_mnist_supervisor()
+zero::nn::Supervisor *init_mnist_supervisor()
 {
 
     int img_rows = 28;
@@ -47,7 +47,7 @@ Supervisor *init_mnist_supervisor()
     free(img_buf);
     free(lbl_buf);
 
-    Supervisor *sup = new Supervisor(img_cnt, 784, 10, img_flt_buf, lbl_flt_buf, Cpu);
+    zero::nn::Supervisor *sup = new Supervisor(img_cnt, 784, 10, img_flt_buf, lbl_flt_buf, Cpu);
 
     free(lbl_flt_buf);
     free(img_flt_buf);
@@ -55,71 +55,14 @@ Supervisor *init_mnist_supervisor()
     return sup;
 }
 
-void mnist_nn()
+void mnist_v2()
 {
-    srand(time(NULL));
-
-    Supervisor *sup = init_mnist_supervisor();
-
-    NN *nn = new NN(MSE, 0.1f);
-
-    nn->add_layer(784);
-    nn->add_layer(2048, ReLU, 0.3f);
-    nn->add_layer(1024, ReLU, 0.25f);
-    nn->add_layer(512, ReLU, 0.2f);
-    nn->add_layer(10, Sigmoid);
-
-    nn->compile();
-
-    nn->train_and_test(sup, 100, "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist-train-dr.csv");
-
-    nn->save("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist-dr.nn");
-
-    //NN *nn = new NN("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist-dr.nn");
-
-    //nn->train_and_test(sup, 100, "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist-train-dr.csv");
-
-    //nn->save("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist-dr.nn");
-
-    //nn->test(sup->create_test_batch()).print();
-
-    delete nn;
-
-    delete sup;
-}
-
-void mnist_cnn()
-{
-    srand(time(NULL));
-
-    Supervisor *sup = init_mnist_supervisor();
-
-    CNN *cnn = new CNN(MSE, 0.1f);
-
-    cnn->input_layer(1, IMAGE_ROW_CNT, IMAGE_COL_CNT, 64, 3, 3, None);
-    cnn->add_layer(64, 3, 3, ReLU);
-
-    cnn->flatten(ReLU);
-
-    cnn->fully_connected()->add_layer(512, ReLU);
-    cnn->fully_connected()->add_layer(10, ReLU);
-
-    cnn->compile();
-
-    cnn->train_and_test(sup, 100, "C:\\Users\\d0g0825\\Desktop\\cnn-mnist-train.csv");
-
-    cnn->save("C:\\Users\\d0g0825\\Desktop\\mnist.cnn");
-
-    delete cnn;
-
-    delete sup;
+    zero::nn::Supervisor *sup = init_mnist_supervisor();
 }
 
 int main(int argc, char **argv)
 {
-    //mnist_nn();
-
-    mnist_cnn();
+    mnist_v2();
 
     return 0;
 }

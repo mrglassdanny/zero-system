@@ -389,6 +389,12 @@ float *Tensor::get_arr()
     return this->arr;
 }
 
+float *Tensor::get_arr(Device device)
+{
+    this->to(device);
+    return this->arr;
+}
+
 float Tensor::get_val(int idx)
 {
     if (this->device == Device::Cuda)

@@ -176,13 +176,119 @@ __global__ void k_derive_z_and_increment_bias_derivative(float *dc_arr, float *d
     }
 }
 
-__global__ void k_activate(float *n_arr, float *nxt_n_arr, int n_cnt, ActivationFunction typ)
+__global__ void k_derive_z_and_aggregate_derivatives(float *agg_derivatives_arr, float *nxt_w_arr, float *nxt_agg_derivatives_arr, int n_cnt, int nxt_n_cnt)
+{
+    __shared__ float temp[CUDA_THREADS_PER_BLOCK];
+    memset(temp, 0, CUDA_THREADS_PER_BLOCK * sizeof(float));
+
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    int w_cnt = nxt_n_cnt * n_cnt;
+
+    // Transpose the weights "matrix".
+    int n_idx = tid % n_cnt;
+    int nxt_n_idx = tid / n_cnt;
+    int w_idx = n_idx * nxt_n_cnt + nxt_n_idx;
+
+    if (w_idx < w_cnt)
+    {
+        temp[threadIdx.x] = (agg_derivatives_arr[n_idx] * nxt_w_arr[w_idx]);
+    }
+
+    __syncthreads();
+
+    if (threadIdx.x == 0) // threadIdx MUST be 0 for below logic to work!
+    {
+        /*
+        The goal here is to try to minimize atomic adds. If the neuron count is
+        greater than or equal to the threads per block, a maximum of 2 atomic adds
+        is necessary for this block. However, most of the time we can get away with just 1.
+
+        If the threads per block is greater than the neuron count, we just play it safe
+        and incur an atomic add for each thread in the block.
+        */
+
+        int lower_idx = tid / n_cnt;
+        int upper_idx = ((tid + CUDA_THREADS_PER_BLOCK) - 1) / n_cnt;
+
+        if (n_cnt >= CUDA_THREADS_PER_BLOCK)
+        {
+            if (lower_idx == upper_idx)
+            {
+                float sum = 0.0f;
+
+#pragma unroll
+                for (int i = 0; i < CUDA_THREADS_PER_BLOCK; i++)
+                {
+                    sum += temp[i];
+                }
+                atomicAdd(&nxt_agg_derivatives_arr[lower_idx], sum);
+            }
+            else
+            {
+                float sums[2] = {0.0f, 0.0f};
+
+#pragma unroll
+                for (int i = 0; i < CUDA_THREADS_PER_BLOCK; i++)
+                {
+                    if ((tid + i) / n_cnt == lower_idx)
+                    {
+                        sums[0] += temp[i];
+                    }
+                    else
+                    {
+                        sums[1] += temp[i];
+                    }
+                }
+
+                atomicAdd(&nxt_agg_derivatives_arr[lower_idx], sums[0]);
+                if (upper_idx < nxt_n_cnt)
+                {
+                    atomicAdd(&nxt_agg_derivatives_arr[upper_idx], sums[1]);
+                }
+            }
+        }
+        else
+        {
+
+#pragma unroll
+            for (int i = 0; i < CUDA_THREADS_PER_BLOCK; i++)
+            {
+                atomicAdd(&nxt_agg_derivatives_arr[(tid + i) / n_cnt], temp[i]);
+            }
+        }
+    }
+}
+
+__global__ void k_adjust_weight(float *w_arr, float *dw_arr, int batch_size, float learning_rate, int cnt)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < cnt)
+    {
+        w_arr[tid] -= ((dw_arr[tid] * learning_rate) / (float)batch_size);
+        dw_arr[tid] = 0.0f;
+    }
+}
+
+__global__ void k_adjust_bias(float *b_arr, float *db_arr, int batch_size, float learning_rate, int cnt)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < cnt)
+    {
+        b_arr[tid] -= ((db_arr[tid] * learning_rate) / (float)batch_size);
+        db_arr[tid] = 0.0f;
+    }
+}
+
+__global__ void k_activate(float *n_arr, float *nxt_n_arr, int n_cnt, ActivationFunction activation_fn)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (tid < n_cnt)
     {
-        switch (typ)
+        switch (activation_fn)
         {
         case ActivationFunction::ReLU:
             nxt_n_arr[tid] = d_relu(n_arr[tid]);
@@ -206,13 +312,13 @@ __global__ void k_activate(float *n_arr, float *nxt_n_arr, int n_cnt, Activation
     }
 }
 
-__global__ void k_derive_activation(float *n_arr, float *dc_arr, int n_cnt, ActivationFunction typ)
+__global__ void k_derive_activation(float *n_arr, float *dc_arr, int n_cnt, ActivationFunction activation_fn)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (tid < n_cnt)
     {
-        switch (typ)
+        switch (activation_fn)
         {
         case ActivationFunction::ReLU:
             dc_arr[tid] *= d_derive_relu(n_arr[tid]);
@@ -251,33 +357,52 @@ Layer::~Layer()
     }
 }
 
-LinearLayer::LinearLayer(int n_cnt, int nxt_n_cnt, WeightInitializationType wgt_init_typ)
-    : Layer()
+// LearnableLayer functions:
+
+LearnableLayer::LearnableLayer()
+{
+    this->w = nullptr;
+    this->b = nullptr;
+    this->dw = nullptr;
+    this->db = nullptr;
+}
+
+LearnableLayer::~LearnableLayer()
+{
+    if (this->w != nullptr)
+    {
+        delete this->w;
+    }
+
+    if (this->b != nullptr)
+    {
+        delete this->b;
+    }
+
+    if (this->dw != nullptr)
+    {
+        delete this->dw;
+    }
+
+    if (this->db != nullptr)
+    {
+        delete this->db;
+    }
+}
+
+// LinearLayer functions:
+
+LinearLayer::LinearLayer(int n_cnt, int nxt_n_cnt, InitializationFunction init_fn)
+    : LearnableLayer()
 {
     this->n = new Tensor(Device::Cuda, n_cnt);
     this->n->reset();
 
     this->w = new Tensor(Device::Cuda, nxt_n_cnt, n_cnt);
+    Initializer::initialize(init_fn, this->w);
+
     this->b = new Tensor(Device::Cuda, nxt_n_cnt);
-    switch (wgt_init_typ)
-    {
-    case WeightInitializationType::He:
-        this->w->set_all_rand(0.0f, sqrt(2.0f / n_cnt));
-        this->b->set_all_rand(0.0f, sqrt(2.0f / n_cnt));
-        break;
-    case WeightInitializationType::Xavier:
-        this->w->set_all_rand(0.0f, sqrt(1.0f / n_cnt));
-        this->b->set_all_rand(0.0f, sqrt(1.0f / n_cnt));
-        break;
-    case WeightInitializationType::Zeros:
-        this->w->reset();
-        this->b->reset();
-        break;
-    default:
-        this->w->set_all_rand(0.0f, 1.0f);
-        this->b->set_all_rand(0.0f, 1.0f);
-        break;
-    }
+    Initializer::initialize(init_fn, this->b);
 
     this->dw = new Tensor(Device::Cuda, n_cnt, nxt_n_cnt);
     this->dw->reset();
@@ -288,10 +413,6 @@ LinearLayer::LinearLayer(int n_cnt, int nxt_n_cnt, WeightInitializationType wgt_
 
 LinearLayer::~LinearLayer()
 {
-    delete this->w;
-    delete this->b;
-    delete this->dw;
-    delete this->db;
 }
 
 void LinearLayer::evaluate(Tensor *nxt_n)
@@ -336,6 +457,38 @@ void LinearLayer::derive(Tensor *dc)
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
         int num_blocks = (dc_cnt / threads_per_block) + 1;
         k_derive_z_and_increment_bias_derivative<<<num_blocks, threads_per_block>>>(dc->get_arr(), this->db->get_arr(), n_cnt);
+    }
+
+    Tensor *nxt_dc = new Tensor(Device::Cuda, n_cnt);
+    nxt_dc->reset();
+
+    {
+        int threads_per_block = CUDA_THREADS_PER_BLOCK;
+        int num_blocks = ((n_cnt * dc->get_cnt()) / threads_per_block) + 1;
+        k_derive_z_and_aggregate_derivatives<<<num_blocks, threads_per_block>>>(dc->get_arr(), this->w->get_arr(),
+                                                                                nxt_dc->get_arr(),
+                                                                                dc->get_cnt(), n_cnt);
+    }
+
+    delete dc;
+    dc = nxt_dc;
+}
+
+void LinearLayer::step(int batch_size, float learning_rate)
+{
+    // Weights:
+    {
+        int threads_per_block = CUDA_THREADS_PER_BLOCK;
+        int num_blocks = (this->w->get_cnt() / threads_per_block) + 1;
+        k_adjust_weight<<<num_blocks, threads_per_block>>>(this->w->get_arr(), this->dw->get_arr(), batch_size, learning_rate,
+                                                           (this->w->get_cnt()));
+    }
+
+    // Biases:
+    {
+        int threads_per_block = CUDA_THREADS_PER_BLOCK;
+        int num_blocks = (this->b->get_cnt() / threads_per_block) + 1;
+        k_adjust_bias<<<num_blocks, threads_per_block>>>(this->b->get_arr(), this->db->get_arr(), batch_size, learning_rate, this->b->get_cnt());
     }
 }
 

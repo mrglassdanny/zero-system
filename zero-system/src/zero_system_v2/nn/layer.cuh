@@ -1,3 +1,5 @@
+#pragma once
+
 #include "../core/tensor.cuh"
 #include "util.cuh"
 
@@ -9,6 +11,7 @@ namespace zero_v2
     {
         class Layer
         {
+
         public:
             Tensor *n;
 
@@ -19,20 +22,35 @@ namespace zero_v2
             virtual void derive(Tensor *dc) = 0;
         };
 
-        class LinearLayer : public Layer
+        class LearnableLayer : public Layer
         {
-        private:
+        public:
             Tensor *w;
             Tensor *b;
             Tensor *dw;
             Tensor *db;
 
+            LearnableLayer();
+            ~LearnableLayer();
+
+            virtual void evaluate(Tensor *nxt_n) = 0;
+            virtual void derive(Tensor *dc) = 0;
+            virtual void step(int batch_size, float learning_rate) = 0;
+            virtual void load(FILE *file_ptr) = 0;
+            virtual void save(FILE *file_ptr) = 0;
+        };
+
+        class LinearLayer : public LearnableLayer
+        {
         public:
-            LinearLayer(int n_cnt, int nxt_n_cnt, WeightInitializationType wgt_init_typ);
+            LinearLayer(int n_cnt, int nxt_n_cnt, InitializationFunction init_fn);
             ~LinearLayer();
 
             virtual void evaluate(Tensor *nxt_n);
             virtual void derive(Tensor *dc);
+            virtual void step(int batch_size, float learning_rate);
+            virtual void load(FILE *file_ptr);
+            virtual void save(FILE *file_ptr);
         };
 
         class ActivationLayer : public Layer

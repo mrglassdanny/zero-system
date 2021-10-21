@@ -87,9 +87,13 @@ __global__ void k_derive_cost(float *n_arr, float *y_arr, float *agg_derivatives
 
 // Model functions:
 
-Model::Model(CostFunction cost_fn)
+Model::Model(CostFunction cost_fn, float learning_rate)
 {
     this->cost_fn = cost_fn;
+    this->learning_rate = learning_rate;
+
+    cudaMalloc(&this->d_cost, sizeof(float));
+    cudaMemset(this->d_cost, 0, sizeof(float));
 }
 
 Model::~Model()
@@ -98,6 +102,8 @@ Model::~Model()
     {
         delete lyr;
     }
+
+    cudaFree(this->d_cost);
 }
 
 void Model::add_layer(Layer *lyr)
@@ -130,26 +136,54 @@ Tensor *Model::forward(Tensor *x)
 
 float Model::cost(Tensor *pred, Tensor *y)
 {
-
     float h_cost = 0.0f;
-    float *d_cost;
-    cudaMalloc(&d_cost, sizeof(float));
 
     {
         int threads_per_block(CUDA_THREADS_PER_BLOCK);
         int num_blocks((pred->get_cnt() / threads_per_block) + 1);
 
         k_cost<<<num_blocks, threads_per_block>>>(pred->get_arr(), y->get_arr(),
-                                                  d_cost, pred->get_cnt(), this->cost_fn);
+                                                  this->d_cost, pred->get_cnt(), this->cost_fn);
     }
 
-    cudaMemcpy(&h_cost, d_cost, sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpy(&h_cost, this->d_cost, sizeof(float), cudaMemcpyDeviceToHost);
 
-    cudaFree(d_cost);
+    cudaMemset(this->d_cost, 0, sizeof(float));
 
     return h_cost;
 }
 
-void Model::backward(Tensor *y)
+void Model::backward(Tensor *pred, Tensor *y)
 {
+    Tensor *dc = new Tensor(Device::Cuda, pred->get_shape());
+    dc->set_all(1.0f);
+
+    // Derive cost (with respect to activation):
+    {
+        int threads_per_block = CUDA_THREADS_PER_BLOCK;
+        int num_blocks = (pred->get_cnt() / threads_per_block) + 1;
+        k_derive_cost<<<num_blocks, threads_per_block>>>(pred->get_arr(),
+                                                         y->get_arr(), dc->get_arr(), pred->get_cnt(), this->cost_fn);
+    }
+
+    int lst_lyr_idx = this->layers.size() - 1;
+
+    for (int i = lst_lyr_idx; i > 0; i--)
+    {
+        Layer *lyr = this->layers[i];
+        lyr->derive(dc);
+    }
+
+    delete dc;
+}
+
+void Model::step(int batch_size)
+{
+    for (Layer *lyr : this->layers)
+    {
+        if (LearnableLayer *lrn_lyr = dynamic_cast<LearnableLayer *>(lyr))
+        {
+            lrn_lyr->step(batch_size, this->learning_rate);
+        }
+    }
 }

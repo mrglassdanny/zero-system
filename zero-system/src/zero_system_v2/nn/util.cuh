@@ -24,18 +24,32 @@ namespace zero_v2
             CrossEntropy
         };
 
-        enum PoolingType
+        enum PoolingFunction
         {
             Average,
             Max,
             Global
         };
 
-        enum WeightInitializationType
+        enum InitializationFunction
         {
             He,
             Xavier,
             Zeros
+        };
+
+        enum OptimizationFunction
+        {
+            GradientDescent,
+            Momentum,
+            RMSProp,
+            Adam
+        };
+
+        class Initializer
+        {
+        public:
+            static void initialize(InitializationFunction init_fn, Tensor *out);
         };
     }
 }

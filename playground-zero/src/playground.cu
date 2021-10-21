@@ -5,6 +5,7 @@
 // #include <zero_system/cluster/kmeans.cuh>
 #include <zero_system_v2/core/tensor.cuh>
 #include <zero_system_v2/nn/layer.cuh>
+#include <zero_system_v2/nn/model.cuh>
 
 // using namespace zero::core;
 // using namespace zero::nn;
@@ -139,19 +140,19 @@ void v2_test()
 	using namespace zero_v2::core;
 	using namespace zero_v2::nn;
 
-	Tensor *t1 = new Tensor(Device::Cpu, 5, 5);
-	t1->set_all_rand(0.0f, 1.0f);
-	t1->print();
+	Model *model = new Model(CostFunction::MSE);
 
-	Tensor *t2 = new Tensor(Device::Cuda, 3, 2);
-	t2->set_all(12.f);
-	t2->print();
+	model->add_layer(new LinearLayer(64, 2, InitializationFunction::He));
+	model->add_layer(new ActivationLayer(2, ActivationFunction::ReLU));
 
-	t2->copy(t1);
-	t2->print();
+	Tensor *x = new Tensor(Device::Cuda, 64);
+	Tensor *y = new Tensor(Device::Cuda, 2);
 
-	delete t1;
-	delete t2;
+	Tensor *pred = model->forward(x);
+	printf("Cost: %f\n", model->cost(pred, y));
+	model->backward(pred, y);
+
+	delete model;
 }
 
 int main(int argc, char **argv)
