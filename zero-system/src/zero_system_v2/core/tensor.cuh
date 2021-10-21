@@ -53,8 +53,10 @@ namespace zero_v2
 
             std::vector<int> get_shape();
             int get_cnt();
+
             float *get_arr();
             float *get_arr(Device device);
+            void set_arr(float *arr);
 
             float get_val(int idx);
             void set_val(int idx, float val);

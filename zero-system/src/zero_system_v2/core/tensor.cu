@@ -395,6 +395,11 @@ float *Tensor::get_arr(Device device)
     return this->arr;
 }
 
+void Tensor::set_arr(float *arr)
+{
+    cudaMemcpy(this->arr, arr, sizeof(float) * this->get_cnt(), cudaMemcpyDefault);
+}
+
 float Tensor::get_val(int idx)
 {
     if (this->device == Device::Cuda)
