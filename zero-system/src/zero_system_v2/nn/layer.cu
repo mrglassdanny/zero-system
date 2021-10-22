@@ -342,6 +342,48 @@ __global__ void k_derive_activation(float *n_arr, float *dc_arr, int n_cnt, Acti
     }
 }
 
+__global__ void k_set_dropout_mask(float *dropout_mask_arr, int dropout_mask_cnt, float dropout_rate)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < dropout_mask_cnt)
+    {
+        curandState state;
+        curand_init(clock64(), tid, 0, &state);
+
+        if (curand_uniform(&state) < dropout_rate)
+        {
+            dropout_mask_arr[tid] = 0.0f;
+        }
+        else
+        {
+            dropout_mask_arr[tid] = 1.0f;
+        }
+    }
+}
+
+__global__ void k_dropout(float *n_arr, float *dropout_mask_arr, float *nxt_n_arr, int n_cnt, float dropout_rate)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < n_cnt)
+    {
+        nxt_n_arr[tid] = n_arr[tid] * dropout_mask_arr[tid];
+        nxt_n_arr[tid] = n_arr[tid] * (1.0f / (1.0f - dropout_rate));
+    }
+}
+
+__global__ void k_derive_dropout(float *dc_arr, float *dropout_mask_arr, int n_cnt, float dropout_rate)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < n_cnt)
+    {
+        dc_arr[tid] *= dropout_mask_arr[tid];
+        dc_arr[tid] *= (1.0f / (1.0f - dropout_rate));
+    }
+}
+
 // Layer functions:
 
 Layer::Layer()
@@ -392,6 +434,9 @@ LearnableLayer::~LearnableLayer()
 
 // LinearLayer functions:
 
+LinearLayer::LinearLayer()
+    : LearnableLayer() {}
+
 LinearLayer::LinearLayer(int n_cnt, int nxt_n_cnt, InitializationFunction init_fn)
     : LearnableLayer()
 {
@@ -399,10 +444,10 @@ LinearLayer::LinearLayer(int n_cnt, int nxt_n_cnt, InitializationFunction init_f
     this->n->reset();
 
     this->w = new Tensor(Device::Cuda, nxt_n_cnt, n_cnt);
-    Initializer::initialize(init_fn, this->w);
+    Initializer::initialize(init_fn, this->w, n_cnt, nxt_n_cnt);
 
     this->b = new Tensor(Device::Cuda, nxt_n_cnt);
-    Initializer::initialize(init_fn, this->b);
+    Initializer::initialize(init_fn, this->b, nxt_n_cnt, 0);
 
     this->dw = new Tensor(Device::Cuda, n_cnt, nxt_n_cnt);
     this->dw->reset();
@@ -413,6 +458,11 @@ LinearLayer::LinearLayer(int n_cnt, int nxt_n_cnt, InitializationFunction init_f
 
 LinearLayer::~LinearLayer()
 {
+}
+
+LayerType LinearLayer::get_type()
+{
+    return LayerType::Linear;
 }
 
 void LinearLayer::evaluate(Tensor *nxt_n)
@@ -492,6 +542,35 @@ void LinearLayer::step(int batch_size, float learning_rate)
     }
 }
 
+void LinearLayer::load(FILE *file_ptr)
+{
+    int w_cnt = this->w->get_cnt();
+    int b_cnt = this->b->get_cnt();
+
+    float *w_buf = (float *)malloc(sizeof(float) * w_cnt);
+    fread(w_buf, sizeof(float), w_cnt, file_ptr);
+    this->w->set_arr(w_buf);
+    this->w->to(Device::Cuda);
+    free(w_buf);
+
+    float *b_buf = (float *)malloc(sizeof(float) * b_cnt);
+    fread(b_buf, sizeof(float), b_cnt, file_ptr);
+    this->b->set_arr(b_buf);
+    this->b->to(Device::Cuda);
+    free(b_buf);
+}
+
+void LinearLayer::save(FILE *file_ptr)
+{
+    fwrite(this->w->get_arr(Device::Cpu), sizeof(float), this->w->get_cnt(), file_ptr);
+    fwrite(this->b->get_arr(Device::Cpu), sizeof(float), this->b->get_cnt(), file_ptr);
+}
+
+// ActivationLayer functions:
+
+ActivationLayer::ActivationLayer()
+    : Layer() {}
+
 ActivationLayer::ActivationLayer(int n_cnt, ActivationFunction activation_fn)
     : Layer()
 {
@@ -503,6 +582,11 @@ ActivationLayer::ActivationLayer(int n_cnt, ActivationFunction activation_fn)
 
 ActivationLayer::~ActivationLayer()
 {
+}
+
+LayerType ActivationLayer::get_type()
+{
+    return LayerType::Activation;
 }
 
 void ActivationLayer::evaluate(Tensor *nxt_n)
@@ -521,4 +605,83 @@ void ActivationLayer::derive(Tensor *dc)
         int num_blocks = (this->n->get_cnt() / threads_per_block) + 1;
         k_derive_activation<<<num_blocks, threads_per_block>>>(this->n->get_arr(), dc->get_arr(), this->n->get_cnt(), this->activation_fn);
     }
+}
+
+void ActivationLayer::load(FILE *file_ptr)
+{
+    fread(&this->activation_fn, sizeof(ActivationFunction), 1, file_ptr);
+}
+
+void ActivationLayer::save(FILE *file_ptr)
+{
+    fwrite(&this->activation_fn, sizeof(ActivationFunction), 1, file_ptr);
+}
+
+// DropoutLayer functions:
+
+DropoutLayer::DropoutLayer()
+    : Layer() {}
+
+DropoutLayer::DropoutLayer(int n_cnt, float dropout_rate)
+{
+    this->n = new Tensor(Device::Cuda, n_cnt);
+    this->n->reset();
+
+    this->dropout_rate = dropout_rate;
+
+    this->dropout_mask = new Tensor(Device::Cuda, n_cnt);
+}
+
+DropoutLayer::~DropoutLayer()
+{
+    delete this->dropout_mask;
+}
+
+LayerType DropoutLayer::get_type()
+{
+    return LayerType::Dropout;
+}
+
+void DropoutLayer::evaluate(Tensor *nxt_n)
+{
+    // Set dropout mask:
+    {
+        int threads_per_block = CUDA_THREADS_PER_BLOCK;
+        int num_blocks = (this->dropout_mask->get_cnt() / threads_per_block) + 1;
+        k_set_dropout_mask<<<num_blocks, threads_per_block>>>(this->dropout_mask->get_arr(), this->dropout_mask->get_cnt(),
+                                                              this->dropout_rate);
+    }
+
+    // Evaluate:
+    if (this->dropout_rate > 0.0f)
+    {
+        int threads_per_block = CUDA_THREADS_PER_BLOCK;
+        int num_blocks((nxt_n->get_cnt() / threads_per_block) + 1);
+        k_dropout<<<num_blocks, threads_per_block>>>(this->n->get_arr(), this->dropout_mask->get_arr(), nxt_n->get_arr(),
+                                                     nxt_n->get_cnt(), this->dropout_rate);
+    }
+}
+
+void DropoutLayer::derive(Tensor *dc)
+{
+    // Derive post-dropout activation (with respect to activation):
+    {
+        if (this->dropout_rate > 0.0f)
+        {
+            int threads_per_block = CUDA_THREADS_PER_BLOCK;
+            int num_blocks = (this->n->get_cnt() / threads_per_block) + 1;
+            k_derive_dropout<<<num_blocks, threads_per_block>>>(dc->get_arr(), this->dropout_mask->get_arr(),
+                                                                this->n->get_cnt(), this->dropout_rate);
+        }
+    }
+}
+
+void DropoutLayer::load(FILE *file_ptr)
+{
+    fread(&this->dropout_rate, sizeof(float), 1, file_ptr);
+}
+
+void DropoutLayer::save(FILE *file_ptr)
+{
+    fwrite(&this->dropout_rate, sizeof(float), 1, file_ptr);
 }

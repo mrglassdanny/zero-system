@@ -140,7 +140,7 @@ void v2_test()
 	using namespace zero_v2::core;
 	using namespace zero_v2::nn;
 
-	Model *model = new Model(CostFunction::MSE);
+	Model *model = new Model(CostFunction::MSE, 0.001f);
 
 	model->add_layer(new LinearLayer(64, 2, InitializationFunction::He));
 	model->add_layer(new ActivationLayer(2, ActivationFunction::ReLU));

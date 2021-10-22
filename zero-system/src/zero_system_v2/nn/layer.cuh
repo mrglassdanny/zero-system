@@ -9,6 +9,13 @@ namespace zero_v2
 
     namespace nn
     {
+        enum LayerType
+        {
+            Linear,
+            Activation,
+            Dropout
+        };
+
         class Layer
         {
 
@@ -18,8 +25,11 @@ namespace zero_v2
             Layer();
             ~Layer();
 
+            virtual LayerType get_type() = 0;
             virtual void evaluate(Tensor *nxt_n) = 0;
             virtual void derive(Tensor *dc) = 0;
+            virtual void load(FILE *file_ptr) = 0;
+            virtual void save(FILE *file_ptr) = 0;
         };
 
         class LearnableLayer : public Layer
@@ -33,24 +43,27 @@ namespace zero_v2
             LearnableLayer();
             ~LearnableLayer();
 
-            virtual void evaluate(Tensor *nxt_n) = 0;
-            virtual void derive(Tensor *dc) = 0;
             virtual void step(int batch_size, float learning_rate) = 0;
-            virtual void load(FILE *file_ptr) = 0;
-            virtual void save(FILE *file_ptr) = 0;
+        };
+
+        class NonProduction
+        {
         };
 
         class LinearLayer : public LearnableLayer
         {
         public:
+            LinearLayer();
             LinearLayer(int n_cnt, int nxt_n_cnt, InitializationFunction init_fn);
             ~LinearLayer();
 
+            virtual LayerType get_type();
             virtual void evaluate(Tensor *nxt_n);
             virtual void derive(Tensor *dc);
-            virtual void step(int batch_size, float learning_rate);
             virtual void load(FILE *file_ptr);
             virtual void save(FILE *file_ptr);
+
+            virtual void step(int batch_size, float learning_rate);
         };
 
         class ActivationLayer : public Layer
@@ -59,11 +72,33 @@ namespace zero_v2
             ActivationFunction activation_fn;
 
         public:
+            ActivationLayer();
             ActivationLayer(int n_cnt, ActivationFunction activation_fn);
             ~ActivationLayer();
 
+            virtual LayerType get_type();
             virtual void evaluate(Tensor *nxt_n);
             virtual void derive(Tensor *dc);
+            virtual void load(FILE *file_ptr);
+            virtual void save(FILE *file_ptr);
+        };
+
+        class DropoutLayer : public Layer, public NonProduction
+        {
+        private:
+            float dropout_rate;
+            Tensor *dropout_mask;
+
+        public:
+            DropoutLayer();
+            DropoutLayer(int n_cnt, float dropout_rate);
+            ~DropoutLayer();
+
+            virtual LayerType get_type();
+            virtual void evaluate(Tensor *nxt_n);
+            virtual void derive(Tensor *dc);
+            virtual void load(FILE *file_ptr);
+            virtual void save(FILE *file_ptr);
         };
     }
 }

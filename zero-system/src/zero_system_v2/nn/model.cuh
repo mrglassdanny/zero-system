@@ -21,6 +21,9 @@ namespace zero_v2
             Model(CostFunction cost_fn, float learning_rate);
             ~Model();
 
+            void load(const char *path);
+            void save(const char *path);
+
             void add_layer(Layer *lyr);
 
             Tensor *forward(Tensor *x);

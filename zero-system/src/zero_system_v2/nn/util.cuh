@@ -49,7 +49,7 @@ namespace zero_v2
         class Initializer
         {
         public:
-            static void initialize(InitializationFunction init_fn, Tensor *out);
+            static void initialize(InitializationFunction init_fn, Tensor *tensor, int fan_in, int fan_out);
         };
     }
 }

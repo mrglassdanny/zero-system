@@ -106,6 +106,67 @@ Model::~Model()
     cudaFree(this->d_cost);
 }
 
+void Model::load(const char *path)
+{
+    FILE *file_ptr = fopen(path, "rb");
+
+    fread(&this->cost_fn, sizeof(CostFunction), 1, file_ptr);
+    fread(&this->learning_rate, sizeof(float), 1, file_ptr);
+
+    int lyr_cnt = 0;
+    fread(&lyr_cnt, sizeof(int), 1, file_ptr);
+
+    for (int i = 0; i < lyr_cnt; i++)
+    {
+        LayerType lyr_typ;
+        fread(&lyr_typ, sizeof(LayerType), 1, file_ptr);
+
+        Layer *lyr = nullptr;
+
+        switch (lyr_typ)
+        {
+        case LayerType::Linear:
+            lyr = new LinearLayer();
+            break;
+        case LayerType::Activation:
+            lyr = new ActivationLayer();
+            break;
+        case LayerType::Dropout:
+            lyr = new DropoutLayer();
+            break;
+        default:
+            break;
+        }
+
+        lyr->load(file_ptr);
+        this->add_layer(lyr);
+    }
+
+    cudaMalloc(&this->d_cost, sizeof(float));
+    cudaMemset(this->d_cost, 0, sizeof(float));
+}
+
+void Model::save(const char *path)
+{
+    FILE *file_ptr = fopen(path, "wb");
+
+    fwrite(&this->cost_fn, sizeof(CostFunction), 1, file_ptr);
+    fwrite(&this->learning_rate, sizeof(float), 1, file_ptr);
+
+    int lyr_cnt = this->layers.size();
+    fwrite(&lyr_cnt, sizeof(int), 1, file_ptr);
+
+    for (Layer *lyr : this->layers)
+    {
+        LayerType lyr_typ = lyr->get_type();
+        fwrite(&lyr_typ, sizeof(LayerType), 1, file_ptr);
+
+        lyr->save(file_ptr);
+    }
+
+    fclose(file_ptr);
+}
+
 void Model::add_layer(Layer *lyr)
 {
     this->layers.push_back(lyr);
