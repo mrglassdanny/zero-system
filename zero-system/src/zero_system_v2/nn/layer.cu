@@ -477,9 +477,10 @@ __global__ void k_set_dropout_mask(float *dropout_mask_arr, int dropout_mask_cnt
     if (tid < dropout_mask_cnt)
     {
         curandState state;
-        curand_init(clock64(), tid, 0, &state);
+        //curand_init(clock64(), tid, 0, &state);
+        curand_init(1, tid, 0, &state);
 
-        if (curand_uniform(&state) < dropout_rate)
+        if (curand_uniform(&state) <= dropout_rate)
         {
             dropout_mask_arr[tid] = 0.0f;
         }
@@ -496,8 +497,7 @@ __global__ void k_dropout(float *n_arr, float *dropout_mask_arr, float *nxt_n_ar
 
     if (tid < n_cnt)
     {
-        nxt_n_arr[tid] = n_arr[tid] * dropout_mask_arr[tid];
-        nxt_n_arr[tid] = n_arr[tid] * (1.0f / (1.0f - dropout_rate));
+        nxt_n_arr[tid] = (n_arr[tid] * dropout_mask_arr[tid]) * (1.0f / (1.0f - dropout_rate));
     }
 }
 
@@ -507,8 +507,7 @@ __global__ void k_derive_dropout(float *dc_arr, float *dropout_mask_arr, int n_c
 
     if (tid < n_cnt)
     {
-        dc_arr[tid] *= dropout_mask_arr[tid];
-        dc_arr[tid] *= (1.0f / (1.0f - dropout_rate));
+        dc_arr[tid] *= (dropout_mask_arr[tid] * (1.0f / (1.0f - dropout_rate)));
     }
 }
 
