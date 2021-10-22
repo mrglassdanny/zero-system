@@ -1,7 +1,7 @@
 #include <iostream>
 
-#include <zero_system/nn/nn.cuh>
 #include <zero_system_v2/nn/model.cuh>
+#include <zero_system_v2/nn/batch.cuh>
 
 using namespace zero_v2::core;
 using namespace zero_v2::nn;
@@ -9,7 +9,7 @@ using namespace zero_v2::nn;
 #define IMAGE_ROW_CNT 28
 #define IMAGE_COL_CNT 28
 
-zero::nn::Supervisor *init_mnist_supervisor()
+Supervisor *init_mnist_supervisor()
 {
 
     int img_rows = 28;
@@ -47,7 +47,7 @@ zero::nn::Supervisor *init_mnist_supervisor()
     free(img_buf);
     free(lbl_buf);
 
-    zero::nn::Supervisor *sup = new Supervisor(img_cnt, 784, 10, img_flt_buf, lbl_flt_buf, Cpu);
+    Supervisor *sup = new Supervisor(img_cnt, 784, 10, img_flt_buf, lbl_flt_buf, Device::Cpu);
 
     free(lbl_flt_buf);
     free(img_flt_buf);
@@ -57,7 +57,7 @@ zero::nn::Supervisor *init_mnist_supervisor()
 
 void mnist_v2()
 {
-    zero::nn::Supervisor *sup = init_mnist_supervisor();
+    Supervisor *sup = init_mnist_supervisor();
 }
 
 int main(int argc, char **argv)
