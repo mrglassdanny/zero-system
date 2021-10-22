@@ -30,6 +30,8 @@ namespace zero_v2
             float cost(Tensor *pred, Tensor *y);
             void backward(Tensor *pred, Tensor *y);
             void step(int batch_size);
+
+            void gradient_check(Tensor *x, Tensor *y, bool print_flg);
         };
     }
 }
