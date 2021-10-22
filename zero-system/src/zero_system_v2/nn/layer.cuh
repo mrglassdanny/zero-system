@@ -31,6 +31,8 @@ namespace zero_v2
             virtual Tensor *derive(Tensor *dc) = 0;
             virtual void load(FILE *file_ptr) = 0;
             virtual void save(FILE *file_ptr) = 0;
+            virtual std::vector<int> get_input_shape() = 0;
+            virtual std::vector<int> get_output_shape() = 0;
         };
 
         class LearnableLayer : public Layer
@@ -55,6 +57,8 @@ namespace zero_v2
             ~LinearLayer();
 
             virtual LayerType get_type();
+            virtual std::vector<int> get_input_shape();
+            virtual std::vector<int> get_output_shape();
             virtual void evaluate(Tensor *nxt_n, bool train_flg);
             virtual Tensor *derive(Tensor *dc);
             virtual void load(FILE *file_ptr);
@@ -73,6 +77,8 @@ namespace zero_v2
             ~ConvolutionalLayer();
 
             virtual LayerType get_type();
+            virtual std::vector<int> get_input_shape();
+            virtual std::vector<int> get_output_shape();
             virtual void evaluate(Tensor *nxt_n, bool train_flg);
             virtual Tensor *derive(Tensor *dc);
             virtual void load(FILE *file_ptr);
@@ -92,6 +98,8 @@ namespace zero_v2
             ~ActivationLayer();
 
             virtual LayerType get_type();
+            virtual std::vector<int> get_input_shape();
+            virtual std::vector<int> get_output_shape();
             virtual void evaluate(Tensor *nxt_n, bool train_flg);
             virtual Tensor *derive(Tensor *dc);
             virtual void load(FILE *file_ptr);
@@ -110,6 +118,8 @@ namespace zero_v2
             ~DropoutLayer();
 
             virtual LayerType get_type();
+            virtual std::vector<int> get_input_shape();
+            virtual std::vector<int> get_output_shape();
             virtual void evaluate(Tensor *nxt_n, bool train_flg);
             virtual Tensor *derive(Tensor *dc);
             virtual void load(FILE *file_ptr);

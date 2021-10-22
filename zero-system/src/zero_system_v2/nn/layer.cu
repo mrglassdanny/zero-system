@@ -150,7 +150,7 @@ __global__ void k_add_bias(float *b_arr, float *nxt_n_arr, int nxt_n_cnt)
     }
 }
 
-__global__ void k_derive_z_and_increment_weight_derivative(float *dc_arr, float *n_arr, float *dw_arr, int dc_cnt, int n_cnt)
+__global__ void k_lin_derive_z_and_increment_weight_derivative(float *dc_arr, float *n_arr, float *dw_arr, int dc_cnt, int n_cnt)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -166,7 +166,7 @@ __global__ void k_derive_z_and_increment_weight_derivative(float *dc_arr, float 
     }
 }
 
-__global__ void k_derive_z_and_increment_bias_derivative(float *dc_arr, float *db_arr, int dc_cnt)
+__global__ void k_lin_derive_z_and_increment_bias_derivative(float *dc_arr, float *db_arr, int dc_cnt)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -176,7 +176,7 @@ __global__ void k_derive_z_and_increment_bias_derivative(float *dc_arr, float *d
     }
 }
 
-__global__ void k_derive_z_and_aggregate_derivatives(float *dc_arr, float *nxt_w_arr, float *nxt_dc_arr, int n_cnt, int nxt_n_cnt)
+__global__ void k_lin_derive_z_and_aggregate_derivatives(float *dc_arr, float *nxt_w_arr, float *nxt_dc_arr, int n_cnt, int nxt_n_cnt)
 {
     __shared__ float temp[CUDA_THREADS_PER_BLOCK];
     memset(temp, 0, CUDA_THREADS_PER_BLOCK * sizeof(float));
@@ -590,6 +590,18 @@ LayerType LinearLayer::get_type()
     return LayerType::Linear;
 }
 
+std::vector<int> LinearLayer::get_input_shape()
+{
+    return this->n->get_shape();
+}
+
+std::vector<int> LinearLayer::get_output_shape()
+{
+    std::vector<int> shape;
+    shape.push_back(this->w->get_shape()[0]);
+    return shape;
+}
+
 void LinearLayer::evaluate(Tensor *nxt_n, bool train_flg)
 {
     int n_cnt = this->n->get_cnt();
@@ -618,16 +630,16 @@ Tensor *LinearLayer::derive(Tensor *dc)
     {
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
         int num_blocks = ((dc_cnt * n_cnt) / threads_per_block) + 1;
-        k_derive_z_and_increment_weight_derivative<<<num_blocks, threads_per_block>>>(dc->get_arr(),
-                                                                                      this->n->get_arr(),
-                                                                                      this->dw->get_arr(),
-                                                                                      dc_cnt, n_cnt);
+        k_lin_derive_z_and_increment_weight_derivative<<<num_blocks, threads_per_block>>>(dc->get_arr(),
+                                                                                          this->n->get_arr(),
+                                                                                          this->dw->get_arr(),
+                                                                                          dc_cnt, n_cnt);
     }
 
     {
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
         int num_blocks = (dc_cnt / threads_per_block) + 1;
-        k_derive_z_and_increment_bias_derivative<<<num_blocks, threads_per_block>>>(dc->get_arr(), this->db->get_arr(), dc_cnt);
+        k_lin_derive_z_and_increment_bias_derivative<<<num_blocks, threads_per_block>>>(dc->get_arr(), this->db->get_arr(), dc_cnt);
     }
 
     Tensor *nxt_dc = new Tensor(Device::Cuda, n_cnt);
@@ -636,9 +648,9 @@ Tensor *LinearLayer::derive(Tensor *dc)
     {
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
         int num_blocks = ((n_cnt * dc_cnt) / threads_per_block) + 1;
-        k_derive_z_and_aggregate_derivatives<<<num_blocks, threads_per_block>>>(dc->get_arr(), this->w->get_arr(),
-                                                                                nxt_dc->get_arr(),
-                                                                                dc_cnt, n_cnt);
+        k_lin_derive_z_and_aggregate_derivatives<<<num_blocks, threads_per_block>>>(dc->get_arr(), this->w->get_arr(),
+                                                                                    nxt_dc->get_arr(),
+                                                                                    dc_cnt, n_cnt);
     }
 
     delete dc;
@@ -721,6 +733,20 @@ ConvolutionalLayer::~ConvolutionalLayer() {}
 LayerType ConvolutionalLayer::get_type()
 {
     return LayerType::Convolutional;
+}
+
+std::vector<int> ConvolutionalLayer::get_input_shape()
+{
+    return this->n->get_shape();
+}
+
+std::vector<int> ConvolutionalLayer::get_output_shape()
+{
+    std::vector<int> shape;
+    shape.push_back(this->w->get_shape()[0]);
+    shape.push_back(this->n->get_shape()[1] - this->w->get_shape()[1] + 1);
+    shape.push_back(this->n->get_shape()[2] - this->w->get_shape()[2] + 1);
+    return shape;
 }
 
 void ConvolutionalLayer::evaluate(Tensor *nxt_n, bool train_flg)
@@ -824,6 +850,22 @@ Tensor *ConvolutionalLayer::derive(Tensor *dc)
     return dc;
 }
 
+void LinearLayer::step(int batch_size, float learning_rate)
+{
+    {
+        int threads_per_block = CUDA_THREADS_PER_BLOCK;
+        int num_blocks = (this->w->get_cnt() / threads_per_block) + 1;
+        k_adjust_weight<<<num_blocks, threads_per_block>>>(this->w->get_arr(), this->dw->get_arr(), batch_size, learning_rate,
+                                                           (this->w->get_cnt()));
+    }
+
+    {
+        int threads_per_block = CUDA_THREADS_PER_BLOCK;
+        int num_blocks = (this->b->get_cnt() / threads_per_block) + 1;
+        k_adjust_bias<<<num_blocks, threads_per_block>>>(this->b->get_arr(), this->db->get_arr(), batch_size, learning_rate, this->b->get_cnt());
+    }
+}
+
 // ActivationLayer functions:
 
 ActivationLayer::ActivationLayer()
@@ -845,6 +887,16 @@ ActivationLayer::~ActivationLayer()
 LayerType ActivationLayer::get_type()
 {
     return LayerType::Activation;
+}
+
+std::vector<int> ActivationLayer::get_input_shape()
+{
+    return this->n->get_shape();
+}
+
+std::vector<int> ActivationLayer::get_output_shape()
+{
+    return this->n->get_shape();
 }
 
 void ActivationLayer::evaluate(Tensor *nxt_n, bool train_flg)
@@ -900,6 +952,16 @@ DropoutLayer::~DropoutLayer()
 LayerType DropoutLayer::get_type()
 {
     return LayerType::Dropout;
+}
+
+std::vector<int> DropoutLayer::get_input_shape()
+{
+    return this->n->get_shape();
+}
+
+std::vector<int> DropoutLayer::get_output_shape()
+{
+    return this->n->get_shape();
 }
 
 void DropoutLayer::evaluate(Tensor *nxt_n, bool train_flg)
