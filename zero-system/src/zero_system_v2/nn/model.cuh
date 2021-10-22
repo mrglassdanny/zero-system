@@ -19,9 +19,9 @@ namespace zero_v2
 
         public:
             Model(CostFunction cost_fn, float learning_rate);
+            Model(const char *path);
             ~Model();
 
-            void load(const char *path);
             void save(const char *path);
 
             void add_layer(Layer *lyr);

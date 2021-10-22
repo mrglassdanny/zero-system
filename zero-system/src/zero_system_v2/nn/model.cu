@@ -96,17 +96,7 @@ Model::Model(CostFunction cost_fn, float learning_rate)
     cudaMemset(this->d_cost, 0, sizeof(float));
 }
 
-Model::~Model()
-{
-    for (Layer *lyr : this->layers)
-    {
-        delete lyr;
-    }
-
-    cudaFree(this->d_cost);
-}
-
-void Model::load(const char *path)
+Model::Model(const char *path)
 {
     FILE *file_ptr = fopen(path, "rb");
 
@@ -144,6 +134,16 @@ void Model::load(const char *path)
 
     cudaMalloc(&this->d_cost, sizeof(float));
     cudaMemset(this->d_cost, 0, sizeof(float));
+}
+
+Model::~Model()
+{
+    for (Layer *lyr : this->layers)
+    {
+        delete lyr;
+    }
+
+    cudaFree(this->d_cost);
 }
 
 void Model::save(const char *path)
