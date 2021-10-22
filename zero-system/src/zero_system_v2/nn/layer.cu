@@ -176,7 +176,7 @@ __global__ void k_derive_z_and_increment_bias_derivative(float *dc_arr, float *d
     }
 }
 
-__global__ void k_derive_z_and_aggregate_derivatives(float *agg_derivatives_arr, float *nxt_w_arr, float *nxt_agg_derivatives_arr, int n_cnt, int nxt_n_cnt)
+__global__ void k_derive_z_and_aggregate_derivatives(float *dc_arr, float *nxt_w_arr, float *nxt_dc_arr, int n_cnt, int nxt_n_cnt)
 {
     __shared__ float temp[CUDA_THREADS_PER_BLOCK];
     memset(temp, 0, CUDA_THREADS_PER_BLOCK * sizeof(float));
@@ -192,7 +192,7 @@ __global__ void k_derive_z_and_aggregate_derivatives(float *agg_derivatives_arr,
 
     if (w_idx < w_cnt)
     {
-        temp[threadIdx.x] = (agg_derivatives_arr[n_idx] * nxt_w_arr[w_idx]);
+        temp[threadIdx.x] = (dc_arr[n_idx] * nxt_w_arr[w_idx]);
     }
 
     __syncthreads();
@@ -222,7 +222,7 @@ __global__ void k_derive_z_and_aggregate_derivatives(float *agg_derivatives_arr,
                 {
                     sum += temp[i];
                 }
-                atomicAdd(&nxt_agg_derivatives_arr[lower_idx], sum);
+                atomicAdd(&nxt_dc_arr[lower_idx], sum);
             }
             else
             {
@@ -241,10 +241,10 @@ __global__ void k_derive_z_and_aggregate_derivatives(float *agg_derivatives_arr,
                     }
                 }
 
-                atomicAdd(&nxt_agg_derivatives_arr[lower_idx], sums[0]);
+                atomicAdd(&nxt_dc_arr[lower_idx], sums[0]);
                 if (upper_idx < nxt_n_cnt)
                 {
-                    atomicAdd(&nxt_agg_derivatives_arr[upper_idx], sums[1]);
+                    atomicAdd(&nxt_dc_arr[upper_idx], sums[1]);
                 }
             }
         }
@@ -254,7 +254,7 @@ __global__ void k_derive_z_and_aggregate_derivatives(float *agg_derivatives_arr,
 #pragma unroll
             for (int i = 0; i < CUDA_THREADS_PER_BLOCK; i++)
             {
-                atomicAdd(&nxt_agg_derivatives_arr[(tid + i) / n_cnt], temp[i]);
+                atomicAdd(&nxt_dc_arr[(tid + i) / n_cnt], temp[i]);
             }
         }
     }
@@ -465,7 +465,7 @@ LayerType LinearLayer::get_type()
     return LayerType::Linear;
 }
 
-void LinearLayer::evaluate(Tensor *nxt_n)
+void LinearLayer::evaluate(Tensor *nxt_n, bool train_flg)
 {
     int n_cnt = this->n->get_cnt();
     int nxt_n_cnt = nxt_n->get_cnt();
@@ -487,7 +487,7 @@ void LinearLayer::evaluate(Tensor *nxt_n)
     }
 }
 
-void LinearLayer::derive(Tensor *dc)
+Tensor *LinearLayer::derive(Tensor *dc)
 {
     int dc_cnt = dc->get_cnt();
     int n_cnt = this->n->get_cnt();
@@ -506,7 +506,7 @@ void LinearLayer::derive(Tensor *dc)
     {
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
         int num_blocks = (dc_cnt / threads_per_block) + 1;
-        k_derive_z_and_increment_bias_derivative<<<num_blocks, threads_per_block>>>(dc->get_arr(), this->db->get_arr(), n_cnt);
+        k_derive_z_and_increment_bias_derivative<<<num_blocks, threads_per_block>>>(dc->get_arr(), this->db->get_arr(), dc_cnt);
     }
 
     Tensor *nxt_dc = new Tensor(Device::Cuda, n_cnt);
@@ -514,14 +514,16 @@ void LinearLayer::derive(Tensor *dc)
 
     {
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
-        int num_blocks = ((n_cnt * dc->get_cnt()) / threads_per_block) + 1;
+        int num_blocks = ((n_cnt * dc_cnt) / threads_per_block) + 1;
         k_derive_z_and_aggregate_derivatives<<<num_blocks, threads_per_block>>>(dc->get_arr(), this->w->get_arr(),
                                                                                 nxt_dc->get_arr(),
-                                                                                dc->get_cnt(), n_cnt);
+                                                                                dc_cnt, n_cnt);
     }
 
     delete dc;
     dc = nxt_dc;
+
+    return dc;
 }
 
 void LinearLayer::step(int batch_size, float learning_rate)
@@ -589,7 +591,7 @@ LayerType ActivationLayer::get_type()
     return LayerType::Activation;
 }
 
-void ActivationLayer::evaluate(Tensor *nxt_n)
+void ActivationLayer::evaluate(Tensor *nxt_n, bool train_flg)
 {
     {
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
@@ -598,13 +600,15 @@ void ActivationLayer::evaluate(Tensor *nxt_n)
     }
 }
 
-void ActivationLayer::derive(Tensor *dc)
+Tensor *ActivationLayer::derive(Tensor *dc)
 {
     {
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
         int num_blocks = (this->n->get_cnt() / threads_per_block) + 1;
         k_derive_activation<<<num_blocks, threads_per_block>>>(this->n->get_arr(), dc->get_arr(), this->n->get_cnt(), this->activation_fn);
     }
+
+    return dc;
 }
 
 void ActivationLayer::load(FILE *file_ptr)
@@ -642,27 +646,28 @@ LayerType DropoutLayer::get_type()
     return LayerType::Dropout;
 }
 
-void DropoutLayer::evaluate(Tensor *nxt_n)
+void DropoutLayer::evaluate(Tensor *nxt_n, bool train_flg)
 {
-    // Set dropout mask:
+    if (train_flg)
     {
-        int threads_per_block = CUDA_THREADS_PER_BLOCK;
-        int num_blocks = (this->dropout_mask->get_cnt() / threads_per_block) + 1;
-        k_set_dropout_mask<<<num_blocks, threads_per_block>>>(this->dropout_mask->get_arr(), this->dropout_mask->get_cnt(),
-                                                              this->dropout_rate);
-    }
+        {
+            int threads_per_block = CUDA_THREADS_PER_BLOCK;
+            int num_blocks = (this->dropout_mask->get_cnt() / threads_per_block) + 1;
+            k_set_dropout_mask<<<num_blocks, threads_per_block>>>(this->dropout_mask->get_arr(), this->dropout_mask->get_cnt(),
+                                                                  this->dropout_rate);
+        }
 
-    // Evaluate:
-    if (this->dropout_rate > 0.0f)
-    {
-        int threads_per_block = CUDA_THREADS_PER_BLOCK;
-        int num_blocks((nxt_n->get_cnt() / threads_per_block) + 1);
-        k_dropout<<<num_blocks, threads_per_block>>>(this->n->get_arr(), this->dropout_mask->get_arr(), nxt_n->get_arr(),
-                                                     nxt_n->get_cnt(), this->dropout_rate);
+        if (this->dropout_rate > 0.0f)
+        {
+            int threads_per_block = CUDA_THREADS_PER_BLOCK;
+            int num_blocks((nxt_n->get_cnt() / threads_per_block) + 1);
+            k_dropout<<<num_blocks, threads_per_block>>>(this->n->get_arr(), this->dropout_mask->get_arr(), nxt_n->get_arr(),
+                                                         nxt_n->get_cnt(), this->dropout_rate);
+        }
     }
 }
 
-void DropoutLayer::derive(Tensor *dc)
+Tensor *DropoutLayer::derive(Tensor *dc)
 {
     // Derive post-dropout activation (with respect to activation):
     {
@@ -674,6 +679,8 @@ void DropoutLayer::derive(Tensor *dc)
                                                                 this->n->get_cnt(), this->dropout_rate);
         }
     }
+
+    return dc;
 }
 
 void DropoutLayer::load(FILE *file_ptr)

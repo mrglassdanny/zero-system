@@ -26,8 +26,8 @@ namespace zero_v2
             ~Layer();
 
             virtual LayerType get_type() = 0;
-            virtual void evaluate(Tensor *nxt_n) = 0;
-            virtual void derive(Tensor *dc) = 0;
+            virtual void evaluate(Tensor *nxt_n, bool train_flg) = 0;
+            virtual Tensor *derive(Tensor *dc) = 0;
             virtual void load(FILE *file_ptr) = 0;
             virtual void save(FILE *file_ptr) = 0;
         };
@@ -46,10 +46,6 @@ namespace zero_v2
             virtual void step(int batch_size, float learning_rate) = 0;
         };
 
-        class NonProduction
-        {
-        };
-
         class LinearLayer : public LearnableLayer
         {
         public:
@@ -58,8 +54,8 @@ namespace zero_v2
             ~LinearLayer();
 
             virtual LayerType get_type();
-            virtual void evaluate(Tensor *nxt_n);
-            virtual void derive(Tensor *dc);
+            virtual void evaluate(Tensor *nxt_n, bool train_flg);
+            virtual Tensor *derive(Tensor *dc);
             virtual void load(FILE *file_ptr);
             virtual void save(FILE *file_ptr);
 
@@ -77,13 +73,13 @@ namespace zero_v2
             ~ActivationLayer();
 
             virtual LayerType get_type();
-            virtual void evaluate(Tensor *nxt_n);
-            virtual void derive(Tensor *dc);
+            virtual void evaluate(Tensor *nxt_n, bool train_flg);
+            virtual Tensor *derive(Tensor *dc);
             virtual void load(FILE *file_ptr);
             virtual void save(FILE *file_ptr);
         };
 
-        class DropoutLayer : public Layer, public NonProduction
+        class DropoutLayer : public Layer
         {
         private:
             float dropout_rate;
@@ -95,8 +91,8 @@ namespace zero_v2
             ~DropoutLayer();
 
             virtual LayerType get_type();
-            virtual void evaluate(Tensor *nxt_n);
-            virtual void derive(Tensor *dc);
+            virtual void evaluate(Tensor *nxt_n, bool train_flg);
+            virtual Tensor *derive(Tensor *dc);
             virtual void load(FILE *file_ptr);
             virtual void save(FILE *file_ptr);
         };

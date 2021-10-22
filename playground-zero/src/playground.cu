@@ -142,15 +142,21 @@ void v2_test()
 
 	Model *model = new Model(CostFunction::MSE, 0.001f);
 
-	model->add_layer(new LinearLayer(64, 2, InitializationFunction::He));
-	model->add_layer(new ActivationLayer(2, ActivationFunction::ReLU));
+	model->add_layer(new LinearLayer(64, 32, InitializationFunction::He));
+	model->add_layer(new ActivationLayer(32, ActivationFunction::ReLU));
+	model->add_layer(new DropoutLayer(32, 0.30f));
+	model->add_layer(new LinearLayer(32, 8, InitializationFunction::He));
+	model->add_layer(new ActivationLayer(8, ActivationFunction::ReLU));
 
 	Tensor *x = new Tensor(Device::Cuda, 64);
-	Tensor *y = new Tensor(Device::Cuda, 2);
+	Tensor *y = new Tensor(Device::Cuda, 8);
 
-	Tensor *pred = model->forward(x);
+	Tensor *pred = model->forward(x, true);
 	printf("Cost: %f\n", model->cost(pred, y));
 	model->backward(pred, y);
+	model->step(1);
+
+	delete pred;
 
 	delete model;
 }

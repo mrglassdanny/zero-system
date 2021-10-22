@@ -172,7 +172,7 @@ void Model::add_layer(Layer *lyr)
     this->layers.push_back(lyr);
 }
 
-Tensor *Model::forward(Tensor *x)
+Tensor *Model::forward(Tensor *x, bool train_flg)
 {
     int lst_lyr_idx = this->layers.size() - 1;
 
@@ -186,11 +186,11 @@ Tensor *Model::forward(Tensor *x)
         Layer *lyr = this->layers[i];
         Layer *nxt_lyr = this->layers[i + 1];
 
-        lyr->evaluate(nxt_lyr->n);
+        lyr->evaluate(nxt_lyr->n, train_flg);
     }
 
     Tensor *pred = new Tensor(Device::Cuda, lst_lyr->n->get_shape());
-    lst_lyr->evaluate(pred);
+    lst_lyr->evaluate(pred, train_flg);
 
     return pred;
 }
@@ -229,10 +229,10 @@ void Model::backward(Tensor *pred, Tensor *y)
 
     int lst_lyr_idx = this->layers.size() - 1;
 
-    for (int i = lst_lyr_idx; i > 0; i--)
+    for (int i = lst_lyr_idx; i >= 0; i--)
     {
         Layer *lyr = this->layers[i];
-        lyr->derive(dc);
+        dc = lyr->derive(dc);
     }
 
     delete dc;

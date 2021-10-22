@@ -26,7 +26,7 @@ namespace zero_v2
 
             void add_layer(Layer *lyr);
 
-            Tensor *forward(Tensor *x);
+            Tensor *forward(Tensor *x, bool train_flg);
             float cost(Tensor *pred, Tensor *y);
             void backward(Tensor *pred, Tensor *y);
             void step(int batch_size);
