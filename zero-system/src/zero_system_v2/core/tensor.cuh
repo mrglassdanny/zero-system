@@ -37,6 +37,7 @@ namespace zero_v2
             std::vector<int> shape;
 
         public:
+            static Tensor *one_hot_encode(Device device, int row_cnt, int col_cnt, float *cpu_arr);
             Tensor(Tensor &src);
             Tensor(Device device);
             Tensor(Device device, int cnt);

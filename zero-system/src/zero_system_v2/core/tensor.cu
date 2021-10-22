@@ -30,6 +30,25 @@ __global__ void k_set_arr_rand(float *arr, int cnt, float mean, float stddev)
 
 // Tensor functions:
 
+Tensor *Tensor::one_hot_encode(Device device, int row_cnt, int col_cnt, float *cpu_arr)
+{
+    Tensor *tensor = new Tensor(device, row_cnt, col_cnt);
+    tensor->set_all(0.0f);
+
+    for (int row_idx = 0; row_idx < row_cnt; row_idx++)
+    {
+        int col_idx = (int)cpu_arr[row_idx];
+        if (col_idx >= 0 && col_idx < col_cnt)
+        {
+            tensor->set_val(row_idx * col_cnt + col_idx, 1.0f);
+        }
+        // If column index is less than 0 or is greater than or equal to column count, skip it!
+        // ^ this shouldn't happen...
+    }
+
+    return tensor;
+}
+
 Tensor::Tensor(Tensor &src)
 {
     this->device = src.device;
@@ -481,6 +500,32 @@ void Tensor::set_all(float val)
     }
 }
 
+// TODO: figure out what is up with CUDA random number generator!!!
+// void Tensor::set_all_rand(float mean, float stddev)
+// {
+//     int cnt = this->get_cnt();
+
+//     if (this->device == Device::Cpu)
+//     {
+//         std::random_device rd;
+//         std::mt19937 gen(rd());
+
+//         for (int i = 0; i < cnt; i++)
+//         {
+//             std::normal_distribution<float> d(mean, stddev);
+//             this->arr[i] = d(gen);
+//         }
+//     }
+//     else if (this->device == Device::Cuda)
+//     {
+//         {
+//             int threads_per_block = CUDA_THREADS_PER_BLOCK;
+//             int num_blocks = (cnt / CUDA_THREADS_PER_BLOCK) + 1;
+//             k_set_arr_rand<<<num_blocks, threads_per_block>>>(this->arr, cnt, mean, stddev);
+//         }
+//     }
+// }
+
 void Tensor::set_all_rand(float mean, float stddev)
 {
     int cnt = this->get_cnt();
@@ -498,10 +543,17 @@ void Tensor::set_all_rand(float mean, float stddev)
     }
     else if (this->device == Device::Cuda)
     {
+        this->to(Device::Cpu);
+
+        std::random_device rd;
+        std::mt19937 gen(rd());
+
+        for (int i = 0; i < cnt; i++)
         {
-            int threads_per_block = CUDA_THREADS_PER_BLOCK;
-            int num_blocks = (cnt / CUDA_THREADS_PER_BLOCK) + 1;
-            k_set_arr_rand<<<num_blocks, threads_per_block>>>(this->arr, cnt, mean, stddev);
+            std::normal_distribution<float> d(mean, stddev);
+            this->arr[i] = d(gen);
         }
+
+        this->to(Device::Cuda);
     }
 }

@@ -118,6 +118,9 @@ Model::Model(const char *path)
         case LayerType::Linear:
             lyr = new LinearLayer();
             break;
+        case LayerType::Convolutional:
+            lyr = new ConvolutionalLayer();
+            break;
         case LayerType::Activation:
             lyr = new ActivationLayer();
             break;
@@ -180,6 +183,8 @@ Tensor *Model::forward(Tensor *x, bool train_flg)
     Layer *lst_lyr = this->layers[lst_lyr_idx];
 
     fst_lyr->n->copy(x);
+
+    fst_lyr->n->print();
 
     for (int i = 0; i < lst_lyr_idx; i++)
     {
@@ -319,7 +324,7 @@ void Model::gradient_check(Tensor *x, Tensor *y, bool print_flg)
                     float left_cost = 0.0;
                     float right_cost = 0.0;
 
-                    float orig_b_val = lrn_lyr->w->get_val(i);
+                    float orig_b_val = lrn_lyr->b->get_val(i);
 
                     float left_b_val = orig_b_val - epsilon;
                     float right_b_val = orig_b_val + epsilon;

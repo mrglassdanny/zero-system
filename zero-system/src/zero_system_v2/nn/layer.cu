@@ -526,6 +526,11 @@ Layer::~Layer()
     }
 }
 
+void Layer::evaluate(Tensor *nxt_n, bool train_flg)
+{
+    nxt_n->reset();
+}
+
 // LearnableLayer functions:
 
 LearnableLayer::LearnableLayer()
@@ -576,7 +581,7 @@ LinearLayer::LinearLayer(int n_cnt, int nxt_n_cnt, InitializationFunction init_f
     this->b = new Tensor(Device::Cuda, nxt_n_cnt);
     Initializer::initialize(init_fn, this->b, nxt_n_cnt, 0);
 
-    this->dw = new Tensor(Device::Cuda, n_cnt, nxt_n_cnt);
+    this->dw = new Tensor(Device::Cuda, nxt_n_cnt, n_cnt);
     this->dw->reset();
 
     this->db = new Tensor(Device::Cuda, nxt_n_cnt);
@@ -604,6 +609,10 @@ std::vector<int> LinearLayer::get_output_shape()
 
 void LinearLayer::evaluate(Tensor *nxt_n, bool train_flg)
 {
+    Layer::evaluate(nxt_n, train_flg);
+
+    this->w->print();
+
     int n_cnt = this->n->get_cnt();
     int nxt_n_cnt = nxt_n->get_cnt();
 
@@ -615,8 +624,8 @@ void LinearLayer::evaluate(Tensor *nxt_n, bool train_flg)
     }
 
     {
-        int threads_per_block(CUDA_THREADS_PER_BLOCK);
-        int num_blocks((nxt_n_cnt / threads_per_block) + 1);
+        int threads_per_block = CUDA_THREADS_PER_BLOCK;
+        int num_blocks = (nxt_n_cnt / threads_per_block) + 1;
         k_add_bias<<<num_blocks, threads_per_block>>>(this->b->get_arr(), nxt_n->get_arr(),
                                                       nxt_n_cnt);
     }
@@ -752,6 +761,8 @@ std::vector<int> ConvolutionalLayer::get_output_shape()
 void ConvolutionalLayer::evaluate(Tensor *nxt_n, bool train_flg)
 {
 
+    Layer::evaluate(nxt_n, train_flg);
+
     int fltr_cnt = this->w->get_shape()[0];
     int chan_cnt = this->w->get_shape()[1];
     int w_row_cnt = this->w->get_shape()[2];
@@ -850,7 +861,7 @@ Tensor *ConvolutionalLayer::derive(Tensor *dc)
     return dc;
 }
 
-void LinearLayer::step(int batch_size, float learning_rate)
+void ConvolutionalLayer::step(int batch_size, float learning_rate)
 {
     {
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
@@ -864,6 +875,30 @@ void LinearLayer::step(int batch_size, float learning_rate)
         int num_blocks = (this->b->get_cnt() / threads_per_block) + 1;
         k_adjust_bias<<<num_blocks, threads_per_block>>>(this->b->get_arr(), this->db->get_arr(), batch_size, learning_rate, this->b->get_cnt());
     }
+}
+
+void ConvolutionalLayer::load(FILE *file_ptr)
+{
+    int w_cnt = this->w->get_cnt();
+    int b_cnt = this->b->get_cnt();
+
+    float *w_buf = (float *)malloc(sizeof(float) * w_cnt);
+    fread(w_buf, sizeof(float), w_cnt, file_ptr);
+    this->w->set_arr(w_buf);
+    this->w->to(Device::Cuda);
+    free(w_buf);
+
+    float *b_buf = (float *)malloc(sizeof(float) * b_cnt);
+    fread(b_buf, sizeof(float), b_cnt, file_ptr);
+    this->b->set_arr(b_buf);
+    this->b->to(Device::Cuda);
+    free(b_buf);
+}
+
+void ConvolutionalLayer::save(FILE *file_ptr)
+{
+    fwrite(this->w->get_arr(Device::Cpu), sizeof(float), this->w->get_cnt(), file_ptr);
+    fwrite(this->b->get_arr(Device::Cpu), sizeof(float), this->b->get_cnt(), file_ptr);
 }
 
 // ActivationLayer functions:
@@ -901,6 +936,8 @@ std::vector<int> ActivationLayer::get_output_shape()
 
 void ActivationLayer::evaluate(Tensor *nxt_n, bool train_flg)
 {
+    Layer::evaluate(nxt_n, train_flg);
+
     {
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
         int num_blocks = (this->n->get_cnt() / threads_per_block) + 1;
@@ -966,6 +1003,8 @@ std::vector<int> DropoutLayer::get_output_shape()
 
 void DropoutLayer::evaluate(Tensor *nxt_n, bool train_flg)
 {
+    Layer::evaluate(nxt_n, train_flg);
+
     if (train_flg)
     {
         {
