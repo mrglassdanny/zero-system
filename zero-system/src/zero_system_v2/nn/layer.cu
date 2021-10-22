@@ -477,8 +477,7 @@ __global__ void k_set_dropout_mask(float *dropout_mask_arr, int dropout_mask_cnt
     if (tid < dropout_mask_cnt)
     {
         curandState state;
-        //curand_init(clock64(), tid, 0, &state);
-        curand_init(1, tid, 0, &state);
+        curand_init(clock64(), tid, 0, &state);
 
         if (curand_uniform(&state) <= dropout_rate)
         {
@@ -602,9 +601,7 @@ std::vector<int> LinearLayer::get_input_shape()
 
 std::vector<int> LinearLayer::get_output_shape()
 {
-    std::vector<int> shape;
-    shape.push_back(this->w->get_shape()[0]);
-    return shape;
+    return this->b->get_shape();
 }
 
 void LinearLayer::evaluate(Tensor *nxt_n, bool train_flg)
@@ -749,11 +746,7 @@ std::vector<int> ConvolutionalLayer::get_input_shape()
 
 std::vector<int> ConvolutionalLayer::get_output_shape()
 {
-    std::vector<int> shape;
-    shape.push_back(this->w->get_shape()[0]);
-    shape.push_back(this->n->get_shape()[1] - this->w->get_shape()[1] + 1);
-    shape.push_back(this->n->get_shape()[2] - this->w->get_shape()[2] + 1);
-    return shape;
+    return this->b->get_shape();
 }
 
 void ConvolutionalLayer::evaluate(Tensor *nxt_n, bool train_flg)
