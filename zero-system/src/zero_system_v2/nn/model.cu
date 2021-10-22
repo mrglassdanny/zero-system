@@ -137,6 +137,8 @@ Model::Model(const char *path)
 
     cudaMalloc(&this->d_cost, sizeof(float));
     cudaMemset(this->d_cost, 0, sizeof(float));
+
+    fclose(file_ptr);
 }
 
 Model::~Model()
@@ -184,8 +186,6 @@ Tensor *Model::forward(Tensor *x, bool train_flg)
 
     fst_lyr->n->copy(x);
 
-    fst_lyr->n->print();
-
     for (int i = 0; i < lst_lyr_idx; i++)
     {
         Layer *lyr = this->layers[i];
@@ -205,8 +205,8 @@ float Model::cost(Tensor *pred, Tensor *y)
     float h_cost = 0.0f;
 
     {
-        int threads_per_block(CUDA_THREADS_PER_BLOCK);
-        int num_blocks((pred->get_cnt() / threads_per_block) + 1);
+        int threads_per_block = CUDA_THREADS_PER_BLOCK;
+        int num_blocks = (pred->get_cnt() / threads_per_block) + 1;
 
         k_cost<<<num_blocks, threads_per_block>>>(pred->get_arr(), y->get_arr(),
                                                   this->d_cost, pred->get_cnt(), this->cost_fn);
@@ -224,7 +224,6 @@ void Model::backward(Tensor *pred, Tensor *y)
     Tensor *dc = new Tensor(Device::Cuda, pred->get_shape());
     dc->set_all(1.0f);
 
-    // Derive cost (with respect to activation):
     {
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
         int num_blocks = (pred->get_cnt() / threads_per_block) + 1;

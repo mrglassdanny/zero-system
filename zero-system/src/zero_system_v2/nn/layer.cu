@@ -176,7 +176,7 @@ __global__ void k_lin_derive_z_and_increment_bias_derivative(float *dc_arr, floa
     }
 }
 
-__global__ void k_lin_derive_z_and_aggregate_derivatives(float *dc_arr, float *nxt_w_arr, float *nxt_dc_arr, int n_cnt, int nxt_n_cnt)
+__global__ void k_lin_derive_z_and_aggregate_derivatives(float *dc_arr, float *w_arr, float *nxt_dc_arr, int n_cnt, int nxt_n_cnt)
 {
     __shared__ float temp[CUDA_THREADS_PER_BLOCK];
     memset(temp, 0, CUDA_THREADS_PER_BLOCK * sizeof(float));
@@ -192,7 +192,7 @@ __global__ void k_lin_derive_z_and_aggregate_derivatives(float *dc_arr, float *n
 
     if (w_idx < w_cnt)
     {
-        temp[threadIdx.x] = (dc_arr[n_idx] * nxt_w_arr[w_idx]);
+        temp[threadIdx.x] = (dc_arr[n_idx] * w_arr[w_idx]);
     }
 
     __syncthreads();
@@ -434,6 +434,7 @@ __global__ void k_activate(float *n_arr, float *nxt_n_arr, int n_cnt, Activation
             break;
         default:
             // None
+            nxt_n_arr[tid] = n_arr[tid];
             break;
         }
     }
@@ -610,8 +611,6 @@ std::vector<int> LinearLayer::get_output_shape()
 void LinearLayer::evaluate(Tensor *nxt_n, bool train_flg)
 {
     Layer::evaluate(nxt_n, train_flg);
-
-    this->w->print();
 
     int n_cnt = this->n->get_cnt();
     int nxt_n_cnt = nxt_n->get_cnt();

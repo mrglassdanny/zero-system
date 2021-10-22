@@ -22,7 +22,7 @@ void v2_test()
 	Tensor *y = new Tensor(Device::Cuda, 8);
 	y->set_val(2, 1.0f);
 
-	model->gradient_check(x, y, false);
+	model->gradient_check(x, y, true);
 
 	delete x;
 	delete y;

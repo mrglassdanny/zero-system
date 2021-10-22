@@ -64,7 +64,7 @@ Tensor::Tensor(Tensor &src)
     else if (src.device == Device::Cuda)
     {
         cudaMalloc(&this->arr, sizeof(float) * cnt);
-        cudaMemcpy(this->arr, src.arr, sizeof(float) * cnt, cudaMemcpyHostToDevice);
+        cudaMemcpy(this->arr, src.arr, sizeof(float) * cnt, cudaMemcpyDeviceToDevice);
     }
 }
 
@@ -223,6 +223,8 @@ void Tensor::to(Device device)
             return;
         }
     }
+
+    this->device = device;
 }
 
 void Tensor::copy(Tensor *src)
@@ -251,13 +253,13 @@ void Tensor::copy(Tensor *src)
         {
             free(this->arr);
             cudaMalloc(&this->arr, sizeof(float) * cnt);
-            cudaMemcpy(this->arr, src->arr, sizeof(float) * cnt, cudaMemcpyHostToDevice);
+            cudaMemcpy(this->arr, src->arr, sizeof(float) * cnt, cudaMemcpyDeviceToDevice);
         }
         else if (this->device == Device::Cuda)
         {
             cudaFree(this->arr);
             cudaMalloc(&this->arr, sizeof(float) * cnt);
-            cudaMemcpy(this->arr, src->arr, sizeof(float) * cnt, cudaMemcpyHostToDevice);
+            cudaMemcpy(this->arr, src->arr, sizeof(float) * cnt, cudaMemcpyDeviceToDevice);
         }
     }
 
@@ -403,6 +405,8 @@ void Tensor::print()
         break;
     }
 
+    printf("\n");
+
     this->to(orig_device);
 }
 
@@ -441,27 +445,27 @@ void Tensor::set_arr(float *arr)
 
 float Tensor::get_val(int idx)
 {
-    if (this->device == Device::Cuda)
+    if (this->device == Device::Cpu)
+    {
+        return this->arr[idx];
+    }
+    else if (this->device == Device::Cuda)
     {
         float val;
         cudaMemcpy(&val, &this->arr[idx], sizeof(float), cudaMemcpyDeviceToHost);
         return val;
     }
-    else
-    {
-        return this->arr[idx];
-    }
 }
 
 void Tensor::set_val(int idx, float val)
 {
-    if (this->device == Device::Cuda)
-    {
-        cudaMemcpy(&this->arr[idx], &val, sizeof(float), cudaMemcpyHostToDevice);
-    }
-    else
+    if (this->device == Device::Cpu)
     {
         this->arr[idx] = val;
+    }
+    else if (this->device == Device::Cuda)
+    {
+        cudaMemcpy(&this->arr[idx], &val, sizeof(float), cudaMemcpyDefault);
     }
 }
 
