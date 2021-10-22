@@ -18,7 +18,7 @@ void v2_test()
 	model->add_layer(new ActivationLayer(8, ActivationFunction::None));
 
 	Tensor *x = new Tensor(Device::Cuda, 64);
-	x->set_all(0.5f);
+	x->set_all(0.25f);
 	Tensor *y = new Tensor(Device::Cuda, 8);
 	y->set_val(2, 1.0f);
 

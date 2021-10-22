@@ -355,7 +355,7 @@ void Model::gradient_check(Tensor *x, Tensor *y, bool print_flg)
                     agg_num_grad += (num_grad * num_grad);
                     agg_grad_diff += ((ana_grad - num_grad) * (ana_grad - num_grad));
 
-                    lrn_lyr->w->set_val(i, orig_b_val);
+                    lrn_lyr->b->set_val(i, orig_b_val);
                 }
             }
         }
