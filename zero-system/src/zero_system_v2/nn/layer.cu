@@ -282,6 +282,133 @@ __global__ void k_adjust_bias(float *b_arr, float *db_arr, int batch_size, float
     }
 }
 
+__global__ void k_convolve(float *n_arr, float *f_arr, float *b_arr, float *nxt_n_arr, int chan_cnt, int n_row_cnt, int n_col_cnt,
+                           int w_row_cnt, int w_col_cnt, int nxt_n_row_cnt, int nxt_n_col_cnt)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    int nxt_n_idx = tid;
+
+    if (nxt_n_idx < (nxt_n_row_cnt * nxt_n_col_cnt))
+    {
+        int nxt_n_row_idx = nxt_n_idx / nxt_n_col_cnt;
+        int nxt_n_col_idx = nxt_n_idx % nxt_n_col_cnt;
+
+#pragma unroll
+        for (int chan_idx = 0; chan_idx < chan_cnt; chan_idx++)
+        {
+#pragma unroll
+            for (int w_row_idx = 0; w_row_idx < w_row_cnt; w_row_idx++)
+            {
+#pragma unroll
+                for (int w_col_idx = 0; w_col_idx < w_col_cnt; w_col_idx++)
+                {
+                    int n_row_idx = nxt_n_row_idx + w_row_idx;
+                    int n_col_idx = nxt_n_col_idx + w_col_idx;
+
+                    int w_rot_val_idx = (w_row_cnt * w_col_cnt) - (w_row_idx * w_col_cnt + w_col_idx);
+
+                    float val = n_arr[(chan_idx * n_row_cnt * n_col_cnt) + (n_row_idx * n_col_cnt) + n_col_idx];
+                    val *= f_arr[(chan_idx * w_row_cnt * w_col_cnt) + w_rot_val_idx];
+                    nxt_n_arr[nxt_n_idx] += val;
+                }
+            }
+        }
+
+        nxt_n_arr[nxt_n_idx] += b_arr[nxt_n_idx];
+    }
+}
+
+__global__ void k_conv_derive_z_and_increment_filter_derivative(float *dc_arr, float *n_arr, float *df_arr, int chan_cnt, int n_row_cnt, int n_col_cnt,
+                                                                int w_row_cnt, int w_col_cnt, int dc_row_cnt, int dc_col_cnt)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    int w_global_val_idx = tid;
+    int w_global_cnt = (chan_cnt * w_row_cnt * w_col_cnt);
+
+    if (w_global_val_idx < w_global_cnt)
+    {
+        int w_cnt = (w_row_cnt * w_col_cnt);
+        int chan_idx = w_global_val_idx / w_cnt;
+        int w_val_idx = w_global_val_idx - (chan_idx * w_cnt);
+        int w_rot_val_idx = w_cnt - w_val_idx;
+        int w_row_idx = w_val_idx / w_col_cnt;
+        int w_col_idx = w_val_idx % w_col_cnt;
+        int w_global_rot_val_idx = (chan_idx * w_cnt) + w_rot_val_idx;
+
+        float val = 0.0f;
+
+#pragma unroll
+        for (int dc_row_idx = 0; dc_row_idx < dc_row_cnt; dc_row_idx++)
+        {
+            int n_row_idx = (dc_row_idx + w_row_idx);
+
+#pragma unroll
+            for (int dc_col_idx = 0; dc_col_idx < dc_col_cnt; dc_col_idx++)
+            {
+                int n_col_idx = (dc_col_idx + w_col_idx);
+
+                val += (dc_arr[(dc_row_idx * dc_col_cnt + dc_col_idx)] * n_arr[(chan_idx * n_row_cnt * n_col_cnt) + (n_row_idx * n_col_cnt) + n_col_idx]);
+            }
+        }
+
+        df_arr[w_global_rot_val_idx] += val;
+    }
+}
+
+__global__ void k_conv_derive_z_and_increment_bias_derivative(float *dc_arr, float *db_arr, int dc_cnt)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < dc_cnt)
+    {
+        db_arr[tid] += (dc_arr[tid]);
+    }
+}
+
+__global__ void k_conv_derive_z_and_aggregate_derivatives(float *dc_arr, float *f_arr, float *nxt_dc_arr,
+                                                          int dc_row_cnt, int dc_col_cnt, int w_row_cnt, int w_col_cnt,
+                                                          int chan_cnt, int nxt_dc_row_cnt, int nxt_dc_col_cnt)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    int nxt_dc_global_idx = tid;
+    int nxt_dc_global_cnt = (chan_cnt * nxt_dc_row_cnt * nxt_dc_col_cnt);
+
+    if (nxt_dc_global_idx < nxt_dc_global_cnt)
+    {
+        int nxt_dc_cnt = (nxt_dc_row_cnt * nxt_dc_col_cnt);
+        int chan_idx = nxt_dc_global_idx / nxt_dc_cnt;
+        int nxt_dc_idx = nxt_dc_global_idx - (chan_idx * nxt_dc_cnt);
+        int nxt_dc_row_idx = nxt_dc_idx / nxt_dc_col_cnt;
+        int nxt_dc_col_idx = nxt_dc_idx % nxt_dc_col_cnt;
+        int w_cnt = w_row_cnt * w_col_cnt;
+
+        float val = 0.0f;
+
+#pragma unroll
+        for (int w_row_idx = 0; w_row_idx < w_row_cnt; w_row_idx++)
+        {
+#pragma unroll
+            for (int w_col_idx = 0; w_col_idx < w_col_cnt; w_col_idx++)
+            {
+                int dc_row_idx = nxt_dc_row_idx - w_row_idx;
+                int dc_col_idx = nxt_dc_col_idx - w_col_idx;
+
+                int w_rot_val_idx = w_cnt - (w_row_idx * w_col_cnt + w_col_idx);
+
+                if (dc_row_idx >= 0 && dc_row_idx < dc_row_cnt && dc_col_idx >= 0 && dc_col_idx < dc_col_cnt)
+                {
+                    val += (dc_arr[dc_row_idx * dc_col_cnt + dc_col_idx] * f_arr[(chan_idx * w_row_cnt * w_col_cnt) + w_rot_val_idx]);
+                }
+            }
+        }
+
+        nxt_dc_arr[nxt_dc_global_idx] += val;
+    }
+}
+
 __global__ void k_activate(float *n_arr, float *nxt_n_arr, int n_cnt, ActivationFunction activation_fn)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -456,9 +583,7 @@ LinearLayer::LinearLayer(int n_cnt, int nxt_n_cnt, InitializationFunction init_f
     this->db->reset();
 }
 
-LinearLayer::~LinearLayer()
-{
-}
+LinearLayer::~LinearLayer() {}
 
 LayerType LinearLayer::get_type()
 {
@@ -470,7 +595,6 @@ void LinearLayer::evaluate(Tensor *nxt_n, bool train_flg)
     int n_cnt = this->n->get_cnt();
     int nxt_n_cnt = nxt_n->get_cnt();
 
-    // Dot product:
     {
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
         int num_blocks = ((n_cnt * nxt_n_cnt) / threads_per_block) + 1;
@@ -478,7 +602,6 @@ void LinearLayer::evaluate(Tensor *nxt_n, bool train_flg)
                                                  nxt_n->get_arr(), n_cnt, nxt_n_cnt);
     }
 
-    // Add biases:
     {
         int threads_per_block(CUDA_THREADS_PER_BLOCK);
         int num_blocks((nxt_n_cnt / threads_per_block) + 1);
@@ -492,7 +615,6 @@ Tensor *LinearLayer::derive(Tensor *dc)
     int dc_cnt = dc->get_cnt();
     int n_cnt = this->n->get_cnt();
 
-    // Weights:
     {
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
         int num_blocks = ((dc_cnt * n_cnt) / threads_per_block) + 1;
@@ -502,7 +624,6 @@ Tensor *LinearLayer::derive(Tensor *dc)
                                                                                       dc_cnt, n_cnt);
     }
 
-    // Biases:
     {
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
         int num_blocks = (dc_cnt / threads_per_block) + 1;
@@ -528,7 +649,6 @@ Tensor *LinearLayer::derive(Tensor *dc)
 
 void LinearLayer::step(int batch_size, float learning_rate)
 {
-    // Weights:
     {
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
         int num_blocks = (this->w->get_cnt() / threads_per_block) + 1;
@@ -536,7 +656,6 @@ void LinearLayer::step(int batch_size, float learning_rate)
                                                            (this->w->get_cnt()));
     }
 
-    // Biases:
     {
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
         int num_blocks = (this->b->get_cnt() / threads_per_block) + 1;
@@ -566,6 +685,143 @@ void LinearLayer::save(FILE *file_ptr)
 {
     fwrite(this->w->get_arr(Device::Cpu), sizeof(float), this->w->get_cnt(), file_ptr);
     fwrite(this->b->get_arr(Device::Cpu), sizeof(float), this->b->get_cnt(), file_ptr);
+}
+
+// ConvolutionalLayer functions:
+
+ConvolutionalLayer::ConvolutionalLayer()
+    : LearnableLayer() {}
+
+ConvolutionalLayer::ConvolutionalLayer(int chan_cnt, int n_row_cnt, int n_col_cnt,
+                                       int fltr_cnt, int w_row_cnt, int w_col_cnt,
+                                       InitializationFunction init_fn)
+    : LearnableLayer()
+{
+    this->n = new Tensor(Device::Cuda, chan_cnt, n_row_cnt, n_col_cnt);
+    this->n->reset();
+
+    this->w = new Tensor(Device::Cuda, fltr_cnt, chan_cnt, w_row_cnt, w_col_cnt);
+    Initializer::initialize(init_fn, this->w, n_row_cnt * n_col_cnt, 0);
+
+    int nxt_n_row_cnt = n_row_cnt - w_row_cnt + 1;
+    int nxt_n_col_cnt = n_col_cnt - w_col_cnt + 1;
+
+    this->b = new Tensor(Device::Cuda, fltr_cnt, nxt_n_row_cnt, nxt_n_col_cnt);
+    Initializer::initialize(init_fn, this->b, n_row_cnt * n_col_cnt, 0);
+
+    this->dw = new Tensor(Device::Cuda, fltr_cnt, chan_cnt, w_row_cnt, w_col_cnt);
+    this->dw->reset();
+
+    this->db = new Tensor(Device::Cuda, fltr_cnt, nxt_n_row_cnt, nxt_n_col_cnt);
+    this->db->reset();
+}
+
+ConvolutionalLayer::~ConvolutionalLayer() {}
+
+LayerType ConvolutionalLayer::get_type()
+{
+    return LayerType::Convolutional;
+}
+
+void ConvolutionalLayer::evaluate(Tensor *nxt_n, bool train_flg)
+{
+
+    int fltr_cnt = this->w->get_shape()[0];
+    int chan_cnt = this->w->get_shape()[1];
+    int w_row_cnt = this->w->get_shape()[2];
+    int w_col_cnt = this->w->get_shape()[3];
+    int n_row_cnt = this->n->get_shape()[1];
+    int n_col_cnt = this->n->get_shape()[2];
+    int nxt_n_row_cnt = nxt_n->get_shape()[1];
+    int nxt_n_col_cnt = nxt_n->get_shape()[2];
+
+    {
+        int threads_per_block = CUDA_THREADS_PER_BLOCK;
+        int num_blocks = ((nxt_n->get_cnt() / fltr_cnt) / threads_per_block) + 1;
+
+        for (int fltr_idx = 0; fltr_idx < fltr_cnt; fltr_idx++)
+        {
+            float *n_arr = this->n->get_arr();
+            float *f_arr = &this->w->get_arr()[fltr_idx * chan_cnt * w_row_cnt * w_col_cnt];
+            float *b_arr = &this->w->get_arr()[fltr_idx * nxt_n_row_cnt * nxt_n_col_cnt];
+            float *nxt_n_arr = &nxt_n->get_arr()[fltr_idx * nxt_n_row_cnt * nxt_n_col_cnt];
+
+            k_convolve<<<num_blocks, threads_per_block>>>(n_arr, f_arr, b_arr, nxt_n_arr,
+                                                          chan_cnt, n_row_cnt, n_col_cnt, w_row_cnt, w_col_cnt,
+                                                          nxt_n_row_cnt, nxt_n_col_cnt);
+        }
+    }
+}
+
+Tensor *ConvolutionalLayer::derive(Tensor *dc)
+{
+    int fltr_cnt = this->w->get_shape()[0];
+    int chan_cnt = this->w->get_shape()[1];
+    int w_row_cnt = this->w->get_shape()[2];
+    int w_col_cnt = this->w->get_shape()[3];
+    int n_row_cnt = this->n->get_shape()[1];
+    int n_col_cnt = this->n->get_shape()[2];
+    int dc_row_cnt = dc->get_shape()[1];
+    int dc_col_cnt = dc->get_shape()[2];
+
+    {
+        int threads_per_block = CUDA_THREADS_PER_BLOCK;
+        int num_blocks = ((chan_cnt * w_row_cnt * w_col_cnt) / threads_per_block) + 1;
+
+        for (int fltr_idx = 0; fltr_idx < fltr_cnt; fltr_idx++)
+        {
+            float *dc_arr = &dc->get_arr()[fltr_idx * dc_row_cnt * dc_col_cnt];
+            float *n_arr = this->n->get_arr();
+            float *df_arr = &this->dw->get_arr()[fltr_idx * chan_cnt * w_row_cnt * w_col_cnt];
+
+            k_conv_derive_z_and_increment_filter_derivative<<<num_blocks, threads_per_block>>>(dc_arr, n_arr, df_arr,
+                                                                                               chan_cnt, n_row_cnt, n_col_cnt,
+                                                                                               w_row_cnt, w_col_cnt, dc_row_cnt, dc_col_cnt);
+        }
+    }
+
+    {
+        int threads_per_block = CUDA_THREADS_PER_BLOCK;
+        int num_blocks = ((dc_row_cnt * dc_col_cnt) / threads_per_block) + 1;
+
+        for (int fltr_idx = 0; fltr_idx < fltr_cnt; fltr_idx++)
+        {
+            float *dc_arr = &dc->get_arr()[fltr_idx * dc_row_cnt * dc_col_cnt];
+            float *db_arr = &this->db->get_arr()[fltr_idx * dc_row_cnt * dc_col_cnt];
+
+            k_conv_derive_z_and_increment_bias_derivative<<<num_blocks, threads_per_block>>>(dc_arr, db_arr, dc_row_cnt * dc_col_cnt);
+        }
+    }
+
+    {
+        Tensor *nxt_dc = new Tensor(Device::Cuda, chan_cnt, n_row_cnt, n_col_cnt);
+        nxt_dc->reset();
+
+        int nxt_dc_row_cnt = nxt_dc->get_shape()[1];
+        int nxt_dc_col_cnt = nxt_dc->get_shape()[2];
+
+        {
+            int threads_per_block = CUDA_THREADS_PER_BLOCK;
+            int num_blocks = (this->n->get_cnt() / threads_per_block) + 1;
+
+            for (int fltr_idx = 0; fltr_idx < fltr_cnt; fltr_idx++)
+            {
+                float *dc_arr = &dc->get_arr()[fltr_idx * dc_row_cnt * dc_col_cnt];
+                float *f_arr = &this->w->get_arr()[fltr_idx * chan_cnt * w_row_cnt * w_col_cnt];
+                float *nxt_dc_arr = nxt_dc->get_arr();
+
+                k_conv_derive_z_and_aggregate_derivatives<<<num_blocks, threads_per_block>>>(dc_arr, f_arr, nxt_dc_arr,
+                                                                                             dc_row_cnt, dc_col_cnt,
+                                                                                             w_row_cnt, w_col_cnt,
+                                                                                             chan_cnt, nxt_dc_row_cnt, nxt_dc_col_cnt);
+            }
+        }
+
+        delete dc;
+        dc = nxt_dc;
+    }
+
+    return dc;
 }
 
 // ActivationLayer functions:
@@ -669,7 +925,6 @@ void DropoutLayer::evaluate(Tensor *nxt_n, bool train_flg)
 
 Tensor *DropoutLayer::derive(Tensor *dc)
 {
-    // Derive post-dropout activation (with respect to activation):
     {
         if (this->dropout_rate > 0.0f)
         {

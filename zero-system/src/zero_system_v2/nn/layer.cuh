@@ -12,6 +12,7 @@ namespace zero_v2
         enum LayerType
         {
             Linear,
+            Convolutional,
             Activation,
             Dropout
         };
@@ -52,6 +53,24 @@ namespace zero_v2
             LinearLayer();
             LinearLayer(int n_cnt, int nxt_n_cnt, InitializationFunction init_fn);
             ~LinearLayer();
+
+            virtual LayerType get_type();
+            virtual void evaluate(Tensor *nxt_n, bool train_flg);
+            virtual Tensor *derive(Tensor *dc);
+            virtual void load(FILE *file_ptr);
+            virtual void save(FILE *file_ptr);
+
+            virtual void step(int batch_size, float learning_rate);
+        };
+
+        class ConvolutionalLayer : public LearnableLayer
+        {
+        public:
+            ConvolutionalLayer();
+            ConvolutionalLayer(int chan_cnt, int n_row_cnt, int n_col_cnt,
+                               int fltr_cnt, int f_row_cnt, int f_col_cnt,
+                               InitializationFunction init_fn);
+            ~ConvolutionalLayer();
 
             virtual LayerType get_type();
             virtual void evaluate(Tensor *nxt_n, bool train_flg);
