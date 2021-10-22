@@ -10,9 +10,9 @@ __device__ float d_relu(float val)
     return val > 0.0f ? val : 0.0f;
 }
 
-__device__ float d_derive_relu(float val)
+__device__ float d_derive_relu(float relu_val)
 {
-    return val > 0.0f ? 1.0f : 0.0f;
+    return relu_val > 0.0f ? 1.0f : 0.0f;
 }
 
 __device__ float d_sigmoid(float val)
@@ -20,9 +20,9 @@ __device__ float d_sigmoid(float val)
     return (1.0 / (1.0 + exp(-val)));
 }
 
-__device__ float d_derive_sigmoid(float val)
+__device__ float d_derive_sigmoid(float sigmoid_val)
 {
-    return (val) * (1.0 - val);
+    return (sigmoid_val) * (1.0 - sigmoid_val);
 }
 
 __device__ float d_tanh(float val)
@@ -30,9 +30,9 @@ __device__ float d_tanh(float val)
     return ((exp(val) - exp(-val)) / (exp(val) + exp(-val)));
 }
 
-__device__ float d_derive_tanh(float val)
+__device__ float d_derive_tanh(float tanh_val)
 {
-    return (1 - (val * val));
+    return (1 - (tanh_val * tanh_val));
 }
 
 __device__ float d_sine(float val)
@@ -40,9 +40,9 @@ __device__ float d_sine(float val)
     return sin(val);
 }
 
-__device__ float d_derive_sine(float val)
+__device__ float d_derive_sine(float sine_val)
 {
-    return cos(val);
+    return cos(sine_val);
 }
 
 __device__ float d_cosine(float val)
@@ -50,9 +50,9 @@ __device__ float d_cosine(float val)
     return cos(val);
 }
 
-__device__ float d_derive_cosine(float val)
+__device__ float d_derive_cosine(float cosine_val)
 {
-    return -sin(val);
+    return -sin(cosine_val);
 }
 
 // Kernel functions:
@@ -449,19 +449,19 @@ __global__ void k_derive_activation(float *n_arr, float *dc_arr, int n_cnt, Acti
         switch (activation_fn)
         {
         case ActivationFunction::ReLU:
-            dc_arr[tid] *= d_derive_relu(n_arr[tid]);
+            dc_arr[tid] *= d_derive_relu(d_relu(n_arr[tid]));
             break;
         case ActivationFunction::Sigmoid:
-            dc_arr[tid] *= d_derive_sigmoid(n_arr[tid]);
+            dc_arr[tid] *= d_derive_sigmoid(d_sigmoid(n_arr[tid]));
             break;
         case ActivationFunction::Tanh:
-            dc_arr[tid] *= d_derive_tanh(n_arr[tid]);
+            dc_arr[tid] *= d_derive_tanh(d_tanh(n_arr[tid]));
             break;
         case ActivationFunction::Sine:
-            dc_arr[tid] *= d_derive_sine(n_arr[tid]);
+            dc_arr[tid] *= d_derive_sine(d_sine(n_arr[tid]));
             break;
         case ActivationFunction::Cosine:
-            dc_arr[tid] *= d_derive_cosine(n_arr[tid]);
+            dc_arr[tid] *= d_derive_cosine(d_cosine(n_arr[tid]));
             break;
         default:
             // None

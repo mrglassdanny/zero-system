@@ -13,9 +13,9 @@ void v2_test()
 	Model *model = new Model(CostFunction::MSE, 0.001f);
 
 	model->add_layer(new LinearLayer(64, 32, InitializationFunction::He));
-	model->add_layer(new ActivationLayer(32, ActivationFunction::None));
+	model->add_layer(new ActivationLayer(32, ActivationFunction::Tanh));
 	model->add_layer(new LinearLayer(32, 8, InitializationFunction::He));
-	model->add_layer(new ActivationLayer(8, ActivationFunction::None));
+	model->add_layer(new ActivationLayer(8, ActivationFunction::Tanh));
 
 	Tensor *x = new Tensor(Device::Cuda, 64);
 	x->set_all(0.25f);
