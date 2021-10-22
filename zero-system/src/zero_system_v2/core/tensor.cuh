@@ -42,6 +42,7 @@ namespace zero_v2
             Tensor(Device device, int cnt);
             Tensor(Device device, int row_cnt, int col_cnt);
             Tensor(Device device, int x_cnt, int y_cnt, int z_cnt);
+            Tensor(Device device, int a_cnt, int b_cnt, int c_cnt, int d_cnt);
             Tensor(Device device, std::vector<int> shape);
             ~Tensor();
 

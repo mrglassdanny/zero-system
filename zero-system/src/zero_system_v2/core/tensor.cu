@@ -120,6 +120,26 @@ Tensor::Tensor(Device device, int x_cnt, int y_cnt, int z_cnt)
     this->reset();
 }
 
+Tensor::Tensor(Device device, int a_cnt, int b_cnt, int c_cnt, int d_cnt)
+{
+    this->device = device;
+    this->shape.push_back(a_cnt);
+    this->shape.push_back(b_cnt);
+    this->shape.push_back(c_cnt);
+    this->shape.push_back(d_cnt);
+
+    if (device == Device::Cpu)
+    {
+        this->arr = (float *)malloc(sizeof(float) * a_cnt * b_cnt * c_cnt * d_cnt);
+    }
+    else if (device == Device::Cuda)
+    {
+        cudaMalloc(&this->arr, sizeof(float) * a_cnt * b_cnt * c_cnt * d_cnt);
+    }
+
+    this->reset();
+}
+
 Tensor::Tensor(Device device, std::vector<int> shape)
 {
     this->device = device;
