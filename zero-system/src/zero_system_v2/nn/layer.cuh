@@ -73,10 +73,10 @@ namespace zero_v2
         public:
             ConvolutionalLayer();
             ConvolutionalLayer(int chan_cnt, int n_row_cnt, int n_col_cnt,
-                               int fltr_cnt, int f_row_cnt, int f_col_cnt,
+                               int fltr_cnt, int w_row_cnt, int w_col_cnt,
                                InitializationFunction init_fn);
             ConvolutionalLayer(std::vector<int> n_shape,
-                               int fltr_cnt, int f_row_cnt, int f_col_cnt,
+                               int fltr_cnt, int w_row_cnt, int w_col_cnt,
                                InitializationFunction init_fn);
             ~ConvolutionalLayer();
 
