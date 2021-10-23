@@ -260,28 +260,6 @@ __global__ void k_lin_derive_z_and_aggregate_derivatives(float *dc_arr, float *w
     }
 }
 
-__global__ void k_adjust_weight(float *w_arr, float *dw_arr, int batch_size, float learning_rate, int cnt)
-{
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (tid < cnt)
-    {
-        w_arr[tid] -= ((dw_arr[tid] * learning_rate) / (float)batch_size);
-        dw_arr[tid] = 0.0f;
-    }
-}
-
-__global__ void k_adjust_bias(float *b_arr, float *db_arr, int batch_size, float learning_rate, int cnt)
-{
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (tid < cnt)
-    {
-        b_arr[tid] -= ((db_arr[tid] * learning_rate) / (float)batch_size);
-        db_arr[tid] = 0.0f;
-    }
-}
-
 __global__ void k_convolve(float *n_arr, float *w_arr, float *b_arr, float *nxt_n_arr, int chan_cnt, int n_row_cnt, int n_col_cnt,
                            int w_row_cnt, int w_col_cnt, int nxt_n_row_cnt, int nxt_n_col_cnt)
 {
@@ -319,7 +297,7 @@ __global__ void k_convolve(float *n_arr, float *w_arr, float *b_arr, float *nxt_
     }
 }
 
-__global__ void k_conv_derive_z_and_increment_filter_derivative(float *dc_arr, float *n_arr, float *dw_arr, int chan_cnt, int n_row_cnt, int n_col_cnt,
+__global__ void k_conv_derive_z_and_increment_weight_derivative(float *dc_arr, float *n_arr, float *dw_arr, int chan_cnt, int n_row_cnt, int n_col_cnt,
                                                                 int w_row_cnt, int w_col_cnt, int dc_row_cnt, int dc_col_cnt)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -406,6 +384,28 @@ __global__ void k_conv_derive_z_and_aggregate_derivatives(float *dc_arr, float *
         }
 
         nxt_dc_arr[nxt_dc_global_idx] += val;
+    }
+}
+
+__global__ void k_adjust_weight(float *w_arr, float *dw_arr, int batch_size, float learning_rate, int cnt)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < cnt)
+    {
+        w_arr[tid] -= ((dw_arr[tid] * learning_rate) / (float)batch_size);
+        dw_arr[tid] = 0.0f;
+    }
+}
+
+__global__ void k_adjust_bias(float *b_arr, float *db_arr, int batch_size, float learning_rate, int cnt)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < cnt)
+    {
+        b_arr[tid] -= ((db_arr[tid] * learning_rate) / (float)batch_size);
+        db_arr[tid] = 0.0f;
     }
 }
 
@@ -852,7 +852,7 @@ Tensor *ConvolutionalLayer::derive(Tensor *dc)
             float *n_arr = this->n->get_arr();
             float *dw_arr = &this->dw->get_arr()[fltr_idx * chan_cnt * w_row_cnt * w_col_cnt];
 
-            k_conv_derive_z_and_increment_filter_derivative<<<num_blocks, threads_per_block>>>(dc_arr, n_arr, dw_arr,
+            k_conv_derive_z_and_increment_weight_derivative<<<num_blocks, threads_per_block>>>(dc_arr, n_arr, dw_arr,
                                                                                                chan_cnt, n_row_cnt, n_col_cnt,
                                                                                                w_row_cnt, w_col_cnt, dc_row_cnt, dc_col_cnt);
         }
