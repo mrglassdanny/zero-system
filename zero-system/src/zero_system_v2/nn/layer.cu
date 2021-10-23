@@ -801,7 +801,6 @@ std::vector<int> ConvolutionalLayer::get_output_shape()
 
 void ConvolutionalLayer::evaluate(Tensor *nxt_n, bool train_flg)
 {
-
     Layer::evaluate(nxt_n, train_flg);
 
     int fltr_cnt = this->w->get_shape()[0];
@@ -815,7 +814,7 @@ void ConvolutionalLayer::evaluate(Tensor *nxt_n, bool train_flg)
 
     {
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
-        int num_blocks = ((nxt_n->get_cnt() / fltr_cnt) / threads_per_block) + 1;
+        int num_blocks = ((nxt_n_row_cnt * nxt_n_col_cnt) / threads_per_block) + 1;
 
         for (int fltr_idx = 0; fltr_idx < fltr_cnt; fltr_idx++)
         {
