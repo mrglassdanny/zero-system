@@ -517,6 +517,13 @@ Layer::Layer()
     this->n = nullptr;
 }
 
+Layer::Layer(std::vector<int> n_shape)
+    : Layer()
+{
+    this->n = new Tensor(Device::Cuda, n_shape);
+    this->n->reset();
+}
+
 Layer::~Layer()
 {
     if (this->n != nullptr)
@@ -533,6 +540,16 @@ void Layer::evaluate(Tensor *nxt_n, bool train_flg)
 // LearnableLayer functions:
 
 LearnableLayer::LearnableLayer()
+    : Layer()
+{
+    this->w = nullptr;
+    this->b = nullptr;
+    this->dw = nullptr;
+    this->db = nullptr;
+}
+
+LearnableLayer::LearnableLayer(std::vector<int> n_shape)
+    : Layer(n_shape)
 {
     this->w = nullptr;
     this->b = nullptr;
@@ -568,32 +585,10 @@ LearnableLayer::~LearnableLayer()
 LinearLayer::LinearLayer()
     : LearnableLayer() {}
 
-LinearLayer::LinearLayer(int n_cnt, int nxt_n_cnt, InitializationFunction init_fn)
-    : LearnableLayer()
-{
-    this->n = new Tensor(Device::Cuda, n_cnt);
-    this->n->reset();
-
-    this->w = new Tensor(Device::Cuda, nxt_n_cnt, n_cnt);
-    Initializer::initialize(init_fn, this->w, n_cnt, nxt_n_cnt);
-
-    this->b = new Tensor(Device::Cuda, nxt_n_cnt);
-    Initializer::initialize(init_fn, this->b, nxt_n_cnt, 0);
-
-    this->dw = new Tensor(Device::Cuda, nxt_n_cnt, n_cnt);
-    this->dw->reset();
-
-    this->db = new Tensor(Device::Cuda, nxt_n_cnt);
-    this->db->reset();
-}
-
 LinearLayer::LinearLayer(std::vector<int> n_shape, int nxt_n_cnt, InitializationFunction init_fn)
-    : LearnableLayer()
+    : LearnableLayer(n_shape)
 {
     int n_cnt = Tensor::get_cnt(n_shape);
-
-    this->n = new Tensor(Device::Cuda, n_cnt);
-    this->n->reset();
 
     this->w = new Tensor(Device::Cuda, nxt_n_cnt, n_cnt);
     Initializer::initialize(init_fn, this->w, n_cnt, nxt_n_cnt);
@@ -729,43 +724,16 @@ void LinearLayer::save(FILE *file_ptr)
 ConvolutionalLayer::ConvolutionalLayer()
     : LearnableLayer() {}
 
-ConvolutionalLayer::ConvolutionalLayer(int chan_cnt, int n_row_cnt, int n_col_cnt,
-                                       int fltr_cnt, int w_row_cnt, int w_col_cnt,
-                                       InitializationFunction init_fn)
-    : LearnableLayer()
-{
-    int nxt_n_row_cnt = n_row_cnt - w_row_cnt + 1;
-    int nxt_n_col_cnt = n_col_cnt - w_col_cnt + 1;
-
-    this->n = new Tensor(Device::Cuda, chan_cnt, n_row_cnt, n_col_cnt);
-    this->n->reset();
-
-    this->w = new Tensor(Device::Cuda, fltr_cnt, chan_cnt, w_row_cnt, w_col_cnt);
-    Initializer::initialize(init_fn, this->w, n_row_cnt * n_col_cnt, 0);
-
-    this->b = new Tensor(Device::Cuda, fltr_cnt, nxt_n_row_cnt, nxt_n_col_cnt);
-    Initializer::initialize(init_fn, this->b, n_row_cnt * n_col_cnt, 0);
-
-    this->dw = new Tensor(Device::Cuda, fltr_cnt, chan_cnt, w_row_cnt, w_col_cnt);
-    this->dw->reset();
-
-    this->db = new Tensor(Device::Cuda, fltr_cnt, nxt_n_row_cnt, nxt_n_col_cnt);
-    this->db->reset();
-}
-
 ConvolutionalLayer::ConvolutionalLayer(std::vector<int> n_shape,
                                        int fltr_cnt, int w_row_cnt, int w_col_cnt,
                                        InitializationFunction init_fn)
-    : LearnableLayer()
+    : LearnableLayer(n_shape)
 {
     int chan_cnt = n_shape[0];
     int n_row_cnt = n_shape[1];
     int n_col_cnt = n_shape[2];
     int nxt_n_row_cnt = n_row_cnt - w_row_cnt + 1;
     int nxt_n_col_cnt = n_col_cnt - w_col_cnt + 1;
-
-    this->n = new Tensor(Device::Cuda, n_shape);
-    this->n->reset();
 
     this->w = new Tensor(Device::Cuda, fltr_cnt, chan_cnt, w_row_cnt, w_col_cnt);
     Initializer::initialize(init_fn, this->w, n_row_cnt * n_col_cnt, 0);
@@ -946,21 +914,9 @@ void ConvolutionalLayer::save(FILE *file_ptr)
 ActivationLayer::ActivationLayer()
     : Layer() {}
 
-ActivationLayer::ActivationLayer(int n_cnt, ActivationFunction activation_fn)
-    : Layer()
-{
-    this->n = new Tensor(Device::Cuda, n_cnt);
-    this->n->reset();
-
-    this->activation_fn = activation_fn;
-}
-
 ActivationLayer::ActivationLayer(std::vector<int> n_shape, ActivationFunction activation_fn)
-    : Layer()
+    : Layer(n_shape)
 {
-    this->n = new Tensor(Device::Cuda, n_shape);
-    this->n->reset();
-
     this->activation_fn = activation_fn;
 }
 
@@ -1020,25 +976,10 @@ void ActivationLayer::save(FILE *file_ptr)
 DropoutLayer::DropoutLayer()
     : Layer() {}
 
-DropoutLayer::DropoutLayer(int n_cnt, float dropout_rate)
-    : Layer()
-{
-    this->n = new Tensor(Device::Cuda, n_cnt);
-    this->n->reset();
-
-    this->dropout_rate = dropout_rate;
-
-    this->dropout_mask = new Tensor(Device::Cuda, n_cnt);
-}
-
 DropoutLayer::DropoutLayer(std::vector<int> n_shape, float dropout_rate)
-    : Layer()
+    : Layer(n_shape)
 {
-    this->n = new Tensor(Device::Cuda, n_shape);
-    this->n->reset();
-
     this->dropout_rate = dropout_rate;
-
     this->dropout_mask = new Tensor(Device::Cuda, n_shape);
 }
 

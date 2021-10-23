@@ -24,6 +24,7 @@ namespace zero_v2
             Tensor *n;
 
             Layer();
+            Layer(std::vector<int> n_shape);
             ~Layer();
 
             virtual LayerType get_type() = 0;
@@ -44,6 +45,7 @@ namespace zero_v2
             Tensor *db;
 
             LearnableLayer();
+            LearnableLayer(std::vector<int> n_shape);
             ~LearnableLayer();
 
             virtual void step(int batch_size, float learning_rate) = 0;
@@ -53,7 +55,6 @@ namespace zero_v2
         {
         public:
             LinearLayer();
-            LinearLayer(int n_cnt, int nxt_n_cnt, InitializationFunction init_fn);
             LinearLayer(std::vector<int> n_shape, int nxt_n_cnt, InitializationFunction init_fn);
             ~LinearLayer();
 
@@ -72,9 +73,6 @@ namespace zero_v2
         {
         public:
             ConvolutionalLayer();
-            ConvolutionalLayer(int chan_cnt, int n_row_cnt, int n_col_cnt,
-                               int fltr_cnt, int w_row_cnt, int w_col_cnt,
-                               InitializationFunction init_fn);
             ConvolutionalLayer(std::vector<int> n_shape,
                                int fltr_cnt, int w_row_cnt, int w_col_cnt,
                                InitializationFunction init_fn);
@@ -98,7 +96,6 @@ namespace zero_v2
 
         public:
             ActivationLayer();
-            ActivationLayer(int n_cnt, ActivationFunction activation_fn);
             ActivationLayer(std::vector<int> n_shape, ActivationFunction activation_fn);
             ~ActivationLayer();
 
@@ -119,7 +116,6 @@ namespace zero_v2
 
         public:
             DropoutLayer();
-            DropoutLayer(int n_cnt, float dropout_rate);
             DropoutLayer(std::vector<int> n_shape, float dropout_rate);
             ~DropoutLayer();
 
