@@ -12,16 +12,19 @@ void v2_test()
 
 	Model *model = new Model(CostFunction::MSE, 0.001f);
 
-	model->add_layer(new ConvolutionalLayer(1, 10, 10, 1, 2, 2, InitializationFunction::He));
-	model->add_layer(new ActivationLayer(81, ActivationFunction::None));
+	model->add_layer(new ConvolutionalLayer(1, 8, 8, 1, 2, 2, InitializationFunction::He));
+	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::None));
 
-	model->add_layer(new LinearLayer(81, 32, InitializationFunction::He));
-	model->add_layer(new ActivationLayer(32, ActivationFunction::Sigmoid));
-	//model->add_layer(new DropoutLayer(32, 0.3f));
-	model->add_layer(new LinearLayer(32, 8, InitializationFunction::He));
-	model->add_layer(new ActivationLayer(8, ActivationFunction::Sigmoid));
+	model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 1, 2, 2, InitializationFunction::He));
+	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::None));
 
-	Tensor *x = new Tensor(Device::Cuda, 100);
+	model->add_layer(new LinearLayer(model->get_output_shape(), 32, InitializationFunction::He));
+	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
+
+	model->add_layer(new LinearLayer(model->get_output_shape(), 8, InitializationFunction::He));
+	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
+
+	Tensor *x = new Tensor(Device::Cuda, 1, 8, 8);
 	x->set_all(0.25f);
 	Tensor *y = new Tensor(Device::Cuda, 8);
 	y->set_val(2, 1.0f);
