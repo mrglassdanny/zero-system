@@ -28,12 +28,12 @@ namespace zero_v2
             ~Layer();
 
             virtual LayerType get_type() = 0;
-            virtual void evaluate(Tensor *nxt_n, bool train_flg);
+            virtual std::vector<int> get_input_shape() = 0;
+            virtual std::vector<int> get_output_shape() = 0;
+            virtual void evaluate(Tensor *nxt_n, bool train_flg) = 0;
             virtual Tensor *derive(Tensor *dc) = 0;
             virtual void load(FILE *file_ptr) = 0;
             virtual void save(FILE *file_ptr) = 0;
-            virtual std::vector<int> get_input_shape() = 0;
-            virtual std::vector<int> get_output_shape() = 0;
         };
 
         class LearnableLayer : public Layer

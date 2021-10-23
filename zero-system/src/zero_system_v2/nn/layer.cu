@@ -532,11 +532,6 @@ Layer::~Layer()
     }
 }
 
-void Layer::evaluate(Tensor *nxt_n, bool train_flg)
-{
-    nxt_n->reset();
-}
-
 // LearnableLayer functions:
 
 LearnableLayer::LearnableLayer()
@@ -622,7 +617,7 @@ std::vector<int> LinearLayer::get_output_shape()
 
 void LinearLayer::evaluate(Tensor *nxt_n, bool train_flg)
 {
-    Layer::evaluate(nxt_n, train_flg);
+    nxt_n->reset();
 
     int n_cnt = this->n->get_cnt();
     int nxt_n_cnt = nxt_n->get_cnt();
@@ -769,7 +764,7 @@ std::vector<int> ConvolutionalLayer::get_output_shape()
 
 void ConvolutionalLayer::evaluate(Tensor *nxt_n, bool train_flg)
 {
-    Layer::evaluate(nxt_n, train_flg);
+    nxt_n->reset();
 
     int fltr_cnt = this->w->get_shape()[0];
     int chan_cnt = this->w->get_shape()[1];
@@ -941,7 +936,7 @@ std::vector<int> ActivationLayer::get_output_shape()
 
 void ActivationLayer::evaluate(Tensor *nxt_n, bool train_flg)
 {
-    Layer::evaluate(nxt_n, train_flg);
+    nxt_n->reset();
 
     {
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
@@ -1005,7 +1000,7 @@ std::vector<int> DropoutLayer::get_output_shape()
 
 void DropoutLayer::evaluate(Tensor *nxt_n, bool train_flg)
 {
-    Layer::evaluate(nxt_n, train_flg);
+    nxt_n->reset();
 
     if (train_flg)
     {

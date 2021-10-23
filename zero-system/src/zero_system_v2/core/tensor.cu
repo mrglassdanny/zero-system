@@ -470,6 +470,8 @@ float Tensor::get_val(int idx)
         cudaMemcpy(&val, &this->arr[idx], sizeof(float), cudaMemcpyDeviceToHost);
         return val;
     }
+
+    return 0.0f;
 }
 
 void Tensor::set_val(int idx, float val)
