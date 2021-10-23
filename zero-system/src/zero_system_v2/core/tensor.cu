@@ -30,25 +30,6 @@ __global__ void k_set_arr_rand(float *arr, int cnt, float mean, float stddev)
 
 // Tensor functions:
 
-Tensor *Tensor::one_hot_encode(Device device, int row_cnt, int col_cnt, float *cpu_arr)
-{
-    Tensor *tensor = new Tensor(device, row_cnt, col_cnt);
-    tensor->set_all(0.0f);
-
-    for (int row_idx = 0; row_idx < row_cnt; row_idx++)
-    {
-        int col_idx = (int)cpu_arr[row_idx];
-        if (col_idx >= 0 && col_idx < col_cnt)
-        {
-            tensor->set_val(row_idx * col_cnt + col_idx, 1.0f);
-        }
-        // If column index is less than 0 or is greater than or equal to column count, skip it!
-        // ^ this shouldn't happen...
-    }
-
-    return tensor;
-}
-
 Tensor::Tensor(Tensor &src)
 {
     this->device = src.device;
@@ -188,6 +169,25 @@ Tensor::~Tensor()
     {
         cudaFree(this->arr);
     }
+}
+
+Tensor *Tensor::one_hot_encode(Device device, int row_cnt, int col_cnt, float *cpu_arr)
+{
+    Tensor *tensor = new Tensor(device, row_cnt, col_cnt);
+    tensor->set_all(0.0f);
+
+    for (int row_idx = 0; row_idx < row_cnt; row_idx++)
+    {
+        int col_idx = (int)cpu_arr[row_idx];
+        if (col_idx >= 0 && col_idx < col_cnt)
+        {
+            tensor->set_val(row_idx * col_cnt + col_idx, 1.0f);
+        }
+        // If column index is less than 0 or is greater than or equal to column count, skip it!
+        // ^ this shouldn't happen...
+    }
+
+    return tensor;
 }
 
 void Tensor::to(Device device)
@@ -422,6 +422,18 @@ int Tensor::get_cnt()
     for (int i = 0; i < this->shape.size(); i++)
     {
         cnt *= this->shape[i];
+    }
+
+    return cnt;
+}
+
+int Tensor::get_cnt(std::vector<int> shape)
+{
+    int cnt = 1;
+
+    for (int i = 0; i < shape.size(); i++)
+    {
+        cnt *= shape[i];
     }
 
     return cnt;

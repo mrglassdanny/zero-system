@@ -37,7 +37,6 @@ namespace zero_v2
             std::vector<int> shape;
 
         public:
-            static Tensor *one_hot_encode(Device device, int row_cnt, int col_cnt, float *cpu_arr);
             Tensor(Tensor &src);
             Tensor(Device device);
             Tensor(Device device, int cnt);
@@ -47,6 +46,8 @@ namespace zero_v2
             Tensor(Device device, std::vector<int> shape);
             ~Tensor();
 
+            static Tensor *one_hot_encode(Device device, int row_cnt, int col_cnt, float *cpu_arr);
+
             void to(Device device);
 
             void copy(Tensor *src);
@@ -55,6 +56,7 @@ namespace zero_v2
 
             std::vector<int> get_shape();
             int get_cnt();
+            static int get_cnt(std::vector<int> shape);
 
             float *get_arr();
             float *get_arr(Device device);
