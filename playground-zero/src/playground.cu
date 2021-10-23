@@ -11,8 +11,13 @@ void v2_test()
 {
 
 	Model *model = new Model(CostFunction::MSE, 0.001f);
-	std::vector<int> n_shape{3, 8, 8};
-	model->add_layer(new ConvolutionalLayer(n_shape, 6, 2, 2, InitializationFunction::He));
+
+	Tensor *x = new Tensor(Device::Cuda, 3, 8, 8);
+	x->set_all_rand(0.0f, 1.0f);
+	Tensor *y = new Tensor(Device::Cuda, 8);
+	y->set_val(2, 1.0f);
+
+	model->add_layer(new ConvolutionalLayer(x->get_shape(), 6, 2, 2, InitializationFunction::He));
 	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::None));
 
 	model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 12, 2, 2, InitializationFunction::He));
@@ -23,11 +28,6 @@ void v2_test()
 
 	model->add_layer(new LinearLayer(model->get_output_shape(), 8, InitializationFunction::He));
 	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
-
-	Tensor *x = new Tensor(Device::Cuda, 3, 8, 8);
-	x->set_all_rand(0.0f, 1.0f);
-	Tensor *y = new Tensor(Device::Cuda, 8);
-	y->set_val(2, 1.0f);
 
 	model->gradient_check(x, y, true);
 
