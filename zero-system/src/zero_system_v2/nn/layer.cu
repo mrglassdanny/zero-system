@@ -284,7 +284,7 @@ __global__ void k_convolve(float *n_arr, float *w_arr, float *b_arr, float *nxt_
                     int n_row_idx = nxt_n_row_idx + w_row_idx;
                     int n_col_idx = nxt_n_col_idx + w_col_idx;
 
-                    int w_rot_val_idx = (w_row_cnt * w_col_cnt) - (w_row_idx * w_col_cnt + w_col_idx);
+                    int w_rot_val_idx = (w_row_cnt * w_col_cnt) - (w_row_idx * w_col_cnt + w_col_idx) - 1;
 
                     float val = n_arr[(chan_idx * n_row_cnt * n_col_cnt) + (n_row_idx * n_col_cnt) + n_col_idx];
                     val *= w_arr[(chan_idx * w_row_cnt * w_col_cnt) + w_rot_val_idx];
@@ -310,7 +310,7 @@ __global__ void k_conv_derive_z_and_increment_weight_derivative(float *dc_arr, f
         int w_cnt = (w_row_cnt * w_col_cnt);
         int chan_idx = w_global_val_idx / w_cnt;
         int w_val_idx = w_global_val_idx - (chan_idx * w_cnt);
-        int w_rot_val_idx = w_cnt - w_val_idx;
+        int w_rot_val_idx = w_cnt - w_val_idx - 1;
         int w_row_idx = w_val_idx / w_col_cnt;
         int w_col_idx = w_val_idx % w_col_cnt;
         int w_global_rot_val_idx = (chan_idx * w_cnt) + w_rot_val_idx;
@@ -374,7 +374,7 @@ __global__ void k_conv_derive_z_and_aggregate_derivatives(float *dc_arr, float *
                 int dc_row_idx = nxt_dc_row_idx - w_row_idx;
                 int dc_col_idx = nxt_dc_col_idx - w_col_idx;
 
-                int w_rot_val_idx = w_cnt - (w_row_idx * w_col_cnt + w_col_idx);
+                int w_rot_val_idx = w_cnt - (w_row_idx * w_col_cnt + w_col_idx) - 1;
 
                 if (dc_row_idx >= 0 && dc_row_idx < dc_row_cnt && dc_col_idx >= 0 && dc_col_idx < dc_col_cnt)
                 {
@@ -820,18 +820,13 @@ void ConvolutionalLayer::evaluate(Tensor *nxt_n, bool train_flg)
         {
             float *n_arr = this->n->get_arr();
             float *w_arr = &this->w->get_arr()[fltr_idx * chan_cnt * w_row_cnt * w_col_cnt];
-            float *b_arr = &this->w->get_arr()[fltr_idx * nxt_n_row_cnt * nxt_n_col_cnt];
+            float *b_arr = &this->b->get_arr()[fltr_idx * nxt_n_row_cnt * nxt_n_col_cnt];
             float *nxt_n_arr = &nxt_n->get_arr()[fltr_idx * nxt_n_row_cnt * nxt_n_col_cnt];
 
             k_convolve<<<num_blocks, threads_per_block>>>(n_arr, w_arr, b_arr, nxt_n_arr,
                                                           chan_cnt, n_row_cnt, n_col_cnt, w_row_cnt, w_col_cnt,
                                                           nxt_n_row_cnt, nxt_n_col_cnt);
         }
-
-        this->n->print();
-        this->w->print();
-        this->b->print();
-        nxt_n->print();
     }
 }
 
