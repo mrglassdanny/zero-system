@@ -282,7 +282,7 @@ __global__ void k_adjust_bias(float *b_arr, float *db_arr, int batch_size, float
     }
 }
 
-__global__ void k_convolve(float *n_arr, float *f_arr, float *b_arr, float *nxt_n_arr, int chan_cnt, int n_row_cnt, int n_col_cnt,
+__global__ void k_convolve(float *n_arr, float *w_arr, float *b_arr, float *nxt_n_arr, int chan_cnt, int n_row_cnt, int n_col_cnt,
                            int w_row_cnt, int w_col_cnt, int nxt_n_row_cnt, int nxt_n_col_cnt)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -309,7 +309,7 @@ __global__ void k_convolve(float *n_arr, float *f_arr, float *b_arr, float *nxt_
                     int w_rot_val_idx = (w_row_cnt * w_col_cnt) - (w_row_idx * w_col_cnt + w_col_idx);
 
                     float val = n_arr[(chan_idx * n_row_cnt * n_col_cnt) + (n_row_idx * n_col_cnt) + n_col_idx];
-                    val *= f_arr[(chan_idx * w_row_cnt * w_col_cnt) + w_rot_val_idx];
+                    val *= w_arr[(chan_idx * w_row_cnt * w_col_cnt) + w_rot_val_idx];
                     nxt_n_arr[nxt_n_idx] += val;
                 }
             }
@@ -319,7 +319,7 @@ __global__ void k_convolve(float *n_arr, float *f_arr, float *b_arr, float *nxt_
     }
 }
 
-__global__ void k_conv_derive_z_and_increment_filter_derivative(float *dc_arr, float *n_arr, float *df_arr, int chan_cnt, int n_row_cnt, int n_col_cnt,
+__global__ void k_conv_derive_z_and_increment_filter_derivative(float *dc_arr, float *n_arr, float *dw_arr, int chan_cnt, int n_row_cnt, int n_col_cnt,
                                                                 int w_row_cnt, int w_col_cnt, int dc_row_cnt, int dc_col_cnt)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -353,7 +353,7 @@ __global__ void k_conv_derive_z_and_increment_filter_derivative(float *dc_arr, f
             }
         }
 
-        df_arr[w_global_rot_val_idx] += val;
+        dw_arr[w_global_rot_val_idx] += val;
     }
 }
 
@@ -367,7 +367,7 @@ __global__ void k_conv_derive_z_and_increment_bias_derivative(float *dc_arr, flo
     }
 }
 
-__global__ void k_conv_derive_z_and_aggregate_derivatives(float *dc_arr, float *f_arr, float *nxt_dc_arr,
+__global__ void k_conv_derive_z_and_aggregate_derivatives(float *dc_arr, float *w_arr, float *nxt_dc_arr,
                                                           int dc_row_cnt, int dc_col_cnt, int w_row_cnt, int w_col_cnt,
                                                           int chan_cnt, int nxt_dc_row_cnt, int nxt_dc_col_cnt)
 {
@@ -400,7 +400,7 @@ __global__ void k_conv_derive_z_and_aggregate_derivatives(float *dc_arr, float *
 
                 if (dc_row_idx >= 0 && dc_row_idx < dc_row_cnt && dc_col_idx >= 0 && dc_col_idx < dc_col_cnt)
                 {
-                    val += (dc_arr[dc_row_idx * dc_col_cnt + dc_col_idx] * f_arr[(chan_idx * w_row_cnt * w_col_cnt) + w_rot_val_idx]);
+                    val += (dc_arr[dc_row_idx * dc_col_cnt + dc_col_idx] * w_arr[(chan_idx * w_row_cnt * w_col_cnt) + w_rot_val_idx]);
                 }
             }
         }
@@ -820,11 +820,11 @@ void ConvolutionalLayer::evaluate(Tensor *nxt_n, bool train_flg)
         for (int fltr_idx = 0; fltr_idx < fltr_cnt; fltr_idx++)
         {
             float *n_arr = this->n->get_arr();
-            float *f_arr = &this->w->get_arr()[fltr_idx * chan_cnt * w_row_cnt * w_col_cnt];
+            float *w_arr = &this->w->get_arr()[fltr_idx * chan_cnt * w_row_cnt * w_col_cnt];
             float *b_arr = &this->w->get_arr()[fltr_idx * nxt_n_row_cnt * nxt_n_col_cnt];
             float *nxt_n_arr = &nxt_n->get_arr()[fltr_idx * nxt_n_row_cnt * nxt_n_col_cnt];
 
-            k_convolve<<<num_blocks, threads_per_block>>>(n_arr, f_arr, b_arr, nxt_n_arr,
+            k_convolve<<<num_blocks, threads_per_block>>>(n_arr, w_arr, b_arr, nxt_n_arr,
                                                           chan_cnt, n_row_cnt, n_col_cnt, w_row_cnt, w_col_cnt,
                                                           nxt_n_row_cnt, nxt_n_col_cnt);
         }
@@ -850,9 +850,9 @@ Tensor *ConvolutionalLayer::derive(Tensor *dc)
         {
             float *dc_arr = &dc->get_arr()[fltr_idx * dc_row_cnt * dc_col_cnt];
             float *n_arr = this->n->get_arr();
-            float *df_arr = &this->dw->get_arr()[fltr_idx * chan_cnt * w_row_cnt * w_col_cnt];
+            float *dw_arr = &this->dw->get_arr()[fltr_idx * chan_cnt * w_row_cnt * w_col_cnt];
 
-            k_conv_derive_z_and_increment_filter_derivative<<<num_blocks, threads_per_block>>>(dc_arr, n_arr, df_arr,
+            k_conv_derive_z_and_increment_filter_derivative<<<num_blocks, threads_per_block>>>(dc_arr, n_arr, dw_arr,
                                                                                                chan_cnt, n_row_cnt, n_col_cnt,
                                                                                                w_row_cnt, w_col_cnt, dc_row_cnt, dc_col_cnt);
         }
@@ -885,10 +885,10 @@ Tensor *ConvolutionalLayer::derive(Tensor *dc)
             for (int fltr_idx = 0; fltr_idx < fltr_cnt; fltr_idx++)
             {
                 float *dc_arr = &dc->get_arr()[fltr_idx * dc_row_cnt * dc_col_cnt];
-                float *f_arr = &this->w->get_arr()[fltr_idx * chan_cnt * w_row_cnt * w_col_cnt];
+                float *w_arr = &this->w->get_arr()[fltr_idx * chan_cnt * w_row_cnt * w_col_cnt];
                 float *nxt_dc_arr = nxt_dc->get_arr();
 
-                k_conv_derive_z_and_aggregate_derivatives<<<num_blocks, threads_per_block>>>(dc_arr, f_arr, nxt_dc_arr,
+                k_conv_derive_z_and_aggregate_derivatives<<<num_blocks, threads_per_block>>>(dc_arr, w_arr, nxt_dc_arr,
                                                                                              dc_row_cnt, dc_col_cnt,
                                                                                              w_row_cnt, w_col_cnt,
                                                                                              chan_cnt, nxt_dc_row_cnt, nxt_dc_col_cnt);
