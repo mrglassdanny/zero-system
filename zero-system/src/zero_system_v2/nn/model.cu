@@ -177,14 +177,24 @@ void Model::add_layer(Layer *lyr)
     this->layers.push_back(lyr);
 }
 
+std::vector<int> Model::get_input_shape()
+{
+    return this->layers[0]->get_input_shape();
+}
+
+std::vector<int> Model::get_output_shape()
+{
+    return this->layers[this->layers.size() - 1]->get_output_shape();
+}
+
 Tensor *Model::forward(Tensor *x, bool train_flg)
 {
     int lst_lyr_idx = this->layers.size() - 1;
 
-    Layer *fst_lyr = this->layers[0];
+    Layer *frst_lyr = this->layers[0];
     Layer *lst_lyr = this->layers[lst_lyr_idx];
 
-    fst_lyr->n->copy(x);
+    frst_lyr->n->copy(x);
 
     for (int i = 0; i < lst_lyr_idx; i++)
     {
