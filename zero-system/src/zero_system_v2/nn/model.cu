@@ -290,8 +290,8 @@ void Model::gradient_check(Tensor *x, Tensor *y, bool print_flg)
             {
                 for (int i = 0; i < lrn_lyr->w->get_cnt(); i++)
                 {
-                    float left_cost = 0.0;
-                    float right_cost = 0.0;
+                    float left_cost = 0.0f;
+                    float right_cost = 0.0f;
 
                     float orig_w_val = lrn_lyr->w->get_val(i);
 
@@ -330,8 +330,8 @@ void Model::gradient_check(Tensor *x, Tensor *y, bool print_flg)
 
                 for (int i = 0; i < lrn_lyr->b->get_cnt(); i++)
                 {
-                    float left_cost = 0.0;
-                    float right_cost = 0.0;
+                    float left_cost = 0.0f;
+                    float right_cost = 0.0f;
 
                     float orig_b_val = lrn_lyr->b->get_val(i);
 

@@ -15,11 +15,8 @@ void v2_test()
 	model->add_layer(new ConvolutionalLayer(1, 8, 8, 1, 2, 2, InitializationFunction::He));
 	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::None));
 
-	model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 1, 2, 2, InitializationFunction::He));
-	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::None));
-
-	model->add_layer(new LinearLayer(model->get_output_shape(), 32, InitializationFunction::He));
-	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
+	// model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 1, 2, 2, InitializationFunction::He));
+	// model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::None));
 
 	model->add_layer(new LinearLayer(model->get_output_shape(), 8, InitializationFunction::He));
 	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));

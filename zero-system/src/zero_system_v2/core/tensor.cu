@@ -401,7 +401,10 @@ void Tensor::print()
     }
     break;
     default:
-        printf("Cannot print Tensor: too many dimensions!\n");
+        for (int i = 0; i < this->get_cnt(); i++)
+        {
+            printf("%d: %f\n", i, this->arr[i]);
+        }
         break;
     }
 

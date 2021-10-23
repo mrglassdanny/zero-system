@@ -810,8 +810,8 @@ void ConvolutionalLayer::evaluate(Tensor *nxt_n, bool train_flg)
     int w_col_cnt = this->w->get_shape()[3];
     int n_row_cnt = this->n->get_shape()[1];
     int n_col_cnt = this->n->get_shape()[2];
-    int nxt_n_row_cnt = nxt_n->get_shape()[1];
-    int nxt_n_col_cnt = nxt_n->get_shape()[2];
+    int nxt_n_row_cnt = this->b->get_shape()[1];
+    int nxt_n_col_cnt = this->b->get_shape()[2];
 
     {
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
@@ -828,6 +828,11 @@ void ConvolutionalLayer::evaluate(Tensor *nxt_n, bool train_flg)
                                                           chan_cnt, n_row_cnt, n_col_cnt, w_row_cnt, w_col_cnt,
                                                           nxt_n_row_cnt, nxt_n_col_cnt);
         }
+
+        this->n->print();
+        this->w->print();
+        this->b->print();
+        nxt_n->print();
     }
 }
 
@@ -839,8 +844,8 @@ Tensor *ConvolutionalLayer::derive(Tensor *dc)
     int w_col_cnt = this->w->get_shape()[3];
     int n_row_cnt = this->n->get_shape()[1];
     int n_col_cnt = this->n->get_shape()[2];
-    int dc_row_cnt = dc->get_shape()[1];
-    int dc_col_cnt = dc->get_shape()[2];
+    int dc_row_cnt = this->b->get_shape()[1];
+    int dc_col_cnt = this->b->get_shape()[2];
 
     {
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
