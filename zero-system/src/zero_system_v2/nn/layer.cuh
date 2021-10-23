@@ -23,8 +23,8 @@ namespace zero_v2
         public:
             Tensor *n;
 
-            Layer();
             Layer(std::vector<int> n_shape);
+            Layer(FILE *file_ptr);
             ~Layer();
 
             virtual LayerType get_type() = 0;
@@ -32,8 +32,7 @@ namespace zero_v2
             virtual std::vector<int> get_output_shape() = 0;
             virtual void evaluate(Tensor *nxt_n, bool train_flg) = 0;
             virtual Tensor *derive(Tensor *dc) = 0;
-            virtual void load(FILE *file_ptr) = 0;
-            virtual void save(FILE *file_ptr) = 0;
+            virtual void save(FILE *file_ptr);
         };
 
         class LearnableLayer : public Layer
@@ -44,9 +43,11 @@ namespace zero_v2
             Tensor *dw;
             Tensor *db;
 
-            LearnableLayer();
             LearnableLayer(std::vector<int> n_shape);
+            LearnableLayer(FILE *file_ptr);
             ~LearnableLayer();
+
+            virtual void save(FILE *file_ptr);
 
             virtual void step(int batch_size, float learning_rate) = 0;
         };
@@ -54,8 +55,8 @@ namespace zero_v2
         class LinearLayer : public LearnableLayer
         {
         public:
-            LinearLayer();
             LinearLayer(std::vector<int> n_shape, int nxt_n_cnt, InitializationFunction init_fn);
+            LinearLayer(FILE *file_ptr);
             ~LinearLayer();
 
             virtual LayerType get_type();
@@ -63,7 +64,6 @@ namespace zero_v2
             virtual std::vector<int> get_output_shape();
             virtual void evaluate(Tensor *nxt_n, bool train_flg);
             virtual Tensor *derive(Tensor *dc);
-            virtual void load(FILE *file_ptr);
             virtual void save(FILE *file_ptr);
 
             virtual void step(int batch_size, float learning_rate);
@@ -72,10 +72,10 @@ namespace zero_v2
         class ConvolutionalLayer : public LearnableLayer
         {
         public:
-            ConvolutionalLayer();
             ConvolutionalLayer(std::vector<int> n_shape,
                                int fltr_cnt, int w_row_cnt, int w_col_cnt,
                                InitializationFunction init_fn);
+            ConvolutionalLayer(FILE *file_ptr);
             ~ConvolutionalLayer();
 
             virtual LayerType get_type();
@@ -83,7 +83,6 @@ namespace zero_v2
             virtual std::vector<int> get_output_shape();
             virtual void evaluate(Tensor *nxt_n, bool train_flg);
             virtual Tensor *derive(Tensor *dc);
-            virtual void load(FILE *file_ptr);
             virtual void save(FILE *file_ptr);
 
             virtual void step(int batch_size, float learning_rate);
@@ -95,8 +94,8 @@ namespace zero_v2
             ActivationFunction activation_fn;
 
         public:
-            ActivationLayer();
             ActivationLayer(std::vector<int> n_shape, ActivationFunction activation_fn);
+            ActivationLayer(FILE *file_ptr);
             ~ActivationLayer();
 
             virtual LayerType get_type();
@@ -104,7 +103,6 @@ namespace zero_v2
             virtual std::vector<int> get_output_shape();
             virtual void evaluate(Tensor *nxt_n, bool train_flg);
             virtual Tensor *derive(Tensor *dc);
-            virtual void load(FILE *file_ptr);
             virtual void save(FILE *file_ptr);
         };
 
@@ -115,8 +113,8 @@ namespace zero_v2
             Tensor *dropout_mask;
 
         public:
-            DropoutLayer();
             DropoutLayer(std::vector<int> n_shape, float dropout_rate);
+            DropoutLayer(FILE *file_ptr);
             ~DropoutLayer();
 
             virtual LayerType get_type();
@@ -124,7 +122,6 @@ namespace zero_v2
             virtual std::vector<int> get_output_shape();
             virtual void evaluate(Tensor *nxt_n, bool train_flg);
             virtual Tensor *derive(Tensor *dc);
-            virtual void load(FILE *file_ptr);
             virtual void save(FILE *file_ptr);
         };
     }

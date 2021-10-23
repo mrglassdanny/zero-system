@@ -116,22 +116,21 @@ Model::Model(const char *path)
         switch (lyr_typ)
         {
         case LayerType::Linear:
-            lyr = new LinearLayer();
+            lyr = new LinearLayer(file_ptr);
             break;
         case LayerType::Convolutional:
-            lyr = new ConvolutionalLayer();
+            lyr = new ConvolutionalLayer(file_ptr);
             break;
         case LayerType::Activation:
-            lyr = new ActivationLayer();
+            lyr = new ActivationLayer(file_ptr);
             break;
         case LayerType::Dropout:
-            lyr = new DropoutLayer();
+            lyr = new DropoutLayer(file_ptr);
             break;
         default:
             break;
         }
 
-        lyr->load(file_ptr);
         this->add_layer(lyr);
     }
 

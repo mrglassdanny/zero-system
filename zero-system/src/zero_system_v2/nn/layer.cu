@@ -512,14 +512,27 @@ __global__ void k_derive_dropout(float *dc_arr, float *dropout_mask_arr, int n_c
 
 // Layer functions:
 
-Layer::Layer()
+Layer::Layer(std::vector<int> n_shape)
 {
-    this->n = nullptr;
+    this->n = new Tensor(Device::Cuda, n_shape);
+    this->n->reset();
 }
 
-Layer::Layer(std::vector<int> n_shape)
-    : Layer()
+Layer::Layer(FILE *file_ptr)
 {
+    int dim_cnt;
+
+    fread(&dim_cnt, sizeof(int), 1, file_ptr);
+
+    std::vector<int> n_shape;
+
+    for (int i = 0; i < dim_cnt; i++)
+    {
+        int dim;
+        fread(&dim, sizeof(int), 1, file_ptr);
+        n_shape.push_back(dim);
+    }
+
     this->n = new Tensor(Device::Cuda, n_shape);
     this->n->reset();
 }
@@ -532,16 +545,19 @@ Layer::~Layer()
     }
 }
 
-// LearnableLayer functions:
-
-LearnableLayer::LearnableLayer()
-    : Layer()
+void Layer::save(FILE *file_ptr)
 {
-    this->w = nullptr;
-    this->b = nullptr;
-    this->dw = nullptr;
-    this->db = nullptr;
+    int dim_cnt = this->n->get_shape().size();
+
+    fwrite(&dim_cnt, sizeof(int), 1, file_ptr);
+
+    for (int dim : this->n->get_shape())
+    {
+        fwrite(&dim, sizeof(int), 1, file_ptr);
+    }
 }
+
+// LearnableLayer functions:
 
 LearnableLayer::LearnableLayer(std::vector<int> n_shape)
     : Layer(n_shape)
@@ -550,6 +566,59 @@ LearnableLayer::LearnableLayer(std::vector<int> n_shape)
     this->b = nullptr;
     this->dw = nullptr;
     this->db = nullptr;
+}
+
+LearnableLayer::LearnableLayer(FILE *file_ptr)
+    : Layer(file_ptr)
+{
+    int w_dim_cnt;
+
+    fread(&w_dim_cnt, sizeof(int), 1, file_ptr);
+
+    std::vector<int> w_shape;
+
+    for (int i = 0; i < w_dim_cnt; i++)
+    {
+        int dim;
+        fread(&dim, sizeof(int), 1, file_ptr);
+        w_shape.push_back(dim);
+    }
+
+    int w_cnt = Tensor::get_cnt(w_shape);
+
+    this->w = new Tensor(Device::Cpu, w_shape);
+
+    float *w_buf = (float *)malloc(sizeof(float) * w_cnt);
+    fread(w_buf, sizeof(float), w_cnt, file_ptr);
+    this->w->set_arr(w_buf);
+    this->w->to(Device::Cuda);
+    free(w_buf);
+
+    int b_dim_cnt;
+
+    fread(&b_dim_cnt, sizeof(int), 1, file_ptr);
+
+    std::vector<int> b_shape;
+
+    for (int i = 0; i < b_dim_cnt; i++)
+    {
+        int dim;
+        fread(&dim, sizeof(int), 1, file_ptr);
+        b_shape.push_back(dim);
+    }
+
+    int b_cnt = Tensor::get_cnt(b_shape);
+
+    this->b = new Tensor(Device::Cpu, b_shape);
+
+    float *b_buf = (float *)malloc(sizeof(float) * b_cnt);
+    fread(b_buf, sizeof(float), b_cnt, file_ptr);
+    this->b->set_arr(b_buf);
+    this->b->to(Device::Cuda);
+    free(b_buf);
+
+    this->dw = new Tensor(Device::Cuda, w_shape);
+    this->db = new Tensor(Device::Cuda, b_shape);
 }
 
 LearnableLayer::~LearnableLayer()
@@ -575,10 +644,34 @@ LearnableLayer::~LearnableLayer()
     }
 }
 
-// LinearLayer functions:
+void LearnableLayer::save(FILE *file_ptr)
+{
+    Layer::save(file_ptr);
 
-LinearLayer::LinearLayer()
-    : LearnableLayer() {}
+    int w_dim_cnt = this->w->get_shape().size();
+
+    fwrite(&w_dim_cnt, sizeof(int), 1, file_ptr);
+
+    for (int dim : this->w->get_shape())
+    {
+        fwrite(&dim, sizeof(int), 1, file_ptr);
+    }
+
+    fwrite(this->w->get_arr(Device::Cpu), sizeof(float), this->w->get_cnt(), file_ptr);
+
+    int b_dim_cnt = this->b->get_shape().size();
+
+    fwrite(&b_dim_cnt, sizeof(int), 1, file_ptr);
+
+    for (int dim : this->b->get_shape())
+    {
+        fwrite(&dim, sizeof(int), 1, file_ptr);
+    }
+
+    fwrite(this->b->get_arr(Device::Cpu), sizeof(float), this->b->get_cnt(), file_ptr);
+}
+
+// LinearLayer functions:
 
 LinearLayer::LinearLayer(std::vector<int> n_shape, int nxt_n_cnt, InitializationFunction init_fn)
     : LearnableLayer(n_shape)
@@ -597,6 +690,9 @@ LinearLayer::LinearLayer(std::vector<int> n_shape, int nxt_n_cnt, Initialization
     this->db = new Tensor(Device::Cuda, nxt_n_cnt);
     this->db->reset();
 }
+
+LinearLayer::LinearLayer(FILE *file_ptr)
+    : LearnableLayer(file_ptr) {}
 
 LinearLayer::~LinearLayer() {}
 
@@ -690,34 +786,12 @@ void LinearLayer::step(int batch_size, float learning_rate)
     }
 }
 
-void LinearLayer::load(FILE *file_ptr)
-{
-    int w_cnt = this->w->get_cnt();
-    int b_cnt = this->b->get_cnt();
-
-    float *w_buf = (float *)malloc(sizeof(float) * w_cnt);
-    fread(w_buf, sizeof(float), w_cnt, file_ptr);
-    this->w->set_arr(w_buf);
-    this->w->to(Device::Cuda);
-    free(w_buf);
-
-    float *b_buf = (float *)malloc(sizeof(float) * b_cnt);
-    fread(b_buf, sizeof(float), b_cnt, file_ptr);
-    this->b->set_arr(b_buf);
-    this->b->to(Device::Cuda);
-    free(b_buf);
-}
-
 void LinearLayer::save(FILE *file_ptr)
 {
-    fwrite(this->w->get_arr(Device::Cpu), sizeof(float), this->w->get_cnt(), file_ptr);
-    fwrite(this->b->get_arr(Device::Cpu), sizeof(float), this->b->get_cnt(), file_ptr);
+    LearnableLayer::save(file_ptr);
 }
 
 // ConvolutionalLayer functions:
-
-ConvolutionalLayer::ConvolutionalLayer()
-    : LearnableLayer() {}
 
 ConvolutionalLayer::ConvolutionalLayer(std::vector<int> n_shape,
                                        int fltr_cnt, int w_row_cnt, int w_col_cnt,
@@ -742,6 +816,9 @@ ConvolutionalLayer::ConvolutionalLayer(std::vector<int> n_shape,
     this->db = new Tensor(Device::Cuda, fltr_cnt, nxt_n_row_cnt, nxt_n_col_cnt);
     this->db->reset();
 }
+
+ConvolutionalLayer::ConvolutionalLayer(FILE *file_ptr)
+    : LearnableLayer(file_ptr) {}
 
 ConvolutionalLayer::~ConvolutionalLayer()
 {
@@ -880,39 +957,23 @@ void ConvolutionalLayer::step(int batch_size, float learning_rate)
     }
 }
 
-void ConvolutionalLayer::load(FILE *file_ptr)
-{
-    int w_cnt = this->w->get_cnt();
-    int b_cnt = this->b->get_cnt();
-
-    float *w_buf = (float *)malloc(sizeof(float) * w_cnt);
-    fread(w_buf, sizeof(float), w_cnt, file_ptr);
-    this->w->set_arr(w_buf);
-    this->w->to(Device::Cuda);
-    free(w_buf);
-
-    float *b_buf = (float *)malloc(sizeof(float) * b_cnt);
-    fread(b_buf, sizeof(float), b_cnt, file_ptr);
-    this->b->set_arr(b_buf);
-    this->b->to(Device::Cuda);
-    free(b_buf);
-}
-
 void ConvolutionalLayer::save(FILE *file_ptr)
 {
-    fwrite(this->w->get_arr(Device::Cpu), sizeof(float), this->w->get_cnt(), file_ptr);
-    fwrite(this->b->get_arr(Device::Cpu), sizeof(float), this->b->get_cnt(), file_ptr);
+    LearnableLayer::save(file_ptr);
 }
 
 // ActivationLayer functions:
-
-ActivationLayer::ActivationLayer()
-    : Layer() {}
 
 ActivationLayer::ActivationLayer(std::vector<int> n_shape, ActivationFunction activation_fn)
     : Layer(n_shape)
 {
     this->activation_fn = activation_fn;
+}
+
+ActivationLayer::ActivationLayer(FILE *file_ptr)
+    : Layer(file_ptr)
+{
+    fread(&this->activation_fn, sizeof(ActivationFunction), 1, file_ptr);
 }
 
 ActivationLayer::~ActivationLayer()
@@ -956,26 +1017,26 @@ Tensor *ActivationLayer::derive(Tensor *dc)
     return dc;
 }
 
-void ActivationLayer::load(FILE *file_ptr)
-{
-    fread(&this->activation_fn, sizeof(ActivationFunction), 1, file_ptr);
-}
-
 void ActivationLayer::save(FILE *file_ptr)
 {
+    Layer::save(file_ptr);
+
     fwrite(&this->activation_fn, sizeof(ActivationFunction), 1, file_ptr);
 }
 
 // DropoutLayer functions:
-
-DropoutLayer::DropoutLayer()
-    : Layer() {}
 
 DropoutLayer::DropoutLayer(std::vector<int> n_shape, float dropout_rate)
     : Layer(n_shape)
 {
     this->dropout_rate = dropout_rate;
     this->dropout_mask = new Tensor(Device::Cuda, n_shape);
+}
+
+DropoutLayer::DropoutLayer(FILE *file_ptr)
+    : Layer(file_ptr)
+{
+    fread(&this->dropout_rate, sizeof(float), 1, file_ptr);
 }
 
 DropoutLayer::~DropoutLayer()
@@ -1036,12 +1097,9 @@ Tensor *DropoutLayer::derive(Tensor *dc)
     return dc;
 }
 
-void DropoutLayer::load(FILE *file_ptr)
-{
-    fread(&this->dropout_rate, sizeof(float), 1, file_ptr);
-}
-
 void DropoutLayer::save(FILE *file_ptr)
 {
+    Layer::save(file_ptr);
+
     fwrite(&this->dropout_rate, sizeof(float), 1, file_ptr);
 }
