@@ -587,6 +587,27 @@ LinearLayer::LinearLayer(int n_cnt, int nxt_n_cnt, InitializationFunction init_f
     this->db->reset();
 }
 
+LinearLayer::LinearLayer(std::vector<int> n_shape, int nxt_n_cnt, InitializationFunction init_fn)
+    : LearnableLayer()
+{
+    int n_cnt = Tensor::get_cnt(n_shape);
+
+    this->n = new Tensor(Device::Cuda, n_cnt);
+    this->n->reset();
+
+    this->w = new Tensor(Device::Cuda, nxt_n_cnt, n_cnt);
+    Initializer::initialize(init_fn, this->w, n_cnt, nxt_n_cnt);
+
+    this->b = new Tensor(Device::Cuda, nxt_n_cnt);
+    Initializer::initialize(init_fn, this->b, nxt_n_cnt, 0);
+
+    this->dw = new Tensor(Device::Cuda, nxt_n_cnt, n_cnt);
+    this->dw->reset();
+
+    this->db = new Tensor(Device::Cuda, nxt_n_cnt);
+    this->db->reset();
+}
+
 LinearLayer::~LinearLayer() {}
 
 LayerType LinearLayer::get_type()
@@ -713,14 +734,14 @@ ConvolutionalLayer::ConvolutionalLayer(int chan_cnt, int n_row_cnt, int n_col_cn
                                        InitializationFunction init_fn)
     : LearnableLayer()
 {
+    int nxt_n_row_cnt = n_row_cnt - w_row_cnt + 1;
+    int nxt_n_col_cnt = n_col_cnt - w_col_cnt + 1;
+
     this->n = new Tensor(Device::Cuda, chan_cnt, n_row_cnt, n_col_cnt);
     this->n->reset();
 
     this->w = new Tensor(Device::Cuda, fltr_cnt, chan_cnt, w_row_cnt, w_col_cnt);
     Initializer::initialize(init_fn, this->w, n_row_cnt * n_col_cnt, 0);
-
-    int nxt_n_row_cnt = n_row_cnt - w_row_cnt + 1;
-    int nxt_n_col_cnt = n_col_cnt - w_col_cnt + 1;
 
     this->b = new Tensor(Device::Cuda, fltr_cnt, nxt_n_row_cnt, nxt_n_col_cnt);
     Initializer::initialize(init_fn, this->b, n_row_cnt * n_col_cnt, 0);
@@ -732,7 +753,36 @@ ConvolutionalLayer::ConvolutionalLayer(int chan_cnt, int n_row_cnt, int n_col_cn
     this->db->reset();
 }
 
-ConvolutionalLayer::~ConvolutionalLayer() {}
+ConvolutionalLayer::ConvolutionalLayer(std::vector<int> n_shape,
+                                       int fltr_cnt, int f_row_cnt, int f_col_cnt,
+                                       InitializationFunction init_fn)
+    : LearnableLayer()
+{
+    int chan_cnt = n_shape[0];
+    int n_row_cnt = n_shape[1];
+    int n_col_cnt = n_shape[2];
+    int nxt_n_row_cnt = n_row_cnt - w_row_cnt + 1;
+    int nxt_n_col_cnt = n_col_cnt - w_col_cnt + 1;
+
+    this->n = new Tensor(Device::Cuda, n_shape);
+    this->n->reset();
+
+    this->w = new Tensor(Device::Cuda, fltr_cnt, chan_cnt, w_row_cnt, w_col_cnt);
+    Initializer::initialize(init_fn, this->w, n_row_cnt * n_col_cnt, 0);
+
+    this->b = new Tensor(Device::Cuda, fltr_cnt, nxt_n_row_cnt, nxt_n_col_cnt);
+    Initializer::initialize(init_fn, this->b, n_row_cnt * n_col_cnt, 0);
+
+    this->dw = new Tensor(Device::Cuda, fltr_cnt, chan_cnt, w_row_cnt, w_col_cnt);
+    this->dw->reset();
+
+    this->db = new Tensor(Device::Cuda, fltr_cnt, nxt_n_row_cnt, nxt_n_col_cnt);
+    this->db->reset();
+}
+
+ConvolutionalLayer::~ConvolutionalLayer()
+{
+}
 
 LayerType ConvolutionalLayer::get_type()
 {
@@ -906,6 +956,15 @@ ActivationLayer::ActivationLayer(int n_cnt, ActivationFunction activation_fn)
     this->activation_fn = activation_fn;
 }
 
+ActivationLayer::ActivationLayer(std::vector<int> n_shape, ActivationFunction activation_fn)
+    : Layer()
+{
+    this->n = new Tensor(Device::Cuda, n_shape);
+    this->n->reset();
+
+    this->activation_fn = activation_fn;
+}
+
 ActivationLayer::~ActivationLayer()
 {
 }
@@ -963,6 +1022,7 @@ DropoutLayer::DropoutLayer()
     : Layer() {}
 
 DropoutLayer::DropoutLayer(int n_cnt, float dropout_rate)
+    : Layer()
 {
     this->n = new Tensor(Device::Cuda, n_cnt);
     this->n->reset();
@@ -970,6 +1030,17 @@ DropoutLayer::DropoutLayer(int n_cnt, float dropout_rate)
     this->dropout_rate = dropout_rate;
 
     this->dropout_mask = new Tensor(Device::Cuda, n_cnt);
+}
+
+DropoutLayer::DropoutLayer(std::vector<int> n_shape, float dropout_rate)
+    : Layer()
+{
+    this->n = new Tensor(Device::Cuda, n_shape);
+    this->n->reset();
+
+    this->dropout_rate = dropout_rate;
+
+    this->dropout_mask = new Tensor(Device::Cuda, n_shape);
 }
 
 DropoutLayer::~DropoutLayer()
