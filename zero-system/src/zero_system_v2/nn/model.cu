@@ -379,3 +379,214 @@ void Model::gradient_check(Tensor *x, Tensor *y, bool print_flg)
         printf("GRADIENT CHECK RESULT: %f\n", (agg_grad_diff) / (agg_ana_grad + agg_num_grad));
     }
 }
+
+Report Model::train(Batch *batch)
+{
+    Report rpt;
+
+    int batch_size = batch->get_size();
+
+    rpt.correct_cnt = 0;
+    rpt.total_cnt = batch_size;
+
+    float cost = 0.0f;
+
+    for (int i = 0; i < batch_size; i++)
+    {
+        Tensor *x = batch->get_x(i);
+        Tensor *y = batch->get_y(i);
+
+        Tensor *pred = this->forward(x, true);
+        cost += this->cost(pred, y);
+        this->backward(pred, y);
+
+        rpt.update_correct_cnt(pred, y);
+
+        delete pred;
+
+        // Translate back to CPU as to not overload GPU.
+        x->to(Device::Cpu);
+        y->to(Device::Cpu);
+    }
+
+    // Get mean cost.
+    cost /= batch_size;
+
+    rpt.cost = cost;
+
+    this->step(batch_size);
+
+    return rpt;
+}
+
+Report Model::test(Batch *batch)
+{
+    Report rpt;
+
+    int batch_size = batch->get_size();
+
+    rpt.correct_cnt = 0;
+    rpt.total_cnt = batch_size;
+
+    float cost = 0.0f;
+
+    for (int i = 0; i < batch_size; i++)
+    {
+        Tensor *x = batch->get_x(i);
+        Tensor *y = batch->get_y(i);
+
+        Tensor *pred = this->forward(x, true);
+        cost += this->cost(pred, y);
+
+        rpt.update_correct_cnt(pred, y);
+
+        delete pred;
+
+        // Translate back to CPU as to not overload GPU.
+        x->to(Device::Cpu);
+        y->to(Device::Cpu);
+    }
+
+    // Get mean cost.
+    cost /= batch_size;
+
+    rpt.cost = cost;
+
+    return rpt;
+}
+
+// Trains and tests. Press 'q' to force quit.
+void Model::train_and_test(Supervisor *supervisor, int train_batch_size, const char *csv_path)
+{
+    FILE *csv_file_ptr;
+
+    if (csv_path != nullptr)
+    {
+        csv_file_ptr = fopen(csv_path, "w");
+        CSVUtils::write_csv_header(csv_file_ptr);
+    }
+
+    Batch *test_batch = supervisor->create_test_batch();
+
+    unsigned long int epoch = 1;
+    while (true)
+    {
+        Batch *train_batch = supervisor->create_train_batch(train_batch_size);
+        Report train_rpt = this->train(train_batch);
+
+        if (csv_path != nullptr)
+        {
+            CSVUtils::write_to_csv(csv_file_ptr, epoch, train_rpt);
+        }
+        else
+        {
+            if (epoch % 100 == 0)
+            {
+                printf("TRAIN\t\t");
+                train_rpt.print();
+            }
+        }
+
+        delete train_batch;
+
+        // Allow for manual override.
+        {
+            if (_kbhit())
+            {
+                if (_getch() == 'q')
+                {
+                    break;
+                }
+            }
+        }
+
+        epoch++;
+    }
+
+    Report test_rpt = this->test(test_batch);
+    printf("TEST\t\t");
+    test_rpt.print();
+
+    delete test_batch;
+
+    if (csv_path != nullptr)
+    {
+        fclose(csv_file_ptr);
+    }
+}
+
+// Trains, validates, and tests. Press 'q' to force quit.
+void Model::all(Supervisor *supervisor, int train_batch_size, int validation_chk_freq, const char *csv_path)
+{
+    FILE *csv_file_ptr;
+
+    if (csv_path != nullptr)
+    {
+        csv_file_ptr = fopen(csv_path, "w");
+        CSVUtils::write_csv_header(csv_file_ptr);
+    }
+
+    Batch *validation_batch = supervisor->create_validation_batch();
+    float prv_validation_cost = FLT_MAX;
+
+    Batch *test_batch = supervisor->create_test_batch();
+
+    unsigned long int epoch = 1;
+    while (true)
+    {
+        Batch *train_batch = supervisor->create_train_batch(train_batch_size);
+        Report train_rpt = this->train(train_batch);
+
+        if (csv_path != nullptr)
+        {
+            CSVUtils::write_to_csv(csv_file_ptr, epoch, train_rpt);
+        }
+
+        delete train_batch;
+
+        // Validate every x epochs.
+        if (epoch % validation_chk_freq == 0)
+        {
+            Report validation_rpt = this->test(validation_batch);
+            printf("VALIDATION\t");
+            validation_rpt.print();
+
+            if (prv_validation_cost <= validation_rpt.cost)
+            {
+                break;
+            }
+
+            prv_validation_cost = validation_rpt.cost;
+        }
+
+        // Allow for manual override.
+        {
+            if (_kbhit())
+            {
+                if (_getch() == 'q')
+                {
+                    break;
+                }
+            }
+        }
+
+        epoch++;
+    }
+
+    Report test_rpt = this->test(test_batch);
+    printf("TEST\t\t");
+    test_rpt.print();
+
+    delete validation_batch;
+    delete test_batch;
+
+    if (csv_path != nullptr)
+    {
+        fclose(csv_file_ptr);
+    }
+}
+
+Tensor *Model::predict(Tensor *x)
+{
+    return this->forward(x, false);
+}
