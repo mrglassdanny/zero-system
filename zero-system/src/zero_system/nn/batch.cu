@@ -1,4 +1,4 @@
-#include "supervisor.cuh"
+#include "batch.cuh"
 
 using namespace zero::nn;
 using namespace zero::core;
@@ -62,9 +62,9 @@ Supervisor::Supervisor()
 {
 }
 
-Supervisor::Supervisor(int row_cnt, int col_cnt, int one_hot_cnt, float *x_arr, float *y_arr, TensorType typ)
+Supervisor::Supervisor(int row_cnt, int col_cnt, int one_hot_cnt, float *x_arr, float *y_arr, Device device)
 {
-    this->add_all(row_cnt, col_cnt, one_hot_cnt, x_arr, y_arr, typ);
+    this->add_all(row_cnt, col_cnt, one_hot_cnt, x_arr, y_arr, device);
 }
 
 Supervisor::~Supervisor()
@@ -77,33 +77,35 @@ Supervisor::~Supervisor()
     this->clear();
 }
 
-void Supervisor::add(int col_cnt, int one_hot_cnt, float *x_arr, float y_val, TensorType typ)
+void Supervisor::add(int col_cnt, int one_hot_cnt, float *x_arr, float y_val, Device device)
 {
-    Tensor *x = new Tensor(1, col_cnt, typ, x_arr);
+    Tensor *x = new Tensor(device, 1, col_cnt);
+    x->set_arr(x_arr);
 
     Tensor *y;
     // Single value or one hot encoded?
     if (one_hot_cnt > 1)
     {
         // One hot encode!
-        y = Tensor::one_hot_encode(1, one_hot_cnt, typ, &y_val);
+        y = Tensor::one_hot_encode(device, 1, one_hot_cnt, &y_val);
     }
     else
     {
         // Single value.
-        y = new Tensor(1, 1, typ, &y_val);
+        y = new Tensor(device, 1, 1);
+        y->set_arr(&y_val);
     }
 
     this->records.push_back(new Record(x, y));
 }
 
-void Supervisor::add_all(int row_cnt, int col_cnt, int one_hot_cnt, float *x_arr, float *y_arr, TensorType typ)
+void Supervisor::add_all(int row_cnt, int col_cnt, int one_hot_cnt, float *x_arr, float *y_arr, Device device)
 {
     this->records.reserve(row_cnt);
 
     for (int i = 0; i < row_cnt; i++)
     {
-        this->add(col_cnt, one_hot_cnt, &x_arr[i * col_cnt], y_arr[i], typ);
+        this->add(col_cnt, one_hot_cnt, &x_arr[i * col_cnt], y_arr[i], device);
     }
 }
 
@@ -115,6 +117,16 @@ void Supervisor::clear()
 int Supervisor::get_cnt()
 {
     return this->records.size();
+}
+
+std::vector<int> Supervisor::get_x_shape()
+{
+    return this->records[0]->x->get_shape();
+}
+
+std::vector<int> Supervisor::get_y_shape()
+{
+    return this->records[0]->y->get_shape();
 }
 
 void Supervisor::shuffle()

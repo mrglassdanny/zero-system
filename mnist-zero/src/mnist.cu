@@ -1,20 +1,16 @@
 #include <iostream>
 
-#include <zero_system/nn/nn.cuh>
-#include <zero_system_v2/nn/model.cuh>
+#include <zero_system/nn/model.cuh>
 
-using namespace zero_v2::core;
-using namespace zero_v2::nn;
+using namespace zero::core;
+using namespace zero::nn;
 
 #define IMAGE_ROW_CNT 28
 #define IMAGE_COL_CNT 28
 
-zero::nn::Supervisor *init_mnist_supervisor()
+Supervisor *init_mnist_supervisor()
 {
-
-    int img_rows = 28;
-    int img_cols = 28;
-    int img_area = img_rows * img_cols;
+    int img_area = IMAGE_ROW_CNT * IMAGE_COL_CNT;
 
     int img_cnt = 60000;
 
@@ -47,7 +43,7 @@ zero::nn::Supervisor *init_mnist_supervisor()
     free(img_buf);
     free(lbl_buf);
 
-    zero::nn::Supervisor *sup = new Supervisor(img_cnt, 784, 10, img_flt_buf, lbl_flt_buf, Cpu);
+    Supervisor *sup = new Supervisor(img_cnt, 784, 10, img_flt_buf, lbl_flt_buf, Device::Cpu);
 
     free(lbl_flt_buf);
     free(img_flt_buf);
@@ -55,14 +51,31 @@ zero::nn::Supervisor *init_mnist_supervisor()
     return sup;
 }
 
-void mnist_v2()
-{
-    zero::nn::Supervisor *sup = init_mnist_supervisor();
-}
-
 int main(int argc, char **argv)
 {
-    mnist_v2();
+    Supervisor *sup = init_mnist_supervisor();
+
+    Model *model = new Model(CostFunction::MSE, 0.1f);
+
+    std::vector<int> n_shape{1, IMAGE_ROW_CNT, IMAGE_COL_CNT};
+
+    model->add_layer(new ConvolutionalLayer(n_shape, 64, 3, 3, InitializationFunction::Xavier));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
+
+    model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 64, 3, 3, InitializationFunction::Xavier));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
+
+    model->add_layer(new LinearLayer(model->get_output_shape(), 512, InitializationFunction::Xavier));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
+
+    model->add_layer(new LinearLayer(model->get_output_shape(), Tensor::get_cnt(sup->get_y_shape()), InitializationFunction::Xavier));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
+
+    model->train_and_test(sup, 100, "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist.csv");
+
+    model->save("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist.nn");
+
+    delete model;
 
     return 0;
 }

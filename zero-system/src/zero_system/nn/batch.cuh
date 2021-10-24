@@ -5,9 +5,10 @@
 #include <random>
 
 #include "../core/tensor.cuh"
+#include "util.cuh"
 
-#define SUPERVISOR_TRAIN_SPLIT 0.60f
-#define SUPERVISOR_VALIDATION_SPLIT 0.20f
+#define SUPERVISOR_TRAIN_SPLIT 0.79f
+#define SUPERVISOR_VALIDATION_SPLIT 0.01f
 #define SUPERVISOR_TEST_SPLIT 0.20f
 
 namespace zero
@@ -55,14 +56,17 @@ namespace zero
 
         public:
             Supervisor();
-            Supervisor(int row_cnt, int col_cnt, int one_hot_cnt, float *x_arr, float *y_arr, TensorType typ);
+            Supervisor(int row_cnt, int col_cnt, int one_hot_cnt, float *x_arr, float *y_arr, Device device);
             ~Supervisor();
 
-            void add(int col_cnt, int one_hot_cnt, float *x_arr, float y_val, TensorType typ);
-            void add_all(int row_cnt, int col_cnt, int one_hot_cnt, float *x_arr, float *y_arr, TensorType typ);
+            void add(int col_cnt, int one_hot_cnt, float *x_arr, float y_val, Device device);
+            void add_all(int row_cnt, int col_cnt, int one_hot_cnt, float *x_arr, float *y_arr, Device device);
             void clear();
 
             int get_cnt();
+
+            std::vector<int> get_x_shape();
+            std::vector<int> get_y_shape();
 
             void shuffle();
 
