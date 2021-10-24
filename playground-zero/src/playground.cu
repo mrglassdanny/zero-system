@@ -29,6 +29,15 @@ void nn_test()
 	model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 4, 3, 3, InitializationFunction::He));
 	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
 
+	model->add_layer(new LinearLayer(model->get_output_shape(), 51, InitializationFunction::He));
+	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Cosine));
+
+	model->add_layer(new LinearLayer(model->get_output_shape(), 43, InitializationFunction::He));
+	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Cosine));
+
+	model->add_layer(new LinearLayer(model->get_output_shape(), 32, InitializationFunction::He));
+	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sine));
+
 	model->add_layer(new LinearLayer(model->get_output_shape(), Tensor::get_cnt(y->get_shape()), InitializationFunction::He));
 	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
 
@@ -61,7 +70,7 @@ int main(int argc, char **argv)
 
 	nn_test();
 
-	kmeans_test();
+	//kmeans_test();
 
 	return 0;
 }
