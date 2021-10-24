@@ -55,26 +55,23 @@ int main(int argc, char **argv)
 {
     Supervisor *sup = init_mnist_supervisor();
 
-    Model *model = new Model(CostFunction::MSE, 0.01f);
+    Model *model = new Model(CostFunction::MSE, 0.1f);
 
     std::vector<int> n_shape{1, IMAGE_ROW_CNT, IMAGE_COL_CNT};
 
-    model->add_layer(new ConvolutionalLayer(n_shape, 32, 3, 3, InitializationFunction::He));
+    model->add_layer(new ConvolutionalLayer(n_shape, 64, 3, 3, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
-    model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 32, 3, 3, InitializationFunction::He));
+    model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 64, 3, 3, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
-    model->add_layer(new LinearLayer(model->get_output_shape(), 256, InitializationFunction::He));
+    model->add_layer(new LinearLayer(model->get_output_shape(), 512, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
-    model->add_layer(new LinearLayer(model->get_output_shape(), 128, InitializationFunction::He));
+    model->add_layer(new LinearLayer(model->get_output_shape(), Tensor::get_cnt(sup->get_y_shape()), InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
-    model->add_layer(new LinearLayer(model->get_output_shape(), Tensor::get_cnt(sup->get_y_shape()), InitializationFunction::He));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
-
-    model->all(sup, 64, 1000, nullptr);
+    model->train_and_test(sup, 100, "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist.csv");
 
     model->save("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist.nn");
 

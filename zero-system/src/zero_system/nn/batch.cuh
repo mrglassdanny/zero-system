@@ -7,8 +7,8 @@
 #include "../core/tensor.cuh"
 #include "util.cuh"
 
-#define SUPERVISOR_TRAIN_SPLIT 0.60f
-#define SUPERVISOR_VALIDATION_SPLIT 0.20f
+#define SUPERVISOR_TRAIN_SPLIT 0.79f
+#define SUPERVISOR_VALIDATION_SPLIT 0.01f
 #define SUPERVISOR_TEST_SPLIT 0.20f
 
 namespace zero
