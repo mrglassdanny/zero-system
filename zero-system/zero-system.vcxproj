@@ -19,7 +19,6 @@
     <CudaCompile Include="src\zero_system\nn\util.cu" />
     <CudaCompile Include="src\zero_system_v2\cluster\kmeans.cu" />
     <CudaCompile Include="src\zero_system_v2\core\tensor.cu" />
-    <CudaCompile Include="src\zero_system_v2\core\util.cu" />
     <CudaCompile Include="src\zero_system_v2\nn\batch.cu" />
     <CudaCompile Include="src\zero_system_v2\nn\layer.cu" />
     <CudaCompile Include="src\zero_system_v2\nn\model.cu" />
@@ -34,7 +33,6 @@
     <ClInclude Include="src\zero_system\nn\util.cuh" />
     <ClInclude Include="src\zero_system_v2\cluster\kmeans.cuh" />
     <ClInclude Include="src\zero_system_v2\core\tensor.cuh" />
-    <ClInclude Include="src\zero_system_v2\core\util.cuh" />
     <ClInclude Include="src\zero_system_v2\nn\batch.cuh" />
     <ClInclude Include="src\zero_system_v2\nn\layer.cuh" />
     <ClInclude Include="src\zero_system_v2\nn\model.cuh" />

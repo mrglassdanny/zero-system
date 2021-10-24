@@ -28,6 +28,27 @@ __global__ void k_set_arr_rand(float *arr, int cnt, float mean, float stddev)
     }
 }
 
+// Utility functions:
+long long get_file_size(const char *name)
+{
+
+    HANDLE hFile = CreateFile((LPCSTR)name, GENERIC_READ,
+                              FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING,
+                              FILE_ATTRIBUTE_NORMAL, NULL);
+    if (hFile == INVALID_HANDLE_VALUE)
+        return -1; // error condition, could call GetLastError to find out more
+
+    LARGE_INTEGER size;
+    if (!GetFileSizeEx(hFile, &size))
+    {
+        CloseHandle(hFile);
+        return -1; // error condition, could call GetLastError to find out more
+    }
+
+    CloseHandle(hFile);
+    return size.QuadPart;
+}
+
 // Tensor functions:
 
 Tensor::Tensor(Tensor &src)
@@ -196,7 +217,7 @@ Tensor *Tensor::from_csv(const char *csv_file_name)
     FILE *file_ptr = fopen(csv_file_name, "rb");
 
     fseek(file_ptr, 0L, SEEK_END);
-    long long file_size = Util::get_file_size(csv_file_name);
+    long long file_size = get_file_size(csv_file_name);
     rewind(file_ptr);
 
     char *buf = (char *)malloc(file_size + 1);

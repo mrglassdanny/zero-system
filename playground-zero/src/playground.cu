@@ -44,7 +44,7 @@ void kmeans_test()
 {
 	Tensor *x = Tensor::from_csv("C:\\Users\\d0g0825\\Desktop\\temp\\kmeans\\data.csv");
 
-	KMeans::save_best(x, 3, 10000, "C:\\Users\\d0g0825\\Desktop\\temp\\kmeans\\model.km");
+	KMeans::save_best(x, 3, 1000, "C:\\Users\\d0g0825\\Desktop\\temp\\kmeans\\model.km");
 
 	KMeans *km = new KMeans("C:\\Users\\d0g0825\\Desktop\\temp\\kmeans\\model.km");
 

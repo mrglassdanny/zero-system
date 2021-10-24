@@ -283,9 +283,7 @@ float KMeans::train(Tensor *x)
         {
             cudaMemset(d_cost, 0, sizeof(float));
 
-            int threads_per_block(THREADS_PER_BLOCK);
-            int num_blocks(((this->cluster_cnt) / threads_per_block) + 1);
-            k_reset_arr<<<num_blocks, threads_per_block>>>(cluster_assignment_cnts->get_arr(), this->cluster_cnt);
+            cluster_assignment_cnts->reset();
         }
 
         epoch++;
@@ -335,7 +333,7 @@ void KMeans::save_best(Tensor *x, int cluster_cnt, int iter_cnt, const char *pat
 
         if (cost < min_cost)
         {
-            best_kmeans->clusters->set_arr(kmeans->clusters->get_arr(Cpu));
+            best_kmeans->clusters->copy(kmeans->clusters);
 
             min_cost = cost;
         }

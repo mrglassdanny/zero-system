@@ -9,14 +9,13 @@
 #include <conio.h>
 #include <random>
 #include <vector>
+#include <windows.h>
 
 #include <cuda_runtime.h>
 #include <curand.h>
 #include <curand_kernel.h>
 #include <device_launch_parameters.h>
 #include <device_atomic_functions.h>
-
-#include "util.cuh"
 
 #define CUDA_THREADS_PER_BLOCK 32
 
