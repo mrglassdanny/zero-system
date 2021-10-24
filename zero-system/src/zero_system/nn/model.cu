@@ -193,7 +193,7 @@ Tensor *Model::forward(Tensor *x, bool train_flg)
     Layer *frst_lyr = this->layers[0];
     Layer *lst_lyr = this->layers[lst_lyr_idx];
 
-    frst_lyr->n->copy(x);
+    frst_lyr->n->set_arr(x->get_arr());
 
     for (int i = 0; i < lst_lyr_idx; i++)
     {
@@ -396,6 +396,10 @@ Report Model::train(Batch *batch)
         Tensor *x = batch->get_x(i);
         Tensor *y = batch->get_y(i);
 
+        // Convert to Cuda for model.
+        x->to(Device::Cuda);
+        y->to(Device::Cuda);
+
         Tensor *pred = this->forward(x, true);
         cost += this->cost(pred, y);
         this->backward(pred, y);
@@ -404,7 +408,7 @@ Report Model::train(Batch *batch)
 
         delete pred;
 
-        // Translate back to CPU as to not overload GPU.
+        // Convert back to CPU as to not overload GPU.
         x->to(Device::Cpu);
         y->to(Device::Cpu);
     }
@@ -435,6 +439,10 @@ Report Model::test(Batch *batch)
         Tensor *x = batch->get_x(i);
         Tensor *y = batch->get_y(i);
 
+        // Convert to Cuda for model.
+        x->to(Device::Cuda);
+        y->to(Device::Cuda);
+
         Tensor *pred = this->forward(x, true);
         cost += this->cost(pred, y);
 
@@ -442,7 +450,7 @@ Report Model::test(Batch *batch)
 
         delete pred;
 
-        // Translate back to CPU as to not overload GPU.
+        // Convert back to CPU as to not overload GPU.
         x->to(Device::Cpu);
         y->to(Device::Cpu);
     }
