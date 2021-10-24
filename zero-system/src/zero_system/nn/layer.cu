@@ -682,7 +682,7 @@ LinearLayer::LinearLayer(std::vector<int> n_shape, int nxt_n_cnt, Initialization
     Initializer::initialize(init_fn, this->w, n_cnt, nxt_n_cnt);
 
     this->b = new Tensor(Device::Cuda, nxt_n_cnt);
-    Initializer::initialize(init_fn, this->b, nxt_n_cnt, 0);
+    Initializer::initialize(InitializationFunction::Zeros, this->b, nxt_n_cnt, 0);
 
     this->dw = new Tensor(Device::Cuda, nxt_n_cnt, n_cnt);
     this->dw->reset();
@@ -808,7 +808,7 @@ ConvolutionalLayer::ConvolutionalLayer(std::vector<int> n_shape,
     Initializer::initialize(init_fn, this->w, n_row_cnt * n_col_cnt, 0);
 
     this->b = new Tensor(Device::Cuda, fltr_cnt, nxt_n_row_cnt, nxt_n_col_cnt);
-    Initializer::initialize(init_fn, this->b, n_row_cnt * n_col_cnt, 0);
+    Initializer::initialize(InitializationFunction::Zeros, this->b, n_row_cnt * n_col_cnt, 0);
 
     this->dw = new Tensor(Device::Cuda, fltr_cnt, chan_cnt, w_row_cnt, w_col_cnt);
     this->dw->reset();
