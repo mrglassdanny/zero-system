@@ -16,6 +16,8 @@
 #include <device_launch_parameters.h>
 #include <device_atomic_functions.h>
 
+#include "util.cuh"
+
 #define CUDA_THREADS_PER_BLOCK 32
 
 namespace zero_v2
@@ -27,6 +29,12 @@ namespace zero_v2
         {
             Cpu,
             Cuda
+        };
+
+        struct TensorTuple
+        {
+            int idx;
+            float val;
         };
 
         class Tensor
@@ -47,16 +55,20 @@ namespace zero_v2
             ~Tensor();
 
             static Tensor *one_hot_encode(Device device, int row_cnt, int col_cnt, float *cpu_arr);
+            static Tensor *from_csv(const char *csv_file_name);
 
             void to(Device device);
 
             void copy(Tensor *src);
+
+            void reset();
 
             void print();
 
             std::vector<int> get_shape();
             int get_cnt();
             static int get_cnt(std::vector<int> shape);
+            int get_dim_cnt();
 
             float *get_arr();
             float *get_arr(Device device);
@@ -65,9 +77,13 @@ namespace zero_v2
             float get_val(int idx);
             void set_val(int idx, float val);
 
-            void reset();
             void set_all(float val);
             void set_all_rand(float mean, float stddev);
+
+            TensorTuple get_min();
+            TensorTuple get_max();
+
+            void dump_to_csv(const char *csv_file_name);
         };
     }
 }

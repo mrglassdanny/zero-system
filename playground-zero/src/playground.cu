@@ -3,11 +3,13 @@
 #include <zero_system_v2/core/tensor.cuh>
 #include <zero_system_v2/nn/layer.cuh>
 #include <zero_system_v2/nn/model.cuh>
+#include <zero_system_v2/cluster/kmeans.cuh>
 
 using namespace zero_v2::core;
 using namespace zero_v2::nn;
+using namespace zero_v2::cluster;
 
-void v2_test()
+void nn_test()
 {
 
 	Model *model = new Model(CostFunction::MSE, 0.001f);
@@ -19,13 +21,13 @@ void v2_test()
 	y->set_val(2, 1.0f);
 
 	model->add_layer(new ConvolutionalLayer(x->get_shape(), 6, 2, 2, InitializationFunction::He));
-	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::None));
+	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
 
 	model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 12, 2, 2, InitializationFunction::He));
-	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::None));
+	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
 
 	model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 4, 3, 3, InitializationFunction::He));
-	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::None));
+	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
 
 	model->add_layer(new LinearLayer(model->get_output_shape(), Tensor::get_cnt(y->get_shape()), InitializationFunction::He));
 	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
@@ -38,19 +40,28 @@ void v2_test()
 	delete model;
 }
 
+void kmeans_test()
+{
+	Tensor *x = Tensor::from_csv("C:\\Users\\d0g0825\\Desktop\\temp\\kmeans\\data.csv");
+
+	KMeans::save_best(x, 3, 10000, "C:\\Users\\d0g0825\\Desktop\\temp\\kmeans\\model.km");
+
+	KMeans *km = new KMeans("C:\\Users\\d0g0825\\Desktop\\temp\\kmeans\\model.km");
+
+	km->print();
+
+	delete km;
+
+	delete x;
+}
+
 int main(int argc, char **argv)
 {
 	srand(time(NULL));
 
+	kmeans_test();
+
 	//nn_test();
-
-	//nn_performance_test();
-
-	//kmeans_test();
-
-	//cnn_test();
-
-	v2_test();
 
 	return 0;
 }

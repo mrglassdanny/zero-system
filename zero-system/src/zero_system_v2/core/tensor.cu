@@ -190,6 +190,107 @@ Tensor *Tensor::one_hot_encode(Device device, int row_cnt, int col_cnt, float *c
     return tensor;
 }
 
+// Geared toward small csv files (under 0.5 GB).
+Tensor *Tensor::from_csv(const char *csv_file_name)
+{
+    FILE *file_ptr = fopen(csv_file_name, "rb");
+
+    fseek(file_ptr, 0L, SEEK_END);
+    long long file_size = Util::get_file_size(csv_file_name);
+    rewind(file_ptr);
+
+    char *buf = (char *)malloc(file_size + 1);
+    memset(buf, 0, file_size + 1);
+    fread(buf, 1, file_size, file_ptr);
+
+    fclose(file_ptr);
+
+    int buf_idx = 0;
+
+    int row_cnt = 0;
+    int col_cnt = 0;
+
+    while (buf[buf_idx] != '\n')
+    {
+        if (buf[buf_idx] == ',')
+        {
+            col_cnt++;
+        }
+
+        buf_idx++;
+    }
+
+    col_cnt++;
+    buf_idx++;
+
+    int lst_row_idx = 0;
+    for (int i = buf_idx; i < file_size; i++)
+    {
+        if (buf[i] == '\n')
+        {
+            row_cnt++;
+            lst_row_idx = i;
+        }
+    }
+
+    // If file does not end in newline, add to the row count.
+    if (lst_row_idx < file_size - 1)
+    {
+        row_cnt++;
+    }
+
+    Tensor *tensor = new Tensor(Device::Cpu, row_cnt, col_cnt);
+
+    char temp_buf[64];
+    memset(temp_buf, 0, 64);
+    int temp_buf_idx = 0;
+    int row_idx = 0;
+    int col_idx = 0;
+
+    for (; buf_idx < file_size; buf_idx++)
+    {
+        while (buf[buf_idx] != ',' && buf[buf_idx] != '\n' && buf_idx < file_size)
+        {
+            if (buf[buf_idx] != '"')
+            {
+                temp_buf[temp_buf_idx++] = buf[buf_idx];
+            }
+
+            buf_idx++;
+        }
+
+        if (buf[buf_idx] == ',')
+        {
+            tensor->set_val(row_idx * col_cnt + col_idx, (float)atof(temp_buf));
+            memset(temp_buf, 0, 64);
+            col_idx++;
+            temp_buf_idx = 0;
+        }
+        else if (buf[buf_idx] == '\n')
+        {
+            tensor->set_val(row_idx * col_cnt + col_idx, (float)atof(temp_buf));
+            memset(temp_buf, 0, 64);
+            row_idx++;
+            col_idx = 0;
+            temp_buf_idx = 0;
+        }
+    }
+
+    // Make sure to grab the last bit before we finish up!
+    if (temp_buf_idx > 0)
+    {
+        tensor->set_val(row_idx * col_cnt + col_idx, (float)atof(temp_buf));
+        memset(temp_buf, 0, 64);
+        row_idx++;
+        col_idx = 0;
+        temp_buf_idx = 0;
+    }
+
+    free(buf);
+
+    return tensor;
+}
+
 void Tensor::to(Device device)
 {
     int cnt = this->get_cnt();
@@ -264,6 +365,20 @@ void Tensor::copy(Tensor *src)
     }
 
     this->device = src->device;
+}
+
+void Tensor::reset()
+{
+    int cnt = this->get_cnt();
+
+    if (this->device == Device::Cpu)
+    {
+        memset(this->arr, 0, sizeof(float) * cnt);
+    }
+    else if (this->device == Device::Cuda)
+    {
+        cudaMemset(this->arr, 0, sizeof(float) * cnt);
+    }
 }
 
 void Tensor::print()
@@ -442,6 +557,11 @@ int Tensor::get_cnt(std::vector<int> shape)
     return cnt;
 }
 
+int Tensor::get_dim_cnt()
+{
+    return this->shape.size();
+}
+
 float *Tensor::get_arr()
 {
     return this->arr;
@@ -486,20 +606,6 @@ void Tensor::set_val(int idx, float val)
     }
 }
 
-void Tensor::reset()
-{
-    int cnt = this->get_cnt();
-
-    if (this->device == Device::Cpu)
-    {
-        memset(this->arr, 0, sizeof(float) * cnt);
-    }
-    else if (this->device == Device::Cuda)
-    {
-        cudaMemset(this->arr, 0, sizeof(float) * cnt);
-    }
-}
-
 void Tensor::set_all(float val)
 {
     int cnt = this->get_cnt();
@@ -520,32 +626,6 @@ void Tensor::set_all(float val)
         }
     }
 }
-
-// TODO: figure out what is up with CUDA random number generator!!!
-// void Tensor::set_all_rand(float mean, float stddev)
-// {
-//     int cnt = this->get_cnt();
-
-//     if (this->device == Device::Cpu)
-//     {
-//         std::random_device rd;
-//         std::mt19937 gen(rd());
-
-//         for (int i = 0; i < cnt; i++)
-//         {
-//             std::normal_distribution<float> d(mean, stddev);
-//             this->arr[i] = d(gen);
-//         }
-//     }
-//     else if (this->device == Device::Cuda)
-//     {
-//         {
-//             int threads_per_block = CUDA_THREADS_PER_BLOCK;
-//             int num_blocks = (cnt / CUDA_THREADS_PER_BLOCK) + 1;
-//             k_set_arr_rand<<<num_blocks, threads_per_block>>>(this->arr, cnt, mean, stddev);
-//         }
-//     }
-// }
 
 void Tensor::set_all_rand(float mean, float stddev)
 {
@@ -577,4 +657,90 @@ void Tensor::set_all_rand(float mean, float stddev)
 
         this->to(Device::Cuda);
     }
+}
+
+TensorTuple Tensor::get_min()
+{
+    TensorTuple tup;
+
+    tup.idx = 0;
+    tup.val = FLT_MAX;
+
+    for (int i = 0; i < this->get_cnt(); i++)
+    {
+        float cur_val = this->get_val(i);
+        if (cur_val < tup.val)
+        {
+            tup.idx = i;
+            tup.val = cur_val;
+        }
+    }
+
+    return tup;
+}
+
+TensorTuple Tensor::get_max()
+{
+    TensorTuple tup;
+
+    tup.idx = 0;
+    tup.val = -FLT_MAX;
+
+    for (int i = 0; i < this->get_cnt(); i++)
+    {
+        float cur_val = this->get_val(i);
+        if (cur_val > tup.val)
+        {
+            tup.idx = i;
+            tup.val = cur_val;
+        }
+    }
+
+    return tup;
+}
+
+void Tensor::dump_to_csv(const char *csv_file_name)
+{
+    int dim_cnt = this->shape.size();
+
+    if (dim_cnt != 2)
+    {
+        return;
+    }
+
+    int row_cnt = this->shape[0];
+    int col_cnt = this->shape[1];
+
+    FILE *file_ptr = fopen(csv_file_name, "w");
+
+    for (int j = 0; j < col_cnt; j++)
+    {
+
+        if (j < col_cnt - 1)
+        {
+            fprintf(file_ptr, "col_%d,", j);
+        }
+        else
+        {
+            fprintf(file_ptr, "col_%d", j);
+        }
+    }
+    fprintf(file_ptr, "\n");
+
+    for (int i = 0; i < row_cnt; i++)
+    {
+        for (int j = 0; j < col_cnt; j++)
+        {
+            if (j < col_cnt - 1)
+            {
+                fprintf(file_ptr, "%f,", this->get_val(i * col_cnt + j));
+            }
+            else
+            {
+                fprintf(file_ptr, "%f", this->get_val(i * col_cnt + j));
+            }
+        }
+        fprintf(file_ptr, "\n");
+    }
+    fclose(file_ptr);
 }

@@ -547,7 +547,7 @@ Layer::~Layer()
 
 void Layer::save(FILE *file_ptr)
 {
-    int dim_cnt = this->n->get_shape().size();
+    int dim_cnt = this->n->get_dim_cnt();
 
     fwrite(&dim_cnt, sizeof(int), 1, file_ptr);
 
@@ -648,7 +648,7 @@ void LearnableLayer::save(FILE *file_ptr)
 {
     Layer::save(file_ptr);
 
-    int w_dim_cnt = this->w->get_shape().size();
+    int w_dim_cnt = this->w->get_dim_cnt();
 
     fwrite(&w_dim_cnt, sizeof(int), 1, file_ptr);
 
@@ -659,7 +659,7 @@ void LearnableLayer::save(FILE *file_ptr)
 
     fwrite(this->w->get_arr(Device::Cpu), sizeof(float), this->w->get_cnt(), file_ptr);
 
-    int b_dim_cnt = this->b->get_shape().size();
+    int b_dim_cnt = this->b->get_dim_cnt();
 
     fwrite(&b_dim_cnt, sizeof(int), 1, file_ptr);
 
