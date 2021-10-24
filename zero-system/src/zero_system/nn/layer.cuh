@@ -14,7 +14,8 @@ namespace zero
             Linear,
             Convolutional,
             Activation,
-            Dropout
+            Dropout,
+            BatchNormalization
         };
 
         class Layer
@@ -30,7 +31,7 @@ namespace zero
             virtual LayerType get_type() = 0;
             virtual std::vector<int> get_input_shape() = 0;
             virtual std::vector<int> get_output_shape() = 0;
-            virtual void evaluate(Tensor *nxt_n, bool train_flg) = 0;
+            virtual void evaluate(Tensor *nxt_n, bool train_flg);
             virtual Tensor *derive(Tensor *dc) = 0;
             virtual void save(FILE *file_ptr);
         };
@@ -116,6 +117,25 @@ namespace zero
             DropoutLayer(std::vector<int> n_shape, float dropout_rate);
             DropoutLayer(FILE *file_ptr);
             ~DropoutLayer();
+
+            virtual LayerType get_type();
+            virtual std::vector<int> get_input_shape();
+            virtual std::vector<int> get_output_shape();
+            virtual void evaluate(Tensor *nxt_n, bool train_flg);
+            virtual Tensor *derive(Tensor *dc);
+            virtual void save(FILE *file_ptr);
+        };
+
+        class BatchNormalizationLayer : public Layer
+        {
+        private:
+            Tensor *mean;
+            Tensor *stddev;
+
+        public:
+            BatchNormalizationLayer(std::vector<int> n_shape);
+            BatchNormalizationLayer(FILE *file_ptr);
+            ~BatchNormalizationLayer();
 
             virtual LayerType get_type();
             virtual std::vector<int> get_input_shape();

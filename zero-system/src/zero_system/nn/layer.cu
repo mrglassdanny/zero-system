@@ -545,6 +545,11 @@ Layer::~Layer()
     }
 }
 
+void Layer::evaluate(Tensor *nxt_n, bool train_flg)
+{
+    nxt_n->reset();
+}
+
 void Layer::save(FILE *file_ptr)
 {
     int dim_cnt = this->n->get_dim_cnt();
@@ -713,7 +718,7 @@ std::vector<int> LinearLayer::get_output_shape()
 
 void LinearLayer::evaluate(Tensor *nxt_n, bool train_flg)
 {
-    nxt_n->reset();
+    Layer::evaluate(nxt_n, train_flg);
 
     int n_cnt = this->n->get_cnt();
     int nxt_n_cnt = nxt_n->get_cnt();
@@ -841,7 +846,7 @@ std::vector<int> ConvolutionalLayer::get_output_shape()
 
 void ConvolutionalLayer::evaluate(Tensor *nxt_n, bool train_flg)
 {
-    nxt_n->reset();
+    Layer::evaluate(nxt_n, train_flg);
 
     int fltr_cnt = this->w->get_shape()[0];
     int chan_cnt = this->w->get_shape()[1];
@@ -997,7 +1002,7 @@ std::vector<int> ActivationLayer::get_output_shape()
 
 void ActivationLayer::evaluate(Tensor *nxt_n, bool train_flg)
 {
-    nxt_n->reset();
+    Layer::evaluate(nxt_n, train_flg);
 
     {
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
@@ -1037,6 +1042,7 @@ DropoutLayer::DropoutLayer(FILE *file_ptr)
     : Layer(file_ptr)
 {
     fread(&this->dropout_rate, sizeof(float), 1, file_ptr);
+    this->dropout_mask = new Tensor(Device::Cuda, this->n->get_shape());
 }
 
 DropoutLayer::~DropoutLayer()
@@ -1061,7 +1067,7 @@ std::vector<int> DropoutLayer::get_output_shape()
 
 void DropoutLayer::evaluate(Tensor *nxt_n, bool train_flg)
 {
-    nxt_n->reset();
+    Layer::evaluate(nxt_n, train_flg);
 
     if (train_flg)
     {
@@ -1102,4 +1108,85 @@ void DropoutLayer::save(FILE *file_ptr)
     Layer::save(file_ptr);
 
     fwrite(&this->dropout_rate, sizeof(float), 1, file_ptr);
+}
+
+// BatchNormalizationLayer functions:
+
+BatchNormalizationLayer::BatchNormalizationLayer(std::vector<int> n_shape)
+    : Layer(n_shape)
+{
+    this->mean = new Tensor(Device::Cuda, n_shape);
+    this->stddev = new Tensor(Device::Cuda, n_shape);
+}
+
+BatchNormalizationLayer::BatchNormalizationLayer(FILE *file_ptr)
+    : Layer(file_ptr)
+{
+    //fread(&this->dropout_rate, sizeof(float), 1, file_ptr);
+}
+
+BatchNormalizationLayer::~BatchNormalizationLayer()
+{
+    delete this->mean;
+    delete this->stddev;
+}
+
+LayerType BatchNormalizationLayer::get_type()
+{
+    return LayerType::BatchNormalization;
+}
+
+std::vector<int> BatchNormalizationLayer::get_input_shape()
+{
+    return this->n->get_shape();
+}
+
+std::vector<int> BatchNormalizationLayer::get_output_shape()
+{
+    return this->n->get_shape();
+}
+
+void BatchNormalizationLayer::evaluate(Tensor *nxt_n, bool train_flg)
+{
+    Layer::evaluate(nxt_n, train_flg);
+
+    if (train_flg)
+    {
+        {
+            int threads_per_block = CUDA_THREADS_PER_BLOCK;
+            int num_blocks = (this->dropout_mask->get_cnt() / threads_per_block) + 1;
+            k_set_dropout_mask<<<num_blocks, threads_per_block>>>(this->dropout_mask->get_arr(), this->dropout_mask->get_cnt(),
+                                                                  this->dropout_rate);
+        }
+
+        if (this->dropout_rate > 0.0f)
+        {
+            int threads_per_block = CUDA_THREADS_PER_BLOCK;
+            int num_blocks((nxt_n->get_cnt() / threads_per_block) + 1);
+            k_dropout<<<num_blocks, threads_per_block>>>(this->n->get_arr(), this->dropout_mask->get_arr(), nxt_n->get_arr(),
+                                                         nxt_n->get_cnt(), this->dropout_rate);
+        }
+    }
+}
+
+Tensor *BatchNormalizationLayer::derive(Tensor *dc)
+{
+    {
+        if (this->dropout_rate > 0.0f)
+        {
+            int threads_per_block = CUDA_THREADS_PER_BLOCK;
+            int num_blocks = (this->n->get_cnt() / threads_per_block) + 1;
+            k_derive_dropout<<<num_blocks, threads_per_block>>>(dc->get_arr(), this->dropout_mask->get_arr(),
+                                                                this->n->get_cnt(), this->dropout_rate);
+        }
+    }
+
+    return dc;
+}
+
+void BatchNormalizationLayer::save(FILE *file_ptr)
+{
+    Layer::save(file_ptr);
+
+    //fwrite(&this->dropout_rate, sizeof(float), 1, file_ptr);
 }
