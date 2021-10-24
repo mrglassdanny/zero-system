@@ -59,9 +59,9 @@ int main(int argc, char **argv)
 {
 	srand(time(NULL));
 
-	kmeans_test();
+	//kmeans_test();
 
-	//nn_test();
+	nn_test();
 
 	return 0;
 }
