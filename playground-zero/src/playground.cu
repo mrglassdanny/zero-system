@@ -1,13 +1,13 @@
 #include <iostream>
 
-#include <zero_system_v2/core/tensor.cuh>
-#include <zero_system_v2/nn/layer.cuh>
-#include <zero_system_v2/nn/model.cuh>
-#include <zero_system_v2/cluster/kmeans.cuh>
+#include <zero_system/core/tensor.cuh>
+#include <zero_system/nn/layer.cuh>
+#include <zero_system/nn/model.cuh>
+#include <zero_system/cluster/kmeans.cuh>
 
-using namespace zero_v2::core;
-using namespace zero_v2::nn;
-using namespace zero_v2::cluster;
+using namespace zero::core;
+using namespace zero::nn;
+using namespace zero::cluster;
 
 void nn_test()
 {
@@ -59,9 +59,9 @@ int main(int argc, char **argv)
 {
 	srand(time(NULL));
 
-	//kmeans_test();
-
 	nn_test();
+
+	kmeans_test();
 
 	return 0;
 }

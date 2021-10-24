@@ -112,7 +112,7 @@ KMeans::KMeans(int cluster_cnt, int feature_cnt)
     this->cluster_cnt = cluster_cnt;
     this->feature_cnt = feature_cnt;
 
-    this->clusters = new Tensor(cluster_cnt, feature_cnt, Cpu);
+    this->clusters = new Tensor(Device::Cpu, cluster_cnt, feature_cnt);
 }
 
 KMeans::KMeans(const KMeans &src)
@@ -132,7 +132,10 @@ KMeans::KMeans(const char *path)
     int tot_cnt = (this->cluster_cnt * this->feature_cnt);
     float *cluster_buf = (float *)malloc(sizeof(float) * tot_cnt);
     fread(cluster_buf, sizeof(float), tot_cnt, file_ptr);
-    this->clusters = new Tensor(this->cluster_cnt, this->feature_cnt, Gpu, cluster_buf);
+    this->clusters = new Tensor(Device::Cpu, this->cluster_cnt, this->feature_cnt);
+    this->clusters->set_arr(cluster_buf);
+    this->clusters->to(Device::Cuda);
+
     free(cluster_buf);
 
     fclose(file_ptr);
@@ -152,19 +155,25 @@ void KMeans::save(const char *path)
 {
     FILE *file_ptr = fopen(path, "wb");
 
+    int cluster_row_cnt = this->clusters->get_shape()[0];
+    int cluster_col_cnt = this->clusters->get_shape()[1];
+
     fwrite(&this->cluster_cnt, sizeof(int), 1, file_ptr);
     fwrite(&this->feature_cnt, sizeof(int), 1, file_ptr);
-    fwrite(this->clusters->get_arr(Cpu), sizeof(float), (this->clusters->get_row_cnt() * this->clusters->get_col_cnt()), file_ptr);
+    fwrite(this->clusters->get_arr(Cpu), sizeof(float), (cluster_row_cnt * cluster_col_cnt), file_ptr);
 
     fclose(file_ptr);
 }
 
 void KMeans::initialize_clusters(Tensor *x)
 {
-    this->clusters->translate(Cpu);
+    this->clusters->to(Device::Cpu);
 
     std::vector<int> rand_nums;
     rand_nums.reserve(this->cluster_cnt);
+
+    int x_row_cnt = x->get_shape()[0];
+    int x_col_cnt = x->get_shape()[1];
 
     for (int i = 0; i < this->cluster_cnt; i++)
     {
@@ -174,7 +183,7 @@ void KMeans::initialize_clusters(Tensor *x)
         do
         {
             rand_num_already_added = false;
-            rand_num = rand() % x->get_row_cnt();
+            rand_num = rand() % x_row_cnt;
 
             for (int j = 0; j < rand_nums.size(); j++)
             {
@@ -193,27 +202,31 @@ void KMeans::initialize_clusters(Tensor *x)
     for (int cluster_idx = 0; cluster_idx < this->cluster_cnt; cluster_idx++)
     {
         int rand_row_idx = rand_nums[cluster_idx];
-        memcpy(this->clusters->get_slice(cluster_idx * this->feature_cnt, Cpu), x->get_slice(rand_row_idx * x->get_col_cnt(), Cpu), sizeof(float) * this->feature_cnt);
+        cudaMemcpy(&this->clusters->get_arr()[cluster_idx * this->feature_cnt],
+                   &x->get_arr()[rand_row_idx * x_col_cnt], sizeof(float) * this->feature_cnt, cudaMemcpyDefault);
     }
 
-    this->clusters->translate(Gpu);
+    this->clusters->to(Device::Cuda);
+    x->to(Device::Cuda);
 }
 
 void KMeans::reset_clusters()
 {
     int threads_per_block(THREADS_PER_BLOCK);
     int num_blocks(((this->cluster_cnt * this->feature_cnt) / threads_per_block) + 1);
-    k_reset_arr<<<num_blocks, threads_per_block>>>(this->clusters->get_arr(Gpu), (this->cluster_cnt * this->feature_cnt));
+    k_reset_arr<<<num_blocks, threads_per_block>>>(this->clusters->get_arr(), (this->cluster_cnt * this->feature_cnt));
 }
 
 float KMeans::train(Tensor *x)
 {
     this->initialize_clusters(x);
 
-    Tensor *cluster_assignments = new Tensor(x->get_row_cnt(), 1, Gpu);
+    int x_row_cnt = x->get_shape()[0];
+
+    Tensor *cluster_assignments = new Tensor(Device::Cuda, x_row_cnt, 1);
     cluster_assignments->set_all(0.0f);
 
-    Tensor *cluster_assignment_cnts = new Tensor(this->cluster_cnt, 1, Gpu);
+    Tensor *cluster_assignment_cnts = new Tensor(Device::Cuda, this->cluster_cnt, 1);
     cluster_assignment_cnts->set_all(0.0f);
 
     int epoch = 1;
@@ -230,15 +243,15 @@ float KMeans::train(Tensor *x)
         // Assign xs to clusters:
         {
             int threads_per_block(THREADS_PER_BLOCK);
-            int num_blocks((x->get_row_cnt() / threads_per_block) + 1);
-            k_assign_to_clusters<<<num_blocks, threads_per_block>>>(x->get_arr(Gpu), cluster_assignments->get_arr(Gpu), this->clusters->get_arr(Gpu), d_cost, this->feature_cnt, this->cluster_cnt, x->get_row_cnt());
+            int num_blocks((x_row_cnt / threads_per_block) + 1);
+            k_assign_to_clusters<<<num_blocks, threads_per_block>>>(x->get_arr(), cluster_assignments->get_arr(), this->clusters->get_arr(), d_cost, this->feature_cnt, this->cluster_cnt, x_row_cnt);
         }
 
         // Analyze cost:
         {
             cudaMemcpy(&h_cost, d_cost, sizeof(float), cudaMemcpyDeviceToHost);
 
-            h_cost /= x->get_row_cnt();
+            h_cost /= x_row_cnt;
 
             if (h_prv_cost <= h_cost)
             {
@@ -254,25 +267,23 @@ float KMeans::train(Tensor *x)
         // Update clusters part 1:
         {
             int threads_per_block(THREADS_PER_BLOCK);
-            int num_blocks((x->get_row_cnt() / threads_per_block) + 1);
-            k_update_clusters_part_1<<<num_blocks, threads_per_block>>>(x->get_arr(Gpu), cluster_assignments->get_arr(Gpu), this->clusters->get_arr(Gpu),
-                                                                        cluster_assignment_cnts->get_arr(Gpu), this->feature_cnt, this->cluster_cnt, x->get_row_cnt());
+            int num_blocks((x_row_cnt / threads_per_block) + 1);
+            k_update_clusters_part_1<<<num_blocks, threads_per_block>>>(x->get_arr(), cluster_assignments->get_arr(), this->clusters->get_arr(),
+                                                                        cluster_assignment_cnts->get_arr(), this->feature_cnt, this->cluster_cnt, x_row_cnt);
         }
 
         // Update clusters part 2:
         {
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks(((this->cluster_cnt * this->feature_cnt) / threads_per_block) + 1);
-            k_update_clusters_part_2<<<num_blocks, threads_per_block>>>(this->clusters->get_arr(Gpu), cluster_assignment_cnts->get_arr(Gpu), this->cluster_cnt, this->feature_cnt);
+            k_update_clusters_part_2<<<num_blocks, threads_per_block>>>(this->clusters->get_arr(), cluster_assignment_cnts->get_arr(), this->cluster_cnt, this->feature_cnt);
         }
 
         // Reset cost and assignment counts for next epoch:
         {
             cudaMemset(d_cost, 0, sizeof(float));
 
-            int threads_per_block(THREADS_PER_BLOCK);
-            int num_blocks(((this->cluster_cnt) / threads_per_block) + 1);
-            k_reset_arr<<<num_blocks, threads_per_block>>>(cluster_assignment_cnts->get_arr(Gpu), this->cluster_cnt);
+            cluster_assignment_cnts->reset();
         }
 
         epoch++;
@@ -288,16 +299,18 @@ float KMeans::train(Tensor *x)
 
 Tensor *KMeans::predict(Tensor *x)
 {
-    Tensor *cluster_assignments = new Tensor(x->get_row_cnt(), 1, Gpu);
+    int x_row_cnt = x->get_shape()[0];
+
+    Tensor *cluster_assignments = new Tensor(Device::Cuda, x_row_cnt, 1);
 
     {
         int threads_per_block(THREADS_PER_BLOCK);
-        int num_blocks((x->get_row_cnt() / threads_per_block) + 1);
-        k_assign_to_clusters<<<num_blocks, threads_per_block>>>(x->get_arr(Gpu), cluster_assignments->get_arr(Gpu), this->clusters->get_arr(Gpu), nullptr,
-                                                                this->feature_cnt, this->cluster_cnt, x->get_row_cnt());
+        int num_blocks((x_row_cnt / threads_per_block) + 1);
+        k_assign_to_clusters<<<num_blocks, threads_per_block>>>(x->get_arr(), cluster_assignments->get_arr(), this->clusters->get_arr(), nullptr,
+                                                                this->feature_cnt, this->cluster_cnt, x_row_cnt);
     }
 
-    cluster_assignments->translate(Cpu);
+    cluster_assignments->to(Device::Cpu);
 
     return cluster_assignments;
 }
@@ -306,8 +319,10 @@ Tensor *KMeans::predict(Tensor *x)
 
 void KMeans::save_best(Tensor *x, int cluster_cnt, int iter_cnt, const char *path)
 {
-    KMeans *kmeans = new KMeans(cluster_cnt, x->get_col_cnt());
-    KMeans *best_kmeans = new KMeans(cluster_cnt, x->get_col_cnt());
+    int x_col_cnt = x->get_shape()[1];
+
+    KMeans *kmeans = new KMeans(cluster_cnt, x_col_cnt);
+    KMeans *best_kmeans = new KMeans(cluster_cnt, x_col_cnt);
 
     float cost;
     float min_cost = FLT_MAX;
@@ -318,7 +333,7 @@ void KMeans::save_best(Tensor *x, int cluster_cnt, int iter_cnt, const char *pat
 
         if (cost < min_cost)
         {
-            best_kmeans->clusters->set_arr(kmeans->clusters->get_arr(Cpu));
+            best_kmeans->clusters->copy(kmeans->clusters);
 
             min_cost = cost;
         }

@@ -1,7 +1,7 @@
 #include "model.cuh"
 
-using namespace zero_v2::core;
-using namespace zero_v2::nn;
+using namespace zero::core;
+using namespace zero::nn;
 
 // Device functions:
 

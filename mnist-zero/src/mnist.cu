@@ -1,10 +1,9 @@
 #include <iostream>
 
-#include <zero_system_v2/nn/model.cuh>
-#include <zero_system_v2/nn/batch.cuh>
+#include <zero_system/nn/model.cuh>
 
-using namespace zero_v2::core;
-using namespace zero_v2::nn;
+using namespace zero::core;
+using namespace zero::nn;
 
 #define IMAGE_ROW_CNT 28
 #define IMAGE_COL_CNT 28
@@ -55,14 +54,27 @@ Supervisor *init_mnist_supervisor()
     return sup;
 }
 
-void mnist_v2()
-{
-    Supervisor *sup = init_mnist_supervisor();
-}
-
 int main(int argc, char **argv)
 {
-    mnist_v2();
+    Supervisor *sup = init_mnist_supervisor();
+
+    Model *model = new Model(CostFunction::MSE, 0.01f);
+
+    model->add_layer(new ConvolutionalLayer(sup->get_x_shape(), 3, 3, 3, InitializationFunction::He));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
+
+    model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 3, 3, 3, InitializationFunction::He));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
+
+    model->add_layer(new LinearLayer(model->get_output_shape(), 128, InitializationFunction::He));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
+
+    model->add_layer(new LinearLayer(model->get_output_shape(), Tensor::get_cnt(sup->get_y_shape()), InitializationFunction::He));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
+
+    model->all(sup, 32, 100, nullptr);
+
+    delete model;
 
     return 0;
 }

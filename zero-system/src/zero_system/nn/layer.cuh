@@ -3,7 +3,7 @@
 #include "../core/tensor.cuh"
 #include "util.cuh"
 
-namespace zero_v2
+namespace zero
 {
     using namespace core;
 

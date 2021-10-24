@@ -11,7 +11,7 @@
 #define SUPERVISOR_VALIDATION_SPLIT 0.20f
 #define SUPERVISOR_TEST_SPLIT 0.20f
 
-namespace zero_v2
+namespace zero
 {
     using namespace core;
 
@@ -64,6 +64,9 @@ namespace zero_v2
             void clear();
 
             int get_cnt();
+
+            std::vector<int> get_x_shape();
+            std::vector<int> get_y_shape();
 
             void shuffle();
 

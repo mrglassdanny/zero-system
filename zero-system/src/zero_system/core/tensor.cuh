@@ -8,6 +8,8 @@
 #include <time.h>
 #include <conio.h>
 #include <random>
+#include <vector>
+#include <windows.h>
 
 #include <cuda_runtime.h>
 #include <curand.h>
@@ -15,14 +17,17 @@
 #include <device_launch_parameters.h>
 #include <device_atomic_functions.h>
 
+#define CUDA_THREADS_PER_BLOCK 32
+
 namespace zero
 {
     namespace core
     {
-        enum TensorType
+
+        enum Device
         {
             Cpu,
-            Gpu
+            Cuda
         };
 
         struct TensorTuple
@@ -35,46 +40,49 @@ namespace zero
         {
         private:
             float *arr;
-            int row_cnt;
-            int col_cnt;
-            TensorType typ;
-
-            static long long get_file_size(const char *name);
+            Device device;
+            std::vector<int> shape;
 
         public:
-            static Tensor *one_hot_encode(int row_cnt, int col_cnt, TensorType typ, float *cpu_arr);
+            Tensor(Tensor &src);
+            Tensor(Device device);
+            Tensor(Device device, int cnt);
+            Tensor(Device device, int row_cnt, int col_cnt);
+            Tensor(Device device, int x_cnt, int y_cnt, int z_cnt);
+            Tensor(Device device, int a_cnt, int b_cnt, int c_cnt, int d_cnt);
+            Tensor(Device device, std::vector<int> shape);
+            ~Tensor();
+
+            static Tensor *one_hot_encode(Device device, int row_cnt, int col_cnt, float *cpu_arr);
             static Tensor *from_csv(const char *csv_file_name);
 
-            Tensor(int row_cnt, int col_cnt, TensorType typ);
-            Tensor(const Tensor &src);
-            Tensor(const Tensor &src, TensorType typ);
-            Tensor(int row_cnt, int col_cnt, TensorType typ, float *cpu_arr);
-            Tensor(int row_cnt, int col_cnt, TensorType typ, int *cpu_arr);
-            ~Tensor();
+            void to(Device device);
+
+            void copy(Tensor *src);
+
+            void reset();
 
             void print();
 
-            void dump_to_csv(const char *csv_file_name);
+            std::vector<int> get_shape();
+            int get_cnt();
+            static int get_cnt(std::vector<int> shape);
+            int get_dim_cnt();
 
-            void translate(TensorType typ);
+            float *get_arr();
+            float *get_arr(Device device);
+            void set_arr(float *arr);
 
-            int get_row_cnt();
-            int get_col_cnt();
             float get_val(int idx);
-            float get_val(int row_idx, int col_idx);
-            float *get_arr(TensorType typ);
-            float *get_slice(int idx, TensorType typ);
+            void set_val(int idx, float val);
+
+            void set_all(float val);
+            void set_all_rand(float mean, float stddev);
+
             TensorTuple get_min();
             TensorTuple get_max();
-            float get_mean();
 
-            void set_val(int idx, float val);
-            void set_val(int row_idx, int col_idx, float val);
-            void set_all(float val);
-            void set_all_rand(float upper);
-            void set_all_rand_normal_distribution(float mean, float stddev);
-            void set_arr(float *cpu_arr);
-            void set_arr(float *arr, TensorType typ);
+            void dump_to_csv(const char *csv_file_name);
         };
     }
 }

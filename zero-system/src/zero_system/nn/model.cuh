@@ -4,7 +4,7 @@
 #include "util.cuh"
 #include "batch.cuh"
 
-namespace zero_v2
+namespace zero
 {
     using namespace core;
 

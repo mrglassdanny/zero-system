@@ -1,8 +1,35 @@
-#include "Tensor.cuh"
+#include "tensor.cuh"
 
 using namespace zero::core;
 
-long long Tensor::get_file_size(const char *name)
+// Device functions:
+
+// Kernel functions:
+
+__global__ void k_set_arr(float *arr, int cnt, float val)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < cnt)
+    {
+        arr[tid] = val;
+    }
+}
+
+__global__ void k_set_arr_rand(float *arr, int cnt, float mean, float stddev)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < cnt)
+    {
+        curandState state;
+        curand_init(clock64(), tid, 0, &state);
+        arr[tid] = curand_log_normal(&state, mean, stddev);
+    }
+}
+
+// Utility functions:
+long long get_file_size(const char *name)
 {
 
     HANDLE hFile = CreateFile((LPCSTR)name, GENERIC_READ,
@@ -22,17 +49,160 @@ long long Tensor::get_file_size(const char *name)
     return size.QuadPart;
 }
 
-Tensor *Tensor::one_hot_encode(int row_cnt, int col_cnt, TensorType typ, float *cpu_arr)
+// Tensor functions:
+
+Tensor::Tensor(Tensor &src)
 {
-    Tensor *tensor = new Tensor(row_cnt, col_cnt, typ);
+    this->device = src.device;
+    this->shape = src.shape;
+
+    int cnt = this->get_cnt();
+
+    if (src.device == Device::Cpu)
+    {
+        this->arr = (float *)malloc(sizeof(float) * cnt);
+        memcpy(this->arr, src.arr, sizeof(float) * cnt);
+    }
+    else if (src.device == Device::Cuda)
+    {
+        cudaMalloc(&this->arr, sizeof(float) * cnt);
+        cudaMemcpy(this->arr, src.arr, sizeof(float) * cnt, cudaMemcpyDeviceToDevice);
+    }
+}
+
+Tensor::Tensor(Device device)
+{
+    this->device = device;
+    this->shape.push_back(1);
+
+    if (device == Device::Cpu)
+    {
+        this->arr = (float *)malloc(sizeof(float));
+    }
+    else if (device == Device::Cuda)
+    {
+        cudaMalloc(&this->arr, sizeof(float));
+    }
+
+    this->reset();
+}
+
+Tensor::Tensor(Device device, int cnt)
+{
+    this->device = device;
+    this->shape.push_back(cnt);
+
+    if (device == Device::Cpu)
+    {
+        this->arr = (float *)malloc(sizeof(float) * cnt);
+    }
+    else if (device == Device::Cuda)
+    {
+        cudaMalloc(&this->arr, sizeof(float) * cnt);
+    }
+
+    this->reset();
+}
+
+Tensor::Tensor(Device device, int row_cnt, int col_cnt)
+{
+    this->device = device;
+    this->shape.push_back(row_cnt);
+    this->shape.push_back(col_cnt);
+
+    if (device == Device::Cpu)
+    {
+        this->arr = (float *)malloc(sizeof(float) * row_cnt * col_cnt);
+    }
+    else if (device == Device::Cuda)
+    {
+        cudaMalloc(&this->arr, sizeof(float) * row_cnt * col_cnt);
+    }
+
+    this->reset();
+}
+
+Tensor::Tensor(Device device, int x_cnt, int y_cnt, int z_cnt)
+{
+    this->device = device;
+    this->shape.push_back(x_cnt);
+    this->shape.push_back(y_cnt);
+    this->shape.push_back(z_cnt);
+
+    if (device == Device::Cpu)
+    {
+        this->arr = (float *)malloc(sizeof(float) * x_cnt * y_cnt * z_cnt);
+    }
+    else if (device == Device::Cuda)
+    {
+        cudaMalloc(&this->arr, sizeof(float) * x_cnt * y_cnt * z_cnt);
+    }
+
+    this->reset();
+}
+
+Tensor::Tensor(Device device, int a_cnt, int b_cnt, int c_cnt, int d_cnt)
+{
+    this->device = device;
+    this->shape.push_back(a_cnt);
+    this->shape.push_back(b_cnt);
+    this->shape.push_back(c_cnt);
+    this->shape.push_back(d_cnt);
+
+    if (device == Device::Cpu)
+    {
+        this->arr = (float *)malloc(sizeof(float) * a_cnt * b_cnt * c_cnt * d_cnt);
+    }
+    else if (device == Device::Cuda)
+    {
+        cudaMalloc(&this->arr, sizeof(float) * a_cnt * b_cnt * c_cnt * d_cnt);
+    }
+
+    this->reset();
+}
+
+Tensor::Tensor(Device device, std::vector<int> shape)
+{
+    this->device = device;
+    this->shape = shape;
+
+    int cnt = this->get_cnt();
+
+    if (device == Device::Cpu)
+    {
+        this->arr = (float *)malloc(sizeof(float) * cnt);
+    }
+    else if (device == Device::Cuda)
+    {
+        cudaMalloc(&this->arr, sizeof(float) * cnt);
+    }
+
+    this->reset();
+}
+
+Tensor::~Tensor()
+{
+    if (this->device == Device::Cpu)
+    {
+        free(this->arr);
+    }
+    else if (this->device == Device::Cuda)
+    {
+        cudaFree(this->arr);
+    }
+}
+
+Tensor *Tensor::one_hot_encode(Device device, int row_cnt, int col_cnt, float *cpu_arr)
+{
+    Tensor *tensor = new Tensor(device, row_cnt, col_cnt);
     tensor->set_all(0.0f);
 
-    for (int i = 0; i < row_cnt; i++)
+    for (int row_idx = 0; row_idx < row_cnt; row_idx++)
     {
-        int col_idx = (int)cpu_arr[i];
+        int col_idx = (int)cpu_arr[row_idx];
         if (col_idx >= 0 && col_idx < col_cnt)
         {
-            tensor->set_val(i, col_idx, 1.0f);
+            tensor->set_val(row_idx * col_cnt + col_idx, 1.0f);
         }
         // If column index is less than 0 or is greater than or equal to column count, skip it!
         // ^ this shouldn't happen...
@@ -47,7 +217,7 @@ Tensor *Tensor::from_csv(const char *csv_file_name)
     FILE *file_ptr = fopen(csv_file_name, "rb");
 
     fseek(file_ptr, 0L, SEEK_END);
-    long file_size = Tensor::get_file_size(csv_file_name);
+    long long file_size = get_file_size(csv_file_name);
     rewind(file_ptr);
 
     char *buf = (char *)malloc(file_size + 1);
@@ -90,7 +260,7 @@ Tensor *Tensor::from_csv(const char *csv_file_name)
         row_cnt++;
     }
 
-    Tensor *tensor = new Tensor(row_cnt, col_cnt, Cpu);
+    Tensor *tensor = new Tensor(Device::Cpu, row_cnt, col_cnt);
 
     char temp_buf[64];
     memset(temp_buf, 0, 64);
@@ -112,14 +282,14 @@ Tensor *Tensor::from_csv(const char *csv_file_name)
 
         if (buf[buf_idx] == ',')
         {
-            tensor->set_val(row_idx, col_idx, (float)atof(temp_buf));
+            tensor->set_val(row_idx * col_cnt + col_idx, (float)atof(temp_buf));
             memset(temp_buf, 0, 64);
             col_idx++;
             temp_buf_idx = 0;
         }
         else if (buf[buf_idx] == '\n')
         {
-            tensor->set_val(row_idx, col_idx, (float)atof(temp_buf));
+            tensor->set_val(row_idx * col_cnt + col_idx, (float)atof(temp_buf));
             memset(temp_buf, 0, 64);
             row_idx++;
             col_idx = 0;
@@ -130,7 +300,7 @@ Tensor *Tensor::from_csv(const char *csv_file_name)
     // Make sure to grab the last bit before we finish up!
     if (temp_buf_idx > 0)
     {
-        tensor->set_val(row_idx, col_idx, (float)atof(temp_buf));
+        tensor->set_val(row_idx * col_cnt + col_idx, (float)atof(temp_buf));
         memset(temp_buf, 0, 64);
         row_idx++;
         col_idx = 0;
@@ -142,136 +312,130 @@ Tensor *Tensor::from_csv(const char *csv_file_name)
     return tensor;
 }
 
-Tensor::Tensor(int row_cnt, int col_cnt, TensorType typ)
+void Tensor::to(Device device)
 {
-    if (typ == Gpu)
-    {
-        cudaMalloc(&this->arr, sizeof(float) * (row_cnt * col_cnt));
-    }
-    else
-    {
-        this->arr = (float *)malloc(sizeof(float) * (row_cnt * col_cnt));
-    }
+    int cnt = this->get_cnt();
 
-    this->row_cnt = row_cnt;
-    this->col_cnt = col_cnt;
-    this->typ = typ;
-}
-
-Tensor::Tensor(const Tensor &src)
-{
-    if (src.typ == Gpu)
+    if (device == Device::Cpu)
     {
-        cudaMalloc(&this->arr, sizeof(float) * (src.row_cnt * src.col_cnt));
-        cudaMemcpy(this->arr, src.arr, sizeof(float) * (src.row_cnt * src.col_cnt), cudaMemcpyDeviceToDevice);
-    }
-    else
-    {
-        this->arr = (float *)malloc(sizeof(float) * (src.row_cnt * src.col_cnt));
-        memcpy(this->arr, src.arr, sizeof(float) * (src.row_cnt * src.col_cnt));
-    }
-
-    this->row_cnt = src.row_cnt;
-    this->col_cnt = src.col_cnt;
-    this->typ = src.typ;
-}
-
-Tensor::Tensor(const Tensor &src, TensorType typ)
-{
-
-    if (src.typ == Gpu && typ == Gpu)
-    {
-        cudaMalloc(&this->arr, sizeof(float) * (src.row_cnt * src.col_cnt));
-        cudaMemcpy(this->arr, src.arr, sizeof(float) * (src.row_cnt * src.col_cnt), cudaMemcpyDeviceToDevice);
-    }
-    else if (src.typ == Cpu && typ == Cpu)
-    {
-        this->arr = (float *)malloc(sizeof(float) * (src.row_cnt * src.col_cnt));
-        memcpy(this->arr, src.arr, sizeof(float) * (src.row_cnt * src.col_cnt));
-    }
-    else if (src.typ == Cpu && typ == Gpu)
-    {
-        cudaMalloc(&this->arr, sizeof(float) * (src.row_cnt * src.col_cnt));
-        cudaMemcpy(this->arr, src.arr, sizeof(float) * (src.row_cnt * src.col_cnt), cudaMemcpyHostToDevice);
-    }
-    else if (src.typ == Gpu && typ == Cpu)
-    {
-        this->arr = (float *)malloc(sizeof(float) * (src.row_cnt * src.col_cnt));
-        cudaMemcpy(this->arr, src.arr, sizeof(float) * (src.row_cnt * src.col_cnt), cudaMemcpyDeviceToHost);
-    }
-
-    this->row_cnt = src.row_cnt;
-    this->col_cnt = src.col_cnt;
-    this->typ = typ;
-}
-
-Tensor::Tensor(int row_cnt, int col_cnt, TensorType typ, float *cpu_arr)
-{
-    if (typ == Gpu)
-    {
-        cudaMalloc(&this->arr, sizeof(float) * (row_cnt * col_cnt));
-        cudaMemcpy(this->arr, cpu_arr, sizeof(float) * (row_cnt * col_cnt), cudaMemcpyHostToDevice);
-    }
-    else
-    {
-        this->arr = (float *)malloc(sizeof(float) * (row_cnt * col_cnt));
-        memcpy(this->arr, cpu_arr, sizeof(float) * (row_cnt * col_cnt));
-    }
-
-    this->row_cnt = row_cnt;
-    this->col_cnt = col_cnt;
-    this->typ = typ;
-}
-
-Tensor::Tensor(int row_cnt, int col_cnt, TensorType typ, int *cpu_arr)
-{
-
-    if (typ == Gpu)
-    {
-        cudaMalloc(&this->arr, sizeof(float) * (row_cnt * col_cnt));
-
-        for (int i = 0; i < row_cnt * col_cnt; i++)
+        if (this->device == Device::Cpu)
         {
-            float f = (float)cpu_arr[i];
-            cudaMemcpy(&this->arr[i], &f, sizeof(float), cudaMemcpyHostToDevice);
+            return;
+        }
+        else if (this->device == Device::Cuda)
+        {
+            float *h_arr = (float *)malloc(sizeof(float) * cnt);
+            cudaMemcpy(h_arr, this->arr, sizeof(float) * cnt, cudaMemcpyDeviceToHost);
+            cudaFree(this->arr);
+            this->arr = h_arr;
         }
     }
-    else
+    else if (device == Device::Cuda)
     {
-        this->arr = (float *)malloc(sizeof(float) * (row_cnt * col_cnt));
-
-        for (int i = 0; i < row_cnt * col_cnt; i++)
+        if (this->device == Device::Cpu)
         {
-            this->arr[i] = (float)cpu_arr[i];
+            float *d_arr;
+            cudaMalloc(&d_arr, sizeof(float) * cnt);
+            cudaMemcpy(d_arr, this->arr, sizeof(float) * cnt, cudaMemcpyHostToDevice);
+            free(this->arr);
+            this->arr = d_arr;
+        }
+        else if (this->device == Device::Cuda)
+        {
+            return;
         }
     }
 
-    this->row_cnt = row_cnt;
-    this->col_cnt = col_cnt;
-    this->typ = typ;
+    this->device = device;
 }
 
-Tensor::~Tensor()
+void Tensor::copy(Tensor *src)
 {
-    if (this->typ == Gpu)
+    this->shape = src->shape;
+
+    int cnt = this->get_cnt();
+
+    if (src->device == Device::Cpu)
     {
-        cudaFree(this->arr);
+        if (this->device == Device::Cpu)
+        {
+            this->arr = (float *)realloc(this->arr, sizeof(float) * cnt);
+            memcpy(this->arr, src->arr, sizeof(float) * cnt);
+        }
+        else if (this->device == Device::Cuda)
+        {
+            cudaFree(this->arr);
+            this->arr = (float *)malloc(sizeof(float) * cnt);
+            memcpy(this->arr, src->arr, sizeof(float) * cnt);
+        }
     }
-    else
+    else if (src->device == Device::Cuda)
     {
-        free(this->arr);
+        if (this->device == Device::Cpu)
+        {
+            free(this->arr);
+            cudaMalloc(&this->arr, sizeof(float) * cnt);
+            cudaMemcpy(this->arr, src->arr, sizeof(float) * cnt, cudaMemcpyDeviceToDevice);
+        }
+        else if (this->device == Device::Cuda)
+        {
+            cudaFree(this->arr);
+            cudaMalloc(&this->arr, sizeof(float) * cnt);
+            cudaMemcpy(this->arr, src->arr, sizeof(float) * cnt, cudaMemcpyDeviceToDevice);
+        }
+    }
+
+    this->device = src->device;
+}
+
+void Tensor::reset()
+{
+    int cnt = this->get_cnt();
+
+    if (this->device == Device::Cpu)
+    {
+        memset(this->arr, 0, sizeof(float) * cnt);
+    }
+    else if (this->device == Device::Cuda)
+    {
+        cudaMemset(this->arr, 0, sizeof(float) * cnt);
     }
 }
 
 void Tensor::print()
 {
-    TensorType orig_typ = this->typ;
+    Device orig_device = this->device;
 
-    this->translate(Cpu);
+    this->to(Device::Cpu);
 
+    switch (this->shape.size())
     {
+    case 1:
+    {
+        int cnt = this->shape[0];
+        printf("[ ");
+        for (int i = 0; i < cnt; i++)
+        {
+            if (i == cnt - 1)
+            {
+                printf("%f", this->arr[i]);
+            }
+            else
+            {
+                printf("%f, ", this->arr[i]);
+            }
+        }
+        printf(" ]");
+    }
+
+    break;
+    case 2:
+    {
+        int row_cnt = this->shape[0];
+        int col_cnt = this->shape[1];
+
         printf("[");
-        for (int i = 0; i < this->row_cnt; i++)
+        for (int i = 0; i < row_cnt; i++)
         {
 
             if (i == 0)
@@ -283,19 +447,19 @@ void Tensor::print()
                 printf("  [ ");
             }
 
-            for (int j = 0; j < this->col_cnt; j++)
+            for (int j = 0; j < col_cnt; j++)
             {
-                if (j == this->col_cnt - 1)
+                if (j == col_cnt - 1)
                 {
-                    printf("%f", this->arr[i * this->col_cnt + j]);
+                    printf("%f", this->arr[i * col_cnt + j]);
                 }
                 else
                 {
-                    printf("%f, ", this->arr[i * this->col_cnt + j]);
+                    printf("%f, ", this->arr[i * col_cnt + j]);
                 }
             }
 
-            if (i == this->row_cnt - 1)
+            if (i == row_cnt - 1)
             {
                 printf(" ] ");
             }
@@ -306,115 +470,214 @@ void Tensor::print()
         }
         printf("]\n");
     }
-
-    this->translate(orig_typ);
-}
-
-void Tensor::dump_to_csv(const char *csv_file_name)
-{
-    FILE *file_ptr = fopen(csv_file_name, "w");
-
-    for (int j = 0; j < this->col_cnt; j++)
+    break;
+    case 3:
     {
+        int x_cnt = this->shape[0];
+        int y_cnt = this->shape[1];
+        int z_cnt = this->shape[2];
 
-        if (j < this->col_cnt - 1)
+        printf("[");
+        for (int i = 0; i < x_cnt; i++)
         {
-            fprintf(file_ptr, "col_%d,", j);
-        }
-        else
-        {
-            fprintf(file_ptr, "col_%d", j);
-        }
-    }
-    fprintf(file_ptr, "\n");
 
-    for (int i = 0; i < this->row_cnt; i++)
-    {
-        for (int j = 0; j < this->col_cnt; j++)
-        {
-            if (j < this->col_cnt - 1)
+            if (i == 0)
             {
-                fprintf(file_ptr, "%f,", this->get_val(i, j));
+                printf(" [ ");
             }
             else
             {
-                fprintf(file_ptr, "%f", this->get_val(i, j));
+                printf("  [ ");
+            }
+
+            for (int j = 0; j < y_cnt; j++)
+            {
+
+                if (j == 0)
+                {
+                    printf(" [ ");
+                }
+                else
+                {
+                    printf("  [ ");
+                }
+
+                for (int k = 0; k < z_cnt; k++)
+                {
+                    if (k == z_cnt - 1)
+                    {
+                        printf("%f", this->arr[(i * y_cnt * z_cnt) + (j * z_cnt) + k]);
+                    }
+                    else
+                    {
+                        printf("%f, ", this->arr[(i * y_cnt * z_cnt) + (j * z_cnt) + k]);
+                    }
+                }
+
+                if (j == y_cnt - 1)
+                {
+                    printf(" ] ");
+                }
+                else
+                {
+                    printf(" ],\n");
+                }
+            }
+
+            if (i == x_cnt - 1)
+            {
+                printf(" ] ");
+            }
+            else
+            {
+                printf(" ],\n");
             }
         }
-        fprintf(file_ptr, "\n");
+        printf("]\n");
     }
-    fclose(file_ptr);
-}
-
-void Tensor::translate(TensorType typ)
-{
-    if (typ == Gpu)
-    {
-        if (this->typ != Gpu)
+    break;
+    default:
+        for (int i = 0; i < this->get_cnt(); i++)
         {
-            float *d_arr;
-            cudaMalloc(&d_arr, sizeof(float) * (this->row_cnt * this->col_cnt));
-            cudaMemcpy(d_arr, this->arr, sizeof(float) * (this->row_cnt * this->col_cnt), cudaMemcpyHostToDevice);
-            free(this->arr);
-            this->arr = d_arr;
-
-            this->typ = Gpu;
+            printf("%d: %f\n", i, this->arr[i]);
         }
+        break;
     }
-    else
+
+    printf("\n");
+
+    this->to(orig_device);
+}
+
+std::vector<int> Tensor::get_shape()
+{
+    return this->shape;
+}
+
+int Tensor::get_cnt()
+{
+    int cnt = 1;
+
+    for (int i = 0; i < this->shape.size(); i++)
     {
-        if (this->typ == Gpu)
-        {
-            float *h_arr = (float *)malloc(sizeof(float) * (this->row_cnt * this->col_cnt));
-            cudaMemcpy(h_arr, this->arr, sizeof(float) * (this->row_cnt * this->col_cnt), cudaMemcpyDeviceToHost);
-            cudaFree(this->arr);
-            this->arr = h_arr;
-
-            this->typ = Cpu;
-        }
+        cnt *= this->shape[i];
     }
+
+    return cnt;
 }
 
-int Tensor::get_row_cnt()
+int Tensor::get_cnt(std::vector<int> shape)
 {
-    return this->row_cnt;
+    int cnt = 1;
+
+    for (int i = 0; i < shape.size(); i++)
+    {
+        cnt *= shape[i];
+    }
+
+    return cnt;
 }
 
-int Tensor::get_col_cnt()
+int Tensor::get_dim_cnt()
 {
-    return this->col_cnt;
+    return this->shape.size();
+}
+
+float *Tensor::get_arr()
+{
+    return this->arr;
+}
+
+float *Tensor::get_arr(Device device)
+{
+    this->to(device);
+    return this->arr;
+}
+
+void Tensor::set_arr(float *arr)
+{
+    cudaMemcpy(this->arr, arr, sizeof(float) * this->get_cnt(), cudaMemcpyDefault);
 }
 
 float Tensor::get_val(int idx)
 {
-    if (this->typ == Gpu)
+    if (this->device == Device::Cpu)
+    {
+        return this->arr[idx];
+    }
+    else if (this->device == Device::Cuda)
     {
         float val;
         cudaMemcpy(&val, &this->arr[idx], sizeof(float), cudaMemcpyDeviceToHost);
         return val;
     }
-    else
+
+    return 0.0f;
+}
+
+void Tensor::set_val(int idx, float val)
+{
+    if (this->device == Device::Cpu)
     {
-        return this->arr[idx];
+        this->arr[idx] = val;
+    }
+    else if (this->device == Device::Cuda)
+    {
+        cudaMemcpy(&this->arr[idx], &val, sizeof(float), cudaMemcpyDefault);
     }
 }
 
-float Tensor::get_val(int row_idx, int col_idx)
+void Tensor::set_all(float val)
 {
-    int idx = row_idx * this->col_cnt + col_idx;
-    return this->get_val(idx);
+    int cnt = this->get_cnt();
+
+    if (this->device == Device::Cpu)
+    {
+        for (int i = 0; i < cnt; i++)
+        {
+            this->arr[i] = val;
+        }
+    }
+    else if (this->device == Device::Cuda)
+    {
+        {
+            int threads_per_block = CUDA_THREADS_PER_BLOCK;
+            int num_blocks = (cnt / CUDA_THREADS_PER_BLOCK) + 1;
+            k_set_arr<<<num_blocks, threads_per_block>>>(this->arr, cnt, val);
+        }
+    }
 }
 
-float *Tensor::get_arr(TensorType typ)
+void Tensor::set_all_rand(float mean, float stddev)
 {
-    this->translate(typ);
-    return this->arr;
-}
+    int cnt = this->get_cnt();
 
-float *Tensor::get_slice(int idx, TensorType typ)
-{
-    this->translate(typ);
-    return &this->arr[idx];
+    if (this->device == Device::Cpu)
+    {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+
+        for (int i = 0; i < cnt; i++)
+        {
+            std::normal_distribution<float> d(mean, stddev);
+            this->arr[i] = d(gen);
+        }
+    }
+    else if (this->device == Device::Cuda)
+    {
+        this->to(Device::Cpu);
+
+        std::random_device rd;
+        std::mt19937 gen(rd());
+
+        for (int i = 0; i < cnt; i++)
+        {
+            std::normal_distribution<float> d(mean, stddev);
+            this->arr[i] = d(gen);
+        }
+
+        this->to(Device::Cuda);
+    }
 }
 
 TensorTuple Tensor::get_min()
@@ -424,7 +687,7 @@ TensorTuple Tensor::get_min()
     tup.idx = 0;
     tup.val = FLT_MAX;
 
-    for (int i = 0; i < this->row_cnt * this->col_cnt; i++)
+    for (int i = 0; i < this->get_cnt(); i++)
     {
         float cur_val = this->get_val(i);
         if (cur_val < tup.val)
@@ -444,7 +707,7 @@ TensorTuple Tensor::get_max()
     tup.idx = 0;
     tup.val = -FLT_MAX;
 
-    for (int i = 0; i < this->row_cnt * this->col_cnt; i++)
+    for (int i = 0; i < this->get_cnt(); i++)
     {
         float cur_val = this->get_val(i);
         if (cur_val > tup.val)
@@ -457,128 +720,48 @@ TensorTuple Tensor::get_max()
     return tup;
 }
 
-float Tensor::get_mean()
+void Tensor::dump_to_csv(const char *csv_file_name)
 {
-    int tot_cnt = this->row_cnt * this->col_cnt;
+    int dim_cnt = this->shape.size();
 
-    TensorType orig_typ = this->typ;
-
-    this->translate(Cpu);
-
-    float mean = 0.0f;
-
-    for (int i = 0; i < tot_cnt; i++)
+    if (dim_cnt != 2)
     {
-        mean += this->arr[i];
+        return;
     }
 
-    this->translate(orig_typ);
+    int row_cnt = this->shape[0];
+    int col_cnt = this->shape[1];
 
-    return mean / tot_cnt;
-}
+    FILE *file_ptr = fopen(csv_file_name, "w");
 
-void Tensor::set_val(int idx, float val)
-{
-    if (this->typ == Gpu)
+    for (int j = 0; j < col_cnt; j++)
     {
-        cudaMemcpy(&this->arr[idx], &val, sizeof(float), cudaMemcpyHostToDevice);
+
+        if (j < col_cnt - 1)
+        {
+            fprintf(file_ptr, "col_%d,", j);
+        }
+        else
+        {
+            fprintf(file_ptr, "col_%d", j);
+        }
     }
-    else
+    fprintf(file_ptr, "\n");
+
+    for (int i = 0; i < row_cnt; i++)
     {
-        this->arr[idx] = val;
+        for (int j = 0; j < col_cnt; j++)
+        {
+            if (j < col_cnt - 1)
+            {
+                fprintf(file_ptr, "%f,", this->get_val(i * col_cnt + j));
+            }
+            else
+            {
+                fprintf(file_ptr, "%f", this->get_val(i * col_cnt + j));
+            }
+        }
+        fprintf(file_ptr, "\n");
     }
-}
-
-void Tensor::set_val(int row_idx, int col_idx, float val)
-{
-    int idx = row_idx * this->col_cnt + col_idx;
-    return this->set_val(idx, val);
-}
-
-void Tensor::set_all(float val)
-{
-    int tot_cnt = this->row_cnt * this->col_cnt;
-
-    TensorType orig_typ = this->typ;
-
-    this->translate(Cpu);
-
-    for (int i = 0; i < tot_cnt; i++)
-    {
-        this->arr[i] = val;
-    }
-
-    this->translate(orig_typ);
-}
-
-void Tensor::set_all_rand(float upper)
-{
-    int tot_cnt = this->row_cnt * this->col_cnt;
-
-    TensorType orig_typ = this->typ;
-
-    this->translate(Cpu);
-
-    for (int i = 0; i < tot_cnt; i++)
-    {
-        float val = (float)rand() / ((float)RAND_MAX);
-        val *= (2 * upper);
-        val -= upper;
-        this->arr[i] = val;
-    }
-
-    this->translate(orig_typ);
-}
-
-void Tensor::set_all_rand_normal_distribution(float mean, float stddev)
-{
-    int tot_cnt = this->row_cnt * this->col_cnt;
-
-    TensorType orig_typ = this->typ;
-
-    this->translate(Cpu);
-
-    std::random_device rd;
-    std::mt19937 gen(rd());
-
-    for (int i = 0; i < tot_cnt; i++)
-    {
-        std::normal_distribution<float> d(mean, stddev);
-        this->arr[i] = d(gen);
-    }
-
-    this->translate(orig_typ);
-}
-
-void Tensor::set_arr(float *cpu_arr)
-{
-    int tot_cnt = this->row_cnt * this->col_cnt;
-
-    TensorType orig_typ = this->typ;
-
-    this->translate(Cpu);
-
-    memcpy(this->arr, cpu_arr, sizeof(float) * tot_cnt);
-
-    this->translate(orig_typ);
-}
-
-void Tensor::set_arr(float *arr, TensorType typ)
-{
-    int tot_cnt = this->row_cnt * this->col_cnt;
-
-    TensorType orig_typ = this->typ;
-
-    this->translate(typ);
-
-    if (typ == Gpu)
-    {
-        cudaMemcpy(this->arr, arr, sizeof(float) * tot_cnt, cudaMemcpyDeviceToDevice);
-    }
-    else
-    {
-        memcpy(this->arr, arr, sizeof(float) * tot_cnt);
-    }
-
-    this->translate(orig_typ);
+    fclose(file_ptr);
 }

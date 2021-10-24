@@ -12,31 +12,19 @@
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="src\zero_system\cluster\kmeans.cu" />
-    <CudaCompile Include="src\zero_system\nn\cnn.cu" />
-    <CudaCompile Include="src\zero_system\nn\nn.cu" />
-    <CudaCompile Include="src\zero_system\nn\supervisor.cu" />
     <CudaCompile Include="src\zero_system\core\tensor.cu" />
+    <CudaCompile Include="src\zero_system\nn\batch.cu" />
+    <CudaCompile Include="src\zero_system\nn\layer.cu" />
+    <CudaCompile Include="src\zero_system\nn\model.cu" />
     <CudaCompile Include="src\zero_system\nn\util.cu" />
-    <CudaCompile Include="src\zero_system_v2\cluster\kmeans.cu" />
-    <CudaCompile Include="src\zero_system_v2\core\tensor.cu" />
-    <CudaCompile Include="src\zero_system_v2\nn\batch.cu" />
-    <CudaCompile Include="src\zero_system_v2\nn\layer.cu" />
-    <CudaCompile Include="src\zero_system_v2\nn\model.cu" />
-    <CudaCompile Include="src\zero_system_v2\nn\util.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\zero_system\cluster\kmeans.cuh" />
-    <ClInclude Include="src\zero_system\nn\cnn.cuh" />
-    <ClInclude Include="src\zero_system\nn\nn.cuh" />
-    <ClInclude Include="src\zero_system\nn\supervisor.cuh" />
     <ClInclude Include="src\zero_system\core\tensor.cuh" />
+    <ClInclude Include="src\zero_system\nn\batch.cuh" />
+    <ClInclude Include="src\zero_system\nn\layer.cuh" />
+    <ClInclude Include="src\zero_system\nn\model.cuh" />
     <ClInclude Include="src\zero_system\nn\util.cuh" />
-    <ClInclude Include="src\zero_system_v2\cluster\kmeans.cuh" />
-    <ClInclude Include="src\zero_system_v2\core\tensor.cuh" />
-    <ClInclude Include="src\zero_system_v2\nn\batch.cuh" />
-    <ClInclude Include="src\zero_system_v2\nn\layer.cuh" />
-    <ClInclude Include="src\zero_system_v2\nn\model.cuh" />
-    <ClInclude Include="src\zero_system_v2\nn\util.cuh" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{D0F85482-BF6A-480C-B267-2F3EBA3807FC}</ProjectGuid>

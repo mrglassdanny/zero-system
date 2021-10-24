@@ -3,7 +3,29 @@
 using namespace zero::core;
 using namespace zero::nn;
 
-// Report member functions:
+// Initializer functions:
+
+void Initializer::initialize(InitializationFunction init_fn, Tensor *tensor,
+                             int fan_in, int fan_out)
+{
+    switch (init_fn)
+    {
+    case InitializationFunction::He:
+        tensor->set_all_rand(0.0f, sqrt(2.0f / fan_in));
+        break;
+    case InitializationFunction::Xavier:
+        tensor->set_all_rand(0.0f, sqrt(1.0f / fan_in));
+        break;
+    case InitializationFunction::Zeros:
+        tensor->reset();
+        break;
+    default:
+        tensor->set_all_rand(0.0f, 1.0f);
+        break;
+    }
+}
+
+// Report functions:
 
 void Report::print()
 {
@@ -12,7 +34,7 @@ void Report::print()
 
 void Report::update_correct_cnt(Tensor *n, Tensor *y)
 {
-    int lst_lyr_n_cnt = n->get_col_cnt();
+    int lst_lyr_n_cnt = n->get_cnt();
 
     if (lst_lyr_n_cnt > 1)
     {
@@ -43,6 +65,8 @@ void Report::update_correct_cnt(Tensor *n, Tensor *y)
         }
     }
 }
+
+// CSVUtils functions:
 
 void CSVUtils::write_csv_header(FILE *csv_file_ptr)
 {

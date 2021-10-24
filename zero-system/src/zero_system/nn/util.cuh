@@ -1,7 +1,5 @@
 #pragma once
 
-#include <vector>
-
 #include "../core/tensor.cuh"
 
 namespace zero
@@ -10,7 +8,7 @@ namespace zero
 
     namespace nn
     {
-        enum ActivationFunctionId
+        enum ActivationFunction
         {
             None,
             ReLU,
@@ -20,17 +18,38 @@ namespace zero
             Cosine
         };
 
-        enum CostFunctionId
+        enum CostFunction
         {
             MSE,
             CrossEntropy
         };
 
-        enum PoolingType
+        enum PoolingFunction
         {
             Average,
             Max,
             Global
+        };
+
+        enum InitializationFunction
+        {
+            He,
+            Xavier,
+            Zeros
+        };
+
+        enum OptimizationFunction
+        {
+            GradientDescent,
+            Momentum,
+            RMSProp,
+            Adam
+        };
+
+        class Initializer
+        {
+        public:
+            static void initialize(InitializationFunction init_fn, Tensor *tensor, int fan_in, int fan_out);
         };
 
         class Report
