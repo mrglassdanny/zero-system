@@ -40,9 +40,9 @@ __device__ float d_sine(float val)
     return sin(val);
 }
 
-__device__ float d_derive_sine(float sine_val)
+__device__ float d_derive_sine(float val)
 {
-    return cos(sine_val);
+    return cos(val);
 }
 
 __device__ float d_cosine(float val)
@@ -50,9 +50,9 @@ __device__ float d_cosine(float val)
     return cos(val);
 }
 
-__device__ float d_derive_cosine(float cosine_val)
+__device__ float d_derive_cosine(float val)
 {
-    return -sin(cosine_val);
+    return -sin(val);
 }
 
 // Kernel functions:
@@ -458,10 +458,10 @@ __global__ void k_derive_activation(float *n_arr, float *dc_arr, int n_cnt, Acti
             dc_arr[tid] *= d_derive_tanh(d_tanh(n_arr[tid]));
             break;
         case ActivationFunction::Sine:
-            dc_arr[tid] *= d_derive_sine(d_sine(n_arr[tid]));
+            dc_arr[tid] *= d_derive_sine(n_arr[tid]);
             break;
         case ActivationFunction::Cosine:
-            dc_arr[tid] *= d_derive_cosine(d_cosine(n_arr[tid]));
+            dc_arr[tid] *= d_derive_cosine(n_arr[tid]);
             break;
         default:
             // None
