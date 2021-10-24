@@ -10,10 +10,7 @@ using namespace zero::nn;
 
 Supervisor *init_mnist_supervisor()
 {
-
-    int img_rows = 28;
-    int img_cols = 28;
-    int img_area = img_rows * img_cols;
+    int img_area = IMAGE_ROW_CNT * IMAGE_COL_CNT;
 
     int img_cnt = 60000;
 
@@ -58,9 +55,11 @@ int main(int argc, char **argv)
 {
     Supervisor *sup = init_mnist_supervisor();
 
-    Model *model = new Model(CostFunction::MSE, 0.01f);
+    Model *model = new Model(CostFunction::MSE, 0.00001f);
 
-    model->add_layer(new ConvolutionalLayer(sup->get_x_shape(), 3, 3, 3, InitializationFunction::He));
+    std::vector<int> n_shape{1, IMAGE_ROW_CNT, IMAGE_COL_CNT};
+
+    model->add_layer(new ConvolutionalLayer(n_shape, 3, 3, 3, InitializationFunction::He));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
     model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 3, 3, 3, InitializationFunction::He));
@@ -73,6 +72,8 @@ int main(int argc, char **argv)
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
     model->all(sup, 32, 100, nullptr);
+
+    model->save("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist.nn");
 
     delete model;
 
