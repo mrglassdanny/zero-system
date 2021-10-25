@@ -17,12 +17,12 @@ __device__ float d_derive_relu(float relu_val)
 
 __device__ float d_sigmoid(float val)
 {
-    return (1.0 / (1.0 + exp(-val)));
+    return (1.0f / (1.0f + exp(-val)));
 }
 
 __device__ float d_derive_sigmoid(float sigmoid_val)
 {
-    return (sigmoid_val) * (1.0 - sigmoid_val);
+    return (sigmoid_val) * (1.0f - sigmoid_val);
 }
 
 __device__ float d_tanh(float val)
@@ -32,7 +32,7 @@ __device__ float d_tanh(float val)
 
 __device__ float d_derive_tanh(float tanh_val)
 {
-    return (1 - (tanh_val * tanh_val));
+    return (1.0f - (tanh_val * tanh_val));
 }
 
 __device__ float d_sine(float val)
@@ -1227,6 +1227,9 @@ void NormalizationLayer::evaluate(Tensor *nxt_n, bool train_flg)
         int num_blocks = (n_cnt / threads_per_block) + 1;
         k_normalize<<<num_blocks, threads_per_block>>>(this->n->get_arr(), this->d_mean_val, this->d_stddev_val, nxt_n->get_arr(), n_cnt);
     }
+
+    this->n->dump_to_csv("C:\\Users\\d0g0825\\Desktop\\temp\\n.csv");
+    nxt_n->dump_to_csv("C:\\Users\\d0g0825\\Desktop\\temp\\nxt_n.csv");
 }
 
 Tensor *NormalizationLayer::derive(Tensor *dc)

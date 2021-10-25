@@ -724,44 +724,62 @@ void Tensor::dump_to_csv(const char *csv_file_name)
 {
     int dim_cnt = this->shape.size();
 
-    if (dim_cnt != 2)
+    if (dim_cnt == 1)
     {
-        return;
-    }
+        int cnt = this->shape[0];
 
-    int row_cnt = this->shape[0];
-    int col_cnt = this->shape[1];
+        FILE *file_ptr = fopen(csv_file_name, "w");
 
-    FILE *file_ptr = fopen(csv_file_name, "w");
+        fprintf(file_ptr, "col\n");
 
-    for (int j = 0; j < col_cnt; j++)
-    {
-
-        if (j < col_cnt - 1)
+        for (int i = 0; i < cnt; i++)
         {
-            fprintf(file_ptr, "col_%d,", j);
+            fprintf(file_ptr, "%f\n", this->get_val(i));
         }
-        else
-        {
-            fprintf(file_ptr, "col_%d", j);
-        }
-    }
-    fprintf(file_ptr, "\n");
 
-    for (int i = 0; i < row_cnt; i++)
+        fclose(file_ptr);
+    }
+    else if (dim_cnt == 2)
     {
+
+        int row_cnt = this->shape[0];
+        int col_cnt = this->shape[1];
+
+        FILE *file_ptr = fopen(csv_file_name, "w");
+
         for (int j = 0; j < col_cnt; j++)
         {
+
             if (j < col_cnt - 1)
             {
-                fprintf(file_ptr, "%f,", this->get_val(i * col_cnt + j));
+                fprintf(file_ptr, "col_%d,", j);
             }
             else
             {
-                fprintf(file_ptr, "%f", this->get_val(i * col_cnt + j));
+                fprintf(file_ptr, "col_%d", j);
             }
         }
         fprintf(file_ptr, "\n");
+
+        for (int i = 0; i < row_cnt; i++)
+        {
+            for (int j = 0; j < col_cnt; j++)
+            {
+                if (j < col_cnt - 1)
+                {
+                    fprintf(file_ptr, "%f,", this->get_val(i * col_cnt + j));
+                }
+                else
+                {
+                    fprintf(file_ptr, "%f", this->get_val(i * col_cnt + j));
+                }
+            }
+            fprintf(file_ptr, "\n");
+        }
+        fclose(file_ptr);
     }
-    fclose(file_ptr);
+    else
+    {
+        return;
+    }
 }
