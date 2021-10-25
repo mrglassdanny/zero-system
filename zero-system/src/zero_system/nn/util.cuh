@@ -27,8 +27,7 @@ namespace zero
         enum PoolingFunction
         {
             Average,
-            Max,
-            Global
+            Max
         };
 
         enum InitializationFunction
