@@ -12,7 +12,7 @@ using namespace zero::cluster;
 void nn_test()
 {
 
-	Model *model = new Model(CostFunction::MSE, 0.001f);
+	Model *model = new Model(CostFunction::CrossEntropy, 0.001f);
 
 	Tensor *x = new Tensor(Device::Cuda, 1, 16, 16);
 	x->set_all_rand(0.0f, 1.0f);
@@ -23,12 +23,12 @@ void nn_test()
 	model->add_layer(new ConvolutionalLayer(x->get_shape(), 3, 3, 3, InitializationFunction::He));
 	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
 
-	model->add_layer(new PoolingLayer(model->get_output_shape(), PoolingFunction::Max));
+	model->add_layer(new PoolingLayer(model->get_output_shape(), PoolingFunction::Average));
 
 	model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 3, 3, 3, InitializationFunction::He));
 	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
 
-	model->add_layer(new PoolingLayer(model->get_output_shape(), PoolingFunction::Max));
+	model->add_layer(new PoolingLayer(model->get_output_shape(), PoolingFunction::Average));
 
 	model->add_layer(new LinearLayer(model->get_output_shape(), 32, InitializationFunction::He));
 	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
