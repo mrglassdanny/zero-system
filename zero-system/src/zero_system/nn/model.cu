@@ -17,12 +17,12 @@ __device__ float d_derive_mse_cost(float n_val, float y_val)
 
 __device__ float d_cross_entropy_cost(float n_val, float y_val)
 {
-    return (float)((y_val * log(n_val)) + ((1.0 - y_val) * log(1.0 - n_val)));
+    return (float)((y_val * log(n_val)) + ((1.0f - y_val) * log(1.0f - n_val)));
 }
 
 __device__ float d_derive_cross_entropy_cost(float n_val, float y_val)
 {
-    return (n_val - y_val);
+    return -(-(y_val / n_val) + ((1.0f - y_val) / (1.0f - n_val)));
 }
 
 // Kernel functions:
@@ -441,7 +441,7 @@ Report Model::test(Batch *batch)
         x->to(Device::Cuda);
         y->to(Device::Cuda);
 
-        Tensor *pred = this->forward(x, true);
+        Tensor *pred = this->forward(x, false);
         cost += this->cost(pred, y);
 
         rpt.update_correct_cnt(pred, y);
