@@ -17,7 +17,7 @@ namespace zero
             CostFunction cost_fn;
             float learning_rate;
 
-            float *d_cost;
+            float *d_cost_val;
 
         public:
             Model(CostFunction cost_fn, float learning_rate);

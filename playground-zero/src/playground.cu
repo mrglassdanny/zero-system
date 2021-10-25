@@ -14,32 +14,23 @@ void nn_test()
 
 	Model *model = new Model(CostFunction::MSE, 0.001f);
 
-	Tensor *x = new Tensor(Device::Cuda, 3, 8, 8);
+	Tensor *x = new Tensor(Device::Cuda, 64);
 	x->set_all_rand(0.0f, 1.0f);
 
 	Tensor *y = new Tensor(Device::Cuda, 8);
 	y->set_val(2, 1.0f);
 
-	model->add_layer(new ConvolutionalLayer(x->get_shape(), 6, 2, 2, InitializationFunction::He));
-	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
+	model->add_layer(new LinearLayer(x->get_shape(), 32, InitializationFunction::He));
+	//model->add_layer(new NormalizationLayer(model->get_output_shape()));
+	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::None));
 
-	model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 12, 2, 2, InitializationFunction::He));
-	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
-
-	model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 4, 3, 3, InitializationFunction::He));
-	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
-
-	model->add_layer(new LinearLayer(model->get_output_shape(), 51, InitializationFunction::He));
-	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Cosine));
-
-	model->add_layer(new LinearLayer(model->get_output_shape(), 43, InitializationFunction::He));
-	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Cosine));
-
-	model->add_layer(new LinearLayer(model->get_output_shape(), 32, InitializationFunction::He));
-	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sine));
+	model->add_layer(new LinearLayer(model->get_output_shape(), 16, InitializationFunction::He));
+	//model->add_layer(new NormalizationLayer(model->get_output_shape()));
+	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::None));
 
 	model->add_layer(new LinearLayer(model->get_output_shape(), Tensor::get_cnt(y->get_shape()), InitializationFunction::He));
-	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
+	model->add_layer(new NormalizationLayer(model->get_output_shape()));
+	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::None));
 
 	model->gradient_check(x, y, true);
 

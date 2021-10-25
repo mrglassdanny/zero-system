@@ -2,6 +2,7 @@
 
 #include "../core/tensor.cuh"
 #include "util.cuh"
+#include "constants.cuh"
 
 namespace zero
 {
@@ -15,7 +16,7 @@ namespace zero
             Convolutional,
             Activation,
             Dropout,
-            BatchNormalization
+            Normalization
         };
 
         class Layer
@@ -29,8 +30,9 @@ namespace zero
             ~Layer();
 
             virtual LayerType get_type() = 0;
-            virtual std::vector<int> get_input_shape() = 0;
-            virtual std::vector<int> get_output_shape() = 0;
+            virtual std::vector<int> get_input_shape();
+            virtual std::vector<int> get_output_shape();
+            virtual int get_adjusted_input_cnt();
             virtual void evaluate(Tensor *nxt_n, bool train_flg);
             virtual Tensor *derive(Tensor *dc) = 0;
             virtual void save(FILE *file_ptr);
@@ -49,7 +51,6 @@ namespace zero
             ~LearnableLayer();
 
             virtual void save(FILE *file_ptr);
-
             virtual void step(int batch_size, float learning_rate) = 0;
         };
 
@@ -61,12 +62,10 @@ namespace zero
             ~LinearLayer();
 
             virtual LayerType get_type();
-            virtual std::vector<int> get_input_shape();
             virtual std::vector<int> get_output_shape();
             virtual void evaluate(Tensor *nxt_n, bool train_flg);
             virtual Tensor *derive(Tensor *dc);
             virtual void save(FILE *file_ptr);
-
             virtual void step(int batch_size, float learning_rate);
         };
 
@@ -80,12 +79,11 @@ namespace zero
             ~ConvolutionalLayer();
 
             virtual LayerType get_type();
-            virtual std::vector<int> get_input_shape();
             virtual std::vector<int> get_output_shape();
+            virtual int get_adjusted_input_cnt();
             virtual void evaluate(Tensor *nxt_n, bool train_flg);
             virtual Tensor *derive(Tensor *dc);
             virtual void save(FILE *file_ptr);
-
             virtual void step(int batch_size, float learning_rate);
         };
 
@@ -100,8 +98,6 @@ namespace zero
             ~ActivationLayer();
 
             virtual LayerType get_type();
-            virtual std::vector<int> get_input_shape();
-            virtual std::vector<int> get_output_shape();
             virtual void evaluate(Tensor *nxt_n, bool train_flg);
             virtual Tensor *derive(Tensor *dc);
             virtual void save(FILE *file_ptr);
@@ -119,27 +115,23 @@ namespace zero
             ~DropoutLayer();
 
             virtual LayerType get_type();
-            virtual std::vector<int> get_input_shape();
-            virtual std::vector<int> get_output_shape();
             virtual void evaluate(Tensor *nxt_n, bool train_flg);
             virtual Tensor *derive(Tensor *dc);
             virtual void save(FILE *file_ptr);
         };
 
-        class BatchNormalizationLayer : public Layer
+        class NormalizationLayer : public Layer
         {
         private:
-            Tensor *mean;
-            Tensor *stddev;
+            float *d_mean_val;
+            float *d_stddev_val;
 
         public:
-            BatchNormalizationLayer(std::vector<int> n_shape);
-            BatchNormalizationLayer(FILE *file_ptr);
-            ~BatchNormalizationLayer();
+            NormalizationLayer(std::vector<int> n_shape);
+            NormalizationLayer(FILE *file_ptr);
+            ~NormalizationLayer();
 
             virtual LayerType get_type();
-            virtual std::vector<int> get_input_shape();
-            virtual std::vector<int> get_output_shape();
             virtual void evaluate(Tensor *nxt_n, bool train_flg);
             virtual Tensor *derive(Tensor *dc);
             virtual void save(FILE *file_ptr);

@@ -22,6 +22,7 @@
     <ClInclude Include="src\zero_system\cluster\kmeans.cuh" />
     <ClInclude Include="src\zero_system\core\tensor.cuh" />
     <ClInclude Include="src\zero_system\nn\batch.cuh" />
+    <ClInclude Include="src\zero_system\nn\constants.cuh" />
     <ClInclude Include="src\zero_system\nn\layer.cuh" />
     <ClInclude Include="src\zero_system\nn\model.cuh" />
     <ClInclude Include="src\zero_system\nn\util.cuh" />

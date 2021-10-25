@@ -510,6 +510,79 @@ __global__ void k_derive_dropout(float *dc_arr, float *dropout_mask_arr, int n_c
     }
 }
 
+__global__ void k_normalize_mean(float *arr, float *mean_val, int cnt, int adj_cnt)
+{
+    __shared__ float temp[CUDA_THREADS_PER_BLOCK];
+    memset(temp, 0, CUDA_THREADS_PER_BLOCK * sizeof(float));
+
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < cnt)
+    {
+        temp[tid] = (arr[tid] / adj_cnt);
+    }
+
+    __syncthreads();
+
+    if (tid == 0)
+    {
+        float val = 0.0f;
+        for (int i = 0; i < CUDA_THREADS_PER_BLOCK; i++)
+        {
+            val += temp[i];
+        }
+        atomicAdd(mean_val, val);
+    }
+}
+
+__global__ void k_normalize_stddev(float *arr, float *mean_val, float *stddev_val, int cnt, int adj_cnt)
+{
+    __shared__ float temp[CUDA_THREADS_PER_BLOCK];
+    memset(temp, 0, CUDA_THREADS_PER_BLOCK * sizeof(float));
+
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < cnt)
+    {
+        float val = (arr[tid] - *mean_val);
+        temp[tid] = (val * val) / adj_cnt;
+    }
+
+    __syncthreads();
+
+    if (tid == 0)
+    {
+        float val = 0.0f;
+        for (int i = 0; i < CUDA_THREADS_PER_BLOCK; i++)
+        {
+            val += temp[i];
+        }
+        atomicAdd(stddev_val, val);
+    }
+}
+
+__global__ void k_normalize(float *n_arr, float *mean_val, float *stddev_val, float *nxt_n_arr, int n_cnt)
+{
+
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < n_cnt)
+    {
+        nxt_n_arr[tid] = (n_arr[tid] - *mean_val) / (sqrt(*stddev_val + EPSILON));
+    }
+}
+
+__global__ void k_derive_normalize(float *dc_arr, float *n_arr, float *mean_val, float *stddev_val, int n_cnt)
+{
+
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < n_cnt)
+    {
+        dc_arr[tid] *= (1.0f / (sqrt(*stddev_val + EPSILON)));
+    }
+}
+
 // Layer functions:
 
 Layer::Layer(std::vector<int> n_shape)
@@ -543,6 +616,21 @@ Layer::~Layer()
     {
         delete this->n;
     }
+}
+
+std::vector<int> Layer::get_input_shape()
+{
+    return this->n->get_shape();
+}
+
+std::vector<int> Layer::get_output_shape()
+{
+    return this->n->get_shape();
+}
+
+int Layer::get_adjusted_input_cnt()
+{
+    return this->n->get_cnt();
 }
 
 void Layer::evaluate(Tensor *nxt_n, bool train_flg)
@@ -706,11 +794,6 @@ LayerType LinearLayer::get_type()
     return LayerType::Linear;
 }
 
-std::vector<int> LinearLayer::get_input_shape()
-{
-    return this->n->get_shape();
-}
-
 std::vector<int> LinearLayer::get_output_shape()
 {
     return this->b->get_shape();
@@ -834,14 +917,14 @@ LayerType ConvolutionalLayer::get_type()
     return LayerType::Convolutional;
 }
 
-std::vector<int> ConvolutionalLayer::get_input_shape()
-{
-    return this->n->get_shape();
-}
-
 std::vector<int> ConvolutionalLayer::get_output_shape()
 {
     return this->b->get_shape();
+}
+
+int ConvolutionalLayer::get_adjusted_input_cnt()
+{
+    return (this->n->get_shape()[1] * this->n->get_shape()[2]);
 }
 
 void ConvolutionalLayer::evaluate(Tensor *nxt_n, bool train_flg)
@@ -990,16 +1073,6 @@ LayerType ActivationLayer::get_type()
     return LayerType::Activation;
 }
 
-std::vector<int> ActivationLayer::get_input_shape()
-{
-    return this->n->get_shape();
-}
-
-std::vector<int> ActivationLayer::get_output_shape()
-{
-    return this->n->get_shape();
-}
-
 void ActivationLayer::evaluate(Tensor *nxt_n, bool train_flg)
 {
     Layer::evaluate(nxt_n, train_flg);
@@ -1055,16 +1128,6 @@ LayerType DropoutLayer::get_type()
     return LayerType::Dropout;
 }
 
-std::vector<int> DropoutLayer::get_input_shape()
-{
-    return this->n->get_shape();
-}
-
-std::vector<int> DropoutLayer::get_output_shape()
-{
-    return this->n->get_shape();
-}
-
 void DropoutLayer::evaluate(Tensor *nxt_n, bool train_flg)
 {
     Layer::evaluate(nxt_n, train_flg);
@@ -1112,81 +1175,74 @@ void DropoutLayer::save(FILE *file_ptr)
 
 // BatchNormalizationLayer functions:
 
-BatchNormalizationLayer::BatchNormalizationLayer(std::vector<int> n_shape)
+NormalizationLayer::NormalizationLayer(std::vector<int> n_shape)
     : Layer(n_shape)
 {
-    this->mean = new Tensor(Device::Cuda, n_shape);
-    this->stddev = new Tensor(Device::Cuda, n_shape);
+    cudaMalloc(&this->d_mean_val, sizeof(float));
+    cudaMalloc(&this->d_stddev_val, sizeof(float));
 }
 
-BatchNormalizationLayer::BatchNormalizationLayer(FILE *file_ptr)
+NormalizationLayer::NormalizationLayer(FILE *file_ptr)
     : Layer(file_ptr)
 {
-    //fread(&this->dropout_rate, sizeof(float), 1, file_ptr);
+    cudaMalloc(&this->d_mean_val, sizeof(float));
+    cudaMalloc(&this->d_stddev_val, sizeof(float));
 }
 
-BatchNormalizationLayer::~BatchNormalizationLayer()
+NormalizationLayer::~NormalizationLayer()
 {
-    delete this->mean;
-    delete this->stddev;
+    cudaFree(this->d_mean_val);
+    cudaFree(this->d_stddev_val);
 }
 
-LayerType BatchNormalizationLayer::get_type()
+LayerType NormalizationLayer::get_type()
 {
-    return LayerType::BatchNormalization;
+    return LayerType::Normalization;
 }
 
-std::vector<int> BatchNormalizationLayer::get_input_shape()
-{
-    return this->n->get_shape();
-}
-
-std::vector<int> BatchNormalizationLayer::get_output_shape()
-{
-    return this->n->get_shape();
-}
-
-void BatchNormalizationLayer::evaluate(Tensor *nxt_n, bool train_flg)
+void NormalizationLayer::evaluate(Tensor *nxt_n, bool train_flg)
 {
     Layer::evaluate(nxt_n, train_flg);
 
-    if (train_flg)
-    {
-        {
-            int threads_per_block = CUDA_THREADS_PER_BLOCK;
-            int num_blocks = (this->dropout_mask->get_cnt() / threads_per_block) + 1;
-            k_set_dropout_mask<<<num_blocks, threads_per_block>>>(this->dropout_mask->get_arr(), this->dropout_mask->get_cnt(),
-                                                                  this->dropout_rate);
-        }
+    int n_cnt = this->n->get_cnt();
+    int adj_n_cnt = this->get_adjusted_input_cnt();
 
-        if (this->dropout_rate > 0.0f)
-        {
-            int threads_per_block = CUDA_THREADS_PER_BLOCK;
-            int num_blocks((nxt_n->get_cnt() / threads_per_block) + 1);
-            k_dropout<<<num_blocks, threads_per_block>>>(this->n->get_arr(), this->dropout_mask->get_arr(), nxt_n->get_arr(),
-                                                         nxt_n->get_cnt(), this->dropout_rate);
-        }
+    cudaMemset(this->d_mean_val, 0, sizeof(float));
+    cudaMemset(this->d_stddev_val, 0, sizeof(float));
+
+    {
+        int threads_per_block = CUDA_THREADS_PER_BLOCK;
+        int num_blocks = (n_cnt / threads_per_block) + 1;
+        k_normalize_mean<<<num_blocks, threads_per_block>>>(this->n->get_arr(), this->d_mean_val, n_cnt, adj_n_cnt);
+    }
+
+    {
+        int threads_per_block = CUDA_THREADS_PER_BLOCK;
+        int num_blocks = (n_cnt / threads_per_block) + 1;
+        k_normalize_stddev<<<num_blocks, threads_per_block>>>(this->n->get_arr(), this->d_mean_val, this->d_stddev_val, n_cnt, adj_n_cnt);
+    }
+
+    {
+        int threads_per_block = CUDA_THREADS_PER_BLOCK;
+        int num_blocks = (n_cnt / threads_per_block) + 1;
+        k_normalize<<<num_blocks, threads_per_block>>>(this->n->get_arr(), this->d_mean_val, this->d_stddev_val, nxt_n->get_arr(), n_cnt);
     }
 }
 
-Tensor *BatchNormalizationLayer::derive(Tensor *dc)
+Tensor *NormalizationLayer::derive(Tensor *dc)
 {
+    int n_cnt = this->n->get_cnt();
+
     {
-        if (this->dropout_rate > 0.0f)
-        {
-            int threads_per_block = CUDA_THREADS_PER_BLOCK;
-            int num_blocks = (this->n->get_cnt() / threads_per_block) + 1;
-            k_derive_dropout<<<num_blocks, threads_per_block>>>(dc->get_arr(), this->dropout_mask->get_arr(),
-                                                                this->n->get_cnt(), this->dropout_rate);
-        }
+        int threads_per_block = CUDA_THREADS_PER_BLOCK;
+        int num_blocks = (n_cnt / threads_per_block) + 1;
+        k_derive_normalize<<<num_blocks, threads_per_block>>>(dc->get_arr(), this->n->get_arr(), this->d_mean_val, this->d_stddev_val, n_cnt);
     }
 
     return dc;
 }
 
-void BatchNormalizationLayer::save(FILE *file_ptr)
+void NormalizationLayer::save(FILE *file_ptr)
 {
     Layer::save(file_ptr);
-
-    //fwrite(&this->dropout_rate, sizeof(float), 1, file_ptr);
 }

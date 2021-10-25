@@ -27,7 +27,7 @@ __device__ float d_derive_cross_entropy_cost(float n_val, float y_val)
 
 // Kernel functions:
 
-__global__ void k_cost(float *n_arr, float *y_arr, float *cost, int n_cnt, CostFunction cost_fn)
+__global__ void k_cost(float *n_arr, float *y_arr, float *cost_val, int n_cnt, CostFunction cost_fn)
 {
     __shared__ float temp[CUDA_THREADS_PER_BLOCK];
     memset(temp, 0, CUDA_THREADS_PER_BLOCK * sizeof(float));
@@ -61,7 +61,7 @@ __global__ void k_cost(float *n_arr, float *y_arr, float *cost, int n_cnt, CostF
             sum += temp[i];
         }
 
-        atomicAdd(cost, sum);
+        atomicAdd(cost_val, sum);
     }
 }
 
@@ -92,8 +92,8 @@ Model::Model(CostFunction cost_fn, float learning_rate)
     this->cost_fn = cost_fn;
     this->learning_rate = learning_rate;
 
-    cudaMalloc(&this->d_cost, sizeof(float));
-    cudaMemset(this->d_cost, 0, sizeof(float));
+    cudaMalloc(&this->d_cost_val, sizeof(float));
+    cudaMemset(this->d_cost_val, 0, sizeof(float));
 }
 
 Model::Model(const char *path)
@@ -134,8 +134,8 @@ Model::Model(const char *path)
         this->add_layer(lyr);
     }
 
-    cudaMalloc(&this->d_cost, sizeof(float));
-    cudaMemset(this->d_cost, 0, sizeof(float));
+    cudaMalloc(&this->d_cost_val, sizeof(float));
+    cudaMemset(this->d_cost_val, 0, sizeof(float));
 
     fclose(file_ptr);
 }
@@ -147,7 +147,7 @@ Model::~Model()
         delete lyr;
     }
 
-    cudaFree(this->d_cost);
+    cudaFree(this->d_cost_val);
 }
 
 void Model::save(const char *path)
@@ -211,21 +211,21 @@ Tensor *Model::forward(Tensor *x, bool train_flg)
 
 float Model::cost(Tensor *pred, Tensor *y)
 {
-    float h_cost = 0.0f;
+    float h_cost_val = 0.0f;
 
     {
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
         int num_blocks = (pred->get_cnt() / threads_per_block) + 1;
 
         k_cost<<<num_blocks, threads_per_block>>>(pred->get_arr(), y->get_arr(),
-                                                  this->d_cost, pred->get_cnt(), this->cost_fn);
+                                                  this->d_cost_val, pred->get_cnt(), this->cost_fn);
     }
 
-    cudaMemcpy(&h_cost, this->d_cost, sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpy(&h_cost_val, this->d_cost_val, sizeof(float), cudaMemcpyDeviceToHost);
 
-    cudaMemset(this->d_cost, 0, sizeof(float));
+    cudaMemset(this->d_cost_val, 0, sizeof(float));
 
-    return h_cost;
+    return h_cost_val;
 }
 
 void Model::backward(Tensor *pred, Tensor *y)
@@ -268,8 +268,6 @@ void Model::gradient_check(Tensor *x, Tensor *y, bool print_flg)
     float agg_num_grad = 0.0f;
     float agg_grad_diff = 0.0f;
 
-    float epsilon = 0.001f;
-
     // Analytical gradients:
     {
         Tensor *pred = this->forward(x, true);
@@ -294,8 +292,8 @@ void Model::gradient_check(Tensor *x, Tensor *y, bool print_flg)
 
                     float orig_w_val = lrn_lyr->w->get_val(i);
 
-                    float left_w_val = orig_w_val - epsilon;
-                    float right_w_val = orig_w_val + epsilon;
+                    float left_w_val = orig_w_val - EPSILON;
+                    float right_w_val = orig_w_val + EPSILON;
 
                     float ana_grad = lrn_lyr->dw->get_val(i);
 
@@ -313,7 +311,7 @@ void Model::gradient_check(Tensor *x, Tensor *y, bool print_flg)
                         delete pred;
                     }
 
-                    float num_grad = (right_cost - left_cost) / (2.0f * epsilon);
+                    float num_grad = (right_cost - left_cost) / (2.0f * EPSILON);
 
                     if (print_flg)
                     {
@@ -334,8 +332,8 @@ void Model::gradient_check(Tensor *x, Tensor *y, bool print_flg)
 
                     float orig_b_val = lrn_lyr->b->get_val(i);
 
-                    float left_b_val = orig_b_val - epsilon;
-                    float right_b_val = orig_b_val + epsilon;
+                    float left_b_val = orig_b_val - EPSILON;
+                    float right_b_val = orig_b_val + EPSILON;
 
                     float ana_grad = lrn_lyr->db->get_val(i);
 
@@ -353,7 +351,7 @@ void Model::gradient_check(Tensor *x, Tensor *y, bool print_flg)
                         delete pred;
                     }
 
-                    float num_grad = (right_cost - left_cost) / (2.0f * epsilon);
+                    float num_grad = (right_cost - left_cost) / (2.0f * EPSILON);
 
                     if (print_flg)
                     {

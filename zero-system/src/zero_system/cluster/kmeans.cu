@@ -231,12 +231,12 @@ float KMeans::train(Tensor *x)
 
     int epoch = 1;
 
-    float h_cost;
-    float h_prv_cost = FLT_MAX;
+    float h_cost_val;
+    float h_prv_cost_val = FLT_MAX;
 
-    float *d_cost;
-    cudaMalloc(&d_cost, sizeof(float));
-    cudaMemset(d_cost, 0, sizeof(float));
+    float *d_cost_val;
+    cudaMalloc(&d_cost_val, sizeof(float));
+    cudaMemset(d_cost_val, 0, sizeof(float));
 
     while (true)
     {
@@ -244,21 +244,21 @@ float KMeans::train(Tensor *x)
         {
             int threads_per_block(THREADS_PER_BLOCK);
             int num_blocks((x_row_cnt / threads_per_block) + 1);
-            k_assign_to_clusters<<<num_blocks, threads_per_block>>>(x->get_arr(), cluster_assignments->get_arr(), this->clusters->get_arr(), d_cost, this->feature_cnt, this->cluster_cnt, x_row_cnt);
+            k_assign_to_clusters<<<num_blocks, threads_per_block>>>(x->get_arr(), cluster_assignments->get_arr(), this->clusters->get_arr(), d_cost_val, this->feature_cnt, this->cluster_cnt, x_row_cnt);
         }
 
         // Analyze cost:
         {
-            cudaMemcpy(&h_cost, d_cost, sizeof(float), cudaMemcpyDeviceToHost);
+            cudaMemcpy(&h_cost_val, d_cost_val, sizeof(float), cudaMemcpyDeviceToHost);
 
-            h_cost /= x_row_cnt;
+            h_cost_val /= x_row_cnt;
 
-            if (h_prv_cost <= h_cost)
+            if (h_prv_cost_val <= h_cost_val)
             {
                 break;
             }
 
-            h_prv_cost = h_cost;
+            h_prv_cost_val = h_cost_val;
         }
 
         // Reset clusters prior to update:
@@ -281,7 +281,7 @@ float KMeans::train(Tensor *x)
 
         // Reset cost and assignment counts for next epoch:
         {
-            cudaMemset(d_cost, 0, sizeof(float));
+            cudaMemset(d_cost_val, 0, sizeof(float));
 
             cluster_assignment_cnts->reset();
         }
@@ -289,12 +289,12 @@ float KMeans::train(Tensor *x)
         epoch++;
     }
 
-    cudaFree(d_cost);
+    cudaFree(d_cost_val);
 
     delete cluster_assignments;
     delete cluster_assignment_cnts;
 
-    return h_cost;
+    return h_cost_val;
 }
 
 Tensor *KMeans::predict(Tensor *x)
