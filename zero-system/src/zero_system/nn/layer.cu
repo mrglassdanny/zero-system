@@ -583,6 +583,172 @@ __global__ void k_derive_normalize(float *dc_arr, float *n_arr, float *mean_val,
     }
 }
 
+__global__ void k_pool(float *n_arr, float *nxt_n_arr, int n_cnt, int n_row_cnt, int n_col_cnt, int nxt_n_cnt, int nxt_n_row_cnt, int nxt_n_col_cnt,
+                       PoolingFunction pool_fn, int pool_row_cnt, int pool_col_cnt)
+{
+
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    int nxt_n_idx = tid;
+
+    if (nxt_n_idx < nxt_n_cnt)
+    {
+        int nxt_n_row_idx = nxt_n_idx / nxt_n_col_cnt;
+        int nxt_n_col_idx = nxt_n_idx % nxt_n_col_cnt;
+
+        int n_start_row_idx = nxt_n_row_idx * pool_row_cnt;
+        int n_start_col_idx = nxt_n_col_idx * pool_col_cnt;
+
+        switch (pool_fn)
+        {
+        case PoolingFunction::Average:
+        {
+            float sum_val = 0.0f;
+
+#pragma unroll
+            for (int i = 0; i < pool_row_cnt; i++)
+            {
+#pragma unroll
+                for (int j = 0; j < pool_col_cnt; j++)
+                {
+                    int n_row_idx = n_start_row_idx + i;
+                    int n_col_idx = n_start_col_idx + j;
+
+                    int n_idx = (n_row_idx * n_col_cnt) + n_col_idx;
+
+                    float val = n_arr[n_idx];
+
+                    sum_val += val;
+                }
+            }
+
+            float avg_val = sum_val / (pool_row_cnt * pool_col_cnt);
+
+            nxt_n_arr[nxt_n_idx] = avg_val;
+
+#pragma unroll
+            for (int i = 0; i < pool_row_cnt; i++)
+            {
+#pragma unroll
+                for (int j = 0; j < pool_col_cnt; j++)
+                {
+                    int n_row_idx = n_start_row_idx + i;
+                    int n_col_idx = n_start_col_idx + j;
+
+                    int n_idx = (n_row_idx * n_col_cnt) + n_col_idx;
+
+                    n_arr[n_idx] = avg_val;
+                }
+            }
+        }
+
+        break;
+        case PoolingFunction::Max:
+        {
+            float max_val = -FLT_MAX;
+            int max_val_idx = -1;
+
+#pragma unroll
+            for (int i = 0; i < pool_row_cnt; i++)
+            {
+#pragma unroll
+                for (int j = 0; j < pool_col_cnt; j++)
+                {
+                    int n_row_idx = n_start_row_idx + i;
+                    int n_col_idx = n_start_col_idx + j;
+
+                    int n_idx = (n_row_idx * n_col_cnt) + n_col_idx;
+
+                    float val = n_arr[n_idx];
+
+                    if (val > max_val)
+                    {
+                        max_val = val;
+                        n_arr[max_val_idx] = 0.0f;
+                        max_val_idx = n_idx;
+                    }
+                    else
+                    {
+                        n_arr[n_idx] = 0.0f;
+                    }
+                }
+            }
+
+            nxt_n_arr[nxt_n_idx] = max_val;
+        }
+        break;
+        default:
+            // Nothing...
+            break;
+        }
+    }
+}
+
+__global__ void k_derive_pool(float *dc_arr, float *nxt_dc_arr, float *n_arr, int dc_cnt, int dc_row_cnt, int dc_col_cnt, int n_cnt, int n_row_cnt, int n_col_cnt,
+                              PoolingFunction pool_fn, int pool_row_cnt, int pool_col_cnt)
+{
+
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    int dc_idx = tid;
+
+    if (dc_idx < dc_cnt)
+    {
+        int dc_row_idx = dc_idx / dc_col_cnt;
+        int dc_col_idx = dc_idx % dc_col_cnt;
+
+        int n_start_row_idx = dc_row_idx * pool_row_cnt;
+        int n_start_col_idx = dc_col_idx * pool_col_cnt;
+
+        switch (pool_fn)
+        {
+        case PoolingFunction::Average:
+        {
+
+            int pool_cnt = (pool_row_cnt * pool_col_cnt);
+
+#pragma unroll
+            for (int i = 0; i < pool_row_cnt; i++)
+            {
+#pragma unroll
+                for (int j = 0; j < pool_col_cnt; j++)
+                {
+                    int n_row_idx = n_start_row_idx + i;
+                    int n_col_idx = n_start_col_idx + j;
+
+                    int n_idx = (n_row_idx * n_col_cnt) + n_col_idx;
+
+                    nxt_dc_arr[n_idx] = dc_arr[dc_idx] * (1.0f / pool_cnt);
+                }
+            }
+        }
+
+        break;
+        case PoolingFunction::Max:
+        {
+#pragma unroll
+            for (int i = 0; i < pool_row_cnt; i++)
+            {
+#pragma unroll
+                for (int j = 0; j < pool_col_cnt; j++)
+                {
+                    int n_row_idx = n_start_row_idx + i;
+                    int n_col_idx = n_start_col_idx + j;
+
+                    int n_idx = (n_row_idx * n_col_cnt) + n_col_idx;
+
+                    nxt_dc_arr[n_idx] = dc_arr[dc_idx] * (n_arr[n_idx] > 0.0f ? 1.0f : 0.0f);
+                }
+            }
+        }
+        break;
+        default:
+            // Nothing...
+            break;
+        }
+    }
+}
+
 // Layer functions:
 
 Layer::Layer(std::vector<int> n_shape)
@@ -841,8 +1007,7 @@ Tensor *LinearLayer::derive(Tensor *dc)
         k_lin_derive_z_and_increment_bias_derivative<<<num_blocks, threads_per_block>>>(dc->get_arr(), this->db->get_arr(), dc_cnt);
     }
 
-    Tensor *nxt_dc = new Tensor(Device::Cuda, n_cnt);
-    nxt_dc->reset();
+    Tensor *nxt_dc = new Tensor(Device::Cuda, this->n->get_shape());
 
     {
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
@@ -999,8 +1164,7 @@ Tensor *ConvolutionalLayer::derive(Tensor *dc)
     }
 
     {
-        Tensor *nxt_dc = new Tensor(Device::Cuda, chan_cnt, n_row_cnt, n_col_cnt);
-        nxt_dc->reset();
+        Tensor *nxt_dc = new Tensor(Device::Cuda, this->n->get_shape());
 
         int nxt_dc_row_cnt = nxt_dc->get_shape()[1];
         int nxt_dc_col_cnt = nxt_dc->get_shape()[2];
@@ -1173,7 +1337,7 @@ void DropoutLayer::save(FILE *file_ptr)
     fwrite(&this->dropout_rate, sizeof(float), 1, file_ptr);
 }
 
-// BatchNormalizationLayer functions:
+// NormalizationLayer functions:
 
 NormalizationLayer::NormalizationLayer(std::vector<int> n_shape)
     : Layer(n_shape)
@@ -1227,9 +1391,6 @@ void NormalizationLayer::evaluate(Tensor *nxt_n, bool train_flg)
         int num_blocks = (n_cnt / threads_per_block) + 1;
         k_normalize<<<num_blocks, threads_per_block>>>(this->n->get_arr(), this->d_mean_val, this->d_stddev_val, nxt_n->get_arr(), n_cnt);
     }
-
-    this->n->dump_to_csv("C:\\Users\\d0g0825\\Desktop\\temp\\n.csv");
-    nxt_n->dump_to_csv("C:\\Users\\d0g0825\\Desktop\\temp\\nxt_n.csv");
 }
 
 Tensor *NormalizationLayer::derive(Tensor *dc)
@@ -1248,4 +1409,90 @@ Tensor *NormalizationLayer::derive(Tensor *dc)
 void NormalizationLayer::save(FILE *file_ptr)
 {
     Layer::save(file_ptr);
+}
+
+// PoolingLayer functions:
+
+PoolingLayer::PoolingLayer(std::vector<int> n_shape, PoolingFunction pool_fn)
+    : Layer(n_shape)
+{
+    this->pool_fn = pool_fn;
+    this->pool_row_cnt = 2;
+    this->pool_col_cnt = 2;
+}
+
+PoolingLayer::PoolingLayer(FILE *file_ptr)
+    : Layer(file_ptr)
+{
+}
+
+PoolingLayer::~PoolingLayer()
+{
+}
+
+LayerType PoolingLayer::get_type()
+{
+    return LayerType::Pooling;
+}
+
+std::vector<int> PoolingLayer::get_output_shape()
+{
+    int n_chan_cnt = this->n->get_shape()[0];
+    int n_row_cnt = this->n->get_shape()[1];
+    int n_col_cnt = this->n->get_shape()[2];
+
+    std::vector<int> output_shape{n_chan_cnt, n_row_cnt / this->pool_row_cnt, n_col_cnt / this->pool_col_cnt};
+    return output_shape;
+}
+
+void PoolingLayer::evaluate(Tensor *nxt_n, bool train_flg)
+{
+    Layer::evaluate(nxt_n, train_flg);
+
+    int n_cnt = this->n->get_cnt();
+    int nxt_n_cnt = nxt_n->get_cnt();
+    int n_row_cnt = this->n->get_shape()[1];
+    int n_col_cnt = this->n->get_shape()[2];
+    int nxt_n_row_cnt = nxt_n->get_shape()[1];
+    int nxt_n_col_cnt = nxt_n->get_shape()[2];
+
+    {
+        int threads_per_block = CUDA_THREADS_PER_BLOCK;
+        int num_blocks = (nxt_n_cnt / threads_per_block) + 1;
+        k_pool<<<num_blocks, threads_per_block>>>(this->n->get_arr(), nxt_n->get_arr(), n_cnt, n_row_cnt, n_col_cnt, nxt_n_cnt, nxt_n_row_cnt, nxt_n_col_cnt,
+                                                  this->pool_fn, this->pool_row_cnt, this->pool_col_cnt);
+    }
+}
+
+Tensor *PoolingLayer::derive(Tensor *dc)
+{
+    int n_cnt = this->n->get_cnt();
+    int dc_cnt = dc->get_cnt();
+    int n_row_cnt = this->n->get_shape()[1];
+    int n_col_cnt = this->n->get_shape()[2];
+    int dc_row_cnt = n_row_cnt / 2;
+    int dc_col_cnt = n_col_cnt / 2;
+
+    Tensor *nxt_dc = new Tensor(Device::Cuda, this->n->get_shape());
+
+    {
+        int threads_per_block = CUDA_THREADS_PER_BLOCK;
+        int num_blocks = (dc_cnt / threads_per_block) + 1;
+        k_derive_pool<<<num_blocks, threads_per_block>>>(dc->get_arr(), nxt_dc->get_arr(), this->n->get_arr(), dc_cnt, dc_row_cnt, dc_col_cnt, n_cnt, n_row_cnt, n_col_cnt,
+                                                         this->pool_fn, this->pool_row_cnt, this->pool_col_cnt);
+    }
+
+    delete dc;
+    dc = nxt_dc;
+
+    return dc;
+}
+
+void PoolingLayer::save(FILE *file_ptr)
+{
+    Layer::save(file_ptr);
+
+    fwrite(&this->pool_fn, sizeof(PoolingFunction), 1, file_ptr);
+    fwrite(&this->pool_row_cnt, sizeof(int), 1, file_ptr);
+    fwrite(&this->pool_col_cnt, sizeof(int), 1, file_ptr);
 }

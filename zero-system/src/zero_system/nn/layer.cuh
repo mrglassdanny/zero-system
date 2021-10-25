@@ -16,7 +16,8 @@ namespace zero
             Convolutional,
             Activation,
             Dropout,
-            Normalization
+            Normalization,
+            Pooling
         };
 
         class Layer
@@ -71,6 +72,7 @@ namespace zero
 
         class ConvolutionalLayer : public LearnableLayer
         {
+            // NOTE: we only support stride of 1!
         public:
             ConvolutionalLayer(std::vector<int> n_shape,
                                int fltr_cnt, int w_row_cnt, int w_col_cnt,
@@ -132,6 +134,25 @@ namespace zero
             ~NormalizationLayer();
 
             virtual LayerType get_type();
+            virtual void evaluate(Tensor *nxt_n, bool train_flg);
+            virtual Tensor *derive(Tensor *dc);
+            virtual void save(FILE *file_ptr);
+        };
+
+        class PoolingLayer : public Layer
+        {
+        private:
+            PoolingFunction pool_fn;
+            int pool_row_cnt;
+            int pool_col_cnt;
+
+        public:
+            PoolingLayer(std::vector<int> n_shape, PoolingFunction pool_fn);
+            PoolingLayer(FILE *file_ptr);
+            ~PoolingLayer();
+
+            virtual LayerType get_type();
+            std::vector<int> get_output_shape();
             virtual void evaluate(Tensor *nxt_n, bool train_flg);
             virtual Tensor *derive(Tensor *dc);
             virtual void save(FILE *file_ptr);
