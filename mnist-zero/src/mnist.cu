@@ -55,7 +55,7 @@ int main(int argc, char **argv)
 {
     Supervisor *sup = init_mnist_supervisor();
 
-    Model *model = new Model(CostFunction::CrossEntropy, 0.01f);
+    Model *model = new Model(CostFunction::MSE, 0.01f);
 
     std::vector<int> n_shape{1, IMAGE_ROW_CNT, IMAGE_COL_CNT};
 
@@ -66,17 +66,21 @@ int main(int argc, char **argv)
     // model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
     model->add_layer(new LinearLayer(n_shape, 64, InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), 64, InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), Tensor::get_cnt(sup->get_y_shape()), InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
 
-    model->train_and_test(sup, 64, nullptr);
+    Batch *b = sup->create_batch(1, 0, 1);
 
-    model->save("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist.nn");
+    model->gradient_check(b->get_x(0), b->get_y(0), true);
+
+    //model->train_and_test(sup, 64, nullptr);
+
+    //model->save("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist.nn");
 
     delete model;
 
