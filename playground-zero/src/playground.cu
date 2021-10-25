@@ -12,7 +12,7 @@ using namespace zero::cluster;
 void nn_test()
 {
 
-	Model *model = new Model(CostFunction::MSE, 0.001f);
+	Model *model = new Model(CostFunction::CrossEntropy, 0.001f);
 
 	Tensor *x = new Tensor(Device::Cuda, 64);
 	x->set_all_rand(0.0f, 1.0f);
@@ -22,15 +22,15 @@ void nn_test()
 
 	model->add_layer(new LinearLayer(x->get_shape(), 32, InitializationFunction::He));
 	//model->add_layer(new NormalizationLayer(model->get_output_shape()));
-	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::None));
+	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
 
 	model->add_layer(new LinearLayer(model->get_output_shape(), 16, InitializationFunction::He));
 	//model->add_layer(new NormalizationLayer(model->get_output_shape()));
-	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::None));
+	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
 
 	model->add_layer(new LinearLayer(model->get_output_shape(), Tensor::get_cnt(y->get_shape()), InitializationFunction::He));
-	model->add_layer(new NormalizationLayer(model->get_output_shape()));
-	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::None));
+	//model->add_layer(new NormalizationLayer(model->get_output_shape()));
+	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
 
 	model->gradient_check(x, y, true);
 
@@ -60,8 +60,6 @@ int main(int argc, char **argv)
 	srand(time(NULL));
 
 	nn_test();
-
-	//kmeans_test();
 
 	return 0;
 }

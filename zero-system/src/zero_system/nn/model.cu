@@ -15,14 +15,28 @@ __device__ float d_derive_mse_cost(float n_val, float y_val)
     return 2.0f * (n_val - y_val);
 }
 
-__device__ float d_cross_entropy_cost(float n_val, float y_val)
+__device__ float d_softmax(float val, float *arr, int cnt)
 {
-    return ((y_val * log(n_val)) + ((1.0f - y_val) * log(1.0f - n_val)));
+    float e_sum_val = 0.0f;
+
+    for (int i = 0; i < cnt; i++)
+    {
+        e_sum_val += exp(arr[i]);
+    }
+
+    return exp(val) / e_sum_val;
 }
 
-__device__ float d_derive_cross_entropy_cost(float n_val, float y_val)
+__device__ float d_cross_entropy_cost(float n_val, float y_val, float *n_arr, int n_cnt)
 {
-    return -(-(y_val / n_val) + ((1.0f - y_val) / (1.0f - n_val)));
+    float np_val = d_softmax(n_val, n_arr, n_cnt);
+    return -(y_val * log(np_val));
+}
+
+__device__ float d_derive_cross_entropy_cost(float n_val, float y_val, float *n_arr, int n_cnt)
+{
+    float np_val = d_softmax(n_val, n_arr, n_cnt);
+    return np_val - y_val;
 }
 
 // Kernel functions:
@@ -42,7 +56,7 @@ __global__ void k_cost(float *n_arr, float *y_arr, float *cost_val, int n_cnt, C
             temp[threadIdx.x] = d_mse_cost(n_arr[tid], y_arr[tid]);
             break;
         case CrossEntropy:
-            temp[threadIdx.x] = d_cross_entropy_cost(n_arr[tid], y_arr[tid]);
+            temp[threadIdx.x] = d_cross_entropy_cost(n_arr[tid], y_arr[tid], n_arr, n_cnt);
             break;
         default:
             break;
@@ -65,7 +79,7 @@ __global__ void k_cost(float *n_arr, float *y_arr, float *cost_val, int n_cnt, C
     }
 }
 
-__global__ void k_derive_cost(float *n_arr, float *y_arr, float *agg_derivatives_arr, int n_cnt, CostFunction cost_fn)
+__global__ void k_derive_cost(float *n_arr, float *y_arr, float *dc_arr, int n_cnt, CostFunction cost_fn)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -74,10 +88,10 @@ __global__ void k_derive_cost(float *n_arr, float *y_arr, float *agg_derivatives
         switch (cost_fn)
         {
         case MSE:
-            agg_derivatives_arr[tid] *= d_derive_mse_cost(n_arr[tid], y_arr[tid]);
+            dc_arr[tid] *= d_derive_mse_cost(n_arr[tid], y_arr[tid]);
             break;
         case CrossEntropy:
-            agg_derivatives_arr[tid] *= d_derive_cross_entropy_cost(n_arr[tid], y_arr[tid]);
+            dc_arr[tid] *= d_derive_cross_entropy_cost(n_arr[tid], y_arr[tid], n_arr, n_cnt);
             break;
         default:
             break;
@@ -271,6 +285,9 @@ void Model::gradient_check(Tensor *x, Tensor *y, bool print_flg)
     // Analytical gradients:
     {
         Tensor *pred = this->forward(x, true);
+        pred->print();
+        printf("COST %f\n", this->cost(pred, y));
+        pred->print();
         this->backward(pred, y);
         delete pred;
     }
