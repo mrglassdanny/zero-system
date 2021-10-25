@@ -230,7 +230,6 @@ float Model::cost(Tensor *pred, Tensor *y)
     {
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
         int num_blocks = (pred->get_cnt() / threads_per_block) + 1;
-
         k_cost<<<num_blocks, threads_per_block>>>(pred->get_arr(), y->get_arr(),
                                                   this->d_cost_val, pred->get_cnt(), this->cost_fn);
     }
@@ -285,9 +284,7 @@ void Model::gradient_check(Tensor *x, Tensor *y, bool print_flg)
     // Analytical gradients:
     {
         Tensor *pred = this->forward(x, true);
-        pred->print();
-        printf("COST %f\n", this->cost(pred, y));
-        pred->print();
+        this->cost(pred, y);
         this->backward(pred, y);
         delete pred;
     }
