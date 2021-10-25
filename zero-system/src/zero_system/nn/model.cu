@@ -17,7 +17,7 @@ __device__ float d_derive_mse_cost(float n_val, float y_val)
 
 __device__ float d_cross_entropy_cost(float n_val, float y_val)
 {
-    return (float)((y_val * log(n_val)) + ((1.0f - y_val) * log(1.0f - n_val)));
+    return ((y_val * log(n_val)) + ((1.0f - y_val) * log(1.0f - n_val)));
 }
 
 __device__ float d_derive_cross_entropy_cost(float n_val, float y_val)
