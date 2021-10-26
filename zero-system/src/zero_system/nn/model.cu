@@ -486,7 +486,7 @@ Report Model::test(Batch *batch)
 }
 
 // Trains and tests. Press 'q' to force quit.
-void Model::train_and_test(Supervisor *supervisor, int train_batch_size, const char *csv_path)
+void Model::train_and_test(Supervisor *supervisor, int train_batch_size, int target_epoch, const char *csv_path)
 {
     FILE *csv_file_ptr;
 
@@ -498,7 +498,10 @@ void Model::train_and_test(Supervisor *supervisor, int train_batch_size, const c
 
     Batch *test_batch = supervisor->create_test_batch();
 
-    unsigned long int epoch = 1;
+    int train_total_size = supervisor->get_cnt() * SUPERVISOR_TRAIN_SPLIT;
+    unsigned long int epoch = 0;
+    unsigned long int iteration = 0;
+
     while (true)
     {
         Batch *train_batch = supervisor->create_train_batch(train_batch_size);
@@ -506,11 +509,11 @@ void Model::train_and_test(Supervisor *supervisor, int train_batch_size, const c
 
         if (csv_path != nullptr)
         {
-            CSVUtils::write_to_csv(csv_file_ptr, epoch, train_rpt);
+            CSVUtils::write_to_csv(csv_file_ptr, epoch, iteration, train_rpt);
         }
         else
         {
-            if (epoch % 100 == 0)
+            if (iteration % 100 == 0)
             {
                 printf("TRAIN\t\t");
                 train_rpt.print();
@@ -518,6 +521,12 @@ void Model::train_and_test(Supervisor *supervisor, int train_batch_size, const c
         }
 
         delete train_batch;
+
+        // Quit if we hit target epoch count.
+        if (epoch == target_epoch)
+        {
+            break;
+        }
 
         // Allow for manual override.
         {
@@ -530,7 +539,8 @@ void Model::train_and_test(Supervisor *supervisor, int train_batch_size, const c
             }
         }
 
-        epoch++;
+        iteration++;
+        epoch = ((iteration * train_batch_size) / train_total_size);
     }
 
     Report test_rpt = this->test(test_batch);
@@ -546,7 +556,7 @@ void Model::train_and_test(Supervisor *supervisor, int train_batch_size, const c
 }
 
 // Trains, validates, and tests. Press 'q' to force quit.
-void Model::all(Supervisor *supervisor, int train_batch_size, int validation_chk_freq, const char *csv_path)
+void Model::all(Supervisor *supervisor, int train_batch_size, int target_epoch, const char *csv_path)
 {
     FILE *csv_file_ptr;
 
@@ -561,7 +571,10 @@ void Model::all(Supervisor *supervisor, int train_batch_size, int validation_chk
 
     Batch *test_batch = supervisor->create_test_batch();
 
-    unsigned long int epoch = 1;
+    int train_total_size = supervisor->get_cnt() * SUPERVISOR_TRAIN_SPLIT;
+    unsigned long int epoch = 0;
+    unsigned long int iteration = 0;
+
     while (true)
     {
         Batch *train_batch = supervisor->create_train_batch(train_batch_size);
@@ -569,13 +582,13 @@ void Model::all(Supervisor *supervisor, int train_batch_size, int validation_chk
 
         if (csv_path != nullptr)
         {
-            CSVUtils::write_to_csv(csv_file_ptr, epoch, train_rpt);
+            CSVUtils::write_to_csv(csv_file_ptr, epoch, iteration, train_rpt);
         }
 
         delete train_batch;
 
-        // Validate every x epochs.
-        if (epoch % validation_chk_freq == 0)
+        // Validate every epoch.
+        if (epoch != ((iteration * train_batch_size) / train_total_size))
         {
             Report validation_rpt = this->test(validation_batch);
             printf("VALIDATION\t");
@@ -589,6 +602,12 @@ void Model::all(Supervisor *supervisor, int train_batch_size, int validation_chk
             prv_validation_cost = validation_rpt.cost;
         }
 
+        // Quit if we hit target epoch count.
+        if (epoch == target_epoch)
+        {
+            break;
+        }
+
         // Allow for manual override.
         {
             if (_kbhit())
@@ -600,7 +619,8 @@ void Model::all(Supervisor *supervisor, int train_batch_size, int validation_chk
             }
         }
 
-        epoch++;
+        iteration++;
+        epoch = ((iteration * train_batch_size) / train_total_size);
     }
 
     Report test_rpt = this->test(test_batch);

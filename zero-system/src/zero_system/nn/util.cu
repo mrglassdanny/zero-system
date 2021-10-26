@@ -70,10 +70,10 @@ void Report::update_correct_cnt(Tensor *n, Tensor *y)
 
 void CSVUtils::write_csv_header(FILE *csv_file_ptr)
 {
-    fprintf(csv_file_ptr, "epoch,cost,accuracy,correct_cnt,total_cnt\n");
+    fprintf(csv_file_ptr, "epoch,iteration,cost,accuracy,correct_cnt,total_cnt\n");
 }
 
-void CSVUtils::write_to_csv(FILE *csv_file_ptr, int epoch, Report rpt)
+void CSVUtils::write_to_csv(FILE *csv_file_ptr, int epoch, int iteration, Report rpt)
 {
-    fprintf(csv_file_ptr, "%d,%f,%f,%d,%d\n", epoch, rpt.cost, ((float)rpt.correct_cnt / (float)rpt.total_cnt) * 100.0f, rpt.correct_cnt, rpt.total_cnt);
+    fprintf(csv_file_ptr, "%d,%d,%f,%f,%d,%d\n", epoch, iteration, rpt.cost, ((float)rpt.correct_cnt / (float)rpt.total_cnt) * 100.0f, rpt.correct_cnt, rpt.total_cnt);
 }

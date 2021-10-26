@@ -66,7 +66,7 @@ namespace zero
         {
         public:
             static void write_csv_header(FILE *csv_file_ptr);
-            static void write_to_csv(FILE *csv_file_ptr, int epoch, Report rpt);
+            static void write_to_csv(FILE *csv_file_ptr, int epoch, int iteration, Report rpt);
         };
     }
 }
