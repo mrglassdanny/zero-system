@@ -490,6 +490,16 @@ __global__ void k_set_dropout_mask(float *dropout_mask_arr, int dropout_mask_cnt
     }
 }
 
+__global__ void k_dropout(float *n_arr, float *nxt_n_arr, int n_cnt, float dropout_rate)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < n_cnt)
+    {
+        nxt_n_arr[tid] = (n_arr[tid]) * (1.0f / (1.0f - dropout_rate));
+    }
+}
+
 __global__ void k_dropout(float *n_arr, float *dropout_mask_arr, float *nxt_n_arr, int n_cnt, float dropout_rate)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -1305,11 +1315,19 @@ void DropoutLayer::evaluate(Tensor *nxt_n, bool train_flg)
                                                                   this->dropout_rate);
         }
 
-        if (this->dropout_rate > 0.0f)
         {
             int threads_per_block = CUDA_THREADS_PER_BLOCK;
             int num_blocks((nxt_n->get_cnt() / threads_per_block) + 1);
             k_dropout<<<num_blocks, threads_per_block>>>(this->n->get_arr(), this->dropout_mask->get_arr(), nxt_n->get_arr(),
+                                                         nxt_n->get_cnt(), this->dropout_rate);
+        }
+    }
+    else
+    {
+        {
+            int threads_per_block = CUDA_THREADS_PER_BLOCK;
+            int num_blocks((nxt_n->get_cnt() / threads_per_block) + 1);
+            k_dropout<<<num_blocks, threads_per_block>>>(this->n->get_arr(), nxt_n->get_arr(),
                                                          nxt_n->get_cnt(), this->dropout_rate);
         }
     }
@@ -1318,7 +1336,6 @@ void DropoutLayer::evaluate(Tensor *nxt_n, bool train_flg)
 Tensor *DropoutLayer::derive(Tensor *dc)
 {
     {
-        if (this->dropout_rate > 0.0f)
         {
             int threads_per_block = CUDA_THREADS_PER_BLOCK;
             int num_blocks = (this->n->get_cnt() / threads_per_block) + 1;
