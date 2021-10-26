@@ -55,7 +55,7 @@ int main(int argc, char **argv)
 {
     Supervisor *sup = init_mnist_supervisor();
 
-    Model *model = new Model(CostFunction::CrossEntropy, 0.1f);
+    Model *model = new Model(CostFunction::CrossEntropy, 0.01f);
 
     std::vector<int> n_shape{1, IMAGE_ROW_CNT, IMAGE_COL_CNT};
 
@@ -76,9 +76,11 @@ int main(int argc, char **argv)
 
     model->add_layer(new LinearLayer(model->get_output_shape(), 512, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
+    model->add_layer(new DropoutLayer(model->get_output_shape(), 0.30f));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), 128, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
+    model->add_layer(new DropoutLayer(model->get_output_shape(), 0.30f));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), Tensor::get_cnt(sup->get_y_shape()), InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
