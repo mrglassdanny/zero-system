@@ -1424,6 +1424,9 @@ PoolingLayer::PoolingLayer(std::vector<int> n_shape, PoolingFunction pool_fn)
 PoolingLayer::PoolingLayer(FILE *file_ptr)
     : Layer(file_ptr)
 {
+    fread(&this->pool_fn, sizeof(PoolingFunction), 1, file_ptr);
+    fread(&this->pool_row_cnt, sizeof(int), 1, file_ptr);
+    fread(&this->pool_col_cnt, sizeof(int), 1, file_ptr);
 }
 
 PoolingLayer::~PoolingLayer()
