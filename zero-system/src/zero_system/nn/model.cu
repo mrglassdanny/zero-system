@@ -208,7 +208,7 @@ std::vector<int> Model::get_output_shape()
 
 Tensor *Model::forward(Tensor *x, bool train_flg)
 {
-    // Convert to Cuda for model.
+    // Convert to Cuda.
     x->to(Device::Cuda);
 
     int lst_lyr_idx = this->layers.size() - 1;
@@ -234,7 +234,7 @@ Tensor *Model::forward(Tensor *x, bool train_flg)
 
 float Model::cost(Tensor *pred, Tensor *y)
 {
-    // Convert to Cuda for model.
+    // Convert to Cuda.
     y->to(Device::Cuda);
 
     float h_cost_val = 0.0f;
@@ -255,7 +255,7 @@ float Model::cost(Tensor *pred, Tensor *y)
 
 void Model::backward(Tensor *pred, Tensor *y)
 {
-    // Convert to Cuda for model.
+    // Convert to Cuda.
     y->to(Device::Cuda);
 
     Tensor *dc = new Tensor(Device::Cuda, pred->get_shape());
