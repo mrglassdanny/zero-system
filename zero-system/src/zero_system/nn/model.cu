@@ -277,6 +277,9 @@ void Model::step(int batch_size)
 
 void Model::gradient_check(Tensor *x, Tensor *y, bool print_flg)
 {
+    x->to(Device::Cuda);
+    y->to(Device::Cuda);
+
     float agg_ana_grad = 0.0f;
     float agg_num_grad = 0.0f;
     float agg_grad_diff = 0.0f;
