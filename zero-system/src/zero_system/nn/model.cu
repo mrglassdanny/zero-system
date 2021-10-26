@@ -141,6 +141,12 @@ Model::Model(const char *path)
         case LayerType::Dropout:
             lyr = new DropoutLayer(file_ptr);
             break;
+        case LayerType::Normalization:
+            lyr = new NormalizationLayer(file_ptr);
+            break;
+        case LayerType::Pooling:
+            lyr = new PoolingLayer(file_ptr);
+            break;
         default:
             break;
         }
@@ -202,6 +208,9 @@ std::vector<int> Model::get_output_shape()
 
 Tensor *Model::forward(Tensor *x, bool train_flg)
 {
+    // Convert to Cuda for model.
+    x->to(Device::Cuda);
+
     int lst_lyr_idx = this->layers.size() - 1;
 
     Layer *frst_lyr = this->layers[0];
@@ -225,6 +234,9 @@ Tensor *Model::forward(Tensor *x, bool train_flg)
 
 float Model::cost(Tensor *pred, Tensor *y)
 {
+    // Convert to Cuda for model.
+    y->to(Device::Cuda);
+
     float h_cost_val = 0.0f;
 
     {
@@ -243,6 +255,9 @@ float Model::cost(Tensor *pred, Tensor *y)
 
 void Model::backward(Tensor *pred, Tensor *y)
 {
+    // Convert to Cuda for model.
+    y->to(Device::Cuda);
+
     Tensor *dc = new Tensor(Device::Cuda, pred->get_shape());
     dc->set_all(1.0f);
 
@@ -411,10 +426,6 @@ Report Model::train(Batch *batch)
         Tensor *x = batch->get_x(i);
         Tensor *y = batch->get_y(i);
 
-        // Convert to Cuda for model.
-        x->to(Device::Cuda);
-        y->to(Device::Cuda);
-
         Tensor *pred = this->forward(x, true);
         cost += this->cost(pred, y);
         this->backward(pred, y);
@@ -453,10 +464,6 @@ Report Model::test(Batch *batch)
     {
         Tensor *x = batch->get_x(i);
         Tensor *y = batch->get_y(i);
-
-        // Convert to Cuda for model.
-        x->to(Device::Cuda);
-        y->to(Device::Cuda);
 
         Tensor *pred = this->forward(x, false);
         cost += this->cost(pred, y);
