@@ -31,6 +31,8 @@ namespace zero
             std::vector<int> get_input_shape();
             std::vector<int> get_output_shape();
 
+            void set_learning_rate(float learning_rate);
+
             Tensor *forward(Tensor *x, bool train_flg);
             float cost(Tensor *pred, Tensor *y);
             void backward(Tensor *pred, Tensor *y);

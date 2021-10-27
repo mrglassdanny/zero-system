@@ -206,6 +206,11 @@ std::vector<int> Model::get_output_shape()
     return this->layers[this->layers.size() - 1]->get_output_shape();
 }
 
+void Model::set_learning_rate(float learning_rate)
+{
+    this->learning_rate = learning_rate;
+}
+
 Tensor *Model::forward(Tensor *x, bool train_flg)
 {
     // Convert to Cuda.
