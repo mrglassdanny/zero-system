@@ -161,13 +161,13 @@ void test_mnist(Model *model, Supervisor *test_sup, Supervisor *train_sup)
     Batch *train_batch = train_sup->create_batch();
 
     Report test_rpt = model->test(test_batch);
-    //Report train_rpt = model->test(train_batch);
+    Report train_rpt = model->test(train_batch);
 
     printf("TEST\t\t");
     test_rpt.print();
 
     printf("TRAIN\t\t");
-    //train_rpt.print();
+    train_rpt.print();
 
     delete test_batch;
     delete train_batch;
@@ -212,21 +212,21 @@ int main(int argc, char **argv)
     // model->add_layer(new LinearLayer(model->get_output_shape(), Tensor::get_cnt(train_sup->get_y_shape()), InitializationFunction::Xavier));
     // model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
-    // train_mnist(model, train_sup, 60, 30, "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist.csv");
+    // train_mnist(model, train_sup, 60, 30, "C:\\Users\\d0g0825\\Desktop\\temp\\mnist\\mnist.csv");
 
-    // model->save("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist.nn");
+    // model->save("C:\\Users\\d0g0825\\Desktop\\temp\\mnist\\mnist.nn");
 
     // TRAIN EXISTING =======================================================================================
 
-    // Model *model = new Model("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist.nn");
+    // Model *model = new Model("C:\\Users\\d0g0825\\Desktop\\temp\\mnist\\mnist.nn");
 
-    // train_mnist(model, train_sup, 60, 5, "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist-2.csv");
+    // train_mnist(model, train_sup, 60, 5, "C:\\Users\\d0g0825\\Desktop\\temp\\mnist\\mnist.csv");
 
-    // model->save("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist-2.nn");
+    // model->save("C:\\Users\\d0g0825\\Desktop\\temp\\mnist\\mnist.nn");
 
     // TEST EXISTING =======================================================================================
 
-    Model *model = new Model("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist.nn");
+    Model *model = new Model("C:\\Users\\d0g0825\\Desktop\\temp\\mnist\\mnist.nn");
 
     test_mnist(model, test_sup, train_sup);
 
