@@ -1,4 +1,4 @@
 
-# MNIST Best Result
+# MNIST ZERO
 
 ![MNIST-best-result](mnist-best-result.PNG)

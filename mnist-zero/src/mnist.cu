@@ -43,7 +43,7 @@ Supervisor *get_mnist_train_supervisor()
     free(img_buf);
     free(lbl_buf);
 
-    Supervisor *sup = new Supervisor(img_cnt, 784, 10, img_flt_buf, lbl_flt_buf, Device::Cpu);
+    Supervisor *sup = new Supervisor(img_cnt, 784, 10, img_flt_buf, lbl_flt_buf, 1.0f, 0.0f, Device::Cpu);
 
     free(lbl_flt_buf);
     free(img_flt_buf);
@@ -86,7 +86,7 @@ Supervisor *get_mnist_test_supervisor()
     free(img_buf);
     free(lbl_buf);
 
-    Supervisor *sup = new Supervisor(img_cnt, 784, 10, img_flt_buf, lbl_flt_buf, Device::Cpu);
+    Supervisor *sup = new Supervisor(img_cnt, 784, 10, img_flt_buf, lbl_flt_buf, 0.0f, 1.0f, Device::Cpu);
 
     free(lbl_flt_buf);
     free(img_flt_buf);
@@ -104,7 +104,7 @@ void train_mnist(Model *model, Supervisor *train_sup, int train_batch_size, int 
         CSVUtils::write_csv_header(csv_file_ptr);
     }
 
-    int train_total_size = train_sup->get_cnt() * SUPERVISOR_TRAIN_SPLIT;
+    int train_total_size = train_sup->get_cnt();
     unsigned long int epoch = 0;
     unsigned long int iteration = 0;
 
@@ -161,13 +161,13 @@ void test_mnist(Model *model, Supervisor *test_sup, Supervisor *train_sup)
     Batch *train_batch = train_sup->create_batch();
 
     Report test_rpt = model->test(test_batch);
-    Report train_rpt = model->test(train_batch);
+    //Report train_rpt = model->test(train_batch);
 
     printf("TEST\t\t");
     test_rpt.print();
 
     printf("TRAIN\t\t");
-    train_rpt.print();
+    //train_rpt.print();
 
     delete test_batch;
     delete train_batch;
@@ -218,17 +218,17 @@ int main(int argc, char **argv)
 
     // TRAIN EXISTING =======================================================================================
 
-    Model *model = new Model("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist.nn");
+    // Model *model = new Model("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist.nn");
 
-    train_mnist(model, train_sup, 60, 5, "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist-2.csv");
+    // train_mnist(model, train_sup, 60, 5, "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist-2.csv");
 
-    model->save("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist-2.nn");
+    // model->save("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist-2.nn");
 
     // TEST EXISTING =======================================================================================
 
-    // Model *model = new Model("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist.nn");
+    Model *model = new Model("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist.nn");
 
-    // test_mnist(model, test_sup, train_sup);
+    test_mnist(model, test_sup, train_sup);
 
     // =====================================================================================================
 
