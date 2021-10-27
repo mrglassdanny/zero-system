@@ -180,49 +180,49 @@ int main(int argc, char **argv)
 
     // TRAIN NEW =======================================================================================
 
-    Model *model = new Model(CostFunction::CrossEntropy, 0.1f);
+    // Model *model = new Model(CostFunction::CrossEntropy, 0.1f);
 
-    std::vector<int> n_shape{1, IMAGE_ROW_CNT, IMAGE_COL_CNT};
+    // std::vector<int> n_shape{1, IMAGE_ROW_CNT, IMAGE_COL_CNT};
 
-    model->add_layer(new ConvolutionalLayer(n_shape, 64, 3, 3, InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
+    // model->add_layer(new ConvolutionalLayer(n_shape, 64, 3, 3, InitializationFunction::Xavier));
+    // model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
-    model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 64, 3, 3, InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
+    // model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 64, 3, 3, InitializationFunction::Xavier));
+    // model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
-    model->add_layer(new PoolingLayer(model->get_output_shape(), PoolingFunction::Max));
+    // model->add_layer(new PoolingLayer(model->get_output_shape(), PoolingFunction::Max));
 
-    model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 64, 3, 3, InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
+    // model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 64, 3, 3, InitializationFunction::Xavier));
+    // model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
-    model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 64, 3, 3, InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
+    // model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 64, 3, 3, InitializationFunction::Xavier));
+    // model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
-    model->add_layer(new PoolingLayer(model->get_output_shape(), PoolingFunction::Max));
+    // model->add_layer(new PoolingLayer(model->get_output_shape(), PoolingFunction::Max));
 
-    model->add_layer(new LinearLayer(model->get_output_shape(), 512, InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
+    // model->add_layer(new LinearLayer(model->get_output_shape(), 512, InitializationFunction::Xavier));
+    // model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
-    model->add_layer(new LinearLayer(model->get_output_shape(), 128, InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
+    // model->add_layer(new LinearLayer(model->get_output_shape(), 128, InitializationFunction::Xavier));
+    // model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
-    model->add_layer(new LinearLayer(model->get_output_shape(), 32, InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
+    // model->add_layer(new LinearLayer(model->get_output_shape(), 32, InitializationFunction::Xavier));
+    // model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
-    model->add_layer(new LinearLayer(model->get_output_shape(), Tensor::get_cnt(train_sup->get_y_shape()), InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
+    // model->add_layer(new LinearLayer(model->get_output_shape(), Tensor::get_cnt(train_sup->get_y_shape()), InitializationFunction::Xavier));
+    // model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
-    train_mnist(model, train_sup, 60, 30, "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist.csv");
+    // train_mnist(model, train_sup, 60, 30, "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist.csv");
 
-    model->save("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist.nn");
+    // model->save("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist.nn");
 
     // TRAIN EXISTING =======================================================================================
 
-    // Model *model = new Model("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist.nn");
+    Model *model = new Model("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist.nn");
 
-    // train_mnist(model, train_sup, 60, 15, "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist.csv");
+    train_mnist(model, train_sup, 60, 5, "C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist-2.csv");
 
-    // model->save("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist.nn");
+    model->save("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\mnist-2.nn");
 
     // TEST EXISTING =======================================================================================
 
@@ -233,6 +233,8 @@ int main(int argc, char **argv)
     // =====================================================================================================
 
     delete model;
+    delete train_sup;
+    delete test_sup;
 
     return 0;
 }
