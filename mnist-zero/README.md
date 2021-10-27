@@ -1,2 +1,4 @@
 
-![MNIST-best-result](mnist-best-result.png)
+# MNIST Best Result
+
+![MNIST-best-result](mnist-best-result.PNG)
