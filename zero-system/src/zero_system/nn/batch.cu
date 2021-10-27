@@ -62,9 +62,22 @@ Supervisor::Supervisor()
 {
 }
 
-Supervisor::Supervisor(int row_cnt, int col_cnt, int one_hot_cnt, float *x_arr, float *y_arr, Device device)
+Supervisor::Supervisor(int row_cnt, int col_cnt, int one_hot_cnt, float *x_arr, float *y_arr, float train_pct, float test_pct, Device device)
 {
     this->add_all(row_cnt, col_cnt, one_hot_cnt, x_arr, y_arr, device);
+
+    if (train_pct + test_pct > 1.0f || train_pct > 1.0f || test_pct > 1.0f)
+    {
+        this->train_pct = 0.60f;
+        this->validation_pct = 0.20f;
+        this->test_pct = 0.20f;
+    }
+    else
+    {
+        this->train_pct = train_pct;
+        this->validation_pct = 1.0f - (train_pct + test_pct);
+        this->test_pct = test_pct;
+    }
 }
 
 Supervisor::~Supervisor()
@@ -192,21 +205,21 @@ Batch *Supervisor::create_batch(int batch_size, int lower, int upper)
 
 Batch *Supervisor::create_train_batch()
 {
-    return this->create_batch(0, (int)floor(this->records.size() * SUPERVISOR_TRAIN_SPLIT));
+    return this->create_batch(0, (int)floor(this->records.size() * this->train_pct));
 }
 
 Batch *Supervisor::create_train_batch(int batch_size)
 {
-    return this->create_batch(batch_size, 0, (int)floor(this->records.size() * SUPERVISOR_TRAIN_SPLIT));
+    return this->create_batch(batch_size, 0, (int)floor(this->records.size() * this->train_pct));
 }
 
 Batch *Supervisor::create_validation_batch()
 {
-    return this->create_batch((int)floor(this->records.size() * SUPERVISOR_TRAIN_SPLIT), (int)floor(this->records.size() *
-                                                                                                    (SUPERVISOR_TRAIN_SPLIT + SUPERVISOR_VALIDATION_SPLIT)));
+    return this->create_batch((int)floor(this->records.size() * this->train_pct), (int)floor(this->records.size() *
+                                                                                             (this->train_pct + this->validation_pct)));
 }
 
 Batch *Supervisor::create_test_batch()
 {
-    return this->create_batch((int)floor(this->records.size() * (SUPERVISOR_TRAIN_SPLIT + SUPERVISOR_VALIDATION_SPLIT)), this->records.size());
+    return this->create_batch((int)floor(this->records.size() * (this->train_pct + this->validation_pct)), this->records.size());
 }

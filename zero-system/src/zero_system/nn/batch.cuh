@@ -7,10 +7,6 @@
 #include "../core/tensor.cuh"
 #include "util.cuh"
 
-#define SUPERVISOR_TRAIN_SPLIT 1.00f
-#define SUPERVISOR_VALIDATION_SPLIT 0.0f
-#define SUPERVISOR_TEST_SPLIT 0.0f
-
 namespace zero
 {
     using namespace core;
@@ -21,8 +17,7 @@ namespace zero
         {
 
         public:
-            // Record owns tensors!
-            Tensor *x;
+            Tensor *x; // Record owns tensors!
             Tensor *y;
 
             Record(Tensor *x, Tensor *y);
@@ -51,12 +46,14 @@ namespace zero
         class Supervisor
         {
         private:
-            // Supervisor owns records!
-            std::vector<Record *> records;
+            std::vector<Record *> records; // Supervisor owns records!
+            float train_pct;
+            float validation_pct;
+            float test_pct;
 
         public:
             Supervisor();
-            Supervisor(int row_cnt, int col_cnt, int one_hot_cnt, float *x_arr, float *y_arr, Device device);
+            Supervisor(int row_cnt, int col_cnt, int one_hot_cnt, float *x_arr, float *y_arr, float train_pct, float test_pct, Device device);
             ~Supervisor();
 
             void add(int col_cnt, int one_hot_cnt, float *x_arr, float y_val, Device device);
