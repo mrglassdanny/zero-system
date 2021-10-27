@@ -323,9 +323,9 @@ bool is_cell_under_attack(int *board, int cell_idx, bool white_pov_flg)
     {
         for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
         {
-            if (is_piece_black((ChessPiece)board[piece_idx]))
+            if (is_piece_black((ChessPiece)board[piece_idx]) && (ChessPiece)board[piece_idx] != ChessPiece::BlackKing)
             {
-                get_legal_moves(board, piece_idx, legal_moves, true);
+                get_legal_moves(board, piece_idx, legal_moves, false);
 
                 for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
                 {
@@ -352,9 +352,9 @@ bool is_cell_under_attack(int *board, int cell_idx, bool white_pov_flg)
     {
         for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
         {
-            if (is_piece_white((ChessPiece)board[piece_idx]))
+            if (is_piece_white((ChessPiece)board[piece_idx]) && (ChessPiece)board[piece_idx] != ChessPiece::WhiteKing)
             {
-                get_legal_moves(board, piece_idx, legal_moves, true);
+                get_legal_moves(board, piece_idx, legal_moves, false);
 
                 for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
                 {
@@ -1876,6 +1876,44 @@ void get_piece_influence(int *board, int piece_idx, int *out)
     }
 }
 
+void get_influence_board(int *board, int *out)
+{
+    int moves[CHESS_MAX_LEGAL_MOVE_CNT];
+
+    memset(out, 0, sizeof(int) * CHESS_BOARD_LEN);
+
+    int piece_cnt = 0;
+
+    for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
+    {
+        ChessPiece piece = (ChessPiece)board[piece_idx];
+
+        if (piece != Empty)
+        {
+            get_piece_influence(board, piece_idx, moves);
+
+            for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
+            {
+                int mov_dst_idx = moves[mov_idx];
+
+                if (mov_dst_idx == CHESS_INVALID_VALUE)
+                {
+                    break;
+                }
+
+                if (is_piece_white(piece))
+                {
+                    out[mov_dst_idx] += 1;
+                }
+                else if (is_piece_black(piece))
+                {
+                    out[mov_dst_idx] -= 1;
+                }
+            }
+        }
+    }
+}
+
 SrcDst_Idx get_random_move(int *board, bool white_mov_flg, int *cmp_board)
 {
     int sim_board[CHESS_BOARD_LEN];
@@ -2616,49 +2654,4 @@ int get_worst_case(int *board, bool white_flg, bool cur_white_flg, int depth, in
     }
 
     return eval_board(board) + worst_eval;
-}
-
-Tensor *process_convolutions(int *board)
-{
-    int moves[CHESS_MAX_LEGAL_MOVE_CNT];
-
-    Tensor *out = new Tensor(8, 8, Cpu, board);
-
-    int *cpy_board = copy_board(board, NULL);
-    int piece_cnt = 0;
-
-    for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
-    {
-        ChessPiece piece = (ChessPiece)board[piece_idx];
-
-        if (piece != Empty)
-        {
-            get_piece_influence(board, piece_idx, moves);
-
-            for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
-            {
-                int mov_dst_idx = moves[mov_idx];
-
-                if (mov_dst_idx == CHESS_INVALID_VALUE)
-                {
-                    break;
-                }
-
-                float val = out->get_val(mov_dst_idx);
-
-                if (is_piece_white(piece))
-                {
-                    val += ((abs((int)board[mov_dst_idx]) * 1.0f) + 0.1f);
-                }
-                else if (is_piece_black(piece))
-                {
-                    val += (-(abs((int)board[mov_dst_idx]) * 1.0f) + -0.1f);
-                }
-
-                out->set_val(mov_dst_idx, val);
-            }
-        }
-    }
-
-    return out;
 }

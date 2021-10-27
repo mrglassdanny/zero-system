@@ -70,6 +70,8 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
 
 void get_piece_influence(int *board, int piece_idx, int *out);
 
+void get_influence_board(int *board, int *out);
+
 SrcDst_Idx get_random_move(int *board, bool white_mov_flg, int *cmp_board);
 
 void simulate_board_change_w_srcdst_idx(int *board, int src_idx, int dst_idx, int *out);
@@ -88,4 +90,3 @@ int eval_board(int *board);
 
 int get_worst_case(int *board, bool white_flg, bool cur_white_flg, int depth, int cur_depth);
 
-Tensor *process_convolutions(int *board);
