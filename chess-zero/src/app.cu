@@ -2,7 +2,7 @@
 #include <iostream>
 #include <windows.h>
 
-#include <zero_system/nn/nn.cuh>
+#include <zero_system/nn/model.cuh>
 
 #include "chess.cuh"
 #include "pgn.cuh"
@@ -20,7 +20,7 @@ struct MoveSearchResult
     int worst_case;
 };
 
-long long get_file_size(const char *name)
+long long get_file_size_2(const char *name)
 {
 
     HANDLE hFile = CreateFile((LPCSTR)name, GENERIC_READ,
@@ -48,16 +48,17 @@ void dump_pgn(const char *pgn_name)
     PGNImport *pgn = PGNImport_init(file_name_buf);
 
     memset(file_name_buf, 0, 256);
-    sprintf(file_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\white-%s.bs", pgn_name);
-    FILE *white_boards_file = fopen(file_name_buf, "wb");
+    sprintf(file_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\%s.bs", pgn_name);
+    FILE *boards_file = fopen(file_name_buf, "wb");
 
     memset(file_name_buf, 0, 256);
-    sprintf(file_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\black-%s.bs", pgn_name);
-    FILE *black_boards_file = fopen(file_name_buf, "wb");
+    sprintf(file_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\%s.ls", pgn_name);
+    FILE *labels_file = fopen(file_name_buf, "wb");
 
     bool white_mov_flg;
 
     int *board = init_board();
+    int influence_board[CHESS_BOARD_LEN];
 
     // Skip openings!
     int start_mov_idx = 10;
@@ -68,34 +69,44 @@ void dump_pgn(const char *pgn_name)
     {
         PGNMoveList *pl = pgn->games[game_idx];
 
-        white_mov_flg = true;
-
-        for (int mov_idx = start_mov_idx; mov_idx < pl->cnt; mov_idx++)
+        if (pl->white_won_flg == 1 || pl->black_won_flg == 1)
         {
-            FILE *boards_file = nullptr;
+            white_mov_flg = true;
 
-            if (white_mov_flg)
+            float label;
+            if (pl->white_won_flg == 1)
             {
-                boards_file = white_boards_file;
+                label = 1.0f;
             }
-            else
+            else if (pl->black_won_flg == 1)
             {
-                boards_file = black_boards_file;
+                label = -1.0f;
             }
 
-            // Write pre-move board state first.
-            fwrite(board, sizeof(int) * CHESS_BOARD_LEN, 1, boards_file);
+            for (int mov_idx = 0; mov_idx < pl->cnt; mov_idx++)
+            {
+                // Make move.
+                change_board_w_mov(board, pl->arr[mov_idx], white_mov_flg);
 
-            // Make optimal move.
-            change_board_w_mov(board, pl->arr[mov_idx], white_mov_flg);
+                if (mov_idx >= start_mov_idx)
+                {
+                    // Write board state.
+                    fwrite(board, sizeof(int) * CHESS_BOARD_LEN, 1, boards_file);
 
-            // Now write post-move(optimal) board state.
-            fwrite(board, sizeof(int) * CHESS_BOARD_LEN, 1, boards_file);
+                    // Write influence board state.
+                    get_influence_board(board, influence_board);
+                    fwrite(influence_board, sizeof(int) * CHESS_BOARD_LEN, 1, boards_file);
 
-            white_mov_flg = !white_mov_flg;
+                    // Write label.
+
+                    fwrite(&label, sizeof(float), 1, labels_file);
+                }
+
+                white_mov_flg = !white_mov_flg;
+            }
+
+            reset_board(board);
         }
-
-        reset_board(board);
 
         if (game_idx % 10 == 0)
         {
@@ -105,443 +116,395 @@ void dump_pgn(const char *pgn_name)
 
     free(board);
 
-    fclose(white_boards_file);
+    fclose(boards_file);
+    fclose(labels_file);
 
     PGNImport_free(pgn);
 
     system("cls");
 }
 
-void train_nn(const char *pgn_name, bool white_flg)
+Supervisor *get_chess_supervisor(const char *pgn_name)
 {
-    srand(time(NULL));
-
     char file_name_buf[256];
 
     FILE *boards_file;
     long long boards_file_size;
 
-    if (white_flg)
-    {
-        memset(file_name_buf, 0, 256);
-        sprintf(file_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\white-%s.bs", pgn_name);
-        boards_file = fopen(file_name_buf, "rb");
-        boards_file_size = get_file_size(file_name_buf);
-    }
-    else
-    {
-        memset(file_name_buf, 0, 256);
-        sprintf(file_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\black-%s.bs", pgn_name);
-        boards_file = fopen(file_name_buf, "rb");
-        boards_file_size = get_file_size(file_name_buf);
-    }
+    memset(file_name_buf, 0, 256);
+    sprintf(file_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\%s.bs", pgn_name);
+    boards_file = fopen(file_name_buf, "rb");
+    boards_file_size = get_file_size_2(file_name_buf);
+
+    FILE *labels_file;
+    long long labels_file_size;
+
+    memset(file_name_buf, 0, 256);
+    sprintf(file_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\%s.ls", pgn_name);
+    labels_file = fopen(file_name_buf, "rb");
+    labels_file_size = get_file_size_2(file_name_buf);
 
     int file_col_cnt = CHESS_BOARD_LEN * 2;
-    int file_row_cnt = boards_file_size / (sizeof(int) * file_col_cnt);
+    int file_row_cnt = (boards_file_size / (sizeof(int) * file_col_cnt));
 
-    int cur_row[CHESS_BOARD_LEN * 2];
-    int pre_mov_board[CHESS_BOARD_LEN];
-    int post_mov_board[CHESS_BOARD_LEN];
-    int sim_board[CHESS_BOARD_LEN];
+    int *board_buf = (int *)malloc(sizeof(int) * (file_row_cnt * file_col_cnt));
+    fread(board_buf, sizeof(int), (file_row_cnt * file_col_cnt), boards_file);
 
-    int oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
-    int stacked_oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2];
-
-    NN *nn = new NN(MSE, 0.01f);
-
-    //NN *nn = new NN(WHITE_NN_DUMP_PATH);
-
-    FILE *csv_file_ptr = fopen("C:\\Users\\d0g0825\\Desktop\\temp\\nn\\chess-train.csv", "w");
-    NN::write_csv_header(csv_file_ptr);
-
-    int epoch = 1;
-
-    while (true)
+    float *board_flt_buf = (float *)malloc(sizeof(float) * (file_row_cnt * file_col_cnt));
+    for (int i = 0; i < (file_row_cnt * file_col_cnt); i++)
     {
-        Batch *batch = new Batch(true, 4);
-
-        int rand_row_idx = rand() % file_row_cnt;
-        fseek(boards_file, rand_row_idx * (sizeof(int) * (CHESS_BOARD_LEN * 2)), SEEK_SET);
-        fread(cur_row, sizeof(int), CHESS_BOARD_LEN * 2, boards_file);
-
-        memcpy(pre_mov_board, cur_row, sizeof(int) * CHESS_BOARD_LEN);
-        memcpy(post_mov_board, &cur_row[CHESS_BOARD_LEN], sizeof(int) * CHESS_BOARD_LEN);
-
-        // Optimal move.
-        {
-            one_hot_encode_board(pre_mov_board, oh_board);
-            memcpy(stacked_oh_board, oh_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-
-            one_hot_encode_board(post_mov_board, oh_board);
-            memcpy(&stacked_oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], oh_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-
-            Tensor *x = new Tensor(1, CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, Gpu, stacked_oh_board);
-            Tensor *y = new Tensor(1, 1, Gpu);
-            y->set_val(0, 1.0f);
-
-            batch->add(new Record(x, y));
-        }
-
-        // Non-optimal moves.
-        {
-            for (int rand_mov_idx = 0; rand_mov_idx < 3; rand_mov_idx++)
-            {
-                SrcDst_Idx sdi = get_random_move(pre_mov_board, white_flg, post_mov_board);
-                simulate_board_change_w_srcdst_idx(pre_mov_board, sdi.src_idx, sdi.dst_idx, sim_board);
-
-                one_hot_encode_board(pre_mov_board, oh_board);
-                memcpy(stacked_oh_board, oh_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-
-                one_hot_encode_board(sim_board, oh_board);
-                memcpy(&stacked_oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], oh_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-
-                Tensor *x = new Tensor(1, CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, Gpu, stacked_oh_board);
-                Tensor *y = new Tensor(1, 1, Gpu);
-                y->set_val(0, 0.0f);
-
-                batch->add(new Record(x, y));
-            }
-        }
-
-        // Only train if batch has something in it.
-        if (batch->get_size() > 0)
-        {
-            Report train_rpt = nn->train(batch);
-            NN::write_to_csv(csv_file_ptr, epoch, train_rpt);
-        }
-
-        delete batch;
-
-        epoch++;
-
-        // Allow for manual override.
-        {
-            if (_kbhit())
-            {
-                if (_getch() == 'q')
-                {
-                    break;
-                }
-            }
-        }
+        board_flt_buf[i] = ((float)board_buf[i] / 10.0f);
     }
 
-    fclose(csv_file_ptr);
+    free(board_buf);
+
+    float *label_flt_buf = (float *)malloc(sizeof(float) * (file_row_cnt));
+    fread(label_flt_buf, sizeof(int), (file_row_cnt), labels_file);
+
+    Supervisor *sup = new Supervisor(file_row_cnt, file_col_cnt, 0, board_flt_buf,
+                                     label_flt_buf, 0.8f, 0.2f, Device::Cpu);
+
+    free(board_flt_buf);
+    free(label_flt_buf);
+
     fclose(boards_file);
+    fclose(labels_file);
 
-    if (white_flg)
-    {
-        nn->dump(WHITE_NN_DUMP_PATH);
-    }
-    else
-    {
-        nn->dump(BLACK_NN_DUMP_PATH);
-    }
+    sup->shuffle();
 
-    delete nn;
+    return sup;
 }
 
-MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_flg, NN *nn)
+void train_chess(const char *pgn_name)
 {
-    int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
-    char mov[CHESS_MAX_MOVE_LEN];
+    Supervisor *sup = get_chess_supervisor(pgn_name);
 
-    int sim_board[CHESS_BOARD_LEN];
+    Model *model = new Model(CostFunction::MSE, 0.01f);
 
-    int oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
-    int stacked_oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2];
+    std::vector<int> n_shape{2, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
 
-    float best_eval = -FLT_MAX;
+    model->add_layer(new ConvolutionalLayer(n_shape, 16, 3, 3, InitializationFunction::Xavier));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
-    int best_worst_case;
-    if (white_mov_flg)
-    {
-        best_worst_case = -INT_MAX;
-    }
-    else
-    {
-        best_worst_case = INT_MAX;
-    }
+    model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 16, 3, 3, InitializationFunction::Xavier));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
-    char best_mov[CHESS_MAX_MOVE_LEN];
+    model->add_layer(new LinearLayer(model->get_output_shape(), 64, InitializationFunction::Xavier));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
-    for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
-    {
-        if (white_mov_flg)
-        {
-            if (is_piece_white((ChessPiece)immut_board[piece_idx]))
-            {
-                get_legal_moves(immut_board, piece_idx, legal_moves, true);
-                for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
-                {
-                    if (legal_moves[mov_idx] == CHESS_INVALID_VALUE)
-                    {
-                        break;
-                    }
-                    else
-                    {
-                        one_hot_encode_board(immut_board, oh_board);
-                        memcpy(stacked_oh_board, oh_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
+    model->add_layer(new LinearLayer(model->get_output_shape(), 16, InitializationFunction::Xavier));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
-                        simulate_board_change_w_srcdst_idx(immut_board, piece_idx, legal_moves[mov_idx], sim_board);
-                        int worst_case = get_worst_case(sim_board, true, false, 3, 1);
+    model->train_and_test(sup, 64, 10, "C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.csv");
 
-                        one_hot_encode_board(sim_board, oh_board);
-                        memcpy(&stacked_oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], oh_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
+    model->save("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn");
 
-                        Tensor *x = new Tensor(1, CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, Gpu, stacked_oh_board);
-                        Tensor *pred = nn->predict(x);
+    delete model;
 
-                        float eval = pred->get_val(0);
-
-                        memset(mov, 0, CHESS_MAX_MOVE_LEN);
-                        translate_srcdst_idx_to_mov(immut_board, piece_idx, legal_moves[mov_idx], mov);
-
-                        if (print_flg)
-                        {
-                            printf("MOVE: %s (%f\t%d)\n", mov, eval, worst_case);
-                        }
-
-                        delete x;
-                        delete pred;
-
-                        if (best_worst_case < worst_case)
-                        {
-                            best_worst_case = worst_case;
-                            best_eval = eval;
-                            memcpy(best_mov, mov, CHESS_MAX_MOVE_LEN);
-                        }
-
-                        if (best_worst_case == worst_case)
-                        {
-                            if (best_eval < eval)
-                            {
-                                best_eval = eval;
-                                memcpy(best_mov, mov, CHESS_MAX_MOVE_LEN);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        else
-        {
-            if (is_piece_black((ChessPiece)immut_board[piece_idx]))
-            {
-                get_legal_moves(immut_board, piece_idx, legal_moves, true);
-                for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
-                {
-                    if (legal_moves[mov_idx] == CHESS_INVALID_VALUE)
-                    {
-                        break;
-                    }
-                    else
-                    {
-                        one_hot_encode_board(immut_board, oh_board);
-                        memcpy(stacked_oh_board, oh_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-
-                        simulate_board_change_w_srcdst_idx(immut_board, piece_idx, legal_moves[mov_idx], sim_board);
-                        int worst_case = get_worst_case(sim_board, false, true, 3, 1);
-
-                        one_hot_encode_board(sim_board, oh_board);
-                        memcpy(&stacked_oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], oh_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-
-                        Tensor *x = new Tensor(1, CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, Gpu, stacked_oh_board);
-                        Tensor *pred = nn->predict(x);
-
-                        float eval = pred->get_val(0);
-
-                        memset(mov, 0, CHESS_MAX_MOVE_LEN);
-                        translate_srcdst_idx_to_mov(immut_board, piece_idx, legal_moves[mov_idx], mov);
-
-                        if (print_flg)
-                        {
-                            printf("MOVE: %s (%f\t%d)\n", mov, eval, worst_case);
-                        }
-
-                        delete x;
-                        delete pred;
-
-                        if (best_worst_case > worst_case)
-                        {
-                            best_worst_case = worst_case;
-                            best_eval = eval;
-                            memcpy(best_mov, mov, CHESS_MAX_MOVE_LEN);
-                        }
-
-                        if (best_worst_case == worst_case)
-                        {
-                            if (best_eval < eval)
-                            {
-                                best_eval = eval;
-                                memcpy(best_mov, mov, CHESS_MAX_MOVE_LEN);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    MoveSearchResult mov_res;
-    memcpy(mov_res.mov, best_mov, CHESS_MAX_MOVE_LEN);
-    mov_res.worst_case = best_worst_case;
-    mov_res.eval = best_eval;
-    return mov_res;
+    delete sup;
 }
 
-void play_nn(bool white_flg)
-{
-    NN *nn;
-    if (white_flg)
-    {
-        nn = new NN(WHITE_NN_DUMP_PATH);
-    }
-    else
-    {
-        nn = new NN(BLACK_NN_DUMP_PATH);
-    }
+// MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_flg, NN *nn)
+// {
+//     int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
+//     char mov[CHESS_MAX_MOVE_LEN];
 
-    int *board = init_board();
-    int cpy_board[CHESS_BOARD_LEN];
-    char mov[CHESS_MAX_MOVE_LEN];
+//     int sim_board[CHESS_BOARD_LEN];
 
-    bool white_mov_flg = true;
+//     int oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
+//     int stacked_oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2];
 
-    // Go ahead and make opening moves since we do not train the model on openings.
-    {
-        change_board_w_mov(board, "d4", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
+//     float best_eval = -FLT_MAX;
 
-        change_board_w_mov(board, "Nf6", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
+//     int best_worst_case;
+//     if (white_mov_flg)
+//     {
+//         best_worst_case = -INT_MAX;
+//     }
+//     else
+//     {
+//         best_worst_case = INT_MAX;
+//     }
 
-        change_board_w_mov(board, "c4", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
+//     char best_mov[CHESS_MAX_MOVE_LEN];
 
-        change_board_w_mov(board, "e6", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
+//     for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
+//     {
+//         if (white_mov_flg)
+//         {
+//             if (is_piece_white((ChessPiece)immut_board[piece_idx]))
+//             {
+//                 get_legal_moves(immut_board, piece_idx, legal_moves, true);
+//                 for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
+//                 {
+//                     if (legal_moves[mov_idx] == CHESS_INVALID_VALUE)
+//                     {
+//                         break;
+//                     }
+//                     else
+//                     {
+//                         one_hot_encode_board(immut_board, oh_board);
+//                         memcpy(stacked_oh_board, oh_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
 
-        change_board_w_mov(board, "Nc3", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
+//                         simulate_board_change_w_srcdst_idx(immut_board, piece_idx, legal_moves[mov_idx], sim_board);
+//                         int worst_case = get_worst_case(sim_board, true, false, 3, 1);
 
-        change_board_w_mov(board, "Bb4", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
+//                         one_hot_encode_board(sim_board, oh_board);
+//                         memcpy(&stacked_oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], oh_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
 
-        change_board_w_mov(board, "Qc2", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
+//                         Tensor *x = new Tensor(1, CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, Gpu, stacked_oh_board);
+//                         Tensor *pred = nn->predict(x);
 
-        change_board_w_mov(board, "O-O", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
+//                         float eval = pred->get_val(0);
 
-        change_board_w_mov(board, "a3", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
+//                         memset(mov, 0, CHESS_MAX_MOVE_LEN);
+//                         translate_srcdst_idx_to_mov(immut_board, piece_idx, legal_moves[mov_idx], mov);
 
-        change_board_w_mov(board, "Bxc3+", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-    }
+//                         if (print_flg)
+//                         {
+//                             printf("MOVE: %s (%f\t%d)\n", mov, eval, worst_case);
+//                         }
 
-    print_board(board);
+//                         delete x;
+//                         delete pred;
 
-    while (1)
-    {
+//                         if (best_worst_case < worst_case)
+//                         {
+//                             best_worst_case = worst_case;
+//                             best_eval = eval;
+//                             memcpy(best_mov, mov, CHESS_MAX_MOVE_LEN);
+//                         }
 
-        // White move:
-        {
+//                         if (best_worst_case == worst_case)
+//                         {
+//                             if (best_eval < eval)
+//                             {
+//                                 best_eval = eval;
+//                                 memcpy(best_mov, mov, CHESS_MAX_MOVE_LEN);
+//                             }
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+//         else
+//         {
+//             if (is_piece_black((ChessPiece)immut_board[piece_idx]))
+//             {
+//                 get_legal_moves(immut_board, piece_idx, legal_moves, true);
+//                 for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
+//                 {
+//                     if (legal_moves[mov_idx] == CHESS_INVALID_VALUE)
+//                     {
+//                         break;
+//                     }
+//                     else
+//                     {
+//                         one_hot_encode_board(immut_board, oh_board);
+//                         memcpy(stacked_oh_board, oh_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
 
-            if (is_in_checkmate(board, true))
-            {
-                printf("CHECKMATE!\n");
-                break;
-            }
+//                         simulate_board_change_w_srcdst_idx(immut_board, piece_idx, legal_moves[mov_idx], sim_board);
+//                         int worst_case = get_worst_case(sim_board, false, true, 3, 1);
 
-            if (is_in_check(board, true))
-            {
-                printf("CHECK!\n");
-            }
+//                         one_hot_encode_board(sim_board, oh_board);
+//                         memcpy(&stacked_oh_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], oh_board, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
 
-            MoveSearchResult mov_res;
-            if (white_flg)
-            {
-                copy_board(board, cpy_board);
-                mov_res = get_best_move(cpy_board, white_mov_flg, true, nn);
-                printf("%s\t%f\t%d\n", mov_res.mov, mov_res.eval, mov_res.worst_case);
-            }
+//                         Tensor *x = new Tensor(1, CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2, Gpu, stacked_oh_board);
+//                         Tensor *pred = nn->predict(x);
 
-            // Now accept user input.
-            memset(mov, 0, CHESS_MAX_MOVE_LEN);
-            printf("ENTER MOVE (WHITE): ");
+//                         float eval = pred->get_val(0);
 
-            std::cin >> mov;
-            system("cls");
+//                         memset(mov, 0, CHESS_MAX_MOVE_LEN);
+//                         translate_srcdst_idx_to_mov(immut_board, piece_idx, legal_moves[mov_idx], mov);
 
-            if (white_flg)
-            {
-                // Allow user to confirm they want to make recommended move.
-                if (strlen(mov) <= 1)
-                {
-                    strcpy(mov, mov_res.mov);
-                }
-            }
+//                         if (print_flg)
+//                         {
+//                             printf("MOVE: %s (%f\t%d)\n", mov, eval, worst_case);
+//                         }
 
-            change_board_w_mov(board, mov, white_mov_flg);
-            white_mov_flg = !white_mov_flg;
-            print_board(board);
-        }
+//                         delete x;
+//                         delete pred;
 
-        // Black move:
-        {
+//                         if (best_worst_case > worst_case)
+//                         {
+//                             best_worst_case = worst_case;
+//                             best_eval = eval;
+//                             memcpy(best_mov, mov, CHESS_MAX_MOVE_LEN);
+//                         }
 
-            if (is_in_checkmate(board, false))
-            {
-                printf("CHECKMATE!\n");
-                break;
-            }
+//                         if (best_worst_case == worst_case)
+//                         {
+//                             if (best_eval < eval)
+//                             {
+//                                 best_eval = eval;
+//                                 memcpy(best_mov, mov, CHESS_MAX_MOVE_LEN);
+//                             }
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+//     }
 
-            if (is_in_check(board, false))
-            {
-                printf("CHECK!\n");
-            }
+//     MoveSearchResult mov_res;
+//     memcpy(mov_res.mov, best_mov, CHESS_MAX_MOVE_LEN);
+//     mov_res.worst_case = best_worst_case;
+//     mov_res.eval = best_eval;
+//     return mov_res;
+// }
 
-            MoveSearchResult mov_res;
-            if (!white_flg)
-            {
-                copy_board(board, cpy_board);
-                mov_res = get_best_move(cpy_board, white_mov_flg, false, nn);
-                printf("%s\t%f\t%d\n", mov_res.mov, mov_res.eval, mov_res.worst_case);
-            }
+// void play_nn(bool white_flg)
+// {
+//     NN *nn;
+//     if (white_flg)
+//     {
+//         nn = new NN(WHITE_NN_DUMP_PATH);
+//     }
+//     else
+//     {
+//         nn = new NN(BLACK_NN_DUMP_PATH);
+//     }
 
-            // Now accept user input.
-            memset(mov, 0, CHESS_MAX_MOVE_LEN);
-            printf("ENTER MOVE (BLACK): ");
-            std::cin >> mov;
-            system("cls");
+//     int *board = init_board();
+//     int cpy_board[CHESS_BOARD_LEN];
+//     char mov[CHESS_MAX_MOVE_LEN];
 
-            if (!white_flg)
-            {
-                // Allow user to confirm they want to make recommended move.
-                if (strlen(mov) <= 1)
-                {
-                    strcpy(mov, mov_res.mov);
-                }
-            }
+//     bool white_mov_flg = true;
 
-            change_board_w_mov(board, mov, white_mov_flg);
-            white_mov_flg = !white_mov_flg;
-            print_board(board);
-        }
-    }
+//     // Go ahead and make opening moves since we do not train the model on openings.
+//     {
+//         change_board_w_mov(board, "d4", white_mov_flg);
+//         white_mov_flg = !white_mov_flg;
 
-    free(board);
-}
+//         change_board_w_mov(board, "Nf6", white_mov_flg);
+//         white_mov_flg = !white_mov_flg;
+
+//         change_board_w_mov(board, "c4", white_mov_flg);
+//         white_mov_flg = !white_mov_flg;
+
+//         change_board_w_mov(board, "e6", white_mov_flg);
+//         white_mov_flg = !white_mov_flg;
+
+//         change_board_w_mov(board, "Nc3", white_mov_flg);
+//         white_mov_flg = !white_mov_flg;
+
+//         change_board_w_mov(board, "Bb4", white_mov_flg);
+//         white_mov_flg = !white_mov_flg;
+
+//         change_board_w_mov(board, "Qc2", white_mov_flg);
+//         white_mov_flg = !white_mov_flg;
+
+//         change_board_w_mov(board, "O-O", white_mov_flg);
+//         white_mov_flg = !white_mov_flg;
+
+//         change_board_w_mov(board, "a3", white_mov_flg);
+//         white_mov_flg = !white_mov_flg;
+
+//         change_board_w_mov(board, "Bxc3+", white_mov_flg);
+//         white_mov_flg = !white_mov_flg;
+//     }
+
+//     print_board(board);
+
+//     while (1)
+//     {
+
+//         // White move:
+//         {
+
+//             if (is_in_checkmate(board, true))
+//             {
+//                 printf("CHECKMATE!\n");
+//                 break;
+//             }
+
+//             if (is_in_check(board, true))
+//             {
+//                 printf("CHECK!\n");
+//             }
+
+//             MoveSearchResult mov_res;
+//             if (white_flg)
+//             {
+//                 copy_board(board, cpy_board);
+//                 mov_res = get_best_move(cpy_board, white_mov_flg, true, nn);
+//                 printf("%s\t%f\t%d\n", mov_res.mov, mov_res.eval, mov_res.worst_case);
+//             }
+
+//             // Now accept user input.
+//             memset(mov, 0, CHESS_MAX_MOVE_LEN);
+//             printf("ENTER MOVE (WHITE): ");
+
+//             std::cin >> mov;
+//             system("cls");
+
+//             if (white_flg)
+//             {
+//                 // Allow user to confirm they want to make recommended move.
+//                 if (strlen(mov) <= 1)
+//                 {
+//                     strcpy(mov, mov_res.mov);
+//                 }
+//             }
+
+//             change_board_w_mov(board, mov, white_mov_flg);
+//             white_mov_flg = !white_mov_flg;
+//             print_board(board);
+//         }
+
+//         // Black move:
+//         {
+
+//             if (is_in_checkmate(board, false))
+//             {
+//                 printf("CHECKMATE!\n");
+//                 break;
+//             }
+
+//             if (is_in_check(board, false))
+//             {
+//                 printf("CHECK!\n");
+//             }
+
+//             MoveSearchResult mov_res;
+//             if (!white_flg)
+//             {
+//                 copy_board(board, cpy_board);
+//                 mov_res = get_best_move(cpy_board, white_mov_flg, false, nn);
+//                 printf("%s\t%f\t%d\n", mov_res.mov, mov_res.eval, mov_res.worst_case);
+//             }
+
+//             // Now accept user input.
+//             memset(mov, 0, CHESS_MAX_MOVE_LEN);
+//             printf("ENTER MOVE (BLACK): ");
+//             std::cin >> mov;
+//             system("cls");
+
+//             if (!white_flg)
+//             {
+//                 // Allow user to confirm they want to make recommended move.
+//                 if (strlen(mov) <= 1)
+//                 {
+//                     strcpy(mov, mov_res.mov);
+//                 }
+//             }
+
+//             change_board_w_mov(board, mov, white_mov_flg);
+//             white_mov_flg = !white_mov_flg;
+//             print_board(board);
+//         }
+//     }
+
+//     free(board);
+// }
 
 int main(int argc, char **argv)
 {
-    //dump_pgn("ALL");
+    srand(time(NULL));
 
-    //train_nn("ALL", true);
+    dump_pgn("TEST");
 
-    //play_nn(true);
+    train_chess("TEST");
 
     return 0;
 }
