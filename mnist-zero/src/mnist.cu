@@ -212,21 +212,21 @@ int main(int argc, char **argv)
     // model->add_layer(new LinearLayer(model->get_output_shape(), Tensor::get_cnt(train_sup->get_y_shape()), InitializationFunction::Xavier));
     // model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
-    // train_mnist(model, train_sup, 60, 30, "C:\\Users\\d0g0825\\Desktop\\temp\\mnist\\mnist.csv");
+    // train_mnist(model, train_sup, 60, 30, "C:\\Users\\d0g0825\\Desktop\\temp\\mnist-zero\\mnist.csv");
 
-    // model->save("C:\\Users\\d0g0825\\Desktop\\temp\\mnist\\mnist.nn");
+    // model->save("C:\\Users\\d0g0825\\Desktop\\temp\\mnist-zero\\mnist.nn");
 
     // TRAIN EXISTING =======================================================================================
 
-    // Model *model = new Model("C:\\Users\\d0g0825\\Desktop\\temp\\mnist\\mnist.nn");
+    // Model *model = new Model("C:\\Users\\d0g0825\\Desktop\\temp\\mnist-zero\\mnist.nn");
 
-    // train_mnist(model, train_sup, 60, 5, "C:\\Users\\d0g0825\\Desktop\\temp\\mnist\\mnist.csv");
+    // train_mnist(model, train_sup, 60, 5, "C:\\Users\\d0g0825\\Desktop\\temp\\mnist-zero\\mnist.csv");
 
-    // model->save("C:\\Users\\d0g0825\\Desktop\\temp\\mnist\\mnist.nn");
+    // model->save("C:\\Users\\d0g0825\\Desktop\\temp\\mnist-zero\\mnist.nn");
 
     // TEST EXISTING =======================================================================================
 
-    Model *model = new Model("C:\\Users\\d0g0825\\Desktop\\temp\\mnist\\mnist.nn");
+    Model *model = new Model("C:\\Users\\d0g0825\\Desktop\\temp\\mnist-zero\\mnist.nn");
 
     test_mnist(model, test_sup, train_sup);
 
