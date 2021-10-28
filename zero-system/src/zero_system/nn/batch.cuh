@@ -61,8 +61,10 @@ namespace zero
             void clear();
 
             int get_cnt();
+            float get_train_pct();
 
-            std::vector<int> get_x_shape();
+            std::vector<int>
+            get_x_shape();
             std::vector<int> get_y_shape();
 
             void shuffle();

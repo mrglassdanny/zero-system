@@ -503,7 +503,8 @@ void Model::train_and_test(Supervisor *supervisor, int train_batch_size, int tar
 
     Batch *test_batch = supervisor->create_test_batch();
 
-    int train_total_size = supervisor->get_cnt() * SUPERVISOR_TRAIN_SPLIT;
+    int train_total_size = supervisor->get_cnt() * supervisor->get_train_pct();
+
     unsigned long int epoch = 0;
     unsigned long int iteration = 0;
 
@@ -576,7 +577,8 @@ void Model::all(Supervisor *supervisor, int train_batch_size, int target_epoch, 
 
     Batch *test_batch = supervisor->create_test_batch();
 
-    int train_total_size = supervisor->get_cnt() * SUPERVISOR_TRAIN_SPLIT;
+    int train_total_size = supervisor->get_cnt() * supervisor->get_train_pct();
+
     unsigned long int epoch = 0;
     unsigned long int iteration = 0;
 

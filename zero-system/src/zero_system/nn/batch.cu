@@ -132,6 +132,11 @@ int Supervisor::get_cnt()
     return this->records.size();
 }
 
+float Supervisor::get_train_pct()
+{
+    return this->train_pct;
+}
+
 std::vector<int> Supervisor::get_x_shape()
 {
     return this->records[0]->x->get_shape();
