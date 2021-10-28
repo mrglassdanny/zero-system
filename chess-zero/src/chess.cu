@@ -1266,12 +1266,6 @@ void get_piece_influence(int *board, int piece_idx, int *out)
     case WhitePawn:
         // TODO: au passant
         {
-            test_idx = get_idx_fr_colrow(col, row + 1);
-            if (is_row_valid(row + 1) && board[test_idx] == Empty)
-            {
-                out[mov_ctr++] = test_idx;
-            }
-
             test_idx = get_idx_fr_adj_colrow(adj_col - 1, adj_row + 1);
             if (is_adj_colrow_valid(adj_col - 1, adj_row + 1))
             {
@@ -1283,32 +1277,12 @@ void get_piece_influence(int *board, int piece_idx, int *out)
             {
                 out[mov_ctr++] = test_idx;
             }
-
-            if (row == 2)
-            {
-                // Dont need to check if row adjustments are valid since we know that starting row is 2.
-                test_idx = get_idx_fr_colrow(col, row + 1);
-                if (board[test_idx] == Empty)
-                {
-                    test_idx = get_idx_fr_colrow(col, row + 2);
-                    if (board[test_idx] == Empty)
-                    {
-                        out[mov_ctr++] = test_idx;
-                    }
-                }
-            }
         }
 
         break;
     case BlackPawn:
         // TODO: au passant
         {
-            test_idx = get_idx_fr_colrow(col, row - 1);
-            if (is_row_valid(row - 1) && board[test_idx] == Empty)
-            {
-                out[mov_ctr++] = test_idx;
-            }
-
             test_idx = get_idx_fr_adj_colrow(adj_col - 1, adj_row - 1);
             if (is_adj_colrow_valid(adj_col - 1, adj_row - 1))
             {
@@ -1319,20 +1293,6 @@ void get_piece_influence(int *board, int piece_idx, int *out)
             if (is_adj_colrow_valid(adj_col + 1, adj_row - 1))
             {
                 out[mov_ctr++] = test_idx;
-            }
-
-            if (row == 7)
-            {
-                // Dont need to check if row adjustments are valid since we know that starting row is 7.
-                test_idx = get_idx_fr_colrow(col, row - 1);
-                if (board[test_idx] == Empty)
-                {
-                    test_idx = get_idx_fr_colrow(col, row - 2);
-                    if (board[test_idx] == Empty)
-                    {
-                        out[mov_ctr++] = test_idx;
-                    }
-                }
             }
         }
 
@@ -1795,58 +1755,6 @@ void get_piece_influence(int *board, int piece_idx, int *out)
                     else
                     {
                         out[mov_ctr++] = test_idx;
-                    }
-                }
-            }
-        }
-
-        // Castles.
-        if (piece == WhiteKing)
-        {
-            if (col == 'e' && row == 1)
-            {
-                // Queen side castle.
-                if (board[get_idx_fr_colrow('a', 1)] == WhiteRook)
-                {
-                    if (board[get_idx_fr_colrow('b', 1)] == Empty && board[get_idx_fr_colrow('c', 1)] == Empty && board[get_idx_fr_colrow('d', 1)] == Empty &&
-                        !is_cell_under_attack(board, get_idx_fr_colrow('b', 1), true) && !is_cell_under_attack(board, get_idx_fr_colrow('c', 1), true) && !is_cell_under_attack(board, get_idx_fr_colrow('d', 1), true))
-                    {
-                        out[mov_ctr++] = get_idx_fr_colrow('c', 1);
-                    }
-                }
-
-                // King side castle.
-                if (board[get_idx_fr_colrow('h', 1)] == WhiteRook)
-                {
-                    if (board[get_idx_fr_colrow('f', 1)] == Empty && board[get_idx_fr_colrow('g', 1)] == Empty &&
-                        !is_cell_under_attack(board, get_idx_fr_colrow('f', 1), true) && !is_cell_under_attack(board, get_idx_fr_colrow('g', 1), true))
-                    {
-                        out[mov_ctr++] = get_idx_fr_colrow('g', 1);
-                    }
-                }
-            }
-        }
-        else
-        {
-            if (col == 'e' && row == 8)
-            {
-                // Queen side castle.
-                if (board[get_idx_fr_colrow('a', 8)] == BlackRook)
-                {
-                    if (board[get_idx_fr_colrow('b', 8)] == Empty && board[get_idx_fr_colrow('c', 8)] == Empty && board[get_idx_fr_colrow('d', 8)] == Empty &&
-                        !is_cell_under_attack(board, get_idx_fr_colrow('b', 8), false) && !is_cell_under_attack(board, get_idx_fr_colrow('c', 8), false) && !is_cell_under_attack(board, get_idx_fr_colrow('d', 8), false))
-                    {
-                        out[mov_ctr++] = get_idx_fr_colrow('c', 8);
-                    }
-                }
-
-                // King side castle.
-                if (board[get_idx_fr_colrow('h', 8)] == BlackRook)
-                {
-                    if (board[get_idx_fr_colrow('f', 8)] == Empty && board[get_idx_fr_colrow('g', 8)] == Empty &&
-                        !is_cell_under_attack(board, get_idx_fr_colrow('f', 8), false) && !is_cell_under_attack(board, get_idx_fr_colrow('g', 8), false))
-                    {
-                        out[mov_ctr++] = get_idx_fr_colrow('g', 8);
                     }
                 }
             }
@@ -2418,42 +2326,42 @@ void print_board(int *board)
         for (int j = 0; j < CHESS_BOARD_COL_CNT; j++)
         {
 
-            switch (board[(i * CHESS_BOARD_COL_CNT) + j])
+            switch ((ChessPiece)board[(i * CHESS_BOARD_COL_CNT) + j])
             {
-            case WhitePawn:
+            case ChessPiece::WhitePawn:
                 printf(" P |");
                 break;
-            case BlackPawn:
+            case ChessPiece::BlackPawn:
                 printf(" p |");
                 break;
-            case WhiteKnight:
+            case ChessPiece::WhiteKnight:
                 printf(" N |");
                 break;
-            case BlackKnight:
+            case ChessPiece::BlackKnight:
                 printf(" n |");
                 break;
-            case WhiteBishop:
+            case ChessPiece::WhiteBishop:
                 printf(" B |");
                 break;
-            case BlackBishop:
+            case ChessPiece::BlackBishop:
                 printf(" b |");
                 break;
-            case WhiteRook:
+            case ChessPiece::WhiteRook:
                 printf(" R |");
                 break;
-            case BlackRook:
+            case ChessPiece::BlackRook:
                 printf(" r |");
                 break;
-            case WhiteQueen:
+            case ChessPiece::WhiteQueen:
                 printf(" Q |");
                 break;
-            case BlackQueen:
+            case ChessPiece::BlackQueen:
                 printf(" q |");
                 break;
-            case WhiteKing:
+            case ChessPiece::WhiteKing:
                 printf(" K |");
                 break;
-            case BlackKing:
+            case ChessPiece::BlackKing:
                 printf(" k |");
                 break;
             default:
@@ -2473,6 +2381,64 @@ void print_board(int *board)
     }
 
     printf("\n\n");
+}
+
+void print_influence_board(int *board)
+{
+    // Print in a more viewable format(a8 at top left of screen).
+    printf("   +---+---+---+---+---+---+---+---+");
+    printf("\n");
+    for (int i = CHESS_BOARD_ROW_CNT - 1; i >= 0; i--)
+    {
+        printf("%d  ", i + 1);
+        printf("|");
+        for (int j = 0; j < CHESS_BOARD_COL_CNT; j++)
+        {
+            int val = board[(i * CHESS_BOARD_COL_CNT) + j];
+
+            if (val < 0)
+            {
+                printf("%d |", val);
+            }
+            else if (val > 0)
+            {
+                printf(" %d |", val);
+            }
+            else
+            {
+                printf(" %d |", val);
+            }
+        }
+        printf("\n");
+        printf("   +---+---+---+---+---+---+---+---+");
+        printf("\n");
+    }
+
+    printf("    ");
+    for (int j = 0; j < CHESS_BOARD_COL_CNT; j++)
+    {
+        printf(" %c  ", get_col_fr_adj_col(j));
+    }
+
+    printf("\n\n");
+}
+
+void board_to_float(int *board, float *out, bool scale_down_flg)
+{
+    if (scale_down_flg)
+    {
+        for (int i = 0; i < CHESS_BOARD_LEN; i++)
+        {
+            out[i] = (float)board[i] / (((int)ChessPiece::WhiteKing) * 1.0f);
+        }
+    }
+    else
+    {
+        for (int i = 0; i < CHESS_BOARD_LEN; i++)
+        {
+            out[i] = (float)board[i];
+        }
+    }
 }
 
 void one_hot_encode_board(int *board, int *out)
@@ -2526,35 +2492,52 @@ void one_hot_encode_board(int *board, int *out)
     }
 }
 
-int eval_board(int *board)
+float eval_board(int *board, Model *model)
 {
-    int sum = 0;
+    int influence_board[CHESS_BOARD_LEN];
 
-    for (int i = 0; i < CHESS_BOARD_LEN; i++)
-    {
-        sum += board[i];
-    }
+    float flt_board[CHESS_BOARD_LEN];
+    float flt_influence_board[CHESS_BOARD_LEN];
+    float flt_stacked_boards[CHESS_BOARD_LEN * 2];
 
-    return sum;
+    get_influence_board(board, influence_board);
+
+    board_to_float(board, flt_board, true);
+    board_to_float(influence_board, flt_influence_board, true);
+
+    memcpy(flt_stacked_boards, flt_board, sizeof(float) * CHESS_BOARD_LEN);
+    memcpy(&flt_stacked_boards[CHESS_BOARD_LEN], flt_influence_board, sizeof(float) * CHESS_BOARD_LEN);
+
+    Tensor *x = new Tensor(Device::Cpu, 2, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT);
+    x->set_arr(flt_stacked_boards);
+
+    Tensor *pred = model->predict(x);
+
+    float eval = pred->get_val(0);
+
+    delete x;
+    delete pred;
+
+    return eval;
 }
 
-int get_worst_case(int *board, bool white_flg, bool cur_white_flg, int depth, int cur_depth)
+float get_worst_case(int *board, bool white_flg, bool cur_white_flg, int depth, int cur_depth, Model *model)
 {
     if (is_in_checkmate(board, !white_flg))
     {
         if (white_flg)
         {
-            return 1000;
+            return 1000.0f;
         }
         else
         {
-            return -1000;
+            return -1000.0f;
         }
     }
 
     if (cur_depth == depth)
     {
-        return eval_board(board);
+        return eval_board(board, model);
     }
 
     int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
@@ -2565,11 +2548,11 @@ int get_worst_case(int *board, bool white_flg, bool cur_white_flg, int depth, in
 
     if (white_flg)
     {
-        worst_eval = INT_MAX;
+        worst_eval = FLT_MAX;
     }
     else
     {
-        worst_eval = -INT_MAX;
+        worst_eval = -FLT_MAX;
     }
 
     if (cur_white_flg)
@@ -2589,7 +2572,7 @@ int get_worst_case(int *board, bool white_flg, bool cur_white_flg, int depth, in
 
                     simulate_board_change_w_srcdst_idx(board, piece_idx, legal_moves[mov_idx], sim_board);
 
-                    int eval = get_worst_case(sim_board, white_flg, !cur_white_flg, depth, cur_depth + 1);
+                    float eval = get_worst_case(sim_board, white_flg, !cur_white_flg, depth, cur_depth + 1, model);
 
                     if (white_flg)
                     {
@@ -2613,7 +2596,7 @@ int get_worst_case(int *board, bool white_flg, bool cur_white_flg, int depth, in
     {
         for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
         {
-            if (is_piece_black((ChessPiece)board[piece_idx]) == 1)
+            if (is_piece_black((ChessPiece)board[piece_idx]))
             {
                 get_legal_moves(board, piece_idx, legal_moves, true);
 
@@ -2626,7 +2609,7 @@ int get_worst_case(int *board, bool white_flg, bool cur_white_flg, int depth, in
 
                     simulate_board_change_w_srcdst_idx(board, piece_idx, legal_moves[mov_idx], sim_board);
 
-                    int eval = get_worst_case(sim_board, white_flg, !cur_white_flg, depth, cur_depth + 1);
+                    float eval = get_worst_case(sim_board, white_flg, !cur_white_flg, depth, cur_depth + 1, model);
 
                     if (white_flg)
                     {
@@ -2648,10 +2631,10 @@ int get_worst_case(int *board, bool white_flg, bool cur_white_flg, int depth, in
     }
 
     // Make sure there were moves to evaluate.
-    if (worst_eval == INT_MAX || worst_eval == -INT_MAX)
+    if (worst_eval == FLT_MAX || worst_eval == -FLT_MAX)
     {
-        worst_eval = 0;
+        worst_eval = 0.0f;
     }
 
-    return eval_board(board) + worst_eval;
+    return eval_board(board, model) + worst_eval;
 }
