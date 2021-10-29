@@ -128,99 +128,7 @@ void dump_pgn(const char *pgn_name)
     system("cls");
 }
 
-Supervisor *get_chess_supervisor(const char *pgn_name)
-{
-    char file_name_buf[256];
-
-    FILE *boards_file;
-    long long boards_file_size;
-
-    memset(file_name_buf, 0, 256);
-    sprintf(file_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\%s.bs", pgn_name);
-    boards_file = fopen(file_name_buf, "rb");
-    boards_file_size = get_chess_file_size(file_name_buf);
-
-    FILE *labels_file;
-    long long labels_file_size;
-
-    memset(file_name_buf, 0, 256);
-    sprintf(file_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\%s.ls", pgn_name);
-    labels_file = fopen(file_name_buf, "rb");
-    labels_file_size = get_chess_file_size(file_name_buf);
-
-    int file_col_cnt = CHESS_BOARD_LEN * 4;
-    int file_row_cnt = (boards_file_size / (sizeof(int) * file_col_cnt));
-
-    int *board_buf = (int *)malloc(sizeof(int) * (file_row_cnt * file_col_cnt));
-    fread(board_buf, sizeof(int), (file_row_cnt * file_col_cnt), boards_file);
-
-    float *board_flt_buf = (float *)malloc(sizeof(float) * (file_row_cnt * file_col_cnt));
-    for (int i = 0; i < (file_row_cnt * file_col_cnt); i++)
-    {
-        board_flt_buf[i] = ((float)board_buf[i] / (((int)ChessPiece::WhiteKing) * 1.0f));
-    }
-
-    free(board_buf);
-
-    float *label_flt_buf = (float *)malloc(sizeof(float) * (file_row_cnt));
-    fread(label_flt_buf, sizeof(int), (file_row_cnt), labels_file);
-
-    Supervisor *sup = new Supervisor(file_row_cnt, file_col_cnt, 0, board_flt_buf,
-                                     label_flt_buf, 0.8f, 0.2f, Device::Cpu);
-
-    free(board_flt_buf);
-    free(label_flt_buf);
-
-    fclose(boards_file);
-    fclose(labels_file);
-
-    sup->shuffle();
-
-    return sup;
-}
-
 void train_chess(const char *pgn_name)
-{
-    Supervisor *sup = get_chess_supervisor(pgn_name);
-
-    // TRAIN NEW ================================= =================================
-
-    // Model *model = new Model(CostFunction::MSE, 0.1f);
-
-    // std::vector<int> n_shape{2, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
-
-    // model->add_layer(new ConvolutionalLayer(n_shape, 64, 5, 5, InitializationFunction::Xavier));
-    // model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
-
-    // model->add_layer(new LinearLayer(model->get_output_shape(), 128, InitializationFunction::Xavier));
-    // model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
-
-    // model->add_layer(new LinearLayer(model->get_output_shape(), 64, InitializationFunction::Xavier));
-    // model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
-
-    // model->add_layer(new LinearLayer(model->get_output_shape(), Tensor::get_cnt(sup->get_y_shape()), InitializationFunction::Xavier));
-    // model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
-
-    // model->train_and_test(sup, 256, 10, "C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.csv");
-
-    // model->save("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn");
-
-    // TRAIN EXISTING ================================= =================================
-
-    Model *model = new Model("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn");
-
-    model->train_and_test(sup, 256, 10, "C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.csv");
-
-    model->save("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn");
-
-    //  ================================= =================================
-
-    delete model;
-
-    delete sup;
-}
-
-void train_chess_custom(const char *pgn_name)
 {
     char file_name_buf[256];
 
@@ -252,6 +160,8 @@ void train_chess_custom(const char *pgn_name)
     int post_mov_influence_board[CHESS_BOARD_LEN];
     int board_buf[CHESS_BOARD_LEN * 4];
 
+    int sim_board[CHESS_BOARD_LEN];
+
     float flt_board[CHESS_BOARD_LEN];
     float flt_post_mov_board[CHESS_BOARD_LEN];
     float flt_influence_board[CHESS_BOARD_LEN];
@@ -279,51 +189,45 @@ void train_chess_custom(const char *pgn_name)
 
     int record_idx = 0;
 
-    bool white_turn_flg = true;
+    bool white_file_flg = true;
 
     long long int iteration = 0;
 
     while (true)
     {
         FILE *boards_file = nullptr;
-        long long boards_file_size = 0;
-        int file_col_cnt = 0;
         int file_row_cnt = 0;
 
-        if (white_turn_flg)
+        if (white_file_flg)
         {
             boards_file = white_boards_file;
-            boards_file_size = white_boards_file_size;
-            file_col_cnt = white_file_col_cnt;
             file_row_cnt = white_file_row_cnt;
         }
         else
         {
             boards_file = black_boards_file;
-            boards_file_size = black_boards_file_size;
-            file_col_cnt = black_file_col_cnt;
             file_row_cnt = black_file_row_cnt;
         }
 
         record_idx = rand() % file_row_cnt;
 
-        fseek(boards_file, record_idx * (CHESS_BOARD_LEN * 4), SEEK_SET);
+        fseek(boards_file, record_idx * (CHESS_BOARD_LEN * 4) * (sizeof(int)), SEEK_SET);
 
         fread(board_buf, sizeof(int), CHESS_BOARD_LEN * 4, boards_file);
 
         memcpy(board, board_buf, sizeof(int) * CHESS_BOARD_LEN);
-        memcpy(influence_board, &board_buf[CHESS_BOARD_LEN], sizeof(int) * CHESS_BOARD_LEN);
-        memcpy(post_mov_board, &board_buf[CHESS_BOARD_LEN * 2], sizeof(int) * CHESS_BOARD_LEN);
+        memcpy(post_mov_board, &board_buf[CHESS_BOARD_LEN], sizeof(int) * CHESS_BOARD_LEN);
+        memcpy(influence_board, &board_buf[CHESS_BOARD_LEN * 2], sizeof(int) * CHESS_BOARD_LEN);
         memcpy(post_mov_influence_board, &board_buf[CHESS_BOARD_LEN * 3], sizeof(int) * CHESS_BOARD_LEN);
 
         board_to_float(board, flt_board, true);
-        board_to_float(influence_board, flt_influence_board, true);
         board_to_float(post_mov_board, flt_post_mov_board, true);
+        board_to_float(influence_board, flt_influence_board, true);
         board_to_float(post_mov_influence_board, flt_post_mov_influence_board, true);
 
         memcpy(flt_board_buf, flt_board, sizeof(float) * CHESS_BOARD_LEN);
-        memcpy(&flt_board_buf[CHESS_BOARD_LEN], flt_influence_board, sizeof(float) * CHESS_BOARD_LEN);
-        memcpy(&flt_board_buf[CHESS_BOARD_LEN * 2], flt_post_mov_board, sizeof(float) * CHESS_BOARD_LEN);
+        memcpy(&flt_board_buf[CHESS_BOARD_LEN], flt_post_mov_board, sizeof(float) * CHESS_BOARD_LEN);
+        memcpy(&flt_board_buf[CHESS_BOARD_LEN * 2], flt_influence_board, sizeof(float) * CHESS_BOARD_LEN);
         memcpy(&flt_board_buf[CHESS_BOARD_LEN * 3], flt_post_mov_influence_board, sizeof(float) * CHESS_BOARD_LEN);
 
         Tensor *x = new Tensor(Device::Cpu, 2, CHESS_BOARD_ROW_CNT * 2, CHESS_BOARD_COL_CNT);
@@ -338,15 +242,21 @@ void train_chess_custom(const char *pgn_name)
 
         for (int i = 0; i < 2; i++)
         {
-            SrcDst_Idx sdi = get_random_move(board, white_turn_flg, post_mov_board);
-            simulate_board_change_w_srcdst_idx(board, sdi.src_idx, sdi.dst_idx, post_mov_board);
+            SrcDst_Idx sdi = get_random_move(board, white_file_flg, post_mov_board);
 
-            get_influence_board(post_mov_board, post_mov_influence_board);
+            if (sdi.src_idx == CHESS_INVALID_VALUE)
+            {
+                break;
+            }
 
-            board_to_float(post_mov_board, flt_post_mov_board, true);
+            simulate_board_change_w_srcdst_idx(board, sdi.src_idx, sdi.dst_idx, sim_board);
+
+            get_influence_board(sim_board, post_mov_influence_board);
+
+            board_to_float(sim_board, flt_post_mov_board, true);
             board_to_float(post_mov_influence_board, flt_post_mov_influence_board, true);
 
-            memcpy(&flt_board_buf[CHESS_BOARD_LEN * 2], flt_post_mov_board, sizeof(float) * CHESS_BOARD_LEN);
+            memcpy(&flt_board_buf[CHESS_BOARD_LEN], flt_post_mov_board, sizeof(float) * CHESS_BOARD_LEN);
             memcpy(&flt_board_buf[CHESS_BOARD_LEN * 3], flt_post_mov_influence_board, sizeof(float) * CHESS_BOARD_LEN);
 
             Tensor *_x = new Tensor(Device::Cpu, 2, CHESS_BOARD_ROW_CNT * 2, CHESS_BOARD_COL_CNT);
@@ -367,7 +277,7 @@ void train_chess_custom(const char *pgn_name)
 
         delete batch;
 
-        white_turn_flg = !white_turn_flg;
+        white_file_flg = !white_file_flg;
 
         // Allow for manual override.
         {
@@ -410,7 +320,7 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
 
     float best_eval = -FLT_MAX;
 
-    int best_worst_case;
+    float best_worst_case;
     if (white_mov_flg)
     {
         best_worst_case = -FLT_MAX;
@@ -442,13 +352,13 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
                         get_influence_board(sim_board, post_mov_influence_board);
 
                         board_to_float(immut_board, flt_board, true);
-                        board_to_float(influence_board, flt_influence_board, true);
                         board_to_float(sim_board, flt_post_mov_board, true);
+                        board_to_float(influence_board, flt_influence_board, true);
                         board_to_float(post_mov_influence_board, flt_post_mov_influence_board, true);
 
                         memcpy(flt_board_buf, flt_board, sizeof(float) * CHESS_BOARD_LEN);
-                        memcpy(&flt_board_buf[CHESS_BOARD_LEN], flt_influence_board, sizeof(float) * CHESS_BOARD_LEN);
-                        memcpy(&flt_board_buf[CHESS_BOARD_LEN * 2], flt_post_mov_board, sizeof(float) * CHESS_BOARD_LEN);
+                        memcpy(&flt_board_buf[CHESS_BOARD_LEN], flt_post_mov_board, sizeof(float) * CHESS_BOARD_LEN);
+                        memcpy(&flt_board_buf[CHESS_BOARD_LEN * 2], flt_influence_board, sizeof(float) * CHESS_BOARD_LEN);
                         memcpy(&flt_board_buf[CHESS_BOARD_LEN * 3], flt_post_mov_influence_board, sizeof(float) * CHESS_BOARD_LEN);
 
                         Tensor *x = new Tensor(Device::Cpu, 2, CHESS_BOARD_ROW_CNT * 2, CHESS_BOARD_COL_CNT);
@@ -459,29 +369,30 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
                         memset(mov, 0, CHESS_MAX_MOVE_LEN);
                         translate_srcdst_idx_to_mov(immut_board, piece_idx, legal_moves[mov_idx], mov);
 
+                        float eval = get_worst_case(sim_board, white_mov_flg, white_mov_flg, 1, 1);
+
                         if (print_flg)
                         {
-                            printf("MOVE: %s (%f\t%f)\n", mov, pred->get_val(0), pred->get_val(1));
-                            pred->print();
+                            printf("MOVE: %s (%f\t%f)\t%f\n", mov, pred->get_val(0), pred->get_val(1), eval);
                         }
 
                         delete pred;
 
-                        // if (best_worst_case < eval)
-                        // {
-                        //     best_worst_case = eval;
-                        //     best_eval = eval;
-                        //     memcpy(best_mov, mov, CHESS_MAX_MOVE_LEN);
-                        // }
+                        if (best_worst_case < eval)
+                        {
+                            best_worst_case = eval;
+                            best_eval = eval;
+                            memcpy(best_mov, mov, CHESS_MAX_MOVE_LEN);
+                        }
 
-                        // if (best_worst_case == eval)
-                        // {
-                        //     if (best_eval < eval)
-                        //     {
-                        //         best_eval = eval;
-                        //         memcpy(best_mov, mov, CHESS_MAX_MOVE_LEN);
-                        //     }
-                        // }
+                        if (best_worst_case == eval)
+                        {
+                            if (best_eval < eval)
+                            {
+                                best_eval = eval;
+                                memcpy(best_mov, mov, CHESS_MAX_MOVE_LEN);
+                            }
+                        }
                     }
                 }
             }
@@ -522,28 +433,30 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
                         memset(mov, 0, CHESS_MAX_MOVE_LEN);
                         translate_srcdst_idx_to_mov(immut_board, piece_idx, legal_moves[mov_idx], mov);
 
+                        float eval = get_worst_case(sim_board, white_mov_flg, white_mov_flg, 1, 1);
+
                         if (print_flg)
                         {
-                            printf("MOVE: %s (%f\t%f)\n", mov, pred->get_val(0), pred->get_val(1));
+                            printf("MOVE: %s (%f\t%f)\t%f\n", mov, pred->get_val(0), pred->get_val(1), eval);
                         }
 
                         delete pred;
 
-                        // if (best_worst_case > eval)
-                        // {
-                        //     best_worst_case = eval;
-                        //     best_eval = eval;
-                        //     memcpy(best_mov, mov, CHESS_MAX_MOVE_LEN);
-                        // }
+                        if (best_worst_case > eval)
+                        {
+                            best_worst_case = eval;
+                            best_eval = eval;
+                            memcpy(best_mov, mov, CHESS_MAX_MOVE_LEN);
+                        }
 
-                        // if (best_worst_case == eval)
-                        // {
-                        //     if (best_eval < eval)
-                        //     {
-                        //         best_eval = eval;
-                        //         memcpy(best_mov, mov, CHESS_MAX_MOVE_LEN);
-                        //     }
-                        // }
+                        if (best_worst_case == eval)
+                        {
+                            if (best_eval < eval)
+                            {
+                                best_eval = eval;
+                                memcpy(best_mov, mov, CHESS_MAX_MOVE_LEN);
+                            }
+                        }
                     }
                 }
             }
@@ -562,7 +475,6 @@ void play_chess(const char *model_path, bool white_flg, int depth)
     Model *model = new Model(model_path);
 
     int *board = init_board();
-    int inf_board[CHESS_BOARD_LEN];
     int cpy_board[CHESS_BOARD_LEN];
     char mov[CHESS_MAX_MOVE_LEN];
 
@@ -700,8 +612,6 @@ int main(int argc, char **argv)
     srand(time(NULL));
 
     //dump_pgn("TEST");
-
-    //train_chess_custom("TEST");
 
     //train_chess("TEST");
 

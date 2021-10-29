@@ -94,4 +94,4 @@ void one_hot_encode_board(int *board, int *out);
 
 float eval_board(int *board, Model *model);
 
-float get_worst_case(int *board, bool white_flg, bool cur_white_flg, int depth, int cur_depth, Model *model);
+float get_worst_case(int *board, bool white_flg, bool cur_white_flg, int depth, int cur_depth);

@@ -2492,36 +2492,24 @@ void one_hot_encode_board(int *board, int *out)
     }
 }
 
-float eval_board(int *board, Model *model)
+float eval_board(int *board)
 {
     int influence_board[CHESS_BOARD_LEN];
-
-    float flt_board[CHESS_BOARD_LEN];
-    float flt_influence_board[CHESS_BOARD_LEN];
-    float flt_stacked_boards[CHESS_BOARD_LEN * 2];
-
     get_influence_board(board, influence_board);
 
-    board_to_float(board, flt_board, true);
-    board_to_float(influence_board, flt_influence_board, true);
+    float board_eval = 0.0f;
+    float influence_board_eval = 0.0f;
 
-    memcpy(flt_stacked_boards, flt_board, sizeof(float) * CHESS_BOARD_LEN);
-    memcpy(&flt_stacked_boards[CHESS_BOARD_LEN], flt_influence_board, sizeof(float) * CHESS_BOARD_LEN);
+    for (int i = 0; i < CHESS_BOARD_LEN; i++)
+    {
+        board_eval += board[i];
+        influence_board_eval += influence_board[i];
+    }
 
-    Tensor *x = new Tensor(Device::Cpu, 2, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT);
-    x->set_arr(flt_stacked_boards);
-
-    Tensor *pred = model->predict(x);
-
-    float eval = pred->get_val(0);
-
-    delete x;
-    delete pred;
-
-    return eval;
+    return board_eval + influence_board_eval;
 }
 
-float get_worst_case(int *board, bool white_flg, bool cur_white_flg, int depth, int cur_depth, Model *model)
+float get_worst_case(int *board, bool white_flg, bool cur_white_flg, int depth, int cur_depth)
 {
     if (is_in_checkmate(board, !white_flg))
     {
@@ -2537,14 +2525,14 @@ float get_worst_case(int *board, bool white_flg, bool cur_white_flg, int depth, 
 
     if (cur_depth == depth)
     {
-        return eval_board(board, model);
+        return eval_board(board);
     }
 
     int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
 
     int sim_board[CHESS_BOARD_LEN];
 
-    int worst_eval;
+    float worst_eval;
 
     if (white_flg)
     {
@@ -2572,7 +2560,7 @@ float get_worst_case(int *board, bool white_flg, bool cur_white_flg, int depth, 
 
                     simulate_board_change_w_srcdst_idx(board, piece_idx, legal_moves[mov_idx], sim_board);
 
-                    float eval = get_worst_case(sim_board, white_flg, !cur_white_flg, depth, cur_depth + 1, model);
+                    float eval = get_worst_case(sim_board, white_flg, !cur_white_flg, depth, cur_depth + 1);
 
                     if (white_flg)
                     {
@@ -2609,7 +2597,7 @@ float get_worst_case(int *board, bool white_flg, bool cur_white_flg, int depth, 
 
                     simulate_board_change_w_srcdst_idx(board, piece_idx, legal_moves[mov_idx], sim_board);
 
-                    float eval = get_worst_case(sim_board, white_flg, !cur_white_flg, depth, cur_depth + 1, model);
+                    float eval = get_worst_case(sim_board, white_flg, !cur_white_flg, depth, cur_depth + 1);
 
                     if (white_flg)
                     {
@@ -2636,5 +2624,5 @@ float get_worst_case(int *board, bool white_flg, bool cur_white_flg, int depth, 
         worst_eval = 0.0f;
     }
 
-    return eval_board(board, model) + worst_eval;
+    return eval_board(board) + worst_eval;
 }
