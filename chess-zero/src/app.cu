@@ -173,15 +173,27 @@ void train_chess(const char *pgn_name)
 
     Model *model = new Model(CostFunction::CrossEntropy, 0.1f);
 
-    std::vector<int> n_shape{2, CHESS_BOARD_ROW_CNT * 2, CHESS_BOARD_COL_CNT};
+    std::vector<int> n_shape{4, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
 
-    model->add_layer(new ConvolutionalLayer(n_shape, 64, 5, 5, InitializationFunction::Xavier));
+    // model->add_layer(new ConvolutionalLayer(n_shape, 64, 3, 3, InitializationFunction::Xavier));
+    // model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
+
+    // model->add_layer(new ConvolutionalLayer(n_shape, 64, 3, 3, InitializationFunction::Xavier));
+    // model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
+
+    model->add_layer(new LinearLayer(n_shape, 512, InitializationFunction::Xavier));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
+
+    model->add_layer(new LinearLayer(model->get_output_shape(), 512, InitializationFunction::Xavier));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
+
+    model->add_layer(new LinearLayer(model->get_output_shape(), 256, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), 128, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
-    model->add_layer(new LinearLayer(model->get_output_shape(), 64, InitializationFunction::Xavier));
+    model->add_layer(new LinearLayer(model->get_output_shape(), 32, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), 2, InitializationFunction::Xavier));
@@ -230,7 +242,7 @@ void train_chess(const char *pgn_name)
         memcpy(&flt_board_buf[CHESS_BOARD_LEN * 2], flt_influence_board, sizeof(float) * CHESS_BOARD_LEN);
         memcpy(&flt_board_buf[CHESS_BOARD_LEN * 3], flt_post_mov_influence_board, sizeof(float) * CHESS_BOARD_LEN);
 
-        Tensor *x = new Tensor(Device::Cpu, 2, CHESS_BOARD_ROW_CNT * 2, CHESS_BOARD_COL_CNT);
+        Tensor *x = new Tensor(Device::Cpu, 4, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT);
         x->set_arr(flt_board_buf);
 
         Tensor *y = new Tensor(Device::Cpu, 2);
@@ -259,7 +271,7 @@ void train_chess(const char *pgn_name)
             memcpy(&flt_board_buf[CHESS_BOARD_LEN], flt_post_mov_board, sizeof(float) * CHESS_BOARD_LEN);
             memcpy(&flt_board_buf[CHESS_BOARD_LEN * 3], flt_post_mov_influence_board, sizeof(float) * CHESS_BOARD_LEN);
 
-            Tensor *_x = new Tensor(Device::Cpu, 2, CHESS_BOARD_ROW_CNT * 2, CHESS_BOARD_COL_CNT);
+            Tensor *_x = new Tensor(Device::Cpu, 4, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT);
             _x->set_arr(flt_board_buf);
 
             Tensor *_y = new Tensor(Device::Cpu, 2);
@@ -273,7 +285,10 @@ void train_chess(const char *pgn_name)
 
         int epoch = iteration / (white_file_row_cnt + black_file_row_cnt);
 
-        CSVUtils::write_to_csv(csv_file_ptr, epoch, iteration, rpt);
+        if (iteration % 100 == 0)
+        {
+            CSVUtils::write_to_csv(csv_file_ptr, epoch, iteration, rpt);
+        }
 
         delete batch;
 
@@ -361,7 +376,7 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
                         memcpy(&flt_board_buf[CHESS_BOARD_LEN * 2], flt_influence_board, sizeof(float) * CHESS_BOARD_LEN);
                         memcpy(&flt_board_buf[CHESS_BOARD_LEN * 3], flt_post_mov_influence_board, sizeof(float) * CHESS_BOARD_LEN);
 
-                        Tensor *x = new Tensor(Device::Cpu, 2, CHESS_BOARD_ROW_CNT * 2, CHESS_BOARD_COL_CNT);
+                        Tensor *x = new Tensor(Device::Cpu, 4, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT);
                         x->set_arr(flt_board_buf);
 
                         Tensor *pred = model->predict(x);
@@ -425,7 +440,7 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
                         memcpy(&flt_board_buf[CHESS_BOARD_LEN * 2], flt_post_mov_board, sizeof(float) * CHESS_BOARD_LEN);
                         memcpy(&flt_board_buf[CHESS_BOARD_LEN * 3], flt_post_mov_influence_board, sizeof(float) * CHESS_BOARD_LEN);
 
-                        Tensor *x = new Tensor(Device::Cpu, 2, CHESS_BOARD_ROW_CNT * 2, CHESS_BOARD_COL_CNT);
+                        Tensor *x = new Tensor(Device::Cpu, 4, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT);
                         x->set_arr(flt_board_buf);
 
                         Tensor *pred = model->predict(x);
