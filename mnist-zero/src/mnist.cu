@@ -8,7 +8,7 @@ using namespace zero::nn;
 #define IMAGE_ROW_CNT 28
 #define IMAGE_COL_CNT 28
 
-Supervisor *get_mnist_train_supervisor()
+InMemorySupervisor *get_mnist_train_supervisor()
 {
     int img_area = IMAGE_ROW_CNT * IMAGE_COL_CNT;
 
@@ -43,7 +43,7 @@ Supervisor *get_mnist_train_supervisor()
     free(img_buf);
     free(lbl_buf);
 
-    Supervisor *sup = new Supervisor(img_cnt, 784, 10, img_flt_buf, lbl_flt_buf, 1.0f, 0.0f, Device::Cpu);
+    InMemorySupervisor *sup = new InMemorySupervisor(img_cnt, 784, 10, img_flt_buf, lbl_flt_buf, 1.0f, 0.0f, Device::Cpu);
 
     free(lbl_flt_buf);
     free(img_flt_buf);
@@ -51,7 +51,7 @@ Supervisor *get_mnist_train_supervisor()
     return sup;
 }
 
-Supervisor *get_mnist_test_supervisor()
+InMemorySupervisor *get_mnist_test_supervisor()
 {
     int img_area = IMAGE_ROW_CNT * IMAGE_COL_CNT;
 
@@ -86,7 +86,7 @@ Supervisor *get_mnist_test_supervisor()
     free(img_buf);
     free(lbl_buf);
 
-    Supervisor *sup = new Supervisor(img_cnt, 784, 10, img_flt_buf, lbl_flt_buf, 0.0f, 1.0f, Device::Cpu);
+    InMemorySupervisor *sup = new InMemorySupervisor(img_cnt, 784, 10, img_flt_buf, lbl_flt_buf, 0.0f, 1.0f, Device::Cpu);
 
     free(lbl_flt_buf);
     free(img_flt_buf);
@@ -94,7 +94,7 @@ Supervisor *get_mnist_test_supervisor()
     return sup;
 }
 
-void train_mnist(Model *model, Supervisor *train_sup, int train_batch_size, int target_epoch, const char *csv_path)
+void train_mnist(Model *model, InMemorySupervisor *train_sup, int train_batch_size, int target_epoch, const char *csv_path)
 {
     FILE *csv_file_ptr;
 
@@ -155,7 +155,7 @@ void train_mnist(Model *model, Supervisor *train_sup, int train_batch_size, int 
     }
 }
 
-void test_mnist(Model *model, Supervisor *test_sup, Supervisor *train_sup)
+void test_mnist(Model *model, InMemorySupervisor *test_sup, InMemorySupervisor *train_sup)
 {
     Batch *test_batch = test_sup->create_batch();
     Batch *train_batch = train_sup->create_batch();
@@ -175,8 +175,8 @@ void test_mnist(Model *model, Supervisor *test_sup, Supervisor *train_sup)
 
 int main(int argc, char **argv)
 {
-    Supervisor *train_sup = get_mnist_train_supervisor();
-    Supervisor *test_sup = get_mnist_test_supervisor();
+    InMemorySupervisor *train_sup = get_mnist_train_supervisor();
+    InMemorySupervisor *test_sup = get_mnist_test_supervisor();
 
     // TRAIN NEW =======================================================================================
 
