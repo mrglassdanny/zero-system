@@ -29,6 +29,7 @@ __global__ void k_set_arr_rand(float *arr, int cnt, float mean, float stddev)
 }
 
 // Utility functions:
+
 long long get_file_size(const char *name)
 {
 

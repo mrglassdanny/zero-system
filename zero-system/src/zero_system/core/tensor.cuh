@@ -24,6 +24,8 @@ namespace zero
     namespace core
     {
 
+        long long get_file_size(const char *name);
+
         enum Device
         {
             Cpu,
