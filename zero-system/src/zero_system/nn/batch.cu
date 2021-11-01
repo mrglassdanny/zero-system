@@ -247,24 +247,11 @@ OnDiskSupervisor::OnDiskSupervisor(float train_pct, float test_pct, const char *
     this->x_file_ptr = fopen(x_path, "rb");
     this->y_file_ptr = fopen(y_path, "rb");
 
-    this->x_file_size = get_file_size(x_path);
-    this->y_file_size = get_file_size(y_path);
+    this->x_file_size = FileUtils::get_file_size(x_path);
+    this->y_file_size = FileUtils::get_file_size(y_path);
 
     this->x_shape = x_shape;
     this->y_one_hot_cnt = y_one_hot_cnt;
-
-    if (train_pct + test_pct > 1.0f || train_pct > 1.0f || test_pct > 1.0f)
-    {
-        this->train_pct = 0.60f;
-        this->validation_pct = 0.20f;
-        this->test_pct = 0.20f;
-    }
-    else
-    {
-        this->train_pct = train_pct;
-        this->validation_pct = 1.0f - (train_pct + test_pct);
-        this->test_pct = test_pct;
-    }
 }
 
 OnDiskSupervisor::~OnDiskSupervisor()
@@ -276,6 +263,26 @@ OnDiskSupervisor::~OnDiskSupervisor()
 int OnDiskSupervisor::get_cnt()
 {
     return this->x_file_size / (sizeof(float) * Tensor::get_cnt(this->x_shape));
+}
+
+std::vector<int> OnDiskSupervisor::get_x_shape()
+{
+    return this->x_shape;
+}
+
+std::vector<int> OnDiskSupervisor::get_y_shape()
+{
+    std::vector<int> y_shape;
+    if (this->y_one_hot_cnt > 1)
+    {
+        y_shape.push_back(this->y_one_hot_cnt);
+    }
+    else
+    {
+        y_shape.push_back(1);
+    }
+
+    return y_shape;
 }
 
 Batch *OnDiskSupervisor::create_batch(int cnt, int lower, int upper, bool rand_flg)

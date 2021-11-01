@@ -5,7 +5,7 @@
 #include <random>
 
 #include "../core/tensor.cuh"
-#include "util.cuh"
+#include "nn_util.cuh"
 
 namespace zero
 {
@@ -71,7 +71,7 @@ namespace zero
             virtual Batch *create_test_batch() = 0;
         };
 
-        class InMemorySupervisor : Supervisor
+        class InMemorySupervisor : public Supervisor
         {
         private:
             std::vector<Record *> records; // InMemorySupervisor owns records!
@@ -98,7 +98,7 @@ namespace zero
             virtual Batch *create_test_batch();
         };
 
-        class OnDiskSupervisor : Supervisor
+        class OnDiskSupervisor : public Supervisor
         {
         private:
             FILE *x_file_ptr;

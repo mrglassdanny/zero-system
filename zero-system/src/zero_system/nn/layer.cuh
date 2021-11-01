@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../core/tensor.cuh"
-#include "util.cuh"
+#include "nn_util.cuh"
 #include "constants.cuh"
 
 namespace zero

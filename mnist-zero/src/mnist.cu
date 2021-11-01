@@ -43,7 +43,7 @@ InMemorySupervisor *get_mnist_train_supervisor()
     free(img_buf);
     free(lbl_buf);
 
-    InMemorySupervisor *sup = new InMemorySupervisor(img_cnt, 784, 10, img_flt_buf, lbl_flt_buf, 1.0f, 0.0f, Device::Cpu);
+    InMemorySupervisor *sup = new InMemorySupervisor(1.0f, 0.0f, img_cnt, 784, 10, img_flt_buf, lbl_flt_buf, Device::Cpu);
 
     free(lbl_flt_buf);
     free(img_flt_buf);
@@ -86,7 +86,7 @@ InMemorySupervisor *get_mnist_test_supervisor()
     free(img_buf);
     free(lbl_buf);
 
-    InMemorySupervisor *sup = new InMemorySupervisor(img_cnt, 784, 10, img_flt_buf, lbl_flt_buf, 0.0f, 1.0f, Device::Cpu);
+    InMemorySupervisor *sup = new InMemorySupervisor(0.0f, 1.0f, img_cnt, 784, 10, img_flt_buf, lbl_flt_buf, Device::Cpu);
 
     free(lbl_flt_buf);
     free(img_flt_buf);
@@ -161,13 +161,13 @@ void test_mnist(Model *model, InMemorySupervisor *test_sup, InMemorySupervisor *
     Batch *train_batch = train_sup->create_batch();
 
     Report test_rpt = model->test(test_batch);
-    Report train_rpt = model->test(train_batch);
+    //Report train_rpt = model->test(train_batch);
 
     printf("TEST\t\t");
     test_rpt.print();
 
     printf("TRAIN\t\t");
-    train_rpt.print();
+    //train_rpt.print();
 
     delete test_batch;
     delete train_batch;

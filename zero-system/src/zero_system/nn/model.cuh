@@ -1,7 +1,7 @@
 #pragma once
 
 #include "layer.cuh"
-#include "util.cuh"
+#include "nn_util.cuh"
 #include "batch.cuh"
 
 namespace zero
@@ -43,8 +43,8 @@ namespace zero
             Report train(Batch *batch);
             Report test(Batch *batch);
 
-            void train_and_test(InMemorySupervisor *supervisor, int train_batch_size, int target_epoch, const char *csv_path);
-            void all(InMemorySupervisor *supervisor, int train_batch_size, int target_epoch, const char *csv_path);
+            void train_and_test(Supervisor *supervisor, int train_batch_size, int target_epoch, const char *csv_path);
+            void all(Supervisor *supervisor, int train_batch_size, int target_epoch, const char *csv_path);
 
             Tensor *predict(Tensor *x);
         };
