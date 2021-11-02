@@ -313,11 +313,11 @@ Batch *OnDiskSupervisor::create_batch(int cnt, int lower, int upper, bool rand_f
             fseek(this->y_file_ptr, rand_idx * y_record_size + y_lower_offset, SEEK_SET);
         }
 
-        fread(x_buf, sizeof(float), x_shape_cnt, this->x_file_ptr);
+        fread(x_buf, x_record_size, 1, this->x_file_ptr);
         Tensor *x = new Tensor(Device::Cpu, this->x_shape);
         x->set_arr(x_buf);
 
-        fread(y_buf, sizeof(float), 1, this->y_file_ptr);
+        fread(y_buf, y_record_size, 1, this->y_file_ptr);
         Tensor *y;
         if (this->y_one_hot_cnt > 1)
         {
