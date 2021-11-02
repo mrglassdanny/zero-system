@@ -226,10 +226,10 @@ void train_chess(const char *pgn_name)
 
     Model *model = new Model(CostFunction::MSE, 0.1f);
 
-    model->add_layer(new ConvolutionalLayer(sup->get_x_shape(), 16, 5, 5, InitializationFunction::Xavier));
+    model->add_layer(new ConvolutionalLayer(sup->get_x_shape(), 32, 3, 3, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
-    model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 16, 3, 3, InitializationFunction::Xavier));
+    model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 32, 3, 3, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), 64, InitializationFunction::Xavier));
@@ -238,7 +238,7 @@ void train_chess(const char *pgn_name)
     model->add_layer(new LinearLayer(model->get_output_shape(), Tensor::get_cnt(sup->get_y_shape()), InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
-    model->train_and_test(sup, 64, 30, "C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.csv");
+    model->train_and_test(sup, 256, 5, "C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.csv");
 
     model->save("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn");
 
@@ -400,7 +400,7 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
     return mov_res;
 }
 
-void play_chess(const char *model_path, bool white_flg, int depth)
+void play_chess(const char *model_path, bool white_flg, int depth, bool print_flg)
 {
     Model *model = new Model(model_path);
 
@@ -499,7 +499,7 @@ void play_chess(const char *model_path, bool white_flg, int depth)
             //if (white_flg)
             {
                 copy_board(board, cpy_board);
-                mov_res = get_best_move(cpy_board, white_mov_flg, true, depth, model);
+                mov_res = get_best_move(cpy_board, white_mov_flg, print_flg, depth, model);
                 printf("%s\t%f\t%d\n", mov_res.mov, mov_res.eval, mov_res.worst_case);
             }
 
@@ -542,7 +542,7 @@ void play_chess(const char *model_path, bool white_flg, int depth)
             //if (!white_flg)
             {
                 copy_board(board, cpy_board);
-                mov_res = get_best_move(cpy_board, white_mov_flg, true, depth, model);
+                mov_res = get_best_move(cpy_board, white_mov_flg, print_flg, depth, model);
                 printf("%s\t%f\t%d\n", mov_res.mov, mov_res.eval, mov_res.worst_case);
             }
 
@@ -574,11 +574,11 @@ int main(int argc, char **argv)
 {
     srand(time(NULL));
 
-    //dump_pgn("TEST");
+    //dump_pgn("Fischer");
 
-    //train_chess("TEST");
+    train_chess("Fischer");
 
-    play_chess("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn", true, 3);
+    //play_chess("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn", true, 3, false);
 
     return 0;
 }
