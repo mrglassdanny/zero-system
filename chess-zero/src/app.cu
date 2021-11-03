@@ -13,8 +13,7 @@ using namespace zero::nn;
 struct MoveSearchResult
 {
     char mov[CHESS_MAX_MOVE_LEN];
-    float eval;
-    int worst_case;
+    float worst_case;
 };
 
 long long get_chess_file_size(const char *name)
@@ -258,7 +257,8 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
     float flt_sim_influence_board[CHESS_BOARD_LEN];
     float flt_board_buf[CHESS_BOARD_LEN * 2];
 
-    float best_eval = -FLT_MAX;
+    float *cuda_flt_board_buf;
+    cudaMalloc(&cuda_flt_board_buf, sizeof(float) * CHESS_BOARD_LEN * 2);
 
     float best_worst_case;
     if (white_mov_flg)
@@ -273,14 +273,20 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
     float cur_worst_eval;
     if (white_mov_flg)
     {
-        best_worst_case = -FLT_MAX;
+        cur_worst_eval = -FLT_MAX;
     }
     else
     {
-        best_worst_case = FLT_MAX;
+        cur_worst_eval = FLT_MAX;
     }
 
     char best_mov[CHESS_MAX_MOVE_LEN];
+
+    if (print_flg)
+    {
+        printf("move\t1 depth\t\t%d depth\t\tpruned\n", depth);
+        printf("-------+---------------+---------------+------------\n");
+    }
 
     for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
     {
@@ -314,16 +320,16 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
                         memset(mov, 0, CHESS_MAX_MOVE_LEN);
                         translate_srcdst_idx_to_mov(immut_board, piece_idx, legal_moves[mov_idx], mov);
 
-                        Evaluation evaluation = get_worst_case(sim_board, white_mov_flg, white_mov_flg, depth, 1, model, cur_worst_eval);
+                        Evaluation evaluation = get_worst_case(sim_board, white_mov_flg, white_mov_flg, depth, 1, model, cur_worst_eval, cuda_flt_board_buf);
 
                         if (print_flg)
                         {
-                            printf("MOVE: %s (%f)\t%f\n", mov, pred->get_val(0), evaluation.eval);
+                            printf("%s\t%f\t%f\t%d\n", mov, pred->get_val(0), evaluation.eval, evaluation.prune_flg);
                         }
 
                         delete pred;
 
-                        if (evaluation.eval < cur_worst_eval)
+                        if (evaluation.eval > cur_worst_eval)
                         {
                             cur_worst_eval = evaluation.eval;
                         }
@@ -331,17 +337,7 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
                         if (best_worst_case < evaluation.eval)
                         {
                             best_worst_case = evaluation.eval;
-                            best_eval = evaluation.eval;
                             memcpy(best_mov, mov, CHESS_MAX_MOVE_LEN);
-                        }
-
-                        if (best_worst_case == evaluation.eval)
-                        {
-                            if (best_eval < evaluation.eval)
-                            {
-                                best_eval = evaluation.eval;
-                                memcpy(best_mov, mov, CHESS_MAX_MOVE_LEN);
-                            }
                         }
                     }
                 }
@@ -378,16 +374,16 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
                         memset(mov, 0, CHESS_MAX_MOVE_LEN);
                         translate_srcdst_idx_to_mov(immut_board, piece_idx, legal_moves[mov_idx], mov);
 
-                        Evaluation evaluation = get_worst_case(sim_board, white_mov_flg, white_mov_flg, depth, 1, model, cur_worst_eval);
+                        Evaluation evaluation = get_worst_case(sim_board, white_mov_flg, white_mov_flg, depth, 1, model, cur_worst_eval, cuda_flt_board_buf);
 
                         if (print_flg)
                         {
-                            printf("MOVE: %s (%f)\t%f\n", mov, pred->get_val(0), evaluation.eval);
+                            printf("%s\t%f\t%f\t%d\n", mov, pred->get_val(0), evaluation.eval, evaluation.prune_flg);
                         }
 
                         delete pred;
 
-                        if (evaluation.eval > cur_worst_eval)
+                        if (evaluation.eval < cur_worst_eval)
                         {
                             cur_worst_eval = evaluation.eval;
                         }
@@ -395,17 +391,7 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
                         if (best_worst_case > evaluation.eval)
                         {
                             best_worst_case = evaluation.eval;
-                            best_eval = evaluation.eval;
                             memcpy(best_mov, mov, CHESS_MAX_MOVE_LEN);
-                        }
-
-                        if (best_worst_case == evaluation.eval)
-                        {
-                            if (best_eval < evaluation.eval)
-                            {
-                                best_eval = evaluation.eval;
-                                memcpy(best_mov, mov, CHESS_MAX_MOVE_LEN);
-                            }
                         }
                     }
                 }
@@ -413,10 +399,16 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
         }
     }
 
+    if (print_flg)
+    {
+        printf("-------+---------------+---------------+------------\n");
+    }
+
+    cudaFree(cuda_flt_board_buf);
+
     MoveSearchResult mov_res;
     memcpy(mov_res.mov, best_mov, CHESS_MAX_MOVE_LEN);
     mov_res.worst_case = best_worst_case;
-    mov_res.eval = best_eval;
     return mov_res;
 }
 
@@ -520,7 +512,7 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
             {
                 copy_board(board, cpy_board);
                 mov_res = get_best_move(cpy_board, white_mov_flg, print_flg, depth, model);
-                printf("%s\t%f\t%d\n", mov_res.mov, mov_res.eval, mov_res.worst_case);
+                printf("BEST MOVE: %s\t(%f)\n", mov_res.mov, mov_res.worst_case);
             }
 
             // Now accept user input.
@@ -563,7 +555,7 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
             {
                 copy_board(board, cpy_board);
                 mov_res = get_best_move(cpy_board, white_mov_flg, print_flg, depth, model);
-                printf("%s\t%f\t%d\n", mov_res.mov, mov_res.eval, mov_res.worst_case);
+                printf("BEST MOVE: %s\t(%f)\n", mov_res.mov, mov_res.worst_case);
             }
 
             // Now accept user input.
@@ -596,9 +588,9 @@ int main(int argc, char **argv)
 
     //dump_pgn("Fischer");
 
-    train_chess("Fischer");
+    //train_chess("Fischer");
 
-    //play_chess("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn", true, 3, false);
+    play_chess("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn", true, 4, true);
 
     return 0;
 }

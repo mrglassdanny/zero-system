@@ -2492,7 +2492,7 @@ void one_hot_encode_board(int *board, int *out)
     }
 }
 
-float eval_board(int *board, Model *model)
+float eval_board(int *board, Model *model, float *cuda_flt_board_buf)
 {
     float flt_board[CHESS_BOARD_LEN];
     int influence_board[CHESS_BOARD_LEN];
@@ -2507,7 +2507,10 @@ float eval_board(int *board, Model *model)
     memcpy(flt_board_buf, flt_board, sizeof(float) * CHESS_BOARD_LEN);
     memcpy(&flt_board_buf[CHESS_BOARD_LEN], flt_influence_board, sizeof(float) * CHESS_BOARD_LEN);
 
-    Tensor *x = new Tensor(Device::Cpu, 2, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT);
+    cudaMemcpy(cuda_flt_board_buf, flt_board, sizeof(float) * CHESS_BOARD_LEN, cudaMemcpyHostToDevice);
+    cudaMemcpy(&cuda_flt_board_buf[CHESS_BOARD_LEN], flt_influence_board, sizeof(float) * CHESS_BOARD_LEN, cudaMemcpyHostToDevice);
+
+    Tensor *x = new Tensor(Device::Cuda, 2, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT);
     x->set_arr(flt_board_buf);
 
     Tensor *pred = model->predict(x);
@@ -2520,125 +2523,7 @@ float eval_board(int *board, Model *model)
     return eval;
 }
 
-float get_worst_case_2(int *board, bool white_flg, bool cur_white_flg, int max_depth, int cur_depth, Model *model)
-{
-    if (is_in_checkmate(board, !white_flg))
-    {
-        if (white_flg)
-        {
-            return 1000.0f;
-        }
-        else
-        {
-            return -1000.0f;
-        }
-    }
-
-    if (cur_depth == max_depth)
-    {
-        return eval_board(board, model);
-    }
-
-    int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
-
-    int sim_board[CHESS_BOARD_LEN];
-
-    float worst_eval;
-
-    if (white_flg)
-    {
-        worst_eval = FLT_MAX;
-    }
-    else
-    {
-        worst_eval = -FLT_MAX;
-    }
-
-    if (cur_white_flg)
-    {
-        for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
-        {
-            if (is_piece_white((ChessPiece)board[piece_idx]))
-            {
-                get_legal_moves(board, piece_idx, legal_moves, true);
-
-                for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
-                {
-                    if (legal_moves[mov_idx] == CHESS_INVALID_VALUE)
-                    {
-                        break;
-                    }
-
-                    simulate_board_change_w_srcdst_idx(board, piece_idx, legal_moves[mov_idx], sim_board);
-
-                    float eval = get_worst_case(sim_board, white_flg, !cur_white_flg, max_depth, cur_depth + 1, model);
-
-                    if (white_flg)
-                    {
-                        if (eval < worst_eval)
-                        {
-                            worst_eval = eval;
-                        }
-                    }
-                    else
-                    {
-                        if (eval > worst_eval)
-                        {
-                            worst_eval = eval;
-                        }
-                    }
-                }
-            }
-        }
-    }
-    else
-    {
-        for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
-        {
-            if (is_piece_black((ChessPiece)board[piece_idx]))
-            {
-                get_legal_moves(board, piece_idx, legal_moves, true);
-
-                for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
-                {
-                    if (legal_moves[mov_idx] == CHESS_INVALID_VALUE)
-                    {
-                        break;
-                    }
-
-                    simulate_board_change_w_srcdst_idx(board, piece_idx, legal_moves[mov_idx], sim_board);
-
-                    float eval = get_worst_case(sim_board, white_flg, !cur_white_flg, max_depth, cur_depth + 1, model);
-
-                    if (white_flg)
-                    {
-                        if (eval < worst_eval)
-                        {
-                            worst_eval = eval;
-                        }
-                    }
-                    else
-                    {
-                        if (eval > worst_eval)
-                        {
-                            worst_eval = eval;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // Make sure there were moves to evaluate.
-    if (worst_eval == FLT_MAX || worst_eval == -FLT_MAX)
-    {
-        worst_eval = 0.0f;
-    }
-
-    return eval_board(board, model) + worst_eval;
-}
-
-Evaluation get_worst_case(int *board, bool white_flg, bool cur_white_flg, int max_depth, int cur_depth, Model *model, float cur_worst_eval)
+Evaluation get_worst_case(int *board, bool white_flg, bool cur_white_flg, int max_depth, int cur_depth, Model *model, float cur_worst_eval, float *cuda_flt_board_buf)
 {
     Evaluation evaluation;
 
@@ -2660,12 +2545,12 @@ Evaluation get_worst_case(int *board, bool white_flg, bool cur_white_flg, int ma
 
     if (cur_depth == max_depth)
     {
-        float eval = eval_board(board, model);
+        float eval = eval_board(board, model, cuda_flt_board_buf);
         evaluation.eval = eval;
 
         if (white_flg)
         {
-            if (eval < cur_worst_eval)
+            if (eval <= cur_worst_eval)
             {
                 evaluation.prune_flg = true;
                 return evaluation;
@@ -2673,7 +2558,7 @@ Evaluation get_worst_case(int *board, bool white_flg, bool cur_white_flg, int ma
         }
         else
         {
-            if (eval > cur_worst_eval)
+            if (eval >= cur_worst_eval)
             {
                 evaluation.prune_flg = true;
                 return evaluation;
@@ -2716,7 +2601,7 @@ Evaluation get_worst_case(int *board, bool white_flg, bool cur_white_flg, int ma
 
                     simulate_board_change_w_srcdst_idx(board, piece_idx, legal_moves[mov_idx], sim_board);
 
-                    Evaluation _evaluation = get_worst_case(sim_board, white_flg, !cur_white_flg, max_depth, cur_depth + 1, model, cur_worst_eval);
+                    Evaluation _evaluation = get_worst_case(sim_board, white_flg, !cur_white_flg, max_depth, cur_depth + 1, model, cur_worst_eval, cuda_flt_board_buf);
 
                     if (_evaluation.prune_flg)
                     {
@@ -2758,7 +2643,7 @@ Evaluation get_worst_case(int *board, bool white_flg, bool cur_white_flg, int ma
 
                     simulate_board_change_w_srcdst_idx(board, piece_idx, legal_moves[mov_idx], sim_board);
 
-                    Evaluation _evaluation = get_worst_case(sim_board, white_flg, !cur_white_flg, max_depth, cur_depth + 1, model, cur_worst_eval);
+                    Evaluation _evaluation = get_worst_case(sim_board, white_flg, !cur_white_flg, max_depth, cur_depth + 1, model, cur_worst_eval, cuda_flt_board_buf);
 
                     if (_evaluation.prune_flg)
                     {
