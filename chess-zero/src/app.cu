@@ -335,14 +335,14 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
                         memset(mov, 0, CHESS_MAX_MOVE_LEN);
                         translate_srcdst_idx_to_mov(immut_board, piece_idx, legal_moves[mov_idx], mov);
 
-                        Evaluation evaluation = get_worst_case(sim_board, white_mov_flg, white_mov_flg, depth, 1, model, cur_worst_eval, cuda_flt_board_buf);
+                        PruneEvaluation prune_eval = get_worst_case(sim_board, white_mov_flg, white_mov_flg, depth, 1, model, cur_worst_eval, cuda_flt_board_buf);
 
                         if (print_flg)
                         {
-                            printf("%s\t%f\t%f\t%d\n", mov, depth_1_eval, evaluation.eval, evaluation.prune_flg);
+                            printf("%s\t%f\t%f\t%d\n", mov, depth_1_eval, prune_eval.eval, prune_eval.prune_flg);
                         }
 
-                        if (evaluation.eval == cur_worst_eval)
+                        if (prune_eval.eval == cur_worst_eval)
                         {
                             if (depth_1_eval > depth_1_best_eval)
                             {
@@ -351,14 +351,14 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
                             }
                         }
 
-                        if (evaluation.eval > cur_worst_eval)
+                        if (prune_eval.eval > cur_worst_eval)
                         {
-                            cur_worst_eval = evaluation.eval;
+                            cur_worst_eval = prune_eval.eval;
                         }
 
-                        if (best_worst_case < evaluation.eval)
+                        if (best_worst_case < prune_eval.eval)
                         {
-                            best_worst_case = evaluation.eval;
+                            best_worst_case = prune_eval.eval;
                             depth_1_best_eval = depth_1_eval;
                             memcpy(best_mov, mov, CHESS_MAX_MOVE_LEN);
                         }
@@ -401,14 +401,14 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
                         memset(mov, 0, CHESS_MAX_MOVE_LEN);
                         translate_srcdst_idx_to_mov(immut_board, piece_idx, legal_moves[mov_idx], mov);
 
-                        Evaluation evaluation = get_worst_case(sim_board, white_mov_flg, white_mov_flg, depth, 1, model, cur_worst_eval, cuda_flt_board_buf);
+                        PruneEvaluation prune_eval = get_worst_case(sim_board, white_mov_flg, white_mov_flg, depth, 1, model, cur_worst_eval, cuda_flt_board_buf);
 
                         if (print_flg)
                         {
-                            printf("%s\t%f\t%f\t%d\n", mov, depth_1_eval, evaluation.eval, evaluation.prune_flg);
+                            printf("%s\t%f\t%f\t%d\n", mov, depth_1_eval, prune_eval.eval, prune_eval.prune_flg);
                         }
 
-                        if (evaluation.eval == cur_worst_eval)
+                        if (prune_eval.eval == cur_worst_eval)
                         {
                             if (depth_1_eval < depth_1_best_eval)
                             {
@@ -417,14 +417,14 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
                             }
                         }
 
-                        if (evaluation.eval < cur_worst_eval)
+                        if (prune_eval.eval < cur_worst_eval)
                         {
-                            cur_worst_eval = evaluation.eval;
+                            cur_worst_eval = prune_eval.eval;
                         }
 
-                        if (best_worst_case > evaluation.eval)
+                        if (best_worst_case > prune_eval.eval)
                         {
-                            best_worst_case = evaluation.eval;
+                            best_worst_case = prune_eval.eval;
                             depth_1_best_eval = depth_1_eval;
                             memcpy(best_mov, mov, CHESS_MAX_MOVE_LEN);
                         }

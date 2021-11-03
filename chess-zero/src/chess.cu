@@ -2523,50 +2523,50 @@ float eval_board(int *board, Model *model, float *cuda_flt_board_buf)
     return eval;
 }
 
-Evaluation get_worst_case(int *board, bool white_flg, bool cur_white_flg, int max_depth, int cur_depth, Model *model, float cur_worst_eval, float *cuda_flt_board_buf)
+PruneEvaluation get_worst_case(int *board, bool white_flg, bool cur_white_flg, int max_depth, int cur_depth, Model *model, float cur_worst_eval, float *cuda_flt_board_buf)
 {
-    Evaluation evaluation;
+    PruneEvaluation prune_eval;
 
     if (is_in_checkmate(board, !white_flg))
     {
         if (white_flg)
         {
-            evaluation.eval = FLT_MAX;
-            evaluation.prune_flg = false;
-            return evaluation;
+            prune_eval.eval = FLT_MAX;
+            prune_eval.prune_flg = false;
+            return prune_eval;
         }
         else
         {
-            evaluation.eval = -FLT_MAX;
-            evaluation.prune_flg = false;
-            return evaluation;
+            prune_eval.eval = -FLT_MAX;
+            prune_eval.prune_flg = false;
+            return prune_eval;
         }
     }
 
     if (cur_depth == max_depth)
     {
         float eval = eval_board(board, model, cuda_flt_board_buf);
-        evaluation.eval = eval;
+        prune_eval.eval = eval;
 
         if (white_flg)
         {
             if (eval <= cur_worst_eval)
             {
-                evaluation.prune_flg = true;
-                return evaluation;
+                prune_eval.prune_flg = true;
+                return prune_eval;
             }
         }
         else
         {
             if (eval >= cur_worst_eval)
             {
-                evaluation.prune_flg = true;
-                return evaluation;
+                prune_eval.prune_flg = true;
+                return prune_eval;
             }
         }
 
-        evaluation.prune_flg = false;
-        return evaluation;
+        prune_eval.prune_flg = false;
+        return prune_eval;
     }
 
     int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
@@ -2601,25 +2601,25 @@ Evaluation get_worst_case(int *board, bool white_flg, bool cur_white_flg, int ma
 
                     simulate_board_change_w_srcdst_idx(board, piece_idx, legal_moves[mov_idx], sim_board);
 
-                    Evaluation _evaluation = get_worst_case(sim_board, white_flg, !cur_white_flg, max_depth, cur_depth + 1, model, cur_worst_eval, cuda_flt_board_buf);
+                    PruneEvaluation w_prune_eval = get_worst_case(sim_board, white_flg, !cur_white_flg, max_depth, cur_depth + 1, model, cur_worst_eval, cuda_flt_board_buf);
 
-                    if (_evaluation.prune_flg)
+                    if (w_prune_eval.prune_flg)
                     {
-                        return _evaluation;
+                        return w_prune_eval;
                     }
 
                     if (white_flg)
                     {
-                        if (_evaluation.eval < worst_eval)
+                        if (w_prune_eval.eval < worst_eval)
                         {
-                            worst_eval = _evaluation.eval;
+                            worst_eval = w_prune_eval.eval;
                         }
                     }
                     else
                     {
-                        if (_evaluation.eval > worst_eval)
+                        if (w_prune_eval.eval > worst_eval)
                         {
-                            worst_eval = _evaluation.eval;
+                            worst_eval = w_prune_eval.eval;
                         }
                     }
                 }
@@ -2643,25 +2643,25 @@ Evaluation get_worst_case(int *board, bool white_flg, bool cur_white_flg, int ma
 
                     simulate_board_change_w_srcdst_idx(board, piece_idx, legal_moves[mov_idx], sim_board);
 
-                    Evaluation _evaluation = get_worst_case(sim_board, white_flg, !cur_white_flg, max_depth, cur_depth + 1, model, cur_worst_eval, cuda_flt_board_buf);
+                    PruneEvaluation b_prune_eval = get_worst_case(sim_board, white_flg, !cur_white_flg, max_depth, cur_depth + 1, model, cur_worst_eval, cuda_flt_board_buf);
 
-                    if (_evaluation.prune_flg)
+                    if (b_prune_eval.prune_flg)
                     {
-                        return _evaluation;
+                        return b_prune_eval;
                     }
 
                     if (white_flg)
                     {
-                        if (_evaluation.eval < worst_eval)
+                        if (b_prune_eval.eval < worst_eval)
                         {
-                            worst_eval = _evaluation.eval;
+                            worst_eval = b_prune_eval.eval;
                         }
                     }
                     else
                     {
-                        if (_evaluation.eval > worst_eval)
+                        if (b_prune_eval.eval > worst_eval)
                         {
-                            worst_eval = _evaluation.eval;
+                            worst_eval = b_prune_eval.eval;
                         }
                     }
                 }
@@ -2669,7 +2669,7 @@ Evaluation get_worst_case(int *board, bool white_flg, bool cur_white_flg, int ma
         }
     }
 
-    evaluation.eval = worst_eval;
-    evaluation.prune_flg = false;
-    return evaluation;
+    prune_eval.eval = worst_eval;
+    prune_eval.prune_flg = false;
+    return prune_eval;
 }
