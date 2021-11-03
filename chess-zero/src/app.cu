@@ -69,6 +69,7 @@ void dump_pgn(const char *pgn_name)
     {
         PGNMoveList *pl = pgn->games[game_idx];
 
+        if (pl->white_won_flg || pl->black_won_flg)
         {
             white_mov_flg = true;
 
@@ -76,8 +77,6 @@ void dump_pgn(const char *pgn_name)
             {
                 if (mov_idx >= start_mov_idx)
                 {
-                    // Do we have a winner?
-                    if ((white_mov_flg && pl->white_won_flg) || (!white_mov_flg && pl->black_won_flg))
                     {
                         // Save original for simulations later.
                         copy_board(board, orig_board);
@@ -100,10 +99,12 @@ void dump_pgn(const char *pgn_name)
                             if (pl->white_won_flg)
                             {
                                 label = 1.0f;
+                                label *= (((float)mov_idx) / ((float)pl->cnt));
                             }
                             else if (pl->black_won_flg)
                             {
                                 label = -1.0f;
+                                label *= (((float)mov_idx) / ((float)pl->cnt));
                             }
 
                             fwrite(&label, sizeof(float), 1, labels_file);
@@ -133,10 +134,12 @@ void dump_pgn(const char *pgn_name)
                                     if (pl->white_won_flg)
                                     {
                                         label = -1.0f;
+                                        label *= (((float)mov_idx) / ((float)pl->cnt));
                                     }
                                     else if (pl->black_won_flg)
                                     {
                                         label = 1.0f;
+                                        label *= (((float)mov_idx) / ((float)pl->cnt));
                                     }
 
                                     fwrite(&label, sizeof(float), 1, labels_file);
@@ -157,21 +160,22 @@ void dump_pgn(const char *pgn_name)
                                     if (pl->white_won_flg)
                                     {
                                         label = 1.0f;
+                                        label *= (((float)mov_idx) / ((float)pl->cnt));
                                     }
                                     else if (pl->black_won_flg)
                                     {
                                         label = -1.0f;
+                                        label *= (((float)mov_idx) / ((float)pl->cnt));
                                     }
 
                                     fwrite(&label, sizeof(float), 1, labels_file);
                                 }
                             }
+                            else
+                            {
+                                break;
+                            }
                         }
-                    }
-                    else
-                    {
-                        // Make move.
-                        change_board_w_mov(board, pl->arr[mov_idx], white_mov_flg);
                     }
                 }
                 else
@@ -622,11 +626,11 @@ int main(int argc, char **argv)
 {
     srand(time(NULL));
 
-    //dump_pgn("Fischer");
+    dump_pgn("Fischer");
 
     //train_chess("Fischer");
 
-    play_chess("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn", true, 3, true);
+    //play_chess("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn", true, 3, true);
 
     return 0;
 }
