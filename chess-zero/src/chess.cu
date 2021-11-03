@@ -2520,7 +2520,7 @@ float eval_board(int *board, Model *model)
     return eval;
 }
 
-float get_worst_case(int *board, bool white_flg, bool cur_white_flg, int depth, int cur_depth, Model *model)
+float get_worst_case_2(int *board, bool white_flg, bool cur_white_flg, int max_depth, int cur_depth, Model *model)
 {
     if (is_in_checkmate(board, !white_flg))
     {
@@ -2534,7 +2534,7 @@ float get_worst_case(int *board, bool white_flg, bool cur_white_flg, int depth, 
         }
     }
 
-    if (cur_depth == depth)
+    if (cur_depth == max_depth)
     {
         return eval_board(board, model);
     }
@@ -2571,7 +2571,7 @@ float get_worst_case(int *board, bool white_flg, bool cur_white_flg, int depth, 
 
                     simulate_board_change_w_srcdst_idx(board, piece_idx, legal_moves[mov_idx], sim_board);
 
-                    float eval = get_worst_case(sim_board, white_flg, !cur_white_flg, depth, cur_depth + 1, model);
+                    float eval = get_worst_case(sim_board, white_flg, !cur_white_flg, max_depth, cur_depth + 1, model);
 
                     if (white_flg)
                     {
@@ -2608,7 +2608,7 @@ float get_worst_case(int *board, bool white_flg, bool cur_white_flg, int depth, 
 
                     simulate_board_change_w_srcdst_idx(board, piece_idx, legal_moves[mov_idx], sim_board);
 
-                    float eval = get_worst_case(sim_board, white_flg, !cur_white_flg, depth, cur_depth + 1, model);
+                    float eval = get_worst_case(sim_board, white_flg, !cur_white_flg, max_depth, cur_depth + 1, model);
 
                     if (white_flg)
                     {
@@ -2636,4 +2636,155 @@ float get_worst_case(int *board, bool white_flg, bool cur_white_flg, int depth, 
     }
 
     return eval_board(board, model) + worst_eval;
+}
+
+Evaluation get_worst_case(int *board, bool white_flg, bool cur_white_flg, int max_depth, int cur_depth, Model *model, float cur_worst_eval)
+{
+    Evaluation evaluation;
+
+    if (is_in_checkmate(board, !white_flg))
+    {
+        if (white_flg)
+        {
+            evaluation.eval = FLT_MAX;
+            evaluation.prune_flg = false;
+            return evaluation;
+        }
+        else
+        {
+            evaluation.eval = -FLT_MAX;
+            evaluation.prune_flg = false;
+            return evaluation;
+        }
+    }
+
+    if (cur_depth == max_depth)
+    {
+        float eval = eval_board(board, model);
+        evaluation.eval = eval;
+
+        if (white_flg)
+        {
+            if (eval < cur_worst_eval)
+            {
+                evaluation.prune_flg = true;
+                return evaluation;
+            }
+        }
+        else
+        {
+            if (eval > cur_worst_eval)
+            {
+                evaluation.prune_flg = true;
+                return evaluation;
+            }
+        }
+
+        evaluation.prune_flg = false;
+        return evaluation;
+    }
+
+    int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
+
+    int sim_board[CHESS_BOARD_LEN];
+
+    float worst_eval;
+
+    if (white_flg)
+    {
+        worst_eval = FLT_MAX;
+    }
+    else
+    {
+        worst_eval = -FLT_MAX;
+    }
+
+    if (cur_white_flg)
+    {
+        for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
+        {
+            if (is_piece_white((ChessPiece)board[piece_idx]))
+            {
+                get_legal_moves(board, piece_idx, legal_moves, true);
+
+                for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
+                {
+                    if (legal_moves[mov_idx] == CHESS_INVALID_VALUE)
+                    {
+                        break;
+                    }
+
+                    simulate_board_change_w_srcdst_idx(board, piece_idx, legal_moves[mov_idx], sim_board);
+
+                    Evaluation _evaluation = get_worst_case(sim_board, white_flg, !cur_white_flg, max_depth, cur_depth + 1, model, cur_worst_eval);
+
+                    if (_evaluation.prune_flg)
+                    {
+                        return _evaluation;
+                    }
+
+                    if (white_flg)
+                    {
+                        if (_evaluation.eval < worst_eval)
+                        {
+                            worst_eval = _evaluation.eval;
+                        }
+                    }
+                    else
+                    {
+                        if (_evaluation.eval > worst_eval)
+                        {
+                            worst_eval = _evaluation.eval;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    else
+    {
+        for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
+        {
+            if (is_piece_black((ChessPiece)board[piece_idx]))
+            {
+                get_legal_moves(board, piece_idx, legal_moves, true);
+
+                for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
+                {
+                    if (legal_moves[mov_idx] == CHESS_INVALID_VALUE)
+                    {
+                        break;
+                    }
+
+                    simulate_board_change_w_srcdst_idx(board, piece_idx, legal_moves[mov_idx], sim_board);
+
+                    Evaluation _evaluation = get_worst_case(sim_board, white_flg, !cur_white_flg, max_depth, cur_depth + 1, model, cur_worst_eval);
+
+                    if (_evaluation.prune_flg)
+                    {
+                        return _evaluation;
+                    }
+
+                    if (white_flg)
+                    {
+                        if (_evaluation.eval < worst_eval)
+                        {
+                            worst_eval = _evaluation.eval;
+                        }
+                    }
+                    else
+                    {
+                        if (_evaluation.eval > worst_eval)
+                        {
+                            worst_eval = _evaluation.eval;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    evaluation.eval = worst_eval;
+    evaluation.prune_flg = false;
+    return evaluation;
 }
