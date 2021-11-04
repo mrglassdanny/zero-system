@@ -221,17 +221,17 @@ Tensor *Model::forward(Tensor *x, bool train_flg)
     Layer *frst_lyr = this->layers[0];
     Layer *lst_lyr = this->layers[lst_lyr_idx];
 
-    frst_lyr->n->set_arr(x->get_arr());
+    frst_lyr->set_neurons(x);
 
     for (int i = 0; i < lst_lyr_idx; i++)
     {
         Layer *lyr = this->layers[i];
         Layer *nxt_lyr = this->layers[i + 1];
 
-        lyr->evaluate(nxt_lyr->n, train_flg);
+        lyr->evaluate(nxt_lyr->get_neurons(), train_flg);
     }
 
-    Tensor *pred = new Tensor(Device::Cuda, lst_lyr->n->get_shape());
+    Tensor *pred = new Tensor(Device::Cuda, lst_lyr->get_output_shape());
     lst_lyr->evaluate(pred, train_flg);
 
     return pred;
@@ -322,26 +322,31 @@ void Model::gradient_check(Tensor *x, Tensor *y, bool print_flg)
 
             if (LearnableLayer *lrn_lyr = dynamic_cast<LearnableLayer *>(lyr))
             {
-                for (int i = 0; i < lrn_lyr->w->get_cnt(); i++)
+                Tensor *w = lrn_lyr->get_weights();
+                Tensor *dw = lrn_lyr->get_weight_derivatives();
+                Tensor *b = lrn_lyr->get_biases();
+                Tensor *db = lrn_lyr->get_bias_derivatives();
+
+                for (int i = 0; i < w->get_cnt(); i++)
                 {
                     float left_cost = 0.0f;
                     float right_cost = 0.0f;
 
-                    float orig_w_val = lrn_lyr->w->get_val(i);
+                    float orig_w_val = w->get_val(i);
 
                     float left_w_val = orig_w_val - EPSILON;
                     float right_w_val = orig_w_val + EPSILON;
 
-                    float ana_grad = lrn_lyr->dw->get_val(i);
+                    float ana_grad = dw->get_val(i);
 
-                    lrn_lyr->w->set_val(i, left_w_val);
+                    w->set_val(i, left_w_val);
                     {
                         Tensor *pred = this->forward(x, true);
                         left_cost = this->cost(pred, y);
                         delete pred;
                     }
 
-                    lrn_lyr->w->set_val(i, right_w_val);
+                    w->set_val(i, right_w_val);
                     {
                         Tensor *pred = this->forward(x, true);
                         right_cost = this->cost(pred, y);
@@ -359,29 +364,29 @@ void Model::gradient_check(Tensor *x, Tensor *y, bool print_flg)
                     agg_num_grad += (num_grad * num_grad);
                     agg_grad_diff += ((ana_grad - num_grad) * (ana_grad - num_grad));
 
-                    lrn_lyr->w->set_val(i, orig_w_val);
+                    w->set_val(i, orig_w_val);
                 }
 
-                for (int i = 0; i < lrn_lyr->b->get_cnt(); i++)
+                for (int i = 0; i < b->get_cnt(); i++)
                 {
                     float left_cost = 0.0f;
                     float right_cost = 0.0f;
 
-                    float orig_b_val = lrn_lyr->b->get_val(i);
+                    float orig_b_val = b->get_val(i);
 
                     float left_b_val = orig_b_val - EPSILON;
                     float right_b_val = orig_b_val + EPSILON;
 
-                    float ana_grad = lrn_lyr->db->get_val(i);
+                    float ana_grad = db->get_val(i);
 
-                    lrn_lyr->b->set_val(i, left_b_val);
+                    b->set_val(i, left_b_val);
                     {
                         Tensor *pred = this->forward(x, true);
                         left_cost = this->cost(pred, y);
                         delete pred;
                     }
 
-                    lrn_lyr->b->set_val(i, right_b_val);
+                    b->set_val(i, right_b_val);
                     {
                         Tensor *pred = this->forward(x, true);
                         right_cost = this->cost(pred, y);
@@ -399,7 +404,7 @@ void Model::gradient_check(Tensor *x, Tensor *y, bool print_flg)
                     agg_num_grad += (num_grad * num_grad);
                     agg_grad_diff += ((ana_grad - num_grad) * (ana_grad - num_grad));
 
-                    lrn_lyr->b->set_val(i, orig_b_val);
+                    b->set_val(i, orig_b_val);
                 }
             }
         }

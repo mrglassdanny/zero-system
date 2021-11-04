@@ -22,10 +22,10 @@ namespace zero
 
         class Layer
         {
-
-        public:
+        protected:
             Tensor *n;
 
+        public:
             Layer(std::vector<int> n_shape);
             Layer(FILE *file_ptr);
             ~Layer();
@@ -34,6 +34,8 @@ namespace zero
             virtual std::vector<int> get_input_shape();
             virtual std::vector<int> get_output_shape();
             virtual int get_adjusted_input_cnt();
+            virtual Tensor *get_neurons();
+            virtual void set_neurons(Tensor *n);
             virtual void evaluate(Tensor *nxt_n, bool train_flg);
             virtual Tensor *derive(Tensor *dc) = 0;
             virtual void save(FILE *file_ptr);
@@ -41,16 +43,21 @@ namespace zero
 
         class LearnableLayer : public Layer
         {
-        public:
+        protected:
             Tensor *w;
             Tensor *b;
             Tensor *dw;
             Tensor *db;
 
+        public:
             LearnableLayer(std::vector<int> n_shape);
             LearnableLayer(FILE *file_ptr);
             ~LearnableLayer();
 
+            virtual Tensor *get_weights();
+            virtual Tensor *get_weight_derivatives();
+            virtual Tensor *get_biases();
+            virtual Tensor *get_bias_derivatives();
             virtual void save(FILE *file_ptr);
             virtual void step(int batch_size, float learning_rate) = 0;
         };

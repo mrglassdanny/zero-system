@@ -809,6 +809,16 @@ int Layer::get_adjusted_input_cnt()
     return this->n->get_cnt();
 }
 
+Tensor *Layer::get_neurons()
+{
+    return this->n;
+}
+
+void Layer::set_neurons(Tensor *n)
+{
+    this->n->set_arr(n->get_arr(Device::Cuda));
+}
+
 void Layer::evaluate(Tensor *nxt_n, bool train_flg)
 {
     nxt_n->reset();
@@ -911,6 +921,26 @@ LearnableLayer::~LearnableLayer()
     {
         delete this->db;
     }
+}
+
+Tensor *LearnableLayer::get_weights()
+{
+    return this->w;
+}
+
+Tensor *LearnableLayer::get_weight_derivatives()
+{
+    return this->dw;
+}
+
+Tensor *LearnableLayer::get_biases()
+{
+    return this->b;
+}
+
+Tensor *LearnableLayer::get_bias_derivatives()
+{
+    return this->db;
 }
 
 void LearnableLayer::save(FILE *file_ptr)
