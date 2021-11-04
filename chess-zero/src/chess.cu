@@ -2423,20 +2423,71 @@ void print_influence_board(int *board)
     printf("\n\n");
 }
 
+float piece_to_float(ChessPiece piece)
+{
+    switch (piece)
+    {
+    case ChessPiece::WhitePawn:
+        return 1.0f;
+    case ChessPiece::WhiteKnight:
+        return 3.2f;
+    case ChessPiece::WhiteBishop:
+        return 3.33f;
+    case ChessPiece::WhiteRook:
+        return 5.1f;
+    case ChessPiece::WhiteQueen:
+        return 8.8f;
+    case ChessPiece::WhiteKing:
+        return 3.0f;
+    case ChessPiece::BlackPawn:
+        return -1.0f;
+    case ChessPiece::BlackKnight:
+        return -3.2f;
+    case ChessPiece::BlackBishop:
+        return -3.33f;
+    case ChessPiece::BlackRook:
+        return -5.1f;
+    case ChessPiece::BlackQueen:
+        return -8.8f;
+    case ChessPiece::BlackKing:
+        return -3.0f;
+    default: // Empty space.
+        return 0.0f;
+    }
+}
+
 void board_to_float(int *board, float *out, bool scale_down_flg)
 {
     if (scale_down_flg)
     {
         for (int i = 0; i < CHESS_BOARD_LEN; i++)
         {
-            out[i] = (float)board[i] / (((int)ChessPiece::WhiteKing) * 1.0f);
+            out[i] = piece_to_float((ChessPiece)board[i]) / 10.0f;
         }
     }
     else
     {
         for (int i = 0; i < CHESS_BOARD_LEN; i++)
         {
-            out[i] = (float)board[i];
+            out[i] = piece_to_float((ChessPiece)board[i]);
+        }
+    }
+}
+
+void influence_board_to_float(int *influence_board, float *out, bool scale_down_flg)
+{
+    if (scale_down_flg)
+    {
+        for (int i = 0; i < CHESS_BOARD_LEN; i++)
+        {
+            out[i] = (float)influence_board[i] / 10.0f;
+        }
+    }
+    else
+    {
+        for (int i = 0; i < CHESS_BOARD_LEN; i++)
+        {
+            out[i] = (float)influence_board[i];
         }
     }
 }
@@ -2447,42 +2498,42 @@ void one_hot_encode_board(int *board, int *out)
 
     for (int i = 0; i < CHESS_BOARD_LEN; i++)
     {
-        switch (board[i])
+        switch ((ChessPiece)board[i])
         {
-        case WhitePawn:
+        case ChessPiece::WhitePawn:
             out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 0] = 1;
             break;
-        case WhiteKnight:
+        case ChessPiece::WhiteKnight:
             out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 1] = 1;
             break;
-        case WhiteBishop:
+        case ChessPiece::WhiteBishop:
             out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 2] = 1;
             break;
-        case WhiteRook:
+        case ChessPiece::WhiteRook:
             out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 3] = 1;
             break;
-        case WhiteQueen:
+        case ChessPiece::WhiteQueen:
             out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 4] = 1;
             break;
-        case WhiteKing:
+        case ChessPiece::WhiteKing:
             out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 5] = 1;
             break;
-        case BlackPawn:
+        case ChessPiece::BlackPawn:
             out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 6] = 1;
             break;
-        case BlackKnight:
+        case ChessPiece::BlackKnight:
             out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 7] = 1;
             break;
-        case BlackBishop:
+        case ChessPiece::BlackBishop:
             out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 8] = 1;
             break;
-        case BlackRook:
+        case ChessPiece::BlackRook:
             out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 9] = 1;
             break;
-        case BlackQueen:
+        case ChessPiece::BlackQueen:
             out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 10] = 1;
             break;
-        case BlackKing:
+        case ChessPiece::BlackKing:
             out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 11] = 1;
             break;
         default: // Empty space.

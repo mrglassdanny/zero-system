@@ -44,13 +44,13 @@ typedef enum ChessPiece
     BlackKing = -10
 } ChessPiece;
 
-typedef struct SrcDst_Idx
+struct SrcDst_Idx
 {
     int src_idx;
     int dst_idx;
-} SrcDst_Idx;
+};
 
-typedef struct PruneEvaluation
+struct PruneEvaluation
 {
     float eval;
     bool prune_flg;
@@ -94,7 +94,11 @@ void print_board(int *board);
 
 void print_influence_board(int *board);
 
+float piece_to_float(ChessPiece piece);
+
 void board_to_float(int *board, float *out, bool scale_down_flg);
+
+void influence_board_to_float(int *influence_board, float *out, bool scale_down_flg);
 
 void one_hot_encode_board(int *board, int *out);
 
