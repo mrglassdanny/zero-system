@@ -14,7 +14,7 @@ struct MoveSearchResult
 {
     char mov[CHESS_MAX_MOVE_LEN];
     float depth_1_eval;
-    float worst_case_eval;
+    float best_eval;
 };
 
 long long get_chess_file_size(const char *name)
@@ -269,24 +269,14 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
     float *cuda_flt_board_buf;
     cudaMalloc(&cuda_flt_board_buf, sizeof(float) * CHESS_BOARD_LEN * 2);
 
-    float best_worst_case;
+    float best_eval;
     if (white_mov_flg)
     {
-        best_worst_case = -FLT_MAX;
+        best_eval = -FLT_MAX;
     }
     else
     {
-        best_worst_case = FLT_MAX;
-    }
-
-    float cur_worst_eval;
-    if (white_mov_flg)
-    {
-        cur_worst_eval = -FLT_MAX;
-    }
-    else
-    {
-        cur_worst_eval = FLT_MAX;
+        best_eval = FLT_MAX;
     }
 
     char best_mov[CHESS_MAX_MOVE_LEN];
@@ -343,14 +333,14 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
                         memset(mov, 0, CHESS_MAX_MOVE_LEN);
                         translate_srcdst_idx_to_mov(immut_board, piece_idx, legal_moves[mov_idx], mov);
 
-                        PruneEvaluation prune_eval = get_worst_case(sim_board, white_mov_flg, white_mov_flg, depth, 1, model, cur_worst_eval, cuda_flt_board_buf);
+                        MinimaxEvaluation minimax_eval = get_minimax_eval(sim_board, white_mov_flg, !white_mov_flg, depth, 1, model, best_eval, cuda_flt_board_buf);
 
                         if (print_flg)
                         {
-                            printf("%s\t%f\t%f\t%d\n", mov, depth_1_eval, prune_eval.eval, prune_eval.prune_flg);
+                            printf("%s\t%f\t%f\t%d\n", mov, depth_1_eval, minimax_eval.eval, minimax_eval.prune_flg);
                         }
 
-                        if (prune_eval.eval == cur_worst_eval)
+                        if (minimax_eval.eval == best_eval)
                         {
                             if (depth_1_eval > depth_1_best_eval)
                             {
@@ -359,14 +349,9 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
                             }
                         }
 
-                        if (prune_eval.eval > cur_worst_eval)
+                        if (minimax_eval.eval > best_eval)
                         {
-                            cur_worst_eval = prune_eval.eval;
-                        }
-
-                        if (best_worst_case < prune_eval.eval)
-                        {
-                            best_worst_case = prune_eval.eval;
+                            best_eval = minimax_eval.eval;
                             depth_1_best_eval = depth_1_eval;
                             memcpy(best_mov, mov, CHESS_MAX_MOVE_LEN);
                         }
@@ -409,14 +394,14 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
                         memset(mov, 0, CHESS_MAX_MOVE_LEN);
                         translate_srcdst_idx_to_mov(immut_board, piece_idx, legal_moves[mov_idx], mov);
 
-                        PruneEvaluation prune_eval = get_worst_case(sim_board, white_mov_flg, white_mov_flg, depth, 1, model, cur_worst_eval, cuda_flt_board_buf);
+                        MinimaxEvaluation minimax_eval = get_minimax_eval(sim_board, white_mov_flg, !white_mov_flg, depth, 1, model, best_eval, cuda_flt_board_buf);
 
                         if (print_flg)
                         {
-                            printf("%s\t%f\t%f\t%d\n", mov, depth_1_eval, prune_eval.eval, prune_eval.prune_flg);
+                            printf("%s\t%f\t%f\t%d\n", mov, depth_1_eval, minimax_eval.eval, minimax_eval.prune_flg);
                         }
 
-                        if (prune_eval.eval == cur_worst_eval)
+                        if (minimax_eval.eval == best_eval)
                         {
                             if (depth_1_eval < depth_1_best_eval)
                             {
@@ -425,14 +410,9 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
                             }
                         }
 
-                        if (prune_eval.eval < cur_worst_eval)
+                        if (minimax_eval.eval < best_eval)
                         {
-                            cur_worst_eval = prune_eval.eval;
-                        }
-
-                        if (best_worst_case > prune_eval.eval)
-                        {
-                            best_worst_case = prune_eval.eval;
+                            best_eval = minimax_eval.eval;
                             depth_1_best_eval = depth_1_eval;
                             memcpy(best_mov, mov, CHESS_MAX_MOVE_LEN);
                         }
@@ -452,7 +432,7 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
     MoveSearchResult mov_res;
     memcpy(mov_res.mov, best_mov, CHESS_MAX_MOVE_LEN);
     mov_res.depth_1_eval = depth_1_best_eval;
-    mov_res.worst_case_eval = best_worst_case;
+    mov_res.best_eval = best_eval;
     return mov_res;
 }
 
@@ -556,7 +536,7 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
             {
                 copy_board(board, cpy_board);
                 mov_res = get_best_move(cpy_board, white_mov_flg, print_flg, depth, model);
-                printf("BEST MOVE: %s\t(%f\t%f)\n", mov_res.mov, mov_res.depth_1_eval, mov_res.worst_case_eval);
+                printf("BEST MOVE: %s\t(%f\t%f)\n", mov_res.mov, mov_res.depth_1_eval, mov_res.best_eval);
             }
 
             // Now accept user input.
@@ -599,7 +579,7 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
             {
                 copy_board(board, cpy_board);
                 mov_res = get_best_move(cpy_board, white_mov_flg, print_flg, depth, model);
-                printf("BEST MOVE: %s\t(%f\t%f)\n", mov_res.mov, mov_res.depth_1_eval, mov_res.worst_case_eval);
+                printf("BEST MOVE: %s\t(%f\t%f)\n", mov_res.mov, mov_res.depth_1_eval, mov_res.best_eval);
             }
 
             // Now accept user input.

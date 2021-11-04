@@ -2574,66 +2574,58 @@ float eval_board(int *board, Model *model, float *cuda_flt_board_buf)
     return eval;
 }
 
-PruneEvaluation get_worst_case(int *board, bool white_flg, bool cur_white_flg, int max_depth, int cur_depth, Model *model, float cur_worst_eval, float *cuda_flt_board_buf)
+MinimaxEvaluation get_minimax_eval(int *board, bool white_flg, bool cur_white_flg, int max_depth, int cur_depth, Model *model, float cur_best_eval, float *cuda_flt_board_buf)
 {
-    PruneEvaluation prune_eval;
+    MinimaxEvaluation minimax_eval;
 
     if (is_in_checkmate(board, !white_flg))
     {
         if (white_flg)
         {
-            prune_eval.eval = FLT_MAX;
-            prune_eval.prune_flg = false;
-            return prune_eval;
+            minimax_eval.eval = FLT_MAX;
+            minimax_eval.prune_flg = false;
+            return minimax_eval;
         }
         else
         {
-            prune_eval.eval = -FLT_MAX;
-            prune_eval.prune_flg = false;
-            return prune_eval;
+            minimax_eval.eval = -FLT_MAX;
+            minimax_eval.prune_flg = false;
+            return minimax_eval;
         }
     }
 
     if (cur_depth == max_depth)
     {
         float eval = eval_board(board, model, cuda_flt_board_buf);
-        prune_eval.eval = eval;
+        minimax_eval.eval = eval;
 
-        if (white_flg)
+        if (white_flg && !cur_white_flg)
         {
-            if (eval <= cur_worst_eval)
+            if (eval <= cur_best_eval)
             {
-                prune_eval.prune_flg = true;
-                return prune_eval;
+                minimax_eval.prune_flg = true;
+                return minimax_eval;
             }
         }
-        else
+        else if (!white_flg && cur_white_flg)
         {
-            if (eval >= cur_worst_eval)
+            if (eval >= cur_best_eval)
             {
-                prune_eval.prune_flg = true;
-                return prune_eval;
+                minimax_eval.prune_flg = true;
+                return minimax_eval;
             }
         }
 
-        prune_eval.prune_flg = false;
-        return prune_eval;
+        minimax_eval.prune_flg = false;
+        return minimax_eval;
     }
 
     int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
 
     int sim_board[CHESS_BOARD_LEN];
 
-    float worst_eval;
-
-    if (white_flg)
-    {
-        worst_eval = FLT_MAX;
-    }
-    else
-    {
-        worst_eval = -FLT_MAX;
-    }
+    float min = FLT_MAX;
+    float max = -FLT_MAX;
 
     if (cur_white_flg)
     {
@@ -2652,26 +2644,16 @@ PruneEvaluation get_worst_case(int *board, bool white_flg, bool cur_white_flg, i
 
                     simulate_board_change_w_srcdst_idx(board, piece_idx, legal_moves[mov_idx], sim_board);
 
-                    PruneEvaluation w_prune_eval = get_worst_case(sim_board, white_flg, !cur_white_flg, max_depth, cur_depth + 1, model, cur_worst_eval, cuda_flt_board_buf);
+                    MinimaxEvaluation w_minimax_eval = get_minimax_eval(sim_board, white_flg, !cur_white_flg, max_depth, cur_depth + 1, model, cur_best_eval, cuda_flt_board_buf);
 
-                    if (w_prune_eval.prune_flg)
+                    if (w_minimax_eval.prune_flg)
                     {
-                        return w_prune_eval;
+                        return w_minimax_eval;
                     }
 
-                    if (white_flg)
+                    if (w_minimax_eval.eval > max)
                     {
-                        if (w_prune_eval.eval < worst_eval)
-                        {
-                            worst_eval = w_prune_eval.eval;
-                        }
-                    }
-                    else
-                    {
-                        if (w_prune_eval.eval > worst_eval)
-                        {
-                            worst_eval = w_prune_eval.eval;
-                        }
+                        max = w_minimax_eval.eval;
                     }
                 }
             }
@@ -2694,33 +2676,31 @@ PruneEvaluation get_worst_case(int *board, bool white_flg, bool cur_white_flg, i
 
                     simulate_board_change_w_srcdst_idx(board, piece_idx, legal_moves[mov_idx], sim_board);
 
-                    PruneEvaluation b_prune_eval = get_worst_case(sim_board, white_flg, !cur_white_flg, max_depth, cur_depth + 1, model, cur_worst_eval, cuda_flt_board_buf);
+                    MinimaxEvaluation b_minimax_eval = get_minimax_eval(sim_board, white_flg, !cur_white_flg, max_depth, cur_depth + 1, model, cur_best_eval, cuda_flt_board_buf);
 
-                    if (b_prune_eval.prune_flg)
+                    if (b_minimax_eval.prune_flg)
                     {
-                        return b_prune_eval;
+                        return b_minimax_eval;
                     }
 
-                    if (white_flg)
+                    if (b_minimax_eval.eval < min)
                     {
-                        if (b_prune_eval.eval < worst_eval)
-                        {
-                            worst_eval = b_prune_eval.eval;
-                        }
-                    }
-                    else
-                    {
-                        if (b_prune_eval.eval > worst_eval)
-                        {
-                            worst_eval = b_prune_eval.eval;
-                        }
+                        min = b_minimax_eval.eval;
                     }
                 }
             }
         }
     }
 
-    prune_eval.eval = worst_eval;
-    prune_eval.prune_flg = false;
-    return prune_eval;
+    if (cur_white_flg)
+    {
+        minimax_eval.eval = max;
+    }
+    else
+    {
+        minimax_eval.eval = min;
+    }
+
+    minimax_eval.prune_flg = false;
+    return minimax_eval;
 }
