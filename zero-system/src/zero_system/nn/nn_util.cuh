@@ -10,7 +10,6 @@ namespace zero
     {
         enum ActivationFunction
         {
-            None,
             ReLU,
             Sigmoid,
             Tanh,
