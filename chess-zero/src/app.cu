@@ -467,39 +467,6 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
     bool white_mov_flg = true;
 
     // Go ahead and make opening moves since we do not train the model on openings.
-    {
-        change_board_w_mov(board, "d4", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-
-        change_board_w_mov(board, "Nf6", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-
-        change_board_w_mov(board, "c4", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-
-        change_board_w_mov(board, "e6", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-
-        change_board_w_mov(board, "Nc3", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-
-        change_board_w_mov(board, "Bb4", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-
-        change_board_w_mov(board, "Qc2", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-
-        change_board_w_mov(board, "O-O", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-
-        change_board_w_mov(board, "a3", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-
-        change_board_w_mov(board, "Bxc3+", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-    }
-
-    // Go ahead and make opening moves since we do not train the model on openings.
     // {
     //     change_board_w_mov(board, "d4", white_mov_flg);
     //     white_mov_flg = !white_mov_flg;
@@ -510,27 +477,60 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
     //     change_board_w_mov(board, "c4", white_mov_flg);
     //     white_mov_flg = !white_mov_flg;
 
-    //     change_board_w_mov(board, "c5", white_mov_flg);
-    //     white_mov_flg = !white_mov_flg;
-
-    //     change_board_w_mov(board, "d5", white_mov_flg);
-    //     white_mov_flg = !white_mov_flg;
-
-    //     change_board_w_mov(board, "d6", white_mov_flg);
+    //     change_board_w_mov(board, "e6", white_mov_flg);
     //     white_mov_flg = !white_mov_flg;
 
     //     change_board_w_mov(board, "Nc3", white_mov_flg);
     //     white_mov_flg = !white_mov_flg;
 
-    //     change_board_w_mov(board, "g6", white_mov_flg);
+    //     change_board_w_mov(board, "Bb4", white_mov_flg);
     //     white_mov_flg = !white_mov_flg;
 
-    //     change_board_w_mov(board, "e4", white_mov_flg);
+    //     change_board_w_mov(board, "Qc2", white_mov_flg);
     //     white_mov_flg = !white_mov_flg;
 
-    //     change_board_w_mov(board, "Bg7", white_mov_flg);
+    //     change_board_w_mov(board, "O-O", white_mov_flg);
+    //     white_mov_flg = !white_mov_flg;
+
+    //     change_board_w_mov(board, "a3", white_mov_flg);
+    //     white_mov_flg = !white_mov_flg;
+
+    //     change_board_w_mov(board, "Bxc3+", white_mov_flg);
     //     white_mov_flg = !white_mov_flg;
     // }
+
+    // Go ahead and make opening moves since we do not train the model on openings.
+    {
+        change_board_w_mov(board, "d4", white_mov_flg);
+        white_mov_flg = !white_mov_flg;
+
+        change_board_w_mov(board, "Nf6", white_mov_flg);
+        white_mov_flg = !white_mov_flg;
+
+        change_board_w_mov(board, "c4", white_mov_flg);
+        white_mov_flg = !white_mov_flg;
+
+        change_board_w_mov(board, "c5", white_mov_flg);
+        white_mov_flg = !white_mov_flg;
+
+        change_board_w_mov(board, "d5", white_mov_flg);
+        white_mov_flg = !white_mov_flg;
+
+        change_board_w_mov(board, "d6", white_mov_flg);
+        white_mov_flg = !white_mov_flg;
+
+        change_board_w_mov(board, "Nc3", white_mov_flg);
+        white_mov_flg = !white_mov_flg;
+
+        change_board_w_mov(board, "g6", white_mov_flg);
+        white_mov_flg = !white_mov_flg;
+
+        change_board_w_mov(board, "e4", white_mov_flg);
+        white_mov_flg = !white_mov_flg;
+
+        change_board_w_mov(board, "Bg7", white_mov_flg);
+        white_mov_flg = !white_mov_flg;
+    }
 
     print_board(board);
 
@@ -632,9 +632,9 @@ int main(int argc, char **argv)
 
     //dump_pgn("ALL");
 
-    train_chess("ALL");
+    //train_chess("ALL");
 
-    //play_chess("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn", true, 3, true);
+    play_chess("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn", true, 3, true);
 
     return 0;
 }
