@@ -104,4 +104,4 @@ void one_hot_encode_board(int *board, int *out);
 
 float eval_board(int *board, Model *model, float *cuda_flt_board_buf);
 
-MinimaxEvaluation get_minimax_eval(int *board, bool white_flg, bool cur_white_flg, int max_depth, int cur_depth, Model *model, float cur_worst_eval, float *cuda_flt_board_buf);
+MinimaxEvaluation get_minimax_eval(int *board, bool white_flg, bool cur_white_flg, int max_depth, int cur_depth, Model *model, float cur_best_eval, float *cuda_flt_board_buf);
