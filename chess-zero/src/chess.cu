@@ -2553,7 +2553,7 @@ float eval_board(int *board, Model *model, float *cuda_flt_board_buf)
     board_to_float(board, flt_board, true);
 
     get_influence_board(board, influence_board);
-    board_to_float(influence_board, flt_influence_board, true);
+    influence_board_to_float(influence_board, flt_influence_board, true);
 
     memcpy(flt_board_buf, flt_board, sizeof(float) * CHESS_BOARD_LEN);
     memcpy(&flt_board_buf[CHESS_BOARD_LEN], flt_influence_board, sizeof(float) * CHESS_BOARD_LEN);
