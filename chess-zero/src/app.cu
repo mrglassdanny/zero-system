@@ -626,11 +626,11 @@ int main(int argc, char **argv)
 {
     srand(time(NULL));
 
-    dump_pgn("Fischer");
+    //dump_pgn("Fischer");
 
     //train_chess("Fischer");
 
-    //play_chess("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn", true, 3, true);
+    play_chess("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn", true, 3, true);
 
     return 0;
 }
