@@ -2599,22 +2599,22 @@ MinimaxEvaluation get_minimax_eval(int *board, bool white_flg, bool cur_white_fl
         float eval = eval_board(board, model, cuda_flt_board_buf);
         minimax_eval.eval = eval;
 
-        if (white_flg && !cur_white_flg)
-        {
-            if (eval <= cur_best_eval)
-            {
-                minimax_eval.prune_flg = true;
-                return minimax_eval;
-            }
-        }
-        else if (!white_flg && cur_white_flg)
-        {
-            if (eval >= cur_best_eval)
-            {
-                minimax_eval.prune_flg = true;
-                return minimax_eval;
-            }
-        }
+        // if (white_flg && !cur_white_flg)
+        // {
+        //     if (eval <= cur_best_eval)
+        //     {
+        //         minimax_eval.prune_flg = true;
+        //         return minimax_eval;
+        //     }
+        // }
+        // else if (!white_flg && cur_white_flg)
+        // {
+        //     if (eval >= cur_best_eval)
+        //     {
+        //         minimax_eval.prune_flg = true;
+        //         return minimax_eval;
+        //     }
+        // }
 
         minimax_eval.prune_flg = false;
         return minimax_eval;
