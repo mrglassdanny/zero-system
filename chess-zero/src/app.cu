@@ -17,25 +17,6 @@ struct MoveSearchResult
     float best_eval;
 };
 
-long long get_chess_file_size(const char *name)
-{
-    HANDLE hFile = CreateFile((LPCSTR)name, GENERIC_READ,
-                              FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING,
-                              FILE_ATTRIBUTE_NORMAL, NULL);
-    if (hFile == INVALID_HANDLE_VALUE)
-        return -1; // error condition, could call GetLastError to find out more
-
-    LARGE_INTEGER size;
-    if (!GetFileSizeEx(hFile, &size))
-    {
-        CloseHandle(hFile);
-        return -1; // error condition, could call GetLastError to find out more
-    }
-
-    CloseHandle(hFile);
-    return size.QuadPart;
-}
-
 void dump_pgn(const char *pgn_name)
 {
     char file_name_buf[256];
@@ -54,11 +35,9 @@ void dump_pgn(const char *pgn_name)
     bool white_mov_flg;
 
     int *board = init_board();
-    int orig_board[CHESS_BOARD_LEN];
-    int sim_board[CHESS_BOARD_LEN];
     int influence_board[CHESS_BOARD_LEN];
-    int sim_influence_board[CHESS_BOARD_LEN];
     float flt_board[CHESS_BOARD_LEN];
+    float lbl;
 
     // Skip openings!
     int start_mov_idx = 10;
@@ -77,104 +56,20 @@ void dump_pgn(const char *pgn_name)
             {
                 if (mov_idx >= start_mov_idx)
                 {
-                    {
-                        // Save original for simulations later.
-                        copy_board(board, orig_board);
+                    // Make move.
+                    ChessMove chess_move = change_board_w_mov(board, pl->arr[mov_idx], white_mov_flg);
 
-                        // Make move.
-                        change_board_w_mov(board, pl->arr[mov_idx], white_mov_flg);
+                    // Write board state.
+                    board_to_float(board, flt_board, true);
+                    fwrite(flt_board, sizeof(float) * CHESS_BOARD_LEN, 1, boards_file);
 
-                        // What they did do:
-                        {
-                            // Write board state.
-                            board_to_float(board, flt_board, true);
-                            fwrite(flt_board, sizeof(float) * CHESS_BOARD_LEN, 1, boards_file);
+                    // Get and write influence state.
+                    get_influence_board(board, influence_board);
+                    influence_board_to_float(influence_board, flt_board, true);
+                    fwrite(flt_board, sizeof(float) * CHESS_BOARD_LEN, 1, boards_file);
 
-                            // Get and write influence state.
-                            get_influence_board(board, influence_board);
-                            influence_board_to_float(influence_board, flt_board, true);
-                            fwrite(flt_board, sizeof(float) * CHESS_BOARD_LEN, 1, boards_file);
-
-                            float label;
-                            if (pl->white_won_flg)
-                            {
-                                label = 1.0f;
-                            }
-                            else if (pl->black_won_flg)
-                            {
-                                label = -1.0f;
-                            }
-
-                            fwrite(&label, sizeof(float), 1, labels_file);
-                        }
-
-                        // Simulate their other options.
-                        // for (int i = 0; i < 5; i++)
-                        // {
-                        //     SrcDst_Idx sdi = get_random_move(orig_board, white_mov_flg, board);
-
-                        //     if (sdi.src_idx != CHESS_INVALID_VALUE)
-                        //     {
-                        //         // What they didnt do:
-                        //         {
-                        //             simulate_board_change_w_srcdst_idx(orig_board, sdi.src_idx, sdi.dst_idx, sim_board);
-
-                        //             // Write board state.
-                        //             board_to_float(sim_board, flt_board, true);
-                        //             fwrite(flt_board, sizeof(float) * CHESS_BOARD_LEN, 1, boards_file);
-
-                        //             // Get and write influence state.
-                        //             get_influence_board(sim_board, sim_influence_board);
-                        //             board_to_float(sim_influence_board, flt_board, true);
-                        //             fwrite(flt_board, sizeof(float) * CHESS_BOARD_LEN, 1, boards_file);
-
-                        //             float label;
-                        //             if (pl->white_won_flg)
-                        //             {
-                        //                 label = -1.0f;
-                        //                 //label *= (((float)mov_idx) / ((float)pl->cnt));
-                        //             }
-                        //             else if (pl->black_won_flg)
-                        //             {
-                        //                 label = 1.0f;
-                        //                 //label *= (((float)mov_idx) / ((float)pl->cnt));
-                        //             }
-
-                        //             fwrite(&label, sizeof(float), 1, labels_file);
-                        //         }
-
-                        //         // What they did do:
-                        //         {
-                        //             // Write board state.
-                        //             board_to_float(board, flt_board, true);
-                        //             fwrite(flt_board, sizeof(float) * CHESS_BOARD_LEN, 1, boards_file);
-
-                        //             // Get and write influence state.
-                        //             get_influence_board(board, influence_board);
-                        //             board_to_float(influence_board, flt_board, true);
-                        //             fwrite(flt_board, sizeof(float) * CHESS_BOARD_LEN, 1, boards_file);
-
-                        //             float label;
-                        //             if (pl->white_won_flg)
-                        //             {
-                        //                 label = 1.0f;
-                        //                 //label *= (((float)mov_idx) / ((float)pl->cnt));
-                        //             }
-                        //             else if (pl->black_won_flg)
-                        //             {
-                        //                 label = -1.0f;
-                        //                 //label *= (((float)mov_idx) / ((float)pl->cnt));
-                        //             }
-
-                        //             fwrite(&label, sizeof(float), 1, labels_file);
-                        //         }
-                        //     }
-                        //     else
-                        //     {
-                        //         break;
-                        //     }
-                        // }
-                    }
+                    lbl = chess_move.src_idx;
+                    fwrite(&lbl, sizeof(float), 1, labels_file);
                 }
                 else
                 {
@@ -217,7 +112,7 @@ OnDiskSupervisor *get_chess_supervisor(const char *pgn_name)
 
     std::vector<int> x_shape{2, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
 
-    OnDiskSupervisor *sup = new OnDiskSupervisor(1.0f, 0.0f, board_name_buf, label_name_buf, x_shape, 0);
+    OnDiskSupervisor *sup = new OnDiskSupervisor(0.80f, 0.20f, board_name_buf, label_name_buf, x_shape, 64);
 
     return sup;
 }
@@ -226,25 +121,22 @@ void train_chess(const char *pgn_name)
 {
     OnDiskSupervisor *sup = get_chess_supervisor(pgn_name);
 
-    Model *model = new Model(CostFunction::MSE, 0.1f);
+    Model *model = new Model(CostFunction::CrossEntropy, 0.01f);
 
     model->add_layer(new ConvolutionalLayer(sup->get_x_shape(), 64, 3, 3, InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
     model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 64, 3, 3, InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), 512, InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
-
-    model->add_layer(new LinearLayer(model->get_output_shape(), 512, InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), 64, InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), Tensor::get_cnt(sup->get_y_shape()), InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
     model->train_and_test(sup, 128, 30, "C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.csv");
 
@@ -610,11 +502,11 @@ int main(int argc, char **argv)
 {
     srand(time(NULL));
 
-    //dump_pgn("ALL");
+    dump_pgn("TEST");
 
-    //train_chess("ALL");
+    train_chess("TEST");
 
-    play_chess("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn", true, 3, true);
+    //play_chess("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn", true, 5, true);
 
     return 0;
 }

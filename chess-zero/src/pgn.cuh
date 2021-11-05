@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <iostream>
+#include <windows.h>
 
 #include "chess.cuh"
 
@@ -21,6 +23,8 @@ typedef struct PGNImport
     int cap;
     int alc;
 } PGNImport;
+
+long long get_chess_file_size(const char *name);
 
 PGNImport *PGNImport_init(const char *pgn_file_name);
 

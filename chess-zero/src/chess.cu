@@ -1,14 +1,14 @@
 #include "chess.cuh"
 
 int CHESS_START_BOARD[CHESS_BOARD_LEN] = {
-    WhiteRook, WhiteKnight, WhiteBishop, WhiteQueen, WhiteKing, WhiteBishop, WhiteKnight, WhiteRook,
-    WhitePawn, WhitePawn, WhitePawn, WhitePawn, WhitePawn, WhitePawn, WhitePawn, WhitePawn,
-    Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty,
-    Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty,
-    Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty,
-    Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty,
-    BlackPawn, BlackPawn, BlackPawn, BlackPawn, BlackPawn, BlackPawn, BlackPawn, BlackPawn,
-    BlackRook, BlackKnight, BlackBishop, BlackQueen, BlackKing, BlackBishop, BlackKnight, BlackRook};
+    ChessPiece::WhiteRook, ChessPiece::WhiteKnight, ChessPiece::WhiteBishop, ChessPiece::WhiteQueen, ChessPiece::WhiteKing, ChessPiece::WhiteBishop, ChessPiece::WhiteKnight, ChessPiece::WhiteRook,
+    ChessPiece::WhitePawn, ChessPiece::WhitePawn, ChessPiece::WhitePawn, ChessPiece::WhitePawn, ChessPiece::WhitePawn, ChessPiece::WhitePawn, ChessPiece::WhitePawn, ChessPiece::WhitePawn,
+    ChessPiece::Empty, ChessPiece::Empty, ChessPiece::Empty, ChessPiece::Empty, ChessPiece::Empty, ChessPiece::Empty, ChessPiece::Empty, ChessPiece::Empty,
+    ChessPiece::Empty, ChessPiece::Empty, ChessPiece::Empty, ChessPiece::Empty, ChessPiece::Empty, ChessPiece::Empty, ChessPiece::Empty, ChessPiece::Empty,
+    ChessPiece::Empty, ChessPiece::Empty, ChessPiece::Empty, ChessPiece::Empty, ChessPiece::Empty, ChessPiece::Empty, ChessPiece::Empty, ChessPiece::Empty,
+    ChessPiece::Empty, ChessPiece::Empty, ChessPiece::Empty, ChessPiece::Empty, ChessPiece::Empty, ChessPiece::Empty, ChessPiece::Empty, ChessPiece::Empty,
+    ChessPiece::BlackPawn, ChessPiece::BlackPawn, ChessPiece::BlackPawn, ChessPiece::BlackPawn, ChessPiece::BlackPawn, ChessPiece::BlackPawn, ChessPiece::BlackPawn, ChessPiece::BlackPawn,
+    ChessPiece::BlackRook, ChessPiece::BlackKnight, ChessPiece::BlackBishop, ChessPiece::BlackQueen, ChessPiece::BlackKing, ChessPiece::BlackBishop, ChessPiece::BlackKnight, ChessPiece::BlackRook};
 
 int *init_board()
 {
@@ -197,57 +197,57 @@ ChessPiece get_piece_fr_char(char piece_id, bool white_mov_flg)
     case 'N':
         if (white_mov_flg)
         {
-            return WhiteKnight;
+            return ChessPiece::WhiteKnight;
         }
         else
         {
-            return BlackKnight;
+            return ChessPiece::BlackKnight;
         }
     case 'B':
         if (white_mov_flg)
         {
-            return WhiteBishop;
+            return ChessPiece::WhiteBishop;
         }
         else
         {
-            return BlackBishop;
+            return ChessPiece::BlackBishop;
         }
     case 'R':
         if (white_mov_flg)
         {
-            return WhiteRook;
+            return ChessPiece::WhiteRook;
         }
         else
         {
-            return BlackRook;
+            return ChessPiece::BlackRook;
         }
     case 'Q':
         if (white_mov_flg)
         {
-            return WhiteQueen;
+            return ChessPiece::WhiteQueen;
         }
         else
         {
-            return BlackQueen;
+            return ChessPiece::BlackQueen;
         }
     case 'K':
         if (white_mov_flg)
         {
-            return WhiteKing;
+            return ChessPiece::WhiteKing;
         }
         else
         {
-            return BlackKing;
+            return ChessPiece::BlackKing;
         }
     default:
         // Pawn will be 'P' (optional).
         if (white_mov_flg)
         {
-            return WhitePawn;
+            return ChessPiece::WhitePawn;
         }
         else
         {
-            return BlackPawn;
+            return ChessPiece::BlackPawn;
         }
     }
 }
@@ -256,20 +256,20 @@ char get_char_fr_piece(ChessPiece piece)
 {
     switch (piece)
     {
-    case WhiteKnight:
-    case BlackKnight:
+    case ChessPiece::WhiteKnight:
+    case ChessPiece::BlackKnight:
         return 'N';
-    case WhiteBishop:
-    case BlackBishop:
+    case ChessPiece::WhiteBishop:
+    case ChessPiece::BlackBishop:
         return 'B';
-    case WhiteRook:
-    case BlackRook:
+    case ChessPiece::WhiteRook:
+    case ChessPiece::BlackRook:
         return 'R';
-    case WhiteQueen:
-    case BlackQueen:
+    case ChessPiece::WhiteQueen:
+    case ChessPiece::BlackQueen:
         return 'Q';
-    case WhiteKing:
-    case BlackKing:
+    case ChessPiece::WhiteKing:
+    case ChessPiece::BlackKing:
         return 'K';
     default:
         // Pawn.
@@ -402,7 +402,7 @@ bool is_in_check(int *board, bool white_mov_flg)
                         break;
                     }
 
-                    if ((ChessPiece)board[legal_moves[mov_idx]] == WhiteKing)
+                    if ((ChessPiece)board[legal_moves[mov_idx]] == ChessPiece::WhiteKing)
                     {
                         in_check_flg = true;
                         break;
@@ -431,7 +431,7 @@ bool is_in_check(int *board, bool white_mov_flg)
                         break;
                     }
 
-                    if ((ChessPiece)board[legal_moves[mov_idx]] == BlackKing)
+                    if ((ChessPiece)board[legal_moves[mov_idx]] == ChessPiece::BlackKing)
                     {
                         in_check_flg = true;
                         break;
@@ -527,23 +527,23 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
 
     switch (piece)
     {
-    case WhitePawn:
+    case ChessPiece::WhitePawn:
         // TODO: au passant
         {
             test_idx = get_idx_fr_colrow(col, row + 1);
-            if (is_row_valid(row + 1) && board[test_idx] == Empty)
+            if (is_row_valid(row + 1) && board[test_idx] == ChessPiece::Empty)
             {
                 out[mov_ctr++] = test_idx;
             }
 
             test_idx = get_idx_fr_adj_colrow(adj_col - 1, adj_row + 1);
-            if (is_adj_colrow_valid(adj_col - 1, adj_row + 1) && board[test_idx] != Empty && !is_piece_same_color(piece, (ChessPiece)board[test_idx]))
+            if (is_adj_colrow_valid(adj_col - 1, adj_row + 1) && board[test_idx] != ChessPiece::Empty && !is_piece_same_color(piece, (ChessPiece)board[test_idx]))
             {
                 out[mov_ctr++] = test_idx;
             }
 
             test_idx = get_idx_fr_adj_colrow(adj_col + 1, adj_row + 1);
-            if (is_adj_colrow_valid(adj_col + 1, adj_row + 1) && board[test_idx] != Empty && !is_piece_same_color(piece, (ChessPiece)board[test_idx]))
+            if (is_adj_colrow_valid(adj_col + 1, adj_row + 1) && board[test_idx] != ChessPiece::Empty && !is_piece_same_color(piece, (ChessPiece)board[test_idx]))
             {
                 out[mov_ctr++] = test_idx;
             }
@@ -552,10 +552,10 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
             {
                 // Dont need to check if row adjustments are valid since we know that starting row is 2.
                 test_idx = get_idx_fr_colrow(col, row + 1);
-                if (board[test_idx] == Empty)
+                if (board[test_idx] == ChessPiece::Empty)
                 {
                     test_idx = get_idx_fr_colrow(col, row + 2);
-                    if (board[test_idx] == Empty)
+                    if (board[test_idx] == ChessPiece::Empty)
                     {
                         out[mov_ctr++] = test_idx;
                     }
@@ -564,23 +564,23 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
         }
 
         break;
-    case BlackPawn:
+    case ChessPiece::BlackPawn:
         // TODO: au passant
         {
             test_idx = get_idx_fr_colrow(col, row - 1);
-            if (is_row_valid(row - 1) && board[test_idx] == Empty)
+            if (is_row_valid(row - 1) && board[test_idx] == ChessPiece::Empty)
             {
                 out[mov_ctr++] = test_idx;
             }
 
             test_idx = get_idx_fr_adj_colrow(adj_col - 1, adj_row - 1);
-            if (is_adj_colrow_valid(adj_col - 1, adj_row - 1) && board[test_idx] != Empty && !is_piece_same_color(piece, (ChessPiece)board[test_idx]))
+            if (is_adj_colrow_valid(adj_col - 1, adj_row - 1) && board[test_idx] != ChessPiece::Empty && !is_piece_same_color(piece, (ChessPiece)board[test_idx]))
             {
                 out[mov_ctr++] = test_idx;
             }
 
             test_idx = get_idx_fr_adj_colrow(adj_col + 1, adj_row - 1);
-            if (is_adj_colrow_valid(adj_col + 1, adj_row - 1) && board[test_idx] != Empty && !is_piece_same_color(piece, (ChessPiece)board[test_idx]))
+            if (is_adj_colrow_valid(adj_col + 1, adj_row - 1) && board[test_idx] != ChessPiece::Empty && !is_piece_same_color(piece, (ChessPiece)board[test_idx]))
             {
                 out[mov_ctr++] = test_idx;
             }
@@ -589,10 +589,10 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
             {
                 // Dont need to check if row adjustments are valid since we know that starting row is 7.
                 test_idx = get_idx_fr_colrow(col, row - 1);
-                if (board[test_idx] == Empty)
+                if (board[test_idx] == ChessPiece::Empty)
                 {
                     test_idx = get_idx_fr_colrow(col, row - 2);
-                    if (board[test_idx] == Empty)
+                    if (board[test_idx] == ChessPiece::Empty)
                     {
                         out[mov_ctr++] = test_idx;
                     }
@@ -601,8 +601,8 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
         }
 
         break;
-    case WhiteKnight:
-    case BlackKnight:
+    case ChessPiece::WhiteKnight:
+    case ChessPiece::BlackKnight:
     {
 
         if (is_adj_colrow_valid(adj_col + 1, adj_row + 2))
@@ -679,8 +679,8 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
     }
 
     break;
-    case WhiteBishop:
-    case BlackBishop:
+    case ChessPiece::WhiteBishop:
+    case ChessPiece::BlackBishop:
     {
         int ne = 0;
         int sw = 0;
@@ -692,7 +692,7 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
             if (is_adj_colrow_valid(adj_col + i, adj_row + i) && ne == 0)
             {
                 test_idx = get_idx_fr_adj_colrow(adj_col + i, adj_row + i);
-                if (board[test_idx] != Empty)
+                if (board[test_idx] != ChessPiece::Empty)
                 {
                     ne = 1;
                     if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
@@ -709,7 +709,7 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
             if (is_adj_colrow_valid(adj_col - i, adj_row - i) && sw == 0)
             {
                 test_idx = get_idx_fr_adj_colrow(adj_col - i, adj_row - i);
-                if (board[test_idx] != Empty)
+                if (board[test_idx] != ChessPiece::Empty)
                 {
                     sw = 1;
                     if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
@@ -726,7 +726,7 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
             if (is_adj_colrow_valid(adj_col + i, adj_row - i) && se == 0)
             {
                 test_idx = get_idx_fr_adj_colrow(adj_col + i, adj_row - i);
-                if (board[test_idx] != Empty)
+                if (board[test_idx] != ChessPiece::Empty)
                 {
                     se = 1;
                     if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
@@ -743,7 +743,7 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
             if (is_adj_colrow_valid(adj_col - i, adj_row + i) && nw == 0)
             {
                 test_idx = get_idx_fr_adj_colrow(adj_col - i, adj_row + i);
-                if (board[test_idx] != Empty)
+                if (board[test_idx] != ChessPiece::Empty)
                 {
                     nw = 1;
                     if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
@@ -760,8 +760,8 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
     }
 
     break;
-    case WhiteRook:
-    case BlackRook:
+    case ChessPiece::WhiteRook:
+    case ChessPiece::BlackRook:
     {
         int n = 0;
         int s = 0;
@@ -773,7 +773,7 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
             if (is_adj_colrow_valid(adj_col + i, adj_row) && e == 0)
             {
                 test_idx = get_idx_fr_adj_colrow(adj_col + i, adj_row);
-                if (board[test_idx] != Empty)
+                if (board[test_idx] != ChessPiece::Empty)
                 {
                     e = 1;
                     if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
@@ -790,7 +790,7 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
             if (is_adj_colrow_valid(adj_col - i, adj_row) && w == 0)
             {
                 test_idx = get_idx_fr_adj_colrow(adj_col - i, adj_row);
-                if (board[test_idx] != Empty)
+                if (board[test_idx] != ChessPiece::Empty)
                 {
                     w = 1;
                     if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
@@ -807,7 +807,7 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
             if (is_adj_colrow_valid(adj_col, adj_row + i) && n == 0)
             {
                 test_idx = get_idx_fr_adj_colrow(adj_col, adj_row + i);
-                if (board[test_idx] != Empty)
+                if (board[test_idx] != ChessPiece::Empty)
                 {
                     n = 1;
                     if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
@@ -824,7 +824,7 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
             if (is_adj_colrow_valid(adj_col, adj_row - i) && s == 0)
             {
                 test_idx = get_idx_fr_adj_colrow(adj_col, adj_row - i);
-                if (board[test_idx] != Empty)
+                if (board[test_idx] != ChessPiece::Empty)
                 {
                     s = 1;
                     if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
@@ -841,8 +841,8 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
     }
 
     break;
-    case WhiteQueen:
-    case BlackQueen:
+    case ChessPiece::WhiteQueen:
+    case ChessPiece::BlackQueen:
         // ne,sw,se,nw
         {
             int ne = 0;
@@ -855,7 +855,7 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
                 if (is_adj_colrow_valid(adj_col + i, adj_row + i) && ne == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col + i, adj_row + i);
-                    if (board[test_idx] != Empty)
+                    if (board[test_idx] != ChessPiece::Empty)
                     {
                         ne = 1;
                         if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
@@ -872,7 +872,7 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
                 if (is_adj_colrow_valid(adj_col - i, adj_row - i) && sw == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col - i, adj_row - i);
-                    if (board[test_idx] != Empty)
+                    if (board[test_idx] != ChessPiece::Empty)
                     {
                         sw = 1;
                         if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
@@ -889,7 +889,7 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
                 if (is_adj_colrow_valid(adj_col + i, adj_row - i) && se == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col + i, adj_row - i);
-                    if (board[test_idx] != Empty)
+                    if (board[test_idx] != ChessPiece::Empty)
                     {
                         se = 1;
                         if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
@@ -906,7 +906,7 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
                 if (is_adj_colrow_valid(adj_col - i, adj_row + i) && nw == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col - i, adj_row + i);
-                    if (board[test_idx] != Empty)
+                    if (board[test_idx] != ChessPiece::Empty)
                     {
                         nw = 1;
                         if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
@@ -933,7 +933,7 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
                 if (is_adj_colrow_valid(adj_col + i, adj_row) && e == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col + i, adj_row);
-                    if (board[test_idx] != Empty)
+                    if (board[test_idx] != ChessPiece::Empty)
                     {
                         e = 1;
                         if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
@@ -950,7 +950,7 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
                 if (is_adj_colrow_valid(adj_col - i, adj_row) && w == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col - i, adj_row);
-                    if (board[test_idx] != Empty)
+                    if (board[test_idx] != ChessPiece::Empty)
                     {
                         w = 1;
                         if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
@@ -967,7 +967,7 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
                 if (is_adj_colrow_valid(adj_col, adj_row + i) && n == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col, adj_row + i);
-                    if (board[test_idx] != Empty)
+                    if (board[test_idx] != ChessPiece::Empty)
                     {
                         n = 1;
                         if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
@@ -984,7 +984,7 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
                 if (is_adj_colrow_valid(adj_col, adj_row - i) && s == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col, adj_row - i);
-                    if (board[test_idx] != Empty)
+                    if (board[test_idx] != ChessPiece::Empty)
                     {
                         s = 1;
                         if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
@@ -1001,8 +1001,8 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
         }
 
         break;
-    case WhiteKing:
-    case BlackKing:
+    case ChessPiece::WhiteKing:
+    case ChessPiece::BlackKing:
         // ne,sw,se,nw
         {
             int ne = 0;
@@ -1015,7 +1015,7 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
                 if (is_adj_colrow_valid(adj_col + i, adj_row + i) && ne == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col + i, adj_row + i);
-                    if (board[test_idx] != Empty)
+                    if (board[test_idx] != ChessPiece::Empty)
                     {
                         ne = 1;
                         if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
@@ -1032,7 +1032,7 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
                 if (is_adj_colrow_valid(adj_col - i, adj_row - i) && sw == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col - i, adj_row - i);
-                    if (board[test_idx] != Empty)
+                    if (board[test_idx] != ChessPiece::Empty)
                     {
                         sw = 1;
                         if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
@@ -1049,7 +1049,7 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
                 if (is_adj_colrow_valid(adj_col + i, adj_row - i) && se == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col + i, adj_row - i);
-                    if (board[test_idx] != Empty)
+                    if (board[test_idx] != ChessPiece::Empty)
                     {
                         se = 1;
                         if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
@@ -1066,7 +1066,7 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
                 if (is_adj_colrow_valid(adj_col - i, adj_row + i) && nw == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col - i, adj_row + i);
-                    if (board[test_idx] != Empty)
+                    if (board[test_idx] != ChessPiece::Empty)
                     {
                         nw = 1;
                         if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
@@ -1093,7 +1093,7 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
                 if (is_adj_colrow_valid(adj_col + i, adj_row) && e == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col + i, adj_row);
-                    if (board[test_idx] != Empty)
+                    if (board[test_idx] != ChessPiece::Empty)
                     {
                         e = 1;
                         if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
@@ -1110,7 +1110,7 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
                 if (is_adj_colrow_valid(adj_col - i, adj_row) && w == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col - i, adj_row);
-                    if (board[test_idx] != Empty)
+                    if (board[test_idx] != ChessPiece::Empty)
                     {
                         w = 1;
                         if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
@@ -1127,7 +1127,7 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
                 if (is_adj_colrow_valid(adj_col, adj_row + i) && n == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col, adj_row + i);
-                    if (board[test_idx] != Empty)
+                    if (board[test_idx] != ChessPiece::Empty)
                     {
                         n = 1;
                         if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
@@ -1144,7 +1144,7 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
                 if (is_adj_colrow_valid(adj_col, adj_row - i) && s == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col, adj_row - i);
-                    if (board[test_idx] != Empty)
+                    if (board[test_idx] != ChessPiece::Empty)
                     {
                         s = 1;
                         if (!is_piece_same_color(piece, (ChessPiece)board[test_idx]))
@@ -1161,14 +1161,14 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
         }
 
         // Castles.
-        if (piece == WhiteKing)
+        if (piece == ChessPiece::WhiteKing)
         {
             if (col == 'e' && row == 1)
             {
                 // Queen side castle.
-                if (board[get_idx_fr_colrow('a', 1)] == WhiteRook)
+                if (board[get_idx_fr_colrow('a', 1)] == ChessPiece::WhiteRook)
                 {
-                    if (board[get_idx_fr_colrow('b', 1)] == Empty && board[get_idx_fr_colrow('c', 1)] == Empty && board[get_idx_fr_colrow('d', 1)] == Empty &&
+                    if (board[get_idx_fr_colrow('b', 1)] == ChessPiece::Empty && board[get_idx_fr_colrow('c', 1)] == ChessPiece::Empty && board[get_idx_fr_colrow('d', 1)] == ChessPiece::Empty &&
                         !is_cell_under_attack(board, get_idx_fr_colrow('b', 1), true) && !is_cell_under_attack(board, get_idx_fr_colrow('c', 1), true) && !is_cell_under_attack(board, get_idx_fr_colrow('d', 1), true))
                     {
                         out[mov_ctr++] = get_idx_fr_colrow('c', 1);
@@ -1176,9 +1176,9 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
                 }
 
                 // King side castle.
-                if (board[get_idx_fr_colrow('h', 1)] == WhiteRook)
+                if (board[get_idx_fr_colrow('h', 1)] == ChessPiece::WhiteRook)
                 {
-                    if (board[get_idx_fr_colrow('f', 1)] == Empty && board[get_idx_fr_colrow('g', 1)] == Empty &&
+                    if (board[get_idx_fr_colrow('f', 1)] == ChessPiece::Empty && board[get_idx_fr_colrow('g', 1)] == ChessPiece::Empty &&
                         !is_cell_under_attack(board, get_idx_fr_colrow('f', 1), true) && !is_cell_under_attack(board, get_idx_fr_colrow('g', 1), true))
                     {
                         out[mov_ctr++] = get_idx_fr_colrow('g', 1);
@@ -1191,9 +1191,9 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
             if (col == 'e' && row == 8)
             {
                 // Queen side castle.
-                if (board[get_idx_fr_colrow('a', 8)] == BlackRook)
+                if (board[get_idx_fr_colrow('a', 8)] == ChessPiece::BlackRook)
                 {
-                    if (board[get_idx_fr_colrow('b', 8)] == Empty && board[get_idx_fr_colrow('c', 8)] == Empty && board[get_idx_fr_colrow('d', 8)] == Empty &&
+                    if (board[get_idx_fr_colrow('b', 8)] == ChessPiece::Empty && board[get_idx_fr_colrow('c', 8)] == ChessPiece::Empty && board[get_idx_fr_colrow('d', 8)] == ChessPiece::Empty &&
                         !is_cell_under_attack(board, get_idx_fr_colrow('b', 8), false) && !is_cell_under_attack(board, get_idx_fr_colrow('c', 8), false) && !is_cell_under_attack(board, get_idx_fr_colrow('d', 8), false))
                     {
                         out[mov_ctr++] = get_idx_fr_colrow('c', 8);
@@ -1201,9 +1201,9 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
                 }
 
                 // King side castle.
-                if (board[get_idx_fr_colrow('h', 8)] == BlackRook)
+                if (board[get_idx_fr_colrow('h', 8)] == ChessPiece::BlackRook)
                 {
-                    if (board[get_idx_fr_colrow('f', 8)] == Empty && board[get_idx_fr_colrow('g', 8)] == Empty &&
+                    if (board[get_idx_fr_colrow('f', 8)] == ChessPiece::Empty && board[get_idx_fr_colrow('g', 8)] == ChessPiece::Empty &&
                         !is_cell_under_attack(board, get_idx_fr_colrow('f', 8), false) && !is_cell_under_attack(board, get_idx_fr_colrow('g', 8), false))
                     {
                         out[mov_ctr++] = get_idx_fr_colrow('g', 8);
@@ -1263,7 +1263,7 @@ void get_piece_influence(int *board, int piece_idx, int *out)
 
     switch (piece)
     {
-    case WhitePawn:
+    case ChessPiece::WhitePawn:
         // TODO: au passant
         {
             test_idx = get_idx_fr_adj_colrow(adj_col - 1, adj_row + 1);
@@ -1280,7 +1280,7 @@ void get_piece_influence(int *board, int piece_idx, int *out)
         }
 
         break;
-    case BlackPawn:
+    case ChessPiece::BlackPawn:
         // TODO: au passant
         {
             test_idx = get_idx_fr_adj_colrow(adj_col - 1, adj_row - 1);
@@ -1297,8 +1297,8 @@ void get_piece_influence(int *board, int piece_idx, int *out)
         }
 
         break;
-    case WhiteKnight:
-    case BlackKnight:
+    case ChessPiece::WhiteKnight:
+    case ChessPiece::BlackKnight:
     {
 
         if (is_adj_colrow_valid(adj_col + 1, adj_row + 2))
@@ -1351,8 +1351,8 @@ void get_piece_influence(int *board, int piece_idx, int *out)
     }
 
     break;
-    case WhiteBishop:
-    case BlackBishop:
+    case ChessPiece::WhiteBishop:
+    case ChessPiece::BlackBishop:
     {
         int ne = 0;
         int sw = 0;
@@ -1364,7 +1364,7 @@ void get_piece_influence(int *board, int piece_idx, int *out)
             if (is_adj_colrow_valid(adj_col + i, adj_row + i) && ne == 0)
             {
                 test_idx = get_idx_fr_adj_colrow(adj_col + i, adj_row + i);
-                if (board[test_idx] != Empty)
+                if (board[test_idx] != ChessPiece::Empty)
                 {
                     ne = 1;
                     out[mov_ctr++] = test_idx;
@@ -1378,7 +1378,7 @@ void get_piece_influence(int *board, int piece_idx, int *out)
             if (is_adj_colrow_valid(adj_col - i, adj_row - i) && sw == 0)
             {
                 test_idx = get_idx_fr_adj_colrow(adj_col - i, adj_row - i);
-                if (board[test_idx] != Empty)
+                if (board[test_idx] != ChessPiece::Empty)
                 {
                     sw = 1;
                     out[mov_ctr++] = test_idx;
@@ -1392,7 +1392,7 @@ void get_piece_influence(int *board, int piece_idx, int *out)
             if (is_adj_colrow_valid(adj_col + i, adj_row - i) && se == 0)
             {
                 test_idx = get_idx_fr_adj_colrow(adj_col + i, adj_row - i);
-                if (board[test_idx] != Empty)
+                if (board[test_idx] != ChessPiece::Empty)
                 {
                     se = 1;
                     out[mov_ctr++] = test_idx;
@@ -1406,7 +1406,7 @@ void get_piece_influence(int *board, int piece_idx, int *out)
             if (is_adj_colrow_valid(adj_col - i, adj_row + i) && nw == 0)
             {
                 test_idx = get_idx_fr_adj_colrow(adj_col - i, adj_row + i);
-                if (board[test_idx] != Empty)
+                if (board[test_idx] != ChessPiece::Empty)
                 {
                     nw = 1;
                     out[mov_ctr++] = test_idx;
@@ -1420,8 +1420,8 @@ void get_piece_influence(int *board, int piece_idx, int *out)
     }
 
     break;
-    case WhiteRook:
-    case BlackRook:
+    case ChessPiece::WhiteRook:
+    case ChessPiece::BlackRook:
     {
         int n = 0;
         int s = 0;
@@ -1433,7 +1433,7 @@ void get_piece_influence(int *board, int piece_idx, int *out)
             if (is_adj_colrow_valid(adj_col + i, adj_row) && e == 0)
             {
                 test_idx = get_idx_fr_adj_colrow(adj_col + i, adj_row);
-                if (board[test_idx] != Empty)
+                if (board[test_idx] != ChessPiece::Empty)
                 {
                     e = 1;
                     out[mov_ctr++] = test_idx;
@@ -1447,7 +1447,7 @@ void get_piece_influence(int *board, int piece_idx, int *out)
             if (is_adj_colrow_valid(adj_col - i, adj_row) && w == 0)
             {
                 test_idx = get_idx_fr_adj_colrow(adj_col - i, adj_row);
-                if (board[test_idx] != Empty)
+                if (board[test_idx] != ChessPiece::Empty)
                 {
                     w = 1;
                     out[mov_ctr++] = test_idx;
@@ -1461,7 +1461,7 @@ void get_piece_influence(int *board, int piece_idx, int *out)
             if (is_adj_colrow_valid(adj_col, adj_row + i) && n == 0)
             {
                 test_idx = get_idx_fr_adj_colrow(adj_col, adj_row + i);
-                if (board[test_idx] != Empty)
+                if (board[test_idx] != ChessPiece::Empty)
                 {
                     n = 1;
                     out[mov_ctr++] = test_idx;
@@ -1475,7 +1475,7 @@ void get_piece_influence(int *board, int piece_idx, int *out)
             if (is_adj_colrow_valid(adj_col, adj_row - i) && s == 0)
             {
                 test_idx = get_idx_fr_adj_colrow(adj_col, adj_row - i);
-                if (board[test_idx] != Empty)
+                if (board[test_idx] != ChessPiece::Empty)
                 {
                     s = 1;
                     out[mov_ctr++] = test_idx;
@@ -1489,8 +1489,8 @@ void get_piece_influence(int *board, int piece_idx, int *out)
     }
 
     break;
-    case WhiteQueen:
-    case BlackQueen:
+    case ChessPiece::WhiteQueen:
+    case ChessPiece::BlackQueen:
         // ne,sw,se,nw
         {
             int ne = 0;
@@ -1503,7 +1503,7 @@ void get_piece_influence(int *board, int piece_idx, int *out)
                 if (is_adj_colrow_valid(adj_col + i, adj_row + i) && ne == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col + i, adj_row + i);
-                    if (board[test_idx] != Empty)
+                    if (board[test_idx] != ChessPiece::Empty)
                     {
                         ne = 1;
                         out[mov_ctr++] = test_idx;
@@ -1517,7 +1517,7 @@ void get_piece_influence(int *board, int piece_idx, int *out)
                 if (is_adj_colrow_valid(adj_col - i, adj_row - i) && sw == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col - i, adj_row - i);
-                    if (board[test_idx] != Empty)
+                    if (board[test_idx] != ChessPiece::Empty)
                     {
                         sw = 1;
                         out[mov_ctr++] = test_idx;
@@ -1531,7 +1531,7 @@ void get_piece_influence(int *board, int piece_idx, int *out)
                 if (is_adj_colrow_valid(adj_col + i, adj_row - i) && se == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col + i, adj_row - i);
-                    if (board[test_idx] != Empty)
+                    if (board[test_idx] != ChessPiece::Empty)
                     {
                         se = 1;
                         out[mov_ctr++] = test_idx;
@@ -1545,7 +1545,7 @@ void get_piece_influence(int *board, int piece_idx, int *out)
                 if (is_adj_colrow_valid(adj_col - i, adj_row + i) && nw == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col - i, adj_row + i);
-                    if (board[test_idx] != Empty)
+                    if (board[test_idx] != ChessPiece::Empty)
                     {
                         nw = 1;
                         out[mov_ctr++] = test_idx;
@@ -1569,7 +1569,7 @@ void get_piece_influence(int *board, int piece_idx, int *out)
                 if (is_adj_colrow_valid(adj_col + i, adj_row) && e == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col + i, adj_row);
-                    if (board[test_idx] != Empty)
+                    if (board[test_idx] != ChessPiece::Empty)
                     {
                         e = 1;
                         out[mov_ctr++] = test_idx;
@@ -1583,7 +1583,7 @@ void get_piece_influence(int *board, int piece_idx, int *out)
                 if (is_adj_colrow_valid(adj_col - i, adj_row) && w == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col - i, adj_row);
-                    if (board[test_idx] != Empty)
+                    if (board[test_idx] != ChessPiece::Empty)
                     {
                         w = 1;
                         out[mov_ctr++] = test_idx;
@@ -1597,7 +1597,7 @@ void get_piece_influence(int *board, int piece_idx, int *out)
                 if (is_adj_colrow_valid(adj_col, adj_row + i) && n == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col, adj_row + i);
-                    if (board[test_idx] != Empty)
+                    if (board[test_idx] != ChessPiece::Empty)
                     {
                         n = 1;
                         out[mov_ctr++] = test_idx;
@@ -1611,7 +1611,7 @@ void get_piece_influence(int *board, int piece_idx, int *out)
                 if (is_adj_colrow_valid(adj_col, adj_row - i) && s == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col, adj_row - i);
-                    if (board[test_idx] != Empty)
+                    if (board[test_idx] != ChessPiece::Empty)
                     {
                         s = 1;
                         out[mov_ctr++] = test_idx;
@@ -1625,8 +1625,8 @@ void get_piece_influence(int *board, int piece_idx, int *out)
         }
 
         break;
-    case WhiteKing:
-    case BlackKing:
+    case ChessPiece::WhiteKing:
+    case ChessPiece::BlackKing:
         // ne,sw,se,nw
         {
             int ne = 0;
@@ -1639,7 +1639,7 @@ void get_piece_influence(int *board, int piece_idx, int *out)
                 if (is_adj_colrow_valid(adj_col + i, adj_row + i) && ne == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col + i, adj_row + i);
-                    if (board[test_idx] != Empty)
+                    if (board[test_idx] != ChessPiece::Empty)
                     {
                         ne = 1;
                         out[mov_ctr++] = test_idx;
@@ -1653,7 +1653,7 @@ void get_piece_influence(int *board, int piece_idx, int *out)
                 if (is_adj_colrow_valid(adj_col - i, adj_row - i) && sw == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col - i, adj_row - i);
-                    if (board[test_idx] != Empty)
+                    if (board[test_idx] != ChessPiece::Empty)
                     {
                         sw = 1;
                         out[mov_ctr++] = test_idx;
@@ -1667,7 +1667,7 @@ void get_piece_influence(int *board, int piece_idx, int *out)
                 if (is_adj_colrow_valid(adj_col + i, adj_row - i) && se == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col + i, adj_row - i);
-                    if (board[test_idx] != Empty)
+                    if (board[test_idx] != ChessPiece::Empty)
                     {
                         se = 1;
                         out[mov_ctr++] = test_idx;
@@ -1681,7 +1681,7 @@ void get_piece_influence(int *board, int piece_idx, int *out)
                 if (is_adj_colrow_valid(adj_col - i, adj_row + i) && nw == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col - i, adj_row + i);
-                    if (board[test_idx] != Empty)
+                    if (board[test_idx] != ChessPiece::Empty)
                     {
                         nw = 1;
                         out[mov_ctr++] = test_idx;
@@ -1705,7 +1705,7 @@ void get_piece_influence(int *board, int piece_idx, int *out)
                 if (is_adj_colrow_valid(adj_col + i, adj_row) && e == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col + i, adj_row);
-                    if (board[test_idx] != Empty)
+                    if (board[test_idx] != ChessPiece::Empty)
                     {
                         e = 1;
                         out[mov_ctr++] = test_idx;
@@ -1719,7 +1719,7 @@ void get_piece_influence(int *board, int piece_idx, int *out)
                 if (is_adj_colrow_valid(adj_col - i, adj_row) && w == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col - i, adj_row);
-                    if (board[test_idx] != Empty)
+                    if (board[test_idx] != ChessPiece::Empty)
                     {
                         w = 1;
                         out[mov_ctr++] = test_idx;
@@ -1733,7 +1733,7 @@ void get_piece_influence(int *board, int piece_idx, int *out)
                 if (is_adj_colrow_valid(adj_col, adj_row + i) && n == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col, adj_row + i);
-                    if (board[test_idx] != Empty)
+                    if (board[test_idx] != ChessPiece::Empty)
                     {
                         n = 1;
                         out[mov_ctr++] = test_idx;
@@ -1747,7 +1747,7 @@ void get_piece_influence(int *board, int piece_idx, int *out)
                 if (is_adj_colrow_valid(adj_col, adj_row - i) && s == 0)
                 {
                     test_idx = get_idx_fr_adj_colrow(adj_col, adj_row - i);
-                    if (board[test_idx] != Empty)
+                    if (board[test_idx] != ChessPiece::Empty)
                     {
                         s = 1;
                         out[mov_ctr++] = test_idx;
@@ -1796,7 +1796,7 @@ void get_influence_board(int *board, int *out)
     {
         ChessPiece piece = (ChessPiece)board[piece_idx];
 
-        if (piece != Empty)
+        if (piece != ChessPiece::Empty)
         {
             get_piece_influence(board, piece_idx, moves);
 
@@ -1822,7 +1822,7 @@ void get_influence_board(int *board, int *out)
     }
 }
 
-SrcDst_Idx get_random_move(int *board, bool white_mov_flg, int *cmp_board)
+ChessMove get_random_move(int *board, bool white_mov_flg, int *cmp_board)
 {
     int sim_board[CHESS_BOARD_LEN];
     int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
@@ -1849,7 +1849,7 @@ SrcDst_Idx get_random_move(int *board, bool white_mov_flg, int *cmp_board)
         }
     }
 
-    SrcDst_Idx src_dst_idx;
+    ChessMove src_dst_idx;
     src_dst_idx.src_idx = CHESS_INVALID_VALUE;
     src_dst_idx.dst_idx = CHESS_INVALID_VALUE;
     int max_try_cnt = 20;
@@ -1899,7 +1899,7 @@ void simulate_board_change_w_srcdst_idx(int *board, int src_idx, int dst_idx, in
 {
     copy_board(board, out);
     out[dst_idx] = out[src_idx];
-    out[src_idx] = Empty;
+    out[src_idx] = ChessPiece::Empty;
 }
 
 void translate_srcdst_idx_to_mov(int *board, int src_idx, int dst_idx, char *out)
@@ -1914,7 +1914,7 @@ void translate_srcdst_idx_to_mov(int *board, int src_idx, int dst_idx, char *out
     int dst_row = get_row_fr_idx(dst_idx);
 
     // Check for castle.
-    if (piece == WhiteKing || piece == BlackKing)
+    if (piece == ChessPiece::WhiteKing || piece == ChessPiece::BlackKing)
     {
         int src_adj_col = get_adj_col_fr_col(src_col);
         int src_adj_row = get_adj_row_fr_row(src_row);
@@ -1946,7 +1946,7 @@ void translate_srcdst_idx_to_mov(int *board, int src_idx, int dst_idx, char *out
     out[move_ctr++] = (char)(dst_row + '0');
 
     // Check for pawn promotion. If none, set last 2 chars to ' '.
-    if ((piece == WhitePawn && dst_row == 8) || (piece == BlackPawn && dst_row == 1))
+    if ((piece == ChessPiece::WhitePawn && dst_row == 8) || (piece == ChessPiece::BlackPawn && dst_row == 1))
     {
         out[move_ctr++] = '=';
         out[move_ctr++] = 'Q';
@@ -1958,7 +1958,7 @@ void translate_srcdst_idx_to_mov(int *board, int src_idx, int dst_idx, char *out
     }
 }
 
-void change_board_w_mov(int *board, const char *immut_mov, bool white_mov_flg)
+ChessMove change_board_w_mov(int *board, const char *immut_mov, bool white_mov_flg)
 {
     char mut_mov[CHESS_MAX_MOVE_LEN];
     memcpy(mut_mov, immut_mov, CHESS_MAX_MOVE_LEN);
@@ -2010,15 +2010,17 @@ void change_board_w_mov(int *board, const char *immut_mov, bool white_mov_flg)
             int prev_idx = get_idx_fr_colrow(mut_mov[0], dst_row - 1);
             int prev_idx_2 = get_idx_fr_colrow(mut_mov[0], dst_row - 2);
 
-            board[dst_idx] = WhitePawn;
+            board[dst_idx] = ChessPiece::WhitePawn;
 
-            if (board[prev_idx] == WhitePawn)
+            if (board[prev_idx] == ChessPiece::WhitePawn)
             {
-                board[prev_idx] = Empty;
+                board[prev_idx] = ChessPiece::Empty;
+                src_idx = prev_idx;
             }
-            else if (board[prev_idx_2] == WhitePawn)
+            else if (board[prev_idx_2] == ChessPiece::WhitePawn)
             {
-                board[prev_idx_2] = Empty;
+                board[prev_idx_2] = ChessPiece::Empty;
+                src_idx = prev_idx_2;
             }
         }
         else
@@ -2026,15 +2028,17 @@ void change_board_w_mov(int *board, const char *immut_mov, bool white_mov_flg)
             int prev_idx = get_idx_fr_colrow(mut_mov[0], dst_row + 1);
             int prev_idx_2 = get_idx_fr_colrow(mut_mov[0], dst_row + 2);
 
-            board[dst_idx] = BlackPawn;
+            board[dst_idx] = ChessPiece::BlackPawn;
 
-            if (board[prev_idx] == BlackPawn)
+            if (board[prev_idx] == ChessPiece::BlackPawn)
             {
-                board[prev_idx] = Empty;
+                board[prev_idx] = ChessPiece::Empty;
+                src_idx = prev_idx;
             }
-            else if (board[prev_idx_2] == BlackPawn)
+            else if (board[prev_idx_2] == ChessPiece::BlackPawn)
             {
-                board[prev_idx_2] = Empty;
+                board[prev_idx_2] = ChessPiece::Empty;
+                src_idx = prev_idx_2;
             }
         }
         break;
@@ -2046,25 +2050,31 @@ void change_board_w_mov(int *board, const char *immut_mov, bool white_mov_flg)
             {
                 int cur_rook_idx = get_idx_fr_colrow('h', 1);
                 int cur_king_idx = get_idx_fr_colrow('e', 1);
-                board[cur_rook_idx] = Empty;
-                board[cur_king_idx] = Empty;
+                board[cur_rook_idx] = ChessPiece::Empty;
+                board[cur_king_idx] = ChessPiece::Empty;
 
                 int nxt_rook_idx = get_idx_fr_colrow('f', 1);
                 int nxt_king_idx = get_idx_fr_colrow('g', 1);
-                board[nxt_rook_idx] = WhiteRook;
-                board[nxt_king_idx] = WhiteKing;
+                board[nxt_rook_idx] = ChessPiece::WhiteRook;
+                board[nxt_king_idx] = ChessPiece::WhiteKing;
+
+                src_idx = cur_king_idx;
+                dst_idx = nxt_king_idx;
             }
             else
             {
                 int cur_rook_idx = get_idx_fr_colrow('h', 8);
                 int cur_king_idx = get_idx_fr_colrow('e', 8);
-                board[cur_rook_idx] = Empty;
-                board[cur_king_idx] = Empty;
+                board[cur_rook_idx] = ChessPiece::Empty;
+                board[cur_king_idx] = ChessPiece::Empty;
 
                 int nxt_rook_idx = get_idx_fr_colrow('f', 8);
                 int nxt_king_idx = get_idx_fr_colrow('g', 8);
-                board[nxt_rook_idx] = BlackRook;
-                board[nxt_king_idx] = BlackKing;
+                board[nxt_rook_idx] = ChessPiece::BlackRook;
+                board[nxt_king_idx] = ChessPiece::BlackKing;
+
+                src_idx = cur_king_idx;
+                dst_idx = nxt_king_idx;
             }
         }
         else
@@ -2088,7 +2098,8 @@ void change_board_w_mov(int *board, const char *immut_mov, bool white_mov_flg)
                             if (legal_moves[j] == dst_idx)
                             {
                                 board[dst_idx] = piece;
-                                board[i] = Empty;
+                                src_idx = i;
+                                board[src_idx] = ChessPiece::Empty;
                                 found = 1;
                                 break;
                             }
@@ -2113,13 +2124,15 @@ void change_board_w_mov(int *board, const char *immut_mov, bool white_mov_flg)
 
                 if (white_mov_flg)
                 {
-                    piece = WhitePawn;
-                    board[get_idx_fr_colrow(src_col, dst_row - 1)] = Empty;
+                    piece = ChessPiece::WhitePawn;
+                    src_idx = get_idx_fr_colrow(src_col, dst_row - 1);
+                    board[src_idx] = ChessPiece::Empty;
                 }
                 else
                 {
-                    piece = BlackPawn;
-                    board[get_idx_fr_colrow(src_col, dst_row + 1)] = Empty;
+                    piece = ChessPiece::BlackPawn;
+                    src_idx = get_idx_fr_colrow(src_col, dst_row + 1);
+                    board[src_idx] = ChessPiece::Empty;
                 }
 
                 board[dst_idx] = piece;
@@ -2141,7 +2154,8 @@ void change_board_w_mov(int *board, const char *immut_mov, bool white_mov_flg)
                 if (get_col_fr_idx(i) == src_col && board[i] == piece)
                 {
                     board[dst_idx] = piece;
-                    board[i] = Empty;
+                    src_idx = i;
+                    board[src_idx] = ChessPiece::Empty;
                     break;
                 }
             }
@@ -2159,11 +2173,11 @@ void change_board_w_mov(int *board, const char *immut_mov, bool white_mov_flg)
 
                 if (white_mov_flg)
                 {
-                    piece = WhitePawn;
+                    piece = ChessPiece::WhitePawn;
                 }
                 else
                 {
-                    piece = BlackPawn;
+                    piece = ChessPiece::BlackPawn;
                 }
 
                 int found = 0;
@@ -2176,7 +2190,8 @@ void change_board_w_mov(int *board, const char *immut_mov, bool white_mov_flg)
                         {
                             if (legal_moves[j] == dst_idx)
                             {
-                                board[i] = Empty;
+                                src_idx = i;
+                                board[src_idx] = ChessPiece::Empty;
                                 found = 1;
                                 break;
                             }
@@ -2204,25 +2219,31 @@ void change_board_w_mov(int *board, const char *immut_mov, bool white_mov_flg)
             {
                 int cur_rook_idx = get_idx_fr_colrow('a', 1);
                 int cur_king_idx = get_idx_fr_colrow('e', 1);
-                board[cur_rook_idx] = Empty;
-                board[cur_king_idx] = Empty;
+                board[cur_rook_idx] = ChessPiece::Empty;
+                board[cur_king_idx] = ChessPiece::Empty;
 
                 int nxt_rook_idx = get_idx_fr_colrow('d', 1);
                 int nxt_king_idx = get_idx_fr_colrow('c', 1);
-                board[nxt_rook_idx] = WhiteRook;
-                board[nxt_king_idx] = WhiteKing;
+                board[nxt_rook_idx] = ChessPiece::WhiteRook;
+                board[nxt_king_idx] = ChessPiece::WhiteKing;
+
+                src_idx = cur_king_idx;
+                dst_idx = nxt_king_idx;
             }
             else
             {
                 int cur_rook_idx = get_idx_fr_colrow('a', 8);
                 int cur_king_idx = get_idx_fr_colrow('e', 8);
-                board[cur_rook_idx] = Empty;
-                board[cur_king_idx] = Empty;
+                board[cur_rook_idx] = ChessPiece::Empty;
+                board[cur_king_idx] = ChessPiece::Empty;
 
                 int nxt_rook_idx = get_idx_fr_colrow('d', 8);
                 int nxt_king_idx = get_idx_fr_colrow('c', 8);
-                board[nxt_rook_idx] = BlackRook;
-                board[nxt_king_idx] = BlackKing;
+                board[nxt_rook_idx] = ChessPiece::BlackRook;
+                board[nxt_king_idx] = ChessPiece::BlackKing;
+
+                src_idx = cur_king_idx;
+                dst_idx = nxt_king_idx;
             }
         }
         else
@@ -2232,7 +2253,7 @@ void change_board_w_mov(int *board, const char *immut_mov, bool white_mov_flg)
             {
                 // Disambiguated queen move.
                 piece = get_piece_fr_char(mut_mov[0], white_mov_flg);
-                if (piece == WhiteQueen || piece == BlackQueen)
+                if (piece == ChessPiece::WhiteQueen || piece == ChessPiece::BlackQueen)
                 {
                     src_col = mut_mov[1];
                     src_row = get_row_fr_char(mut_mov[2]);
@@ -2243,7 +2264,7 @@ void change_board_w_mov(int *board, const char *immut_mov, bool white_mov_flg)
                     dst_idx = get_idx_fr_colrow(dst_col, dst_row);
 
                     board[dst_idx] = piece;
-                    board[src_idx] = Empty;
+                    board[src_idx] = ChessPiece::Empty;
                 }
             }
             else
@@ -2260,11 +2281,11 @@ void change_board_w_mov(int *board, const char *immut_mov, bool white_mov_flg)
 
                     if (white_mov_flg)
                     {
-                        piece = WhitePawn;
+                        piece = ChessPiece::WhitePawn;
                     }
                     else
                     {
-                        piece = BlackPawn;
+                        piece = ChessPiece::BlackPawn;
                     }
 
                     for (int i = 0; i < CHESS_BOARD_LEN; i++)
@@ -2272,7 +2293,8 @@ void change_board_w_mov(int *board, const char *immut_mov, bool white_mov_flg)
                         if (get_col_fr_idx(i) == src_col && board[i] == piece)
                         {
                             board[dst_idx] = promo_piece;
-                            board[i] = Empty;
+                            src_idx = i;
+                            board[src_idx] = ChessPiece::Empty;
                             break;
                         }
                     }
@@ -2295,18 +2317,23 @@ void change_board_w_mov(int *board, const char *immut_mov, bool white_mov_flg)
             {
                 ChessPiece promo_piece = get_piece_fr_char(mut_mov[6], white_mov_flg);
                 board[dst_idx] = promo_piece;
-                board[src_idx] = Empty;
+                board[src_idx] = ChessPiece::Empty;
             }
             else
             {
                 board[dst_idx] = piece;
-                board[src_idx] = Empty;
+                board[src_idx] = ChessPiece::Empty;
             }
         }
         break;
     default: // Nothing..
         break;
     }
+
+    ChessMove chess_move;
+    chess_move.src_idx = src_idx;
+    chess_move.dst_idx = dst_idx;
+    return chess_move;
 }
 
 int boardcmp(int *a, int *b)
@@ -2451,7 +2478,7 @@ float piece_to_float(ChessPiece piece)
         return -8.8f;
     case ChessPiece::BlackKing:
         return -3.0f;
-    default: // Empty space.
+    default: // ChessPiece::Empty space.
         return 0.0f;
     }
 }
@@ -2536,40 +2563,54 @@ void one_hot_encode_board(int *board, int *out)
         case ChessPiece::BlackKing:
             out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 11] = 1;
             break;
-        default: // Empty space.
+        default: // ChessPiece::Empty space.
             out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 12] = 1;
             break;
         }
     }
 }
 
+// float eval_board(int *board, Model *model, float *cuda_flt_board_buf)
+// {
+//     float flt_board[CHESS_BOARD_LEN];
+//     int influence_board[CHESS_BOARD_LEN];
+//     float flt_influence_board[CHESS_BOARD_LEN];
+//     float flt_board_buf[CHESS_BOARD_LEN * 2];
+
+//     board_to_float(board, flt_board, true);
+
+//     get_influence_board(board, influence_board);
+//     influence_board_to_float(influence_board, flt_influence_board, true);
+
+//     memcpy(flt_board_buf, flt_board, sizeof(float) * CHESS_BOARD_LEN);
+//     memcpy(&flt_board_buf[CHESS_BOARD_LEN], flt_influence_board, sizeof(float) * CHESS_BOARD_LEN);
+
+//     cudaMemcpy(cuda_flt_board_buf, flt_board, sizeof(float) * CHESS_BOARD_LEN, cudaMemcpyHostToDevice);
+//     cudaMemcpy(&cuda_flt_board_buf[CHESS_BOARD_LEN], flt_influence_board, sizeof(float) * CHESS_BOARD_LEN, cudaMemcpyHostToDevice);
+
+//     Tensor *x = new Tensor(Device::Cuda, 2, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT);
+//     x->set_arr(flt_board_buf);
+
+//     Tensor *pred = model->predict(x);
+
+//     float eval = pred->get_val(0);
+
+//     delete pred;
+//     delete x;
+
+//     return eval;
+// }
+
 float eval_board(int *board, Model *model, float *cuda_flt_board_buf)
 {
+    float eval = 0.0f;
     float flt_board[CHESS_BOARD_LEN];
-    int influence_board[CHESS_BOARD_LEN];
-    float flt_influence_board[CHESS_BOARD_LEN];
-    float flt_board_buf[CHESS_BOARD_LEN * 2];
+    board_to_float(board, flt_board, false);
 
-    board_to_float(board, flt_board, true);
-
-    get_influence_board(board, influence_board);
-    influence_board_to_float(influence_board, flt_influence_board, true);
-
-    memcpy(flt_board_buf, flt_board, sizeof(float) * CHESS_BOARD_LEN);
-    memcpy(&flt_board_buf[CHESS_BOARD_LEN], flt_influence_board, sizeof(float) * CHESS_BOARD_LEN);
-
-    cudaMemcpy(cuda_flt_board_buf, flt_board, sizeof(float) * CHESS_BOARD_LEN, cudaMemcpyHostToDevice);
-    cudaMemcpy(&cuda_flt_board_buf[CHESS_BOARD_LEN], flt_influence_board, sizeof(float) * CHESS_BOARD_LEN, cudaMemcpyHostToDevice);
-
-    Tensor *x = new Tensor(Device::Cuda, 2, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT);
-    x->set_arr(flt_board_buf);
-
-    Tensor *pred = model->predict(x);
-
-    float eval = pred->get_val(0);
-
-    delete pred;
-    delete x;
+    for (int i = 0; i < CHESS_BOARD_LEN; i++)
+    {
+        eval += flt_board[i];
+    }
 
     return eval;
 }
@@ -2598,23 +2639,6 @@ MinimaxEvaluation get_minimax_eval(int *board, bool white_flg, bool cur_white_fl
     {
         float eval = eval_board(board, model, cuda_flt_board_buf);
         minimax_eval.eval = eval;
-
-        // if (white_flg && !cur_white_flg)
-        // {
-        //     if (eval <= cur_best_eval)
-        //     {
-        //         minimax_eval.prune_flg = true;
-        //         return minimax_eval;
-        //     }
-        // }
-        // else if (!white_flg && cur_white_flg)
-        // {
-        //     if (eval >= cur_best_eval)
-        //     {
-        //         minimax_eval.prune_flg = true;
-        //         return minimax_eval;
-        //     }
-        // }
 
         minimax_eval.prune_flg = false;
         return minimax_eval;
@@ -2646,9 +2670,14 @@ MinimaxEvaluation get_minimax_eval(int *board, bool white_flg, bool cur_white_fl
 
                     MinimaxEvaluation w_minimax_eval = get_minimax_eval(sim_board, white_flg, !cur_white_flg, max_depth, cur_depth + 1, model, cur_best_eval, cuda_flt_board_buf);
 
-                    if (w_minimax_eval.prune_flg)
+                    if (cur_depth == 1)
                     {
-                        return w_minimax_eval;
+                        if (w_minimax_eval.eval > cur_best_eval)
+                        {
+                            minimax_eval.eval = w_minimax_eval.eval;
+                            minimax_eval.prune_flg = true;
+                            return minimax_eval;
+                        }
                     }
 
                     if (w_minimax_eval.eval > max)
@@ -2678,9 +2707,14 @@ MinimaxEvaluation get_minimax_eval(int *board, bool white_flg, bool cur_white_fl
 
                     MinimaxEvaluation b_minimax_eval = get_minimax_eval(sim_board, white_flg, !cur_white_flg, max_depth, cur_depth + 1, model, cur_best_eval, cuda_flt_board_buf);
 
-                    if (b_minimax_eval.prune_flg)
+                    if (cur_depth == 1)
                     {
-                        return b_minimax_eval;
+                        if (b_minimax_eval.eval < cur_best_eval)
+                        {
+                            minimax_eval.eval = b_minimax_eval.eval;
+                            minimax_eval.prune_flg = true;
+                            return minimax_eval;
+                        }
                     }
 
                     if (b_minimax_eval.eval < min)

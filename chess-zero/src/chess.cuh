@@ -44,7 +44,7 @@ typedef enum ChessPiece
     BlackKing = -10
 } ChessPiece;
 
-struct SrcDst_Idx
+struct ChessMove
 {
     int src_idx;
     int dst_idx;
@@ -80,13 +80,13 @@ void get_piece_influence(int *board, int piece_idx, int *out);
 
 void get_influence_board(int *board, int *out);
 
-SrcDst_Idx get_random_move(int *board, bool white_mov_flg, int *cmp_board);
+ChessMove get_random_move(int *board, bool white_mov_flg, int *cmp_board);
 
 void simulate_board_change_w_srcdst_idx(int *board, int src_idx, int dst_idx, int *out);
 
 void translate_srcdst_idx_to_mov(int *board, int src_idx, int dst_idx, char *out);
 
-void change_board_w_mov(int *board, const char *mov, bool white_mov_flg);
+ChessMove change_board_w_mov(int *board, const char *mov, bool white_mov_flg);
 
 int boardcmp(int *a, int *b);
 

@@ -1,5 +1,24 @@
 #include "pgn.cuh"
 
+long long get_chess_file_size(const char *name)
+{
+    HANDLE hFile = CreateFile((LPCSTR)name, GENERIC_READ,
+                              FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING,
+                              FILE_ATTRIBUTE_NORMAL, NULL);
+    if (hFile == INVALID_HANDLE_VALUE)
+        return -1; // error condition, could call GetLastError to find out more
+
+    LARGE_INTEGER size;
+    if (!GetFileSizeEx(hFile, &size))
+    {
+        CloseHandle(hFile);
+        return -1; // error condition, could call GetLastError to find out more
+    }
+
+    CloseHandle(hFile);
+    return size.QuadPart;
+}
+
 void PGNImport_add(PGNImport *pgn, PGNMoveList *list)
 {
     if (pgn->cnt == pgn->cap)
@@ -52,7 +71,7 @@ PGNImport *PGNImport_init(const char *pgn_file_name)
     FILE *file_ptr = fopen(pgn_file_name, "rb");
 
     fseek(file_ptr, 0L, SEEK_END);
-    long file_size = ftell(file_ptr);
+    long long file_size = get_chess_file_size(pgn_file_name);
     rewind(file_ptr);
 
     char *buf = (char *)malloc(file_size);
