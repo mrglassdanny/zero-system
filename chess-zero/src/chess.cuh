@@ -27,6 +27,22 @@
 using namespace zero::core;
 using namespace zero::nn;
 
+// class ChessDropoutLayer : Layer
+// {
+// private:
+//     Tensor *dropout_mask;
+
+// public:
+//     ChessDropoutLayer(std::vector<int> n_shape);
+//     ChessDropoutLayer(FILE *file_ptr);
+//     ~ChessDropoutLayer();
+
+//     virtual LayerType get_type();
+//     virtual void evaluate(Tensor *nxt_n, bool train_flg);
+//     virtual Tensor *derive(Tensor *dc);
+//     virtual void save(FILE *file_ptr);
+// };
+
 typedef enum ChessPiece
 {
     Empty = 0,
@@ -102,6 +118,8 @@ void influence_board_to_float(int *influence_board, float *out, bool scale_down_
 
 void one_hot_encode_board(int *board, int *out);
 
-float eval_board(int *board, Model *model, float *cuda_flt_board_buf);
+void one_hot_encode_board(int *board, float *out);
 
-MinimaxEvaluation get_minimax_eval(int *board, bool white_flg, bool cur_white_flg, int max_depth, int cur_depth, Model *model, float cur_best_eval, float *cuda_flt_board_buf);
+float eval_board(int *board);
+
+MinimaxEvaluation get_minimax_eval(int *board, bool white_flg, bool cur_white_flg, int max_depth, int cur_depth, float cur_best_eval);

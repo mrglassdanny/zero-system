@@ -39,6 +39,8 @@ void dump_pgn(const char *pgn_name)
     float flt_board[CHESS_BOARD_LEN];
     float lbl;
 
+    float flt_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
+
     // Skip openings!
     int start_mov_idx = 10;
 
@@ -59,17 +61,20 @@ void dump_pgn(const char *pgn_name)
                     // Make move.
                     ChessMove chess_move = change_board_w_mov(board, pl->arr[mov_idx], white_mov_flg);
 
-                    // Write board state.
-                    board_to_float(board, flt_board, true);
-                    fwrite(flt_board, sizeof(float) * CHESS_BOARD_LEN, 1, boards_file);
+                    // // Write board state.
+                    // board_to_float(board, flt_board, true);
+                    // fwrite(flt_board, sizeof(float) * CHESS_BOARD_LEN, 1, boards_file);
 
-                    // Get and write influence state.
-                    get_influence_board(board, influence_board);
-                    influence_board_to_float(influence_board, flt_board, true);
-                    fwrite(flt_board, sizeof(float) * CHESS_BOARD_LEN, 1, boards_file);
+                    // // Get and write influence state.
+                    // get_influence_board(board, influence_board);
+                    // influence_board_to_float(influence_board, flt_board, true);
+                    // fwrite(flt_board, sizeof(float) * CHESS_BOARD_LEN, 1, boards_file);
 
                     lbl = chess_move.src_idx;
                     fwrite(&lbl, sizeof(float), 1, labels_file);
+
+                    one_hot_encode_board(board, flt_one_hot_board);
+                    fwrite(flt_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN, 1, boards_file);
                 }
                 else
                 {
@@ -110,7 +115,7 @@ OnDiskSupervisor *get_chess_supervisor(const char *pgn_name)
     memset(label_name_buf, 0, 256);
     sprintf(label_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\%s.bl", pgn_name);
 
-    std::vector<int> x_shape{2, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
+    std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
 
     OnDiskSupervisor *sup = new OnDiskSupervisor(0.80f, 0.20f, board_name_buf, label_name_buf, x_shape, 64);
 
@@ -121,7 +126,7 @@ void train_chess(const char *pgn_name)
 {
     OnDiskSupervisor *sup = get_chess_supervisor(pgn_name);
 
-    Model *model = new Model(CostFunction::CrossEntropy, 0.01f);
+    Model *model = new Model(CostFunction::CrossEntropy, 0.1f);
 
     model->add_layer(new ConvolutionalLayer(sup->get_x_shape(), 64, 3, 3, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
@@ -132,7 +137,7 @@ void train_chess(const char *pgn_name)
     model->add_layer(new LinearLayer(model->get_output_shape(), 512, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
-    model->add_layer(new LinearLayer(model->get_output_shape(), 64, InitializationFunction::Xavier));
+    model->add_layer(new LinearLayer(model->get_output_shape(), 128, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), Tensor::get_cnt(sup->get_y_shape()), InitializationFunction::Xavier));
@@ -185,9 +190,30 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
 
     if (print_flg)
     {
-        printf("move\tdepth 1\t\tdepth %d\t\tpruned\n", depth);
+        printf("move\tmodel\t\tminimax\t\tpruned\n", depth);
         printf("-------+---------------+---------------+------------\n");
     }
+
+    // Model eval:
+    get_influence_board(immut_board, sim_influence_board);
+
+    board_to_float(immut_board, flt_sim_board, true);
+    influence_board_to_float(sim_influence_board, flt_sim_influence_board, true);
+
+    memcpy(flt_board_buf, flt_sim_board, sizeof(float) * CHESS_BOARD_LEN);
+    memcpy(&flt_board_buf[CHESS_BOARD_LEN], flt_sim_influence_board, sizeof(float) * CHESS_BOARD_LEN);
+
+    Tensor *x = new Tensor(Device::Cpu, 2, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT);
+    x->set_arr(flt_board_buf);
+
+    Tensor *pred = model->predict(x);
+    pred->print();
+
+    TensorTuple tup = pred->get_max();
+    float depth_1_eval = tup.val;
+    printf("Piece: %d (%d)\n", tup.idx, immut_board[tup.idx]);
+
+    delete pred;
 
     for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
     {
@@ -205,27 +231,11 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
                     else
                     {
                         simulate_board_change_w_srcdst_idx(immut_board, piece_idx, legal_moves[mov_idx], sim_board);
-                        get_influence_board(sim_board, sim_influence_board);
-
-                        board_to_float(sim_board, flt_sim_board, true);
-                        influence_board_to_float(sim_influence_board, flt_sim_influence_board, true);
-
-                        memcpy(flt_board_buf, flt_sim_board, sizeof(float) * CHESS_BOARD_LEN);
-                        memcpy(&flt_board_buf[CHESS_BOARD_LEN], flt_sim_influence_board, sizeof(float) * CHESS_BOARD_LEN);
-
-                        Tensor *x = new Tensor(Device::Cpu, 2, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT);
-                        x->set_arr(flt_board_buf);
-
-                        Tensor *pred = model->predict(x);
-
-                        float depth_1_eval = pred->get_val(0);
-
-                        delete pred;
 
                         memset(mov, 0, CHESS_MAX_MOVE_LEN);
                         translate_srcdst_idx_to_mov(immut_board, piece_idx, legal_moves[mov_idx], mov);
 
-                        MinimaxEvaluation minimax_eval = get_minimax_eval(sim_board, white_mov_flg, !white_mov_flg, depth, 1, model, best_eval, cuda_flt_board_buf);
+                        MinimaxEvaluation minimax_eval = get_minimax_eval(sim_board, white_mov_flg, !white_mov_flg, depth, 1, best_eval);
 
                         if (print_flg)
                         {
@@ -264,29 +274,12 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
                     }
                     else
                     {
-
                         simulate_board_change_w_srcdst_idx(immut_board, piece_idx, legal_moves[mov_idx], sim_board);
-                        get_influence_board(sim_board, sim_influence_board);
-
-                        board_to_float(sim_board, flt_sim_board, true);
-                        influence_board_to_float(sim_influence_board, flt_sim_influence_board, true);
-
-                        memcpy(flt_board_buf, flt_sim_board, sizeof(float) * CHESS_BOARD_LEN);
-                        memcpy(&flt_board_buf[CHESS_BOARD_LEN], flt_sim_influence_board, sizeof(float) * CHESS_BOARD_LEN);
-
-                        Tensor *x = new Tensor(Device::Cpu, 2, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT);
-                        x->set_arr(flt_board_buf);
-
-                        Tensor *pred = model->predict(x);
-
-                        float depth_1_eval = pred->get_val(0);
-
-                        delete pred;
 
                         memset(mov, 0, CHESS_MAX_MOVE_LEN);
                         translate_srcdst_idx_to_mov(immut_board, piece_idx, legal_moves[mov_idx], mov);
 
-                        MinimaxEvaluation minimax_eval = get_minimax_eval(sim_board, white_mov_flg, !white_mov_flg, depth, 1, model, best_eval, cuda_flt_board_buf);
+                        MinimaxEvaluation minimax_eval = get_minimax_eval(sim_board, white_mov_flg, !white_mov_flg, depth, 1, best_eval);
 
                         if (print_flg)
                         {
@@ -339,39 +332,6 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
     bool white_mov_flg = true;
 
     // Go ahead and make opening moves since we do not train the model on openings.
-    // {
-    //     change_board_w_mov(board, "d4", white_mov_flg);
-    //     white_mov_flg = !white_mov_flg;
-
-    //     change_board_w_mov(board, "Nf6", white_mov_flg);
-    //     white_mov_flg = !white_mov_flg;
-
-    //     change_board_w_mov(board, "c4", white_mov_flg);
-    //     white_mov_flg = !white_mov_flg;
-
-    //     change_board_w_mov(board, "e6", white_mov_flg);
-    //     white_mov_flg = !white_mov_flg;
-
-    //     change_board_w_mov(board, "Nc3", white_mov_flg);
-    //     white_mov_flg = !white_mov_flg;
-
-    //     change_board_w_mov(board, "Bb4", white_mov_flg);
-    //     white_mov_flg = !white_mov_flg;
-
-    //     change_board_w_mov(board, "Qc2", white_mov_flg);
-    //     white_mov_flg = !white_mov_flg;
-
-    //     change_board_w_mov(board, "O-O", white_mov_flg);
-    //     white_mov_flg = !white_mov_flg;
-
-    //     change_board_w_mov(board, "a3", white_mov_flg);
-    //     white_mov_flg = !white_mov_flg;
-
-    //     change_board_w_mov(board, "Bxc3+", white_mov_flg);
-    //     white_mov_flg = !white_mov_flg;
-    // }
-
-    // Go ahead and make opening moves since we do not train the model on openings.
     {
         change_board_w_mov(board, "d4", white_mov_flg);
         white_mov_flg = !white_mov_flg;
@@ -382,27 +342,60 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
         change_board_w_mov(board, "c4", white_mov_flg);
         white_mov_flg = !white_mov_flg;
 
-        change_board_w_mov(board, "c5", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-
-        change_board_w_mov(board, "d5", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-
-        change_board_w_mov(board, "d6", white_mov_flg);
+        change_board_w_mov(board, "e6", white_mov_flg);
         white_mov_flg = !white_mov_flg;
 
         change_board_w_mov(board, "Nc3", white_mov_flg);
         white_mov_flg = !white_mov_flg;
 
-        change_board_w_mov(board, "g6", white_mov_flg);
+        change_board_w_mov(board, "Bb4", white_mov_flg);
         white_mov_flg = !white_mov_flg;
 
-        change_board_w_mov(board, "e4", white_mov_flg);
+        change_board_w_mov(board, "Qc2", white_mov_flg);
         white_mov_flg = !white_mov_flg;
 
-        change_board_w_mov(board, "Bg7", white_mov_flg);
+        change_board_w_mov(board, "O-O", white_mov_flg);
+        white_mov_flg = !white_mov_flg;
+
+        change_board_w_mov(board, "a3", white_mov_flg);
+        white_mov_flg = !white_mov_flg;
+
+        change_board_w_mov(board, "Bxc3+", white_mov_flg);
         white_mov_flg = !white_mov_flg;
     }
+
+    // Go ahead and make opening moves since we do not train the model on openings.
+    // {
+    //     change_board_w_mov(board, "d4", white_mov_flg);
+    //     white_mov_flg = !white_mov_flg;
+
+    //     change_board_w_mov(board, "Nf6", white_mov_flg);
+    //     white_mov_flg = !white_mov_flg;
+
+    //     change_board_w_mov(board, "c4", white_mov_flg);
+    //     white_mov_flg = !white_mov_flg;
+
+    //     change_board_w_mov(board, "c5", white_mov_flg);
+    //     white_mov_flg = !white_mov_flg;
+
+    //     change_board_w_mov(board, "d5", white_mov_flg);
+    //     white_mov_flg = !white_mov_flg;
+
+    //     change_board_w_mov(board, "d6", white_mov_flg);
+    //     white_mov_flg = !white_mov_flg;
+
+    //     change_board_w_mov(board, "Nc3", white_mov_flg);
+    //     white_mov_flg = !white_mov_flg;
+
+    //     change_board_w_mov(board, "g6", white_mov_flg);
+    //     white_mov_flg = !white_mov_flg;
+
+    //     change_board_w_mov(board, "e4", white_mov_flg);
+    //     white_mov_flg = !white_mov_flg;
+
+    //     change_board_w_mov(board, "Bg7", white_mov_flg);
+    //     white_mov_flg = !white_mov_flg;
+    // }
 
     print_board(board);
 
@@ -506,7 +499,7 @@ int main(int argc, char **argv)
 
     train_chess("TEST");
 
-    //play_chess("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn", true, 5, true);
+    //play_chess("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn", true, 3, true);
 
     return 0;
 }

@@ -10,6 +10,67 @@ int CHESS_START_BOARD[CHESS_BOARD_LEN] = {
     ChessPiece::BlackPawn, ChessPiece::BlackPawn, ChessPiece::BlackPawn, ChessPiece::BlackPawn, ChessPiece::BlackPawn, ChessPiece::BlackPawn, ChessPiece::BlackPawn, ChessPiece::BlackPawn,
     ChessPiece::BlackRook, ChessPiece::BlackKnight, ChessPiece::BlackBishop, ChessPiece::BlackQueen, ChessPiece::BlackKing, ChessPiece::BlackBishop, ChessPiece::BlackKnight, ChessPiece::BlackRook};
 
+// // ChessDropoutLayer functions:
+
+// ChessDropoutLayer::ChessDropoutLayer(std::vector<int> n_shape)
+//     : Layer(n_shape)
+// {
+//     this->dropout_mask = new Tensor(Device::Cuda, n_shape);
+// }
+
+// ChessDropoutLayer::ChessDropoutLayer(FILE *file_ptr)
+//     : Layer(file_ptr)
+// {
+//     this->dropout_mask = new Tensor(Device::Cuda, this->n->get_shape());
+// }
+
+// ChessDropoutLayer::~ChessDropoutLayer()
+// {
+//     delete this->dropout_mask;
+// }
+
+// LayerType ChessDropoutLayer::get_type()
+// {
+//     return LayerType::Dropout;
+// }
+
+// void ChessDropoutLayer::evaluate(Tensor *nxt_n, bool train_flg)
+// {
+//     Layer::evaluate(nxt_n, train_flg);
+
+//     int *board;
+
+//     {
+//         int threads_per_block = CUDA_THREADS_PER_BLOCK;
+//         int num_blocks = (this->dropout_mask->get_cnt() / threads_per_block) + 1;
+//         k_set_chess_dropout_mask<<<num_blocks, threads_per_block>>>(this->dropout_mask->get_arr(), this->dropout_mask->get_cnt());
+//     }
+
+//     {
+//         int threads_per_block = CUDA_THREADS_PER_BLOCK;
+//         int num_blocks((nxt_n->get_cnt() / threads_per_block) + 1);
+//         k_chess_dropout<<<num_blocks, threads_per_block>>>(this->n->get_arr(), this->dropout_mask->get_arr(), nxt_n->get_arr(),
+//                                                      nxt_n->get_cnt());
+//     }
+// }
+
+// Tensor *ChessDropoutLayer::derive(Tensor *dc)
+// {
+//     {
+//         int threads_per_block = CUDA_THREADS_PER_BLOCK;
+//         int num_blocks = (this->n->get_cnt() / threads_per_block) + 1;
+//         k_derive_chess_dropout<<<num_blocks, threads_per_block>>>(dc->get_arr(), this->dropout_mask->get_arr(),
+//                                                             this->n->get_cnt());
+//     }
+
+//     return dc;
+// }
+
+// void ChessDropoutLayer::save(FILE *file_ptr)
+// {
+//     Layer::save(file_ptr);
+// }
+
 int *init_board()
 {
     int *board = (int *)malloc(sizeof(int) * (CHESS_BOARD_LEN));
@@ -2528,80 +2589,100 @@ void one_hot_encode_board(int *board, int *out)
         switch ((ChessPiece)board[i])
         {
         case ChessPiece::WhitePawn:
-            out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 0] = 1;
+            out[i] = 1;
             break;
         case ChessPiece::WhiteKnight:
-            out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 1] = 1;
+            out[i + CHESS_BOARD_LEN] = 1;
             break;
         case ChessPiece::WhiteBishop:
-            out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 2] = 1;
+            out[i + (CHESS_BOARD_LEN * 2)] = 1;
             break;
         case ChessPiece::WhiteRook:
-            out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 3] = 1;
+            out[i + (CHESS_BOARD_LEN * 3)] = 1;
             break;
         case ChessPiece::WhiteQueen:
-            out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 4] = 1;
+            out[i + (CHESS_BOARD_LEN * 4)] = 1;
             break;
         case ChessPiece::WhiteKing:
-            out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 5] = 1;
+            out[i + (CHESS_BOARD_LEN * 5)] = 1;
             break;
         case ChessPiece::BlackPawn:
-            out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 6] = 1;
+            out[i + (CHESS_BOARD_LEN * 6)] = 1;
             break;
         case ChessPiece::BlackKnight:
-            out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 7] = 1;
+            out[i + (CHESS_BOARD_LEN * 7)] = 1;
             break;
         case ChessPiece::BlackBishop:
-            out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 8] = 1;
+            out[i + (CHESS_BOARD_LEN * 8)] = 1;
             break;
         case ChessPiece::BlackRook:
-            out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 9] = 1;
+            out[i + (CHESS_BOARD_LEN * 9)] = 1;
             break;
         case ChessPiece::BlackQueen:
-            out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 10] = 1;
+            out[i + (CHESS_BOARD_LEN * 10)] = 1;
             break;
         case ChessPiece::BlackKing:
-            out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 11] = 1;
+            out[i + (CHESS_BOARD_LEN * 11)] = 1;
             break;
         default: // ChessPiece::Empty space.
-            out[i * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 12] = 1;
+            out[i + (CHESS_BOARD_LEN * 12)] = 1;
             break;
         }
     }
 }
 
-// float eval_board(int *board, Model *model, float *cuda_flt_board_buf)
-// {
-//     float flt_board[CHESS_BOARD_LEN];
-//     int influence_board[CHESS_BOARD_LEN];
-//     float flt_influence_board[CHESS_BOARD_LEN];
-//     float flt_board_buf[CHESS_BOARD_LEN * 2];
+void one_hot_encode_board(int *board, float *out)
+{
+    memset(out, 0, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
 
-//     board_to_float(board, flt_board, true);
+    for (int i = 0; i < CHESS_BOARD_LEN; i++)
+    {
+        switch ((ChessPiece)board[i])
+        {
+        case ChessPiece::WhitePawn:
+            out[i] = 1.0f;
+            break;
+        case ChessPiece::WhiteKnight:
+            out[i + CHESS_BOARD_LEN] = 1.0f;
+            break;
+        case ChessPiece::WhiteBishop:
+            out[i + (CHESS_BOARD_LEN * 2)] = 1.0f;
+            break;
+        case ChessPiece::WhiteRook:
+            out[i + (CHESS_BOARD_LEN * 3)] = 1.0f;
+            break;
+        case ChessPiece::WhiteQueen:
+            out[i + (CHESS_BOARD_LEN * 4)] = 1.0f;
+            break;
+        case ChessPiece::WhiteKing:
+            out[i + (CHESS_BOARD_LEN * 5)] = 1.0f;
+            break;
+        case ChessPiece::BlackPawn:
+            out[i + (CHESS_BOARD_LEN * 6)] = 1.0f;
+            break;
+        case ChessPiece::BlackKnight:
+            out[i + (CHESS_BOARD_LEN * 7)] = 1.0f;
+            break;
+        case ChessPiece::BlackBishop:
+            out[i + (CHESS_BOARD_LEN * 8)] = 1.0f;
+            break;
+        case ChessPiece::BlackRook:
+            out[i + (CHESS_BOARD_LEN * 9)] = 1.0f;
+            break;
+        case ChessPiece::BlackQueen:
+            out[i + (CHESS_BOARD_LEN * 10)] = 1.0f;
+            break;
+        case ChessPiece::BlackKing:
+            out[i + (CHESS_BOARD_LEN * 11)] = 1.0f;
+            break;
+        default: // ChessPiece::Empty space.
+            out[i + (CHESS_BOARD_LEN * 12)] = 1.0f;
+            break;
+        }
+    }
+}
 
-//     get_influence_board(board, influence_board);
-//     influence_board_to_float(influence_board, flt_influence_board, true);
-
-//     memcpy(flt_board_buf, flt_board, sizeof(float) * CHESS_BOARD_LEN);
-//     memcpy(&flt_board_buf[CHESS_BOARD_LEN], flt_influence_board, sizeof(float) * CHESS_BOARD_LEN);
-
-//     cudaMemcpy(cuda_flt_board_buf, flt_board, sizeof(float) * CHESS_BOARD_LEN, cudaMemcpyHostToDevice);
-//     cudaMemcpy(&cuda_flt_board_buf[CHESS_BOARD_LEN], flt_influence_board, sizeof(float) * CHESS_BOARD_LEN, cudaMemcpyHostToDevice);
-
-//     Tensor *x = new Tensor(Device::Cuda, 2, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT);
-//     x->set_arr(flt_board_buf);
-
-//     Tensor *pred = model->predict(x);
-
-//     float eval = pred->get_val(0);
-
-//     delete pred;
-//     delete x;
-
-//     return eval;
-// }
-
-float eval_board(int *board, Model *model, float *cuda_flt_board_buf)
+float eval_board(int *board)
 {
     float eval = 0.0f;
     float flt_board[CHESS_BOARD_LEN];
@@ -2615,7 +2696,7 @@ float eval_board(int *board, Model *model, float *cuda_flt_board_buf)
     return eval;
 }
 
-MinimaxEvaluation get_minimax_eval(int *board, bool white_flg, bool cur_white_flg, int max_depth, int cur_depth, Model *model, float cur_best_eval, float *cuda_flt_board_buf)
+MinimaxEvaluation get_minimax_eval(int *board, bool white_flg, bool cur_white_flg, int max_depth, int cur_depth, float cur_best_eval)
 {
     MinimaxEvaluation minimax_eval;
 
@@ -2637,7 +2718,7 @@ MinimaxEvaluation get_minimax_eval(int *board, bool white_flg, bool cur_white_fl
 
     if (cur_depth == max_depth)
     {
-        float eval = eval_board(board, model, cuda_flt_board_buf);
+        float eval = eval_board(board);
         minimax_eval.eval = eval;
 
         minimax_eval.prune_flg = false;
@@ -2668,7 +2749,7 @@ MinimaxEvaluation get_minimax_eval(int *board, bool white_flg, bool cur_white_fl
 
                     simulate_board_change_w_srcdst_idx(board, piece_idx, legal_moves[mov_idx], sim_board);
 
-                    MinimaxEvaluation w_minimax_eval = get_minimax_eval(sim_board, white_flg, !cur_white_flg, max_depth, cur_depth + 1, model, cur_best_eval, cuda_flt_board_buf);
+                    MinimaxEvaluation w_minimax_eval = get_minimax_eval(sim_board, white_flg, !cur_white_flg, max_depth, cur_depth + 1, cur_best_eval);
 
                     if (cur_depth == 1)
                     {
@@ -2705,7 +2786,7 @@ MinimaxEvaluation get_minimax_eval(int *board, bool white_flg, bool cur_white_fl
 
                     simulate_board_change_w_srcdst_idx(board, piece_idx, legal_moves[mov_idx], sim_board);
 
-                    MinimaxEvaluation b_minimax_eval = get_minimax_eval(sim_board, white_flg, !cur_white_flg, max_depth, cur_depth + 1, model, cur_best_eval, cuda_flt_board_buf);
+                    MinimaxEvaluation b_minimax_eval = get_minimax_eval(sim_board, white_flg, !cur_white_flg, max_depth, cur_depth + 1, cur_best_eval);
 
                     if (cur_depth == 1)
                     {
