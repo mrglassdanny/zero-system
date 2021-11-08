@@ -96,6 +96,10 @@ void get_piece_influence(int *board, int piece_idx, int *out);
 
 void get_influence_board(int *board, int *out);
 
+void get_src_legality_mask(int *board, bool white_mov_flg, float *out);
+
+void get_dst_legality_mask(int *board, int piece_idx, float *out);
+
 ChessMove get_random_move(int *board, bool white_mov_flg, int *cmp_board);
 
 void simulate_board_change_w_srcdst_idx(int *board, int src_idx, int dst_idx, int *out);
@@ -122,4 +126,4 @@ void one_hot_encode_board(int *board, float *out);
 
 float eval_board(int *board);
 
-MinimaxEvaluation get_minimax_eval(int *board, bool white_flg, bool cur_white_flg, int max_depth, int cur_depth, float cur_best_eval);
+MinimaxEvaluation get_minimax_eval(int *board, bool white_mov_flg, bool cur_white_mov_flg, int max_depth, int cur_depth, float cur_best_eval);

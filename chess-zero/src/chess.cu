@@ -1851,8 +1851,6 @@ void get_influence_board(int *board, int *out)
 
     memset(out, 0, sizeof(int) * CHESS_BOARD_LEN);
 
-    int piece_cnt = 0;
-
     for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
     {
         ChessPiece piece = (ChessPiece)board[piece_idx];
@@ -1879,6 +1877,62 @@ void get_influence_board(int *board, int *out)
                     out[mov_dst_idx] -= 1;
                 }
             }
+        }
+    }
+}
+
+void get_src_legality_mask(int *board, bool white_mov_flg, float *out)
+{
+    memset(out, 0, sizeof(float) * CHESS_BOARD_LEN);
+
+    int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
+
+    if (white_mov_flg)
+    {
+        for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
+        {
+            if (is_piece_white((ChessPiece)board[piece_idx]))
+            {
+                get_legal_moves(board, piece_idx, legal_moves, true);
+                if (legal_moves[0] != CHESS_INVALID_VALUE)
+                {
+                    out[piece_idx] = 1.0f;
+                }
+            }
+        }
+    }
+    else
+    {
+        for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
+        {
+            if (is_piece_black((ChessPiece)board[piece_idx]))
+            {
+                get_legal_moves(board, piece_idx, legal_moves, true);
+                if (legal_moves[0] != CHESS_INVALID_VALUE)
+                {
+                    out[piece_idx] = 1.0f;
+                }
+            }
+        }
+    }
+}
+
+void get_dst_legality_mask(int *board, int piece_idx, int *out)
+{
+    memset(out, 0, sizeof(float) * CHESS_BOARD_LEN);
+
+    int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
+
+    get_legal_moves(board, piece_idx, legal_moves, true);
+    for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
+    {
+        if (legal_moves[mov_idx] == CHESS_INVALID_VALUE)
+        {
+            break;
+        }
+        else
+        {
+            board[legal_moves[mov_idx]] = 1.0f;
         }
     }
 }
@@ -2633,7 +2687,7 @@ void one_hot_encode_board(int *board, int *out)
 
 void one_hot_encode_board(int *board, float *out)
 {
-    memset(out, 0, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
+    memset(out, 0, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
 
     for (int i = 0; i < CHESS_BOARD_LEN; i++)
     {
@@ -2696,13 +2750,13 @@ float eval_board(int *board)
     return eval;
 }
 
-MinimaxEvaluation get_minimax_eval(int *board, bool white_flg, bool cur_white_flg, int max_depth, int cur_depth, float cur_best_eval)
+MinimaxEvaluation get_minimax_eval(int *board, bool white_mov_flg, bool cur_white_mov_flg, int max_depth, int cur_depth, float cur_best_eval)
 {
     MinimaxEvaluation minimax_eval;
 
-    if (is_in_checkmate(board, !white_flg))
+    if (is_in_checkmate(board, !white_mov_flg))
     {
-        if (white_flg)
+        if (white_mov_flg)
         {
             minimax_eval.eval = FLT_MAX;
             minimax_eval.prune_flg = false;
@@ -2732,7 +2786,7 @@ MinimaxEvaluation get_minimax_eval(int *board, bool white_flg, bool cur_white_fl
     float min = FLT_MAX;
     float max = -FLT_MAX;
 
-    if (cur_white_flg)
+    if (cur_white_mov_flg)
     {
         for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
         {
@@ -2749,7 +2803,7 @@ MinimaxEvaluation get_minimax_eval(int *board, bool white_flg, bool cur_white_fl
 
                     simulate_board_change_w_srcdst_idx(board, piece_idx, legal_moves[mov_idx], sim_board);
 
-                    MinimaxEvaluation w_minimax_eval = get_minimax_eval(sim_board, white_flg, !cur_white_flg, max_depth, cur_depth + 1, cur_best_eval);
+                    MinimaxEvaluation w_minimax_eval = get_minimax_eval(sim_board, white_mov_flg, !cur_white_mov_flg, max_depth, cur_depth + 1, cur_best_eval);
 
                     if (cur_depth == 1)
                     {
@@ -2786,7 +2840,7 @@ MinimaxEvaluation get_minimax_eval(int *board, bool white_flg, bool cur_white_fl
 
                     simulate_board_change_w_srcdst_idx(board, piece_idx, legal_moves[mov_idx], sim_board);
 
-                    MinimaxEvaluation b_minimax_eval = get_minimax_eval(sim_board, white_flg, !cur_white_flg, max_depth, cur_depth + 1, cur_best_eval);
+                    MinimaxEvaluation b_minimax_eval = get_minimax_eval(sim_board, white_mov_flg, !cur_white_mov_flg, max_depth, cur_depth + 1, cur_best_eval);
 
                     if (cur_depth == 1)
                     {
@@ -2807,7 +2861,7 @@ MinimaxEvaluation get_minimax_eval(int *board, bool white_flg, bool cur_white_fl
         }
     }
 
-    if (cur_white_flg)
+    if (cur_white_mov_flg)
     {
         minimax_eval.eval = max;
     }
