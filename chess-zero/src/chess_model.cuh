@@ -18,6 +18,6 @@ public:
     ChessModel(CostFunction cost_fn, float learning_rate);
     ChessModel(const char *path);
 
-    Tensor *forward(Tensor *x, bool train_flg);
-    void backward(Tensor *pred, Tensor *y);
+    virtual Tensor *forward(Tensor *x, bool train_flg);
+    virtual void backward(Tensor *pred, Tensor *y);
 };

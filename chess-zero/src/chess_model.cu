@@ -1,4 +1,4 @@
-#include "model.cuh"
+#include "chess_model.cuh"
 
 using namespace zero::core;
 using namespace zero::nn;

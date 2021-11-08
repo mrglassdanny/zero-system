@@ -4,10 +4,7 @@
 
 #include "chess.cuh"
 #include "pgn.cuh"
-#include "model.cuh"
-
-using namespace zero::core;
-using namespace zero::nn;
+#include "chess_model.cuh"
 
 struct MoveSearchResult
 {
