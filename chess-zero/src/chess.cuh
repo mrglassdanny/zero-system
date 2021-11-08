@@ -8,7 +8,6 @@
 #include <vector>
 
 #include <zero_system/core/tensor.cuh>
-#include <zero_system/nn/model.cuh>
 
 #define CHESS_BOARD_ROW_CNT 8
 #define CHESS_BOARD_COL_CNT 8
@@ -25,23 +24,6 @@
 #define CHESS_ONE_HOT_ENCODED_BOARD_LEN (CHESS_BOARD_LEN * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT)
 
 using namespace zero::core;
-using namespace zero::nn;
-
-// class ChessDropoutLayer : Layer
-// {
-// private:
-//     Tensor *dropout_mask;
-
-// public:
-//     ChessDropoutLayer(std::vector<int> n_shape);
-//     ChessDropoutLayer(FILE *file_ptr);
-//     ~ChessDropoutLayer();
-
-//     virtual LayerType get_type();
-//     virtual void evaluate(Tensor *nxt_n, bool train_flg);
-//     virtual Tensor *derive(Tensor *dc);
-//     virtual void save(FILE *file_ptr);
-// };
 
 typedef enum ChessPiece
 {
@@ -123,6 +105,10 @@ void influence_board_to_float(int *influence_board, float *out, bool scale_down_
 void one_hot_encode_board(int *board, int *out);
 
 void one_hot_encode_board(int *board, float *out);
+
+void reverse_one_hot_encode_board(int *one_hot_board, int *out);
+
+void reverse_one_hot_encode_board(float *one_hot_board, int *out);
 
 float eval_board(int *board);
 

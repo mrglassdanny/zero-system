@@ -2,10 +2,9 @@
 #include <iostream>
 #include <windows.h>
 
-#include <zero_system/nn/model.cuh>
-
 #include "chess.cuh"
 #include "pgn.cuh"
+#include "model.cuh"
 
 using namespace zero::core;
 using namespace zero::nn;
@@ -71,11 +70,15 @@ void dump_pgn(const char *pgn_name)
                     // influence_board_to_float(influence_board, flt_board, true);
                     // fwrite(flt_board, sizeof(float) * CHESS_BOARD_LEN, 1, boards_file);
 
-                    one_hot_encode_board(board, flt_one_hot_board);
-                    fwrite(flt_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN, 1, boards_file);
+                    // TODO: only looking from white's point of view for now!
+                    if (white_mov_flg)
+                    {
+                        one_hot_encode_board(board, flt_one_hot_board);
+                        fwrite(flt_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN, 1, boards_file);
 
-                    lbl = (float)chess_move.src_idx;
-                    fwrite(&lbl, sizeof(float), 1, labels_file);
+                        lbl = (float)chess_move.src_idx;
+                        fwrite(&lbl, sizeof(float), 1, labels_file);
+                    }
                 }
                 else
                 {
@@ -127,7 +130,7 @@ void train_chess(const char *pgn_name)
 {
     OnDiskSupervisor *sup = get_chess_supervisor(pgn_name);
 
-    Model *model = new Model(CostFunction::CrossEntropy, 0.1f);
+    ChessModel *model = new ChessModel(CostFunction::CrossEntropy, 0.1f);
 
     model->add_layer(new ConvolutionalLayer(sup->get_x_shape(), 64, 3, 3, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
@@ -157,7 +160,7 @@ void test_chess(const char *pgn_name)
 {
     OnDiskSupervisor *sup = get_chess_supervisor(pgn_name);
 
-    Model *model = new Model("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn");
+    ChessModel *model = new ChessModel("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn");
 
     model->test(sup->create_test_batch()).print();
 
@@ -166,7 +169,36 @@ void test_chess(const char *pgn_name)
     delete sup;
 }
 
-MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_flg, int depth, Model *model)
+void gradient_check_chess(const char *pgn_name)
+{
+    OnDiskSupervisor *sup = get_chess_supervisor(pgn_name);
+
+    ChessModel *model = new ChessModel(CostFunction::CrossEntropy, 0.1f);
+
+    model->add_layer(new ConvolutionalLayer(sup->get_x_shape(), 4, 3, 3, InitializationFunction::Xavier));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
+
+    model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 4, 3, 3, InitializationFunction::Xavier));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
+
+    model->add_layer(new LinearLayer(model->get_output_shape(), 64, InitializationFunction::Xavier));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
+
+    model->add_layer(new LinearLayer(model->get_output_shape(), Tensor::get_cnt(sup->get_y_shape()), InitializationFunction::Xavier));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
+
+    Batch *batch = sup->create_train_batch(1);
+
+    model->gradient_check(batch->get_x(0), batch->get_y(0), false);
+
+    delete batch;
+
+    delete model;
+
+    delete sup;
+}
+
+MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_flg, int depth, ChessModel *model)
 {
     int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
     char mov[CHESS_MAX_MOVE_LEN];
@@ -339,7 +371,7 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
 
 void play_chess(const char *model_path, bool white_flg, int depth, bool print_flg)
 {
-    Model *model = new Model(model_path);
+    ChessModel *model = new ChessModel(model_path);
 
     int *board = init_board();
     int cpy_board[CHESS_BOARD_LEN];
@@ -511,11 +543,13 @@ int main(int argc, char **argv)
 {
     srand(time(NULL));
 
-    dump_pgn("Capablanca");
+    //dump_pgn("TEST");
 
-    train_chess("Capablanca");
+    //train_chess("TEST");
 
-    //test_chess("Capablanca");
+    //test_chess("TEST");
+
+    gradient_check_chess("TEST");
 
     //play_chess("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn", true, 3, true);
 

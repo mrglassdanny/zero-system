@@ -10,67 +10,6 @@ int CHESS_START_BOARD[CHESS_BOARD_LEN] = {
     ChessPiece::BlackPawn, ChessPiece::BlackPawn, ChessPiece::BlackPawn, ChessPiece::BlackPawn, ChessPiece::BlackPawn, ChessPiece::BlackPawn, ChessPiece::BlackPawn, ChessPiece::BlackPawn,
     ChessPiece::BlackRook, ChessPiece::BlackKnight, ChessPiece::BlackBishop, ChessPiece::BlackQueen, ChessPiece::BlackKing, ChessPiece::BlackBishop, ChessPiece::BlackKnight, ChessPiece::BlackRook};
 
-// // ChessDropoutLayer functions:
-
-// ChessDropoutLayer::ChessDropoutLayer(std::vector<int> n_shape)
-//     : Layer(n_shape)
-// {
-//     this->dropout_mask = new Tensor(Device::Cuda, n_shape);
-// }
-
-// ChessDropoutLayer::ChessDropoutLayer(FILE *file_ptr)
-//     : Layer(file_ptr)
-// {
-//     this->dropout_mask = new Tensor(Device::Cuda, this->n->get_shape());
-// }
-
-// ChessDropoutLayer::~ChessDropoutLayer()
-// {
-//     delete this->dropout_mask;
-// }
-
-// LayerType ChessDropoutLayer::get_type()
-// {
-//     return LayerType::Dropout;
-// }
-
-// void ChessDropoutLayer::evaluate(Tensor *nxt_n, bool train_flg)
-// {
-//     Layer::evaluate(nxt_n, train_flg);
-
-//     int *board;
-
-//     {
-//         int threads_per_block = CUDA_THREADS_PER_BLOCK;
-//         int num_blocks = (this->dropout_mask->get_cnt() / threads_per_block) + 1;
-//         k_set_chess_dropout_mask<<<num_blocks, threads_per_block>>>(this->dropout_mask->get_arr(), this->dropout_mask->get_cnt());
-//     }
-
-//     {
-//         int threads_per_block = CUDA_THREADS_PER_BLOCK;
-//         int num_blocks((nxt_n->get_cnt() / threads_per_block) + 1);
-//         k_chess_dropout<<<num_blocks, threads_per_block>>>(this->n->get_arr(), this->dropout_mask->get_arr(), nxt_n->get_arr(),
-//                                                      nxt_n->get_cnt());
-//     }
-// }
-
-// Tensor *ChessDropoutLayer::derive(Tensor *dc)
-// {
-//     {
-//         int threads_per_block = CUDA_THREADS_PER_BLOCK;
-//         int num_blocks = (this->n->get_cnt() / threads_per_block) + 1;
-//         k_derive_chess_dropout<<<num_blocks, threads_per_block>>>(dc->get_arr(), this->dropout_mask->get_arr(),
-//                                                             this->n->get_cnt());
-//     }
-
-//     return dc;
-// }
-
-// void ChessDropoutLayer::save(FILE *file_ptr)
-// {
-//     Layer::save(file_ptr);
-// }
-
 int *init_board()
 {
     int *board = (int *)malloc(sizeof(int) * (CHESS_BOARD_LEN));
@@ -2678,7 +2617,7 @@ void one_hot_encode_board(int *board, int *out)
         case ChessPiece::BlackKing:
             out[i + (CHESS_BOARD_LEN * 11)] = 1;
             break;
-        default: // ChessPiece::Empty space.
+        default: // ChessPiece::Empty:
             out[i + (CHESS_BOARD_LEN * 12)] = 1;
             break;
         }
@@ -2729,9 +2668,123 @@ void one_hot_encode_board(int *board, float *out)
         case ChessPiece::BlackKing:
             out[i + (CHESS_BOARD_LEN * 11)] = 1.0f;
             break;
-        default: // ChessPiece::Empty space.
+        default: // ChessPiece::Empty:
             out[i + (CHESS_BOARD_LEN * 12)] = 1.0f;
             break;
+        }
+    }
+}
+
+void reverse_one_hot_encode_board(int *one_hot_board, int *out)
+{
+    memset(out, 0, sizeof(int) * CHESS_BOARD_LEN);
+
+    for (int i = 0; i < CHESS_ONE_HOT_ENCODE_COMBINATION_CNT; i++)
+    {
+        for (int j = 0; j < CHESS_BOARD_LEN; j++)
+        {
+            if (one_hot_board[i * CHESS_BOARD_LEN + j] == 1)
+            {
+                switch (i)
+                {
+                case 0:
+                    out[j] = (int)ChessPiece::WhitePawn;
+                    break;
+                case 1:
+                    out[j] = (int)ChessPiece::WhiteKnight;
+                    break;
+                case 2:
+                    out[j] = (int)ChessPiece::WhiteBishop;
+                    break;
+                case 3:
+                    out[j] = (int)ChessPiece::WhiteRook;
+                    break;
+                case 4:
+                    out[j] = (int)ChessPiece::WhiteQueen;
+                    break;
+                case 5:
+                    out[j] = (int)ChessPiece::WhiteKing;
+                    break;
+                case 6:
+                    out[j] = (int)ChessPiece::BlackPawn;
+                    break;
+                case 7:
+                    out[j] = (int)ChessPiece::BlackKnight;
+                    break;
+                case 8:
+                    out[j] = (int)ChessPiece::BlackBishop;
+                    break;
+                case 9:
+                    out[j] = (int)ChessPiece::BlackRook;
+                    break;
+                case 10:
+                    out[j] = (int)ChessPiece::BlackQueen;
+                    break;
+                case 11:
+                    out[j] = (int)ChessPiece::BlackKing;
+                    break;
+                case 12:
+                    out[j] = (int)ChessPiece::Empty;
+                    break;
+                }
+            }
+        }
+    }
+}
+
+void reverse_one_hot_encode_board(float *one_hot_board, int *out)
+{
+    memset(out, 0, sizeof(int) * CHESS_BOARD_LEN);
+
+    for (int i = 0; i < CHESS_ONE_HOT_ENCODE_COMBINATION_CNT; i++)
+    {
+        for (int j = 0; j < CHESS_BOARD_LEN; j++)
+        {
+            if (one_hot_board[i * CHESS_BOARD_LEN + j] == 1.0f)
+            {
+                switch (i)
+                {
+                case 0:
+                    out[j] = (int)ChessPiece::WhitePawn;
+                    break;
+                case 1:
+                    out[j] = (int)ChessPiece::WhiteKnight;
+                    break;
+                case 2:
+                    out[j] = (int)ChessPiece::WhiteBishop;
+                    break;
+                case 3:
+                    out[j] = (int)ChessPiece::WhiteRook;
+                    break;
+                case 4:
+                    out[j] = (int)ChessPiece::WhiteQueen;
+                    break;
+                case 5:
+                    out[j] = (int)ChessPiece::WhiteKing;
+                    break;
+                case 6:
+                    out[j] = (int)ChessPiece::BlackPawn;
+                    break;
+                case 7:
+                    out[j] = (int)ChessPiece::BlackKnight;
+                    break;
+                case 8:
+                    out[j] = (int)ChessPiece::BlackBishop;
+                    break;
+                case 9:
+                    out[j] = (int)ChessPiece::BlackRook;
+                    break;
+                case 10:
+                    out[j] = (int)ChessPiece::BlackQueen;
+                    break;
+                case 11:
+                    out[j] = (int)ChessPiece::BlackKing;
+                    break;
+                case 12:
+                    out[j] = (int)ChessPiece::Empty;
+                    break;
+                }
+            }
         }
     }
 }
