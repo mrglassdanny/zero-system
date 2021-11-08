@@ -13,8 +13,8 @@ using namespace zero::nn;
 struct MoveSearchResult
 {
     char mov[CHESS_MAX_MOVE_LEN];
-    float depth_1_eval;
-    float best_eval;
+    float model_eval;
+    float minimax_eval;
 };
 
 void dump_pgn(const char *pgn_name)
@@ -179,29 +179,26 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
 
     float flt_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
 
-    float *cuda_flt_board_buf;
-    cudaMalloc(&cuda_flt_board_buf, sizeof(float) * CHESS_BOARD_LEN * 2);
-
-    float best_eval;
+    float best_minimax_eval;
     if (white_mov_flg)
     {
-        best_eval = -FLT_MAX;
+        best_minimax_eval = -FLT_MAX;
     }
     else
     {
-        best_eval = FLT_MAX;
+        best_minimax_eval = FLT_MAX;
     }
 
     char best_mov[CHESS_MAX_MOVE_LEN];
 
-    float depth_1_best_eval;
+    float best_model_eval;
     if (white_mov_flg)
     {
-        depth_1_best_eval = -FLT_MAX;
+        best_model_eval = -FLT_MAX;
     }
     else
     {
-        depth_1_best_eval = FLT_MAX;
+        best_model_eval = FLT_MAX;
     }
 
     if (print_flg)
@@ -256,26 +253,26 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
                         memset(mov, 0, CHESS_MAX_MOVE_LEN);
                         translate_srcdst_idx_to_mov(immut_board, piece_idx, legal_moves[mov_idx], mov);
 
-                        MinimaxEvaluation minimax_eval = get_minimax_eval(sim_board, white_mov_flg, !white_mov_flg, depth, 1, best_eval);
+                        MinimaxEvaluation minimax_eval = get_minimax_eval(sim_board, white_mov_flg, !white_mov_flg, depth, 1, best_minimax_eval);
 
                         if (print_flg)
                         {
                             printf("%s\t%f\t%f\t%d\n", mov, depth_1_eval, minimax_eval.eval, minimax_eval.prune_flg);
                         }
 
-                        if (minimax_eval.eval == best_eval)
+                        if (minimax_eval.eval == best_minimax_eval)
                         {
-                            if (depth_1_eval > depth_1_best_eval)
+                            if (depth_1_eval > best_model_eval)
                             {
-                                depth_1_best_eval = depth_1_eval;
+                                best_model_eval = depth_1_eval;
                                 memcpy(best_mov, mov, CHESS_MAX_MOVE_LEN);
                             }
                         }
 
-                        if (minimax_eval.eval > best_eval)
+                        if (minimax_eval.eval > best_minimax_eval)
                         {
-                            best_eval = minimax_eval.eval;
-                            depth_1_best_eval = depth_1_eval;
+                            best_minimax_eval = minimax_eval.eval;
+                            best_model_eval = depth_1_eval;
                             memcpy(best_mov, mov, CHESS_MAX_MOVE_LEN);
                         }
                     }
@@ -300,26 +297,26 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
                         memset(mov, 0, CHESS_MAX_MOVE_LEN);
                         translate_srcdst_idx_to_mov(immut_board, piece_idx, legal_moves[mov_idx], mov);
 
-                        MinimaxEvaluation minimax_eval = get_minimax_eval(sim_board, white_mov_flg, !white_mov_flg, depth, 1, best_eval);
+                        MinimaxEvaluation minimax_eval = get_minimax_eval(sim_board, white_mov_flg, !white_mov_flg, depth, 1, best_minimax_eval);
 
                         if (print_flg)
                         {
                             printf("%s\t%f\t%f\t%d\n", mov, depth_1_eval, minimax_eval.eval, minimax_eval.prune_flg);
                         }
 
-                        if (minimax_eval.eval == best_eval)
+                        if (minimax_eval.eval == best_minimax_eval)
                         {
-                            if (depth_1_eval < depth_1_best_eval)
+                            if (depth_1_eval < best_model_eval)
                             {
-                                depth_1_best_eval = depth_1_eval;
+                                best_model_eval = depth_1_eval;
                                 memcpy(best_mov, mov, CHESS_MAX_MOVE_LEN);
                             }
                         }
 
-                        if (minimax_eval.eval < best_eval)
+                        if (minimax_eval.eval < best_minimax_eval)
                         {
-                            best_eval = minimax_eval.eval;
-                            depth_1_best_eval = depth_1_eval;
+                            best_minimax_eval = minimax_eval.eval;
+                            best_model_eval = depth_1_eval;
                             memcpy(best_mov, mov, CHESS_MAX_MOVE_LEN);
                         }
                     }
@@ -333,12 +330,10 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
         printf("-------+---------------+---------------+------------\n");
     }
 
-    cudaFree(cuda_flt_board_buf);
-
     MoveSearchResult mov_res;
     memcpy(mov_res.mov, best_mov, CHESS_MAX_MOVE_LEN);
-    mov_res.depth_1_eval = depth_1_best_eval;
-    mov_res.best_eval = best_eval;
+    mov_res.model_eval = best_model_eval;
+    mov_res.minimax_eval = best_minimax_eval;
     return mov_res;
 }
 
@@ -442,7 +437,7 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
             {
                 copy_board(board, cpy_board);
                 mov_res = get_best_move(cpy_board, white_mov_flg, print_flg, depth, model);
-                printf("BEST MOVE: %s\t(%f\t%f)\n", mov_res.mov, mov_res.depth_1_eval, mov_res.best_eval);
+                printf("BEST MOVE: %s\t(%f\t%f)\n", mov_res.mov, mov_res.model_eval, mov_res.minimax_eval);
             }
 
             // Now accept user input.
@@ -485,7 +480,7 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
             {
                 copy_board(board, cpy_board);
                 mov_res = get_best_move(cpy_board, white_mov_flg, print_flg, depth, model);
-                printf("BEST MOVE: %s\t(%f\t%f)\n", mov_res.mov, mov_res.depth_1_eval, mov_res.best_eval);
+                printf("BEST MOVE: %s\t(%f\t%f)\n", mov_res.mov, mov_res.model_eval, mov_res.minimax_eval);
             }
 
             // Now accept user input.
