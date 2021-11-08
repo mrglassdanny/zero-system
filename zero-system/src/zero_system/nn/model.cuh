@@ -33,9 +33,9 @@ namespace zero
 
             void set_learning_rate(float learning_rate);
 
-            Tensor *forward(Tensor *x, bool train_flg);
+            virtual Tensor *forward(Tensor *x, bool train_flg);
             float cost(Tensor *pred, Tensor *y);
-            void backward(Tensor *pred, Tensor *y);
+            virtual void backward(Tensor *pred, Tensor *y);
             void step(int batch_size);
 
             void gradient_check(Tensor *x, Tensor *y, bool print_flg);
