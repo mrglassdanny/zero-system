@@ -37,9 +37,10 @@ void dump_pgn(const char *pgn_name)
     int *board = init_board();
     int influence_board[CHESS_BOARD_LEN];
     float flt_board[CHESS_BOARD_LEN];
-    float lbl;
 
     float flt_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
+
+    float lbl;
 
     // Skip openings!
     int start_mov_idx = 10;
@@ -50,7 +51,7 @@ void dump_pgn(const char *pgn_name)
     {
         PGNMoveList *pl = pgn->games[game_idx];
 
-        if (pl->white_won_flg || pl->black_won_flg)
+        //if (pl->white_won_flg || pl->black_won_flg)
         {
             white_mov_flg = true;
 
@@ -70,11 +71,11 @@ void dump_pgn(const char *pgn_name)
                     // influence_board_to_float(influence_board, flt_board, true);
                     // fwrite(flt_board, sizeof(float) * CHESS_BOARD_LEN, 1, boards_file);
 
-                    lbl = chess_move.src_idx;
-                    fwrite(&lbl, sizeof(float), 1, labels_file);
-
                     one_hot_encode_board(board, flt_one_hot_board);
                     fwrite(flt_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN, 1, boards_file);
+
+                    lbl = (float)chess_move.src_idx;
+                    fwrite(&lbl, sizeof(float), 1, labels_file);
                 }
                 else
                 {
@@ -117,7 +118,7 @@ OnDiskSupervisor *get_chess_supervisor(const char *pgn_name)
 
     std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
 
-    OnDiskSupervisor *sup = new OnDiskSupervisor(0.80f, 0.20f, board_name_buf, label_name_buf, x_shape, 64);
+    OnDiskSupervisor *sup = new OnDiskSupervisor(0.90f, 0.10f, board_name_buf, label_name_buf, x_shape, 64);
 
     return sup;
 }
@@ -152,6 +153,19 @@ void train_chess(const char *pgn_name)
     delete sup;
 }
 
+void test_chess(const char *pgn_name)
+{
+    OnDiskSupervisor *sup = get_chess_supervisor(pgn_name);
+
+    Model *model = new Model("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn");
+
+    model->test(sup->create_train_batch(10000)).print();
+
+    delete model;
+
+    delete sup;
+}
+
 MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_flg, int depth, Model *model)
 {
     int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
@@ -162,6 +176,8 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
     float flt_sim_board[CHESS_BOARD_LEN];
     float flt_sim_influence_board[CHESS_BOARD_LEN];
     float flt_board_buf[CHESS_BOARD_LEN * 2];
+
+    float flt_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
 
     float *cuda_flt_board_buf;
     cudaMalloc(&cuda_flt_board_buf, sizeof(float) * CHESS_BOARD_LEN * 2);
@@ -190,7 +206,7 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
 
     if (print_flg)
     {
-        printf("move\tmodel\t\tminimax\t\tpruned\n", depth);
+        printf("move\tmodel\t\tminimax\t\tpruned\n");
         printf("-------+---------------+---------------+------------\n");
     }
 
@@ -203,8 +219,13 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
     memcpy(flt_board_buf, flt_sim_board, sizeof(float) * CHESS_BOARD_LEN);
     memcpy(&flt_board_buf[CHESS_BOARD_LEN], flt_sim_influence_board, sizeof(float) * CHESS_BOARD_LEN);
 
-    Tensor *x = new Tensor(Device::Cpu, 2, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT);
-    x->set_arr(flt_board_buf);
+    one_hot_encode_board(immut_board, flt_one_hot_board);
+
+    // Tensor *x = new Tensor(Device::Cpu, 2, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT);
+    // x->set_arr(flt_board_buf);
+
+    Tensor *x = new Tensor(Device::Cpu, CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT);
+    x->set_arr(flt_one_hot_board);
 
     Tensor *pred = model->predict(x);
     pred->print();
@@ -495,9 +516,11 @@ int main(int argc, char **argv)
 {
     srand(time(NULL));
 
-    dump_pgn("TEST");
+    //dump_pgn("ALL");
 
-    train_chess("TEST");
+    //train_chess("ALL");
+
+    test_chess("ALL");
 
     //play_chess("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn", true, 3, true);
 
