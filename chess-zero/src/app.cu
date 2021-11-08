@@ -118,7 +118,7 @@ OnDiskSupervisor *get_chess_supervisor(const char *pgn_name)
 
     std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
 
-    OnDiskSupervisor *sup = new OnDiskSupervisor(0.90f, 0.10f, board_name_buf, label_name_buf, x_shape, 64);
+    OnDiskSupervisor *sup = new OnDiskSupervisor(0.85f, 0.15f, board_name_buf, label_name_buf, x_shape, 64);
 
     return sup;
 }
@@ -159,7 +159,7 @@ void test_chess(const char *pgn_name)
 
     Model *model = new Model("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn");
 
-    model->test(sup->create_train_batch(10000)).print();
+    model->test(sup->create_test_batch()).print();
 
     delete model;
 
@@ -516,11 +516,11 @@ int main(int argc, char **argv)
 {
     srand(time(NULL));
 
-    //dump_pgn("ALL");
+    dump_pgn("Capablanca");
 
-    //train_chess("ALL");
+    train_chess("Capablanca");
 
-    test_chess("ALL");
+    //test_chess("Capablanca");
 
     //play_chess("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn", true, 3, true);
 
