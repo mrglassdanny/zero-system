@@ -1820,7 +1820,7 @@ void get_influence_board(int *board, int *out)
     }
 }
 
-void get_src_legality_mask(int *board, bool white_mov_flg, float *out)
+void get_piece_legality_mask(int *board, bool white_mov_flg, float *out)
 {
     memset(out, 0, sizeof(float) * CHESS_BOARD_LEN);
 
@@ -1856,7 +1856,7 @@ void get_src_legality_mask(int *board, bool white_mov_flg, float *out)
     }
 }
 
-void get_dst_legality_mask(int *board, int piece_idx, int *out)
+void get_move_legality_mask(int *board, int piece_idx, int *out)
 {
     memset(out, 0, sizeof(float) * CHESS_BOARD_LEN);
 
