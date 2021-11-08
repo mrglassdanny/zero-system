@@ -116,7 +116,7 @@ Tensor *ChessModel::forward(Tensor *x, bool train_flg)
     // Chess legality mask:
     x->to(Device::Cpu);
     reverse_one_hot_encode_board(x->get_arr(), this->board);
-    get_src_legality_mask(this->board, true, this->src_legality_mask);
+    get_piece_legality_mask(this->board, true, this->piece_legality_mask);
 
     // Convert to Cuda.
     x->to(Device::Cuda);
@@ -143,7 +143,7 @@ Tensor *ChessModel::forward(Tensor *x, bool train_flg)
     pred->to(Device::Cpu);
     for (int i = 0; i < CHESS_BOARD_LEN; i++)
     {
-        pred->get_arr()[i] *= this->src_legality_mask[i];
+        pred->get_arr()[i] *= this->piece_legality_mask[i];
     }
     pred->to(Device::Cuda);
     // Chess legality dropout END
@@ -153,12 +153,6 @@ Tensor *ChessModel::forward(Tensor *x, bool train_flg)
 
 void ChessModel::backward(Tensor *pred, Tensor *y)
 {
-
-    for (int i = 0; i < CHESS_BOARD_LEN; i++)
-    {
-        printf("%f\n", this->src_legality_mask[i]);
-    }
-
     // Convert to Cuda.
     y->to(Device::Cuda);
 
@@ -176,7 +170,7 @@ void ChessModel::backward(Tensor *pred, Tensor *y)
     dc->to(Device::Cpu);
     for (int i = 0; i < CHESS_BOARD_LEN; i++)
     {
-        dc->get_arr()[i] *= this->src_legality_mask[i];
+        dc->get_arr()[i] *= this->piece_legality_mask[i];
     }
     dc->to(Device::Cuda);
     // Chess legality dropout END

@@ -12,7 +12,7 @@ class ChessModel : public Model
 
 private:
     int board[CHESS_BOARD_LEN];
-    float src_legality_mask[CHESS_BOARD_LEN];
+    float piece_legality_mask[CHESS_BOARD_LEN];
 
 public:
     ChessModel(CostFunction cost_fn, float learning_rate);
