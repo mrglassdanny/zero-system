@@ -60,6 +60,34 @@ int *copy_board(int *src, int *dst);
 
 void reset_board(int *board);
 
+int get_col_fr_adj_col(int adj_col);
+
+int get_adj_col_fr_col(char col);
+
+int get_row_fr_char(char row);
+
+int get_adj_row_fr_row(int row);
+
+int get_adj_col_fr_idx(int idx);
+
+int get_adj_row_fr_idx(int idx);
+
+char get_col_fr_idx(int idx);
+
+int get_row_fr_idx(int idx);
+
+int get_idx_fr_colrow(char col, int row);
+
+int get_idx_fr_adj_colrow(int adj_col, int adj_row);
+
+bool is_row_valid(int row);
+
+bool is_adj_colrow_valid(int adj_col, int adj_row);
+
+ChessPiece get_piece_fr_char(char piece_id, bool white_mov_flg);
+
+char get_char_fr_piece(ChessPiece piece);
+
 bool is_piece_white(ChessPiece piece);
 
 bool is_piece_black(ChessPiece piece);

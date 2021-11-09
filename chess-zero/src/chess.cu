@@ -1856,7 +1856,7 @@ void get_piece_legality_mask(int *board, bool white_mov_flg, float *out)
     }
 }
 
-void get_move_legality_mask(int *board, int piece_idx, int *out)
+void get_move_legality_mask(int *board, int piece_idx, float *out)
 {
     memset(out, 0, sizeof(float) * CHESS_BOARD_LEN);
 
@@ -2795,12 +2795,23 @@ float eval_board(int *board)
     float flt_board[CHESS_BOARD_LEN];
     board_to_float(board, flt_board, false);
 
+    float influence_eval = 0.0f;
+    int influence_board[CHESS_BOARD_LEN];
+    float flt_influence_board[CHESS_BOARD_LEN];
+    get_influence_board(board, influence_board);
+    influence_board_to_float(influence_board, flt_influence_board, false);
+
     for (int i = 0; i < CHESS_BOARD_LEN; i++)
     {
         eval += flt_board[i];
     }
 
-    return eval;
+    for (int i = 0; i < CHESS_BOARD_LEN; i++)
+    {
+        influence_eval += flt_influence_board[i];
+    }
+
+    return (eval * 0.70f) + (influence_eval * 0.30f);
 }
 
 MinimaxEvaluation get_minimax_eval(int *board, bool white_mov_flg, bool cur_white_mov_flg, int max_depth, int cur_depth, float cur_best_eval)
