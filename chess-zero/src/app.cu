@@ -162,7 +162,7 @@ void train_chess_piece(const char *pgn_name)
 
     model->add_layer(new LinearLayer(model->get_output_shape(), Tensor::get_cnt(sup->get_y_shape()), InitializationFunction::Xavier));
 
-    model->train_and_test(sup, 50, 5, "C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess-piece.csv");
+    model->train_and_test(sup, 50, 10, "C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess-piece.csv");
 
     model->save("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess-piece.nn");
 
@@ -188,7 +188,7 @@ void train_chess_move(const char *pgn_name)
 
     model->add_layer(new LinearLayer(model->get_output_shape(), Tensor::get_cnt(sup->get_y_shape()), InitializationFunction::Xavier));
 
-    model->train_and_test(sup, 50, 5, "C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess-move.csv");
+    model->train_and_test(sup, 50, 10, "C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess-move.csv");
 
     model->save("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess-move.nn");
 
@@ -219,14 +219,6 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
 
     char best_mov[CHESS_MAX_MOVE_LEN];
 
-    if (print_flg)
-    {
-        printf("move\tmodel\t\tminimax\t\tpruned\n");
-        printf("-------+---------------+---------------+------------\n");
-    }
-
-    // Model eval:
-
     one_hot_encode_board(immut_board, flt_one_hot_board_piece);
 
     Tensor *x = new Tensor(Device::Cpu, CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT);
@@ -235,11 +227,11 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
     // Predict piece:
     piece_model->set_piece_legality_mask(x, white_mov_flg);
     Tensor *piece_pred = piece_model->predict_piece(x);
-    delete piece_pred;
 
     TensorTuple piece_tup = piece_pred->get_max();
     float piece_eval = piece_tup.val;
     printf("Piece %c%d (%c)", get_col_fr_idx(piece_tup.idx), get_row_fr_idx(piece_tup.idx), get_char_fr_piece((ChessPiece)immut_board[piece_tup.idx]));
+    delete piece_pred;
 
     {
         float piece_idx = (float)piece_tup.idx;
@@ -256,11 +248,17 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
     // Predict move:
     move_model->set_move_legality_mask(x, piece_tup.idx);
     Tensor *move_pred = move_model->predict_move(x);
-    delete move_pred;
 
     TensorTuple move_tup = move_pred->get_max();
     float move_eval = move_tup.val;
     printf(" to %c%d\n", get_col_fr_idx(move_tup.idx), get_row_fr_idx(move_tup.idx));
+    delete move_pred;
+
+    if (print_flg)
+    {
+        printf("move\tminimax\t\tpruned\n");
+        printf("-------+---------------+------------\n");
+    }
 
     for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
     {
@@ -286,7 +284,7 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
 
                         if (print_flg)
                         {
-                            printf("%s\t%f -> %f\t%f\t%d\n", mov, piece_eval, move_eval, minimax_eval.eval, minimax_eval.prune_flg);
+                            printf("%s\t%f\t%d\n", mov, minimax_eval.eval, minimax_eval.prune_flg);
                         }
 
                         if (minimax_eval.eval > best_minimax_eval)
@@ -320,7 +318,7 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
 
                         if (print_flg)
                         {
-                            printf("%s\t%f -> %f\t%f\t%d\n", mov, piece_eval, move_eval, minimax_eval.eval, minimax_eval.prune_flg);
+                            printf("%s\t%f\t%d\n", mov, minimax_eval.eval, minimax_eval.prune_flg);
                         }
 
                         if (minimax_eval.eval < best_minimax_eval)
@@ -336,7 +334,7 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
 
     if (print_flg)
     {
-        printf("-------+---------------+---------------+------------\n");
+        printf("-------+---------------+------------\n");
     }
 
     MoveSearchResult mov_res;
@@ -389,39 +387,6 @@ void play_chess(const char *piece_model_path, const char *move_model_path, bool 
     //     white_mov_flg = !white_mov_flg;
     // }
 
-    // Go ahead and make opening moves since we do not train the model on openings.
-    {
-        change_board_w_mov(board, "d4", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-
-        change_board_w_mov(board, "Nf6", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-
-        change_board_w_mov(board, "c4", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-
-        change_board_w_mov(board, "c5", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-
-        change_board_w_mov(board, "d5", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-
-        change_board_w_mov(board, "d6", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-
-        change_board_w_mov(board, "Nc3", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-
-        change_board_w_mov(board, "g6", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-
-        change_board_w_mov(board, "e4", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-
-        change_board_w_mov(board, "Bg7", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-    }
-
     print_board(board);
 
     while (1)
@@ -442,12 +407,10 @@ void play_chess(const char *piece_model_path, const char *move_model_path, bool 
             }
 
             MoveSearchResult mov_res;
-            //if (white_flg)
-            {
-                copy_board(board, cpy_board);
-                mov_res = get_best_move(cpy_board, white_mov_flg, print_flg, depth, piece_model, move_model);
-                printf("MINIMAX EVAL: %s\t(%f)\n", mov_res.mov, mov_res.minimax_eval);
-            }
+
+            copy_board(board, cpy_board);
+            mov_res = get_best_move(cpy_board, white_mov_flg, print_flg, depth, piece_model, move_model);
+            printf("MoveSearchResult: %s\t(%f)\n", mov_res.mov, mov_res.minimax_eval);
 
             // Now accept user input.
             memset(mov, 0, CHESS_MAX_MOVE_LEN);
@@ -456,13 +419,10 @@ void play_chess(const char *piece_model_path, const char *move_model_path, bool 
             std::cin >> mov;
             system("cls");
 
-            //if (white_flg)
+            // Allow user to confirm they want to make recommended move.
+            if (strlen(mov) <= 1)
             {
-                // Allow user to confirm they want to make recommended move.
-                if (strlen(mov) <= 1)
-                {
-                    strcpy(mov, mov_res.mov);
-                }
+                strcpy(mov, mov_res.mov);
             }
 
             change_board_w_mov(board, mov, white_mov_flg);
@@ -485,12 +445,10 @@ void play_chess(const char *piece_model_path, const char *move_model_path, bool 
             }
 
             MoveSearchResult mov_res;
-            //if (!white_flg)
-            {
-                copy_board(board, cpy_board);
-                mov_res = get_best_move(cpy_board, white_mov_flg, print_flg, depth, piece_model, move_model);
-                printf("MINIMAX EVAL: %s\t(%f)\n", mov_res.mov, mov_res.minimax_eval);
-            }
+
+            copy_board(board, cpy_board);
+            mov_res = get_best_move(cpy_board, white_mov_flg, print_flg, depth, piece_model, move_model);
+            printf("MoveSearchResult: %s\t(%f)\n", mov_res.mov, mov_res.minimax_eval);
 
             // Now accept user input.
             memset(mov, 0, CHESS_MAX_MOVE_LEN);
@@ -498,13 +456,10 @@ void play_chess(const char *piece_model_path, const char *move_model_path, bool 
             std::cin >> mov;
             system("cls");
 
-            //if (!white_flg)
+            // Allow user to confirm they want to make recommended move.
+            if (strlen(mov) <= 1)
             {
-                // Allow user to confirm they want to make recommended move.
-                if (strlen(mov) <= 1)
-                {
-                    strcpy(mov, mov_res.mov);
-                }
+                strcpy(mov, mov_res.mov);
             }
 
             change_board_w_mov(board, mov, white_mov_flg);
@@ -520,10 +475,10 @@ int main(int argc, char **argv)
 {
     srand(time(NULL));
 
-    dump_pgn("TEST");
+    //dump_pgn("ALL");
 
-    train_chess_piece("TEST");
-    train_chess_move("TEST");
+    train_chess_piece("ALL");
+    train_chess_move("ALL");
 
     //play_chess("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess-piece.nn", "C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess-move.nn", true, 3, true);
 

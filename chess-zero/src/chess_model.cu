@@ -19,7 +19,7 @@ void ChessModel::set_piece_legality_mask(Tensor *x, bool white_mov_flg)
 {
     x->to(Device::Cpu);
     reverse_one_hot_encode_board(x->get_arr(), this->board);
-    get_piece_legality_mask(this->board, true, this->piece_legality_mask);
+    get_piece_legality_mask(this->board, white_mov_flg, this->piece_legality_mask);
 }
 
 void ChessModel::set_move_legality_mask(Tensor *x, int piece_idx)

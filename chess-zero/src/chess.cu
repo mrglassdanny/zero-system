@@ -1871,7 +1871,7 @@ void get_move_legality_mask(int *board, int piece_idx, float *out)
         }
         else
         {
-            board[legal_moves[mov_idx]] = 1.0f;
+            out[legal_moves[mov_idx]] = 1.0f;
         }
     }
 }
@@ -2811,7 +2811,7 @@ float eval_board(int *board)
         influence_eval += flt_influence_board[i];
     }
 
-    return (eval * 0.70f) + (influence_eval * 0.30f);
+    return (eval * 0.90f) + (influence_eval * 0.10f);
 }
 
 MinimaxEvaluation get_minimax_eval(int *board, bool white_mov_flg, bool cur_white_mov_flg, int max_depth, int cur_depth, float cur_best_eval)
