@@ -229,7 +229,7 @@ void train_chess(const char *pgn_name)
 {
     OnDiskSupervisor *sup = get_chess_supervisor(pgn_name);
 
-    Model *model = new Model(CostFunction::MSE, 0.01f);
+    Model *model = new Model(CostFunction::MSE, 0.1f);
 
     model->add_layer(new ConvolutionalLayer(sup->get_x_shape(), 128, 5, 5, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
@@ -241,6 +241,7 @@ void train_chess(const char *pgn_name)
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), Tensor::get_cnt(sup->get_y_shape()), InitializationFunction::Xavier));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
     model->train_and_test(sup, 50, 3, "C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.csv");
 
