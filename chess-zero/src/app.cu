@@ -17,11 +17,17 @@ struct MoveSearchResult
     float minimax_eval;
 };
 
-struct DualMoveSearchResult
+struct MoveSearchResultTrio
 {
     MoveSearchResult model_mov_res;
     MoveSearchResult minimax_mov_res;
+    MoveSearchResult hybrid_mov_res;
 };
+
+float get_adj_chess_tanh(float val)
+{
+    return ((exp(1.15f * val) - exp(-(1.15 * val))) / (exp(val) + exp(-val)));
+}
 
 void dump_pgn(const char *pgn_name)
 {
@@ -258,7 +264,7 @@ void train_chess(const char *pgn_name)
     delete sup;
 }
 
-DualMoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_flg, int depth, Model *model)
+MoveSearchResultTrio get_best_move(int *immut_board, bool white_mov_flg, bool print_flg, int depth, Model *model)
 {
     int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
     char mov[CHESS_MAX_MOVE_LEN];
@@ -270,32 +276,32 @@ DualMoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool pr
     float flt_one_hot_board_w_move[CHESS_ONE_HOT_ENCODED_BOARD_LEN + (CHESS_BOARD_LEN * 2)];
     float flt_stacked_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2];
 
-    char best_model_mov[CHESS_MAX_MOVE_LEN];
-    char best_minimax_mov[CHESS_MAX_MOVE_LEN];
+    char model_mov[CHESS_MAX_MOVE_LEN];
+    char minimax_mov[CHESS_MAX_MOVE_LEN];
+    char hybrid_mov[CHESS_MAX_MOVE_LEN];
 
     float best_model_eval = -1.0f;
     float model_eval;
-    float best_model_eval_tiebreaker = -1.0f;
+    float model_eval_tiebreaker = -1.0f;
 
     float best_minimax_eval;
     MinimaxEvaluation minimax_eval;
-    float best_minimax_eval_tiebreaker = -1.0f;
+    float minimax_eval_tiebreaker = -1.0f;
     if (white_mov_flg)
     {
-        best_minimax_eval = -FLT_MAX;
-        best_minimax_eval_tiebreaker = -FLT_MAX;
+        best_minimax_eval = -100.0f;
+        minimax_eval_tiebreaker = -100.0f;
     }
     else
     {
-        best_minimax_eval = FLT_MAX;
-        best_minimax_eval_tiebreaker = FLT_MAX;
+        best_minimax_eval = 100.0f;
+        minimax_eval_tiebreaker = 100.0f;
     }
 
-    if (print_flg)
-    {
-        printf("move\tmodel\t\tminimax\t\tpruned\n");
-        printf("-------+---------------+---------------+------------\n");
-    }
+    float best_hybrid_eval;
+    float hybrid_eval;
+    float hybrid_model_eval;
+    float hybrid_minimax_eval;
 
     // Go ahead and encode pre-move board.
     one_hot_encode_board(immut_board, flt_premov_one_hot_board);
@@ -368,6 +374,11 @@ DualMoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool pr
                             minimax_eval = get_minimax_eval(sim_board, white_mov_flg, !white_mov_flg, depth, 1, best_minimax_eval);
                         }
 
+                        // Hybrid evaluation:
+                        {
+                            hybrid_eval = model_eval + get_adj_chess_tanh(minimax_eval.eval);
+                        }
+
                         if (print_flg)
                         {
                             printf("%s\t%f\t%f\t%d\n", mov, model_eval, minimax_eval.eval, minimax_eval.prune_flg);
@@ -375,34 +386,42 @@ DualMoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool pr
 
                         if (model_eval == best_model_eval)
                         {
-                            if (minimax_eval.eval > best_minimax_eval_tiebreaker)
+                            if (minimax_eval.eval > minimax_eval_tiebreaker)
                             {
-                                best_minimax_eval_tiebreaker = minimax_eval.eval;
-                                memcpy(best_model_mov, mov, CHESS_MAX_MOVE_LEN);
+                                minimax_eval_tiebreaker = minimax_eval.eval;
+                                memcpy(model_mov, mov, CHESS_MAX_MOVE_LEN);
                             }
                         }
 
                         if (model_eval > best_model_eval)
                         {
                             best_model_eval = model_eval;
-                            best_minimax_eval_tiebreaker = minimax_eval.eval;
-                            memcpy(best_model_mov, mov, CHESS_MAX_MOVE_LEN);
+                            minimax_eval_tiebreaker = minimax_eval.eval;
+                            memcpy(model_mov, mov, CHESS_MAX_MOVE_LEN);
                         }
 
                         if (minimax_eval.eval == best_minimax_eval)
                         {
-                            if (model_eval > best_model_eval_tiebreaker)
+                            if (model_eval > model_eval_tiebreaker)
                             {
-                                best_model_eval_tiebreaker = model_eval;
-                                memcpy(best_minimax_mov, mov, CHESS_MAX_MOVE_LEN);
+                                model_eval_tiebreaker = model_eval;
+                                memcpy(minimax_mov, mov, CHESS_MAX_MOVE_LEN);
                             }
                         }
 
                         if (minimax_eval.eval > best_minimax_eval)
                         {
                             best_minimax_eval = minimax_eval.eval;
-                            best_model_eval_tiebreaker = model_eval;
-                            memcpy(best_minimax_mov, mov, CHESS_MAX_MOVE_LEN);
+                            model_eval_tiebreaker = model_eval;
+                            memcpy(minimax_mov, mov, CHESS_MAX_MOVE_LEN);
+                        }
+
+                        if (hybrid_eval > best_hybrid_eval)
+                        {
+                            best_hybrid_eval = hybrid_eval;
+                            hybrid_model_eval = model_eval;
+                            hybrid_minimax_eval = minimax_eval.eval;
+                            memcpy(hybrid_mov, mov, CHESS_MAX_MOVE_LEN);
                         }
                     }
                 }
@@ -474,6 +493,11 @@ DualMoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool pr
                             minimax_eval = get_minimax_eval(sim_board, white_mov_flg, !white_mov_flg, depth, 1, best_minimax_eval);
                         }
 
+                        // Hybrid evaluation:
+                        {
+                            hybrid_eval = model_eval + (-1.0f * get_adj_chess_tanh(minimax_eval.eval));
+                        }
+
                         if (print_flg)
                         {
                             printf("%s\t%f\t%f\t%d\n", mov, model_eval, minimax_eval.eval, minimax_eval.prune_flg);
@@ -481,34 +505,42 @@ DualMoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool pr
 
                         if (model_eval == best_model_eval)
                         {
-                            if (minimax_eval.eval < best_minimax_eval_tiebreaker)
+                            if (minimax_eval.eval < minimax_eval_tiebreaker)
                             {
-                                best_minimax_eval_tiebreaker = minimax_eval.eval;
-                                memcpy(best_model_mov, mov, CHESS_MAX_MOVE_LEN);
+                                minimax_eval_tiebreaker = minimax_eval.eval;
+                                memcpy(model_mov, mov, CHESS_MAX_MOVE_LEN);
                             }
                         }
 
                         if (model_eval > best_model_eval)
                         {
                             best_model_eval = model_eval;
-                            best_minimax_eval_tiebreaker = minimax_eval.eval;
-                            memcpy(best_model_mov, mov, CHESS_MAX_MOVE_LEN);
+                            minimax_eval_tiebreaker = minimax_eval.eval;
+                            memcpy(model_mov, mov, CHESS_MAX_MOVE_LEN);
                         }
 
                         if (minimax_eval.eval == best_minimax_eval)
                         {
-                            if (model_eval > best_model_eval_tiebreaker)
+                            if (model_eval > model_eval_tiebreaker)
                             {
-                                best_model_eval_tiebreaker = model_eval;
-                                memcpy(best_minimax_mov, mov, CHESS_MAX_MOVE_LEN);
+                                model_eval_tiebreaker = model_eval;
+                                memcpy(minimax_mov, mov, CHESS_MAX_MOVE_LEN);
                             }
                         }
 
                         if (minimax_eval.eval < best_minimax_eval)
                         {
                             best_minimax_eval = minimax_eval.eval;
-                            best_model_eval_tiebreaker = model_eval;
-                            memcpy(best_minimax_mov, mov, CHESS_MAX_MOVE_LEN);
+                            model_eval_tiebreaker = model_eval;
+                            memcpy(minimax_mov, mov, CHESS_MAX_MOVE_LEN);
+                        }
+
+                        if (hybrid_eval > best_hybrid_eval)
+                        {
+                            best_hybrid_eval = hybrid_eval;
+                            hybrid_model_eval = model_eval;
+                            hybrid_minimax_eval = minimax_eval.eval;
+                            memcpy(hybrid_mov, mov, CHESS_MAX_MOVE_LEN);
                         }
                     }
                 }
@@ -521,14 +553,19 @@ DualMoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool pr
         printf("-------+---------------+---------------+------------\n");
     }
 
-    DualMoveSearchResult dual_mov_res;
-    memcpy(dual_mov_res.model_mov_res.mov, best_model_mov, CHESS_MAX_MOVE_LEN);
-    memcpy(dual_mov_res.minimax_mov_res.mov, best_minimax_mov, CHESS_MAX_MOVE_LEN);
-    dual_mov_res.model_mov_res.model_eval = best_model_eval;
-    dual_mov_res.minimax_mov_res.model_eval = best_model_eval_tiebreaker;
-    dual_mov_res.model_mov_res.minimax_eval = best_minimax_eval_tiebreaker;
-    dual_mov_res.minimax_mov_res.minimax_eval = best_minimax_eval;
-    return dual_mov_res;
+    MoveSearchResultTrio trio_mov_res;
+
+    memcpy(trio_mov_res.model_mov_res.mov, model_mov, CHESS_MAX_MOVE_LEN);
+    memcpy(trio_mov_res.minimax_mov_res.mov, minimax_mov, CHESS_MAX_MOVE_LEN);
+    memcpy(trio_mov_res.hybrid_mov_res.mov, hybrid_mov, CHESS_MAX_MOVE_LEN);
+    trio_mov_res.model_mov_res.model_eval = best_model_eval;
+    trio_mov_res.minimax_mov_res.model_eval = model_eval_tiebreaker;
+    trio_mov_res.hybrid_mov_res.model_eval = hybrid_model_eval;
+    trio_mov_res.model_mov_res.minimax_eval = minimax_eval_tiebreaker;
+    trio_mov_res.minimax_mov_res.minimax_eval = best_minimax_eval;
+    trio_mov_res.hybrid_mov_res.minimax_eval = hybrid_minimax_eval;
+
+    return trio_mov_res;
 }
 
 void play_chess(const char *model_path, bool white_flg, int depth, bool print_flg)
@@ -579,6 +616,9 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
     while (1)
     {
 
+        printf("move\tmodel\t\tminimax\t\tpruned\n");
+        printf("-------+---------------+---------------+------------\n");
+
         // White move:
         {
 
@@ -593,16 +633,19 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
                 printf("CHECK!\n");
             }
 
-            DualMoveSearchResult dual_mov_res;
+            MoveSearchResultTrio trio_mov_res;
 
             copy_board(board, cpy_board);
-            dual_mov_res = get_best_move(cpy_board, white_mov_flg, print_flg, depth, model);
-            printf("  Model: %s\t%f (%f)\n", dual_mov_res.model_mov_res.mov, dual_mov_res.model_mov_res.model_eval, dual_mov_res.model_mov_res.minimax_eval);
-            printf("Minimax: %s\t%f (%f)\n", dual_mov_res.minimax_mov_res.mov, dual_mov_res.minimax_mov_res.model_eval, dual_mov_res.minimax_mov_res.minimax_eval);
+            trio_mov_res = get_best_move(cpy_board, white_mov_flg, print_flg, depth, model);
+            printf("%s\t%f\t%f\t-\n", trio_mov_res.model_mov_res.mov, trio_mov_res.model_mov_res.model_eval, trio_mov_res.model_mov_res.minimax_eval);
+            printf("%s\t%f\t%f\t-\n", trio_mov_res.minimax_mov_res.mov, trio_mov_res.minimax_mov_res.model_eval, trio_mov_res.minimax_mov_res.minimax_eval);
+            printf("%s\t%f\t%f\t-\n", trio_mov_res.hybrid_mov_res.mov, trio_mov_res.hybrid_mov_res.model_eval, trio_mov_res.hybrid_mov_res.minimax_eval);
+
+            printf("-------+---------------+---------------+------------\n");
 
             // Now accept user input.
             memset(mov, 0, CHESS_MAX_MOVE_LEN);
-            printf("ENTER MOVE (WHITE): ");
+            printf("WHITE (a, b, c, <custom>): ");
 
             std::cin >> mov;
             system("cls");
@@ -610,17 +653,24 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
             // Allow user to confirm they want to make a recommended move.
             if (strcmp(mov, "a") == 0)
             {
-                strcpy(mov, dual_mov_res.model_mov_res.mov);
+                strcpy(mov, trio_mov_res.model_mov_res.mov);
             }
             else if (strcmp(mov, "b") == 0)
             {
-                strcpy(mov, dual_mov_res.minimax_mov_res.mov);
+                strcpy(mov, trio_mov_res.minimax_mov_res.mov);
+            }
+            else if (strcmp(mov, "c") == 0)
+            {
+                strcpy(mov, trio_mov_res.hybrid_mov_res.mov);
             }
 
             change_board_w_mov(board, mov, white_mov_flg);
             white_mov_flg = !white_mov_flg;
             print_board(board);
         }
+
+        printf("move\tmodel\t\tminimax\t\tpruned\n");
+        printf("-------+---------------+---------------+------------\n");
 
         // Black move:
         {
@@ -636,27 +686,34 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
                 printf("CHECK!\n");
             }
 
-            DualMoveSearchResult dual_mov_res;
+            MoveSearchResultTrio trio_mov_res;
 
             copy_board(board, cpy_board);
-            dual_mov_res = get_best_move(cpy_board, white_mov_flg, print_flg, depth, model);
-            printf("  Model: %s\t%f (%f)\n", dual_mov_res.model_mov_res.mov, dual_mov_res.model_mov_res.model_eval, dual_mov_res.model_mov_res.minimax_eval);
-            printf("Minimax: %s\t%f (%f)\n", dual_mov_res.minimax_mov_res.mov, dual_mov_res.minimax_mov_res.model_eval, dual_mov_res.minimax_mov_res.minimax_eval);
+            trio_mov_res = get_best_move(cpy_board, white_mov_flg, print_flg, depth, model);
+            printf("%s\t%f\t%f\t-\n", trio_mov_res.model_mov_res.mov, trio_mov_res.model_mov_res.model_eval, trio_mov_res.model_mov_res.minimax_eval);
+            printf("%s\t%f\t%f\t-\n", trio_mov_res.minimax_mov_res.mov, trio_mov_res.minimax_mov_res.model_eval, trio_mov_res.minimax_mov_res.minimax_eval);
+            printf("%s\t%f\t%f\t-\n", trio_mov_res.hybrid_mov_res.mov, trio_mov_res.hybrid_mov_res.model_eval, trio_mov_res.hybrid_mov_res.minimax_eval);
+
+            printf("-------+---------------+---------------+------------\n");
 
             // Now accept user input.
             memset(mov, 0, CHESS_MAX_MOVE_LEN);
-            printf("ENTER MOVE (BLACK): ");
+            printf("BLACK (a, b, c, <custom>): ");
             std::cin >> mov;
             system("cls");
 
             // Allow user to confirm they want to make a recommended move.
             if (strcmp(mov, "a") == 0)
             {
-                strcpy(mov, dual_mov_res.model_mov_res.mov);
+                strcpy(mov, trio_mov_res.model_mov_res.mov);
             }
             else if (strcmp(mov, "b") == 0)
             {
-                strcpy(mov, dual_mov_res.minimax_mov_res.mov);
+                strcpy(mov, trio_mov_res.minimax_mov_res.mov);
+            }
+            else if (strcmp(mov, "c") == 0)
+            {
+                strcpy(mov, trio_mov_res.hybrid_mov_res.mov);
             }
 
             change_board_w_mov(board, mov, white_mov_flg);

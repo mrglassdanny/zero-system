@@ -2822,13 +2822,13 @@ MinimaxEvaluation get_minimax_eval(int *board, bool white_mov_flg, bool cur_whit
     {
         if (white_mov_flg)
         {
-            minimax_eval.eval = FLT_MAX;
+            minimax_eval.eval = 100.0f;
             minimax_eval.prune_flg = false;
             return minimax_eval;
         }
         else
         {
-            minimax_eval.eval = -FLT_MAX;
+            minimax_eval.eval = -100.0f;
             minimax_eval.prune_flg = false;
             return minimax_eval;
         }
@@ -2847,8 +2847,8 @@ MinimaxEvaluation get_minimax_eval(int *board, bool white_mov_flg, bool cur_whit
 
     int sim_board[CHESS_BOARD_LEN];
 
-    float min = FLT_MAX;
-    float max = -FLT_MAX;
+    float min = 100.0f;
+    float max = -100.0f;
 
     if (cur_white_mov_flg)
     {
