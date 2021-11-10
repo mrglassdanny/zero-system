@@ -729,11 +729,11 @@ int main(int argc, char **argv)
 {
     srand(time(NULL));
 
-    //dump_pgn("TEST");
+    dump_pgn("TEST");
 
-    //train_chess("TEST");
+    train_chess("TEST");
 
-    play_chess("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn", true, 3, true);
+    //play_chess("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn", true, 4, true);
 
     return 0;
 }
