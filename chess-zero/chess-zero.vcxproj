@@ -13,7 +13,6 @@
   <ItemGroup>
     <CudaCompile Include="src\app.cu" />
     <CudaCompile Include="src\chess.cu" />
-    <CudaCompile Include="src\chess_model.cu" />
     <CudaCompile Include="src\pgn.cu" />
   </ItemGroup>
   <ItemGroup>
@@ -23,7 +22,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\chess.cuh" />
-    <ClInclude Include="src\chess_model.cuh" />
     <ClInclude Include="src\pgn.cuh" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
