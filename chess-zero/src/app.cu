@@ -17,6 +17,12 @@ struct MoveSearchResult
     float minimax_eval;
 };
 
+struct DualMoveSearchResult
+{
+    MoveSearchResult model_mov_res;
+    MoveSearchResult minimax_mov_res;
+};
+
 void dump_pgn(const char *pgn_name)
 {
     char file_name_buf[256];
@@ -252,7 +258,7 @@ void train_chess(const char *pgn_name)
     delete sup;
 }
 
-MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_flg, int depth, Model *model)
+DualMoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_flg, int depth, Model *model)
 {
     int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
     char mov[CHESS_MAX_MOVE_LEN];
@@ -264,25 +270,30 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
     float flt_one_hot_board_w_move[CHESS_ONE_HOT_ENCODED_BOARD_LEN + (CHESS_BOARD_LEN * 2)];
     float flt_stacked_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2];
 
-    char best_mov[CHESS_MAX_MOVE_LEN];
+    char best_model_mov[CHESS_MAX_MOVE_LEN];
+    char best_minimax_mov[CHESS_MAX_MOVE_LEN];
 
     float best_model_eval = -1.0f;
     float model_eval;
+    float best_model_eval_tiebreaker = -1.0f;
 
     float best_minimax_eval;
     MinimaxEvaluation minimax_eval;
+    float best_minimax_eval_tiebreaker = -1.0f;
     if (white_mov_flg)
     {
         best_minimax_eval = -FLT_MAX;
+        best_minimax_eval_tiebreaker = -FLT_MAX;
     }
     else
     {
         best_minimax_eval = FLT_MAX;
+        best_minimax_eval_tiebreaker = FLT_MAX;
     }
 
     if (print_flg)
     {
-        printf("move\tmodel\tminimax\t\tpruned\n");
+        printf("move\tmodel\t\tminimax\t\tpruned\n");
         printf("-------+---------------+---------------+------------\n");
     }
 
@@ -362,19 +373,36 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
                             printf("%s\t%f\t%f\t%d\n", mov, model_eval, minimax_eval.eval, minimax_eval.prune_flg);
                         }
 
+                        if (model_eval == best_model_eval)
+                        {
+                            if (minimax_eval.eval > best_minimax_eval_tiebreaker)
+                            {
+                                best_minimax_eval_tiebreaker = minimax_eval.eval;
+                                memcpy(best_model_mov, mov, CHESS_MAX_MOVE_LEN);
+                            }
+                        }
+
+                        if (model_eval > best_model_eval)
+                        {
+                            best_model_eval = model_eval;
+                            best_minimax_eval_tiebreaker = minimax_eval.eval;
+                            memcpy(best_model_mov, mov, CHESS_MAX_MOVE_LEN);
+                        }
+
                         if (minimax_eval.eval == best_minimax_eval)
                         {
-                            if (model_eval > best_model_eval)
+                            if (model_eval > best_model_eval_tiebreaker)
                             {
-                                best_model_eval = model_eval;
-                                memcpy(best_mov, mov, CHESS_MAX_MOVE_LEN);
+                                best_model_eval_tiebreaker = model_eval;
+                                memcpy(best_minimax_mov, mov, CHESS_MAX_MOVE_LEN);
                             }
                         }
 
                         if (minimax_eval.eval > best_minimax_eval)
                         {
                             best_minimax_eval = minimax_eval.eval;
-                            memcpy(best_mov, mov, CHESS_MAX_MOVE_LEN);
+                            best_model_eval_tiebreaker = model_eval;
+                            memcpy(best_minimax_mov, mov, CHESS_MAX_MOVE_LEN);
                         }
                     }
                 }
@@ -451,19 +479,36 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
                             printf("%s\t%f\t%f\t%d\n", mov, model_eval, minimax_eval.eval, minimax_eval.prune_flg);
                         }
 
+                        if (model_eval == best_model_eval)
+                        {
+                            if (minimax_eval.eval < best_minimax_eval_tiebreaker)
+                            {
+                                best_minimax_eval_tiebreaker = minimax_eval.eval;
+                                memcpy(best_model_mov, mov, CHESS_MAX_MOVE_LEN);
+                            }
+                        }
+
+                        if (model_eval > best_model_eval)
+                        {
+                            best_model_eval = model_eval;
+                            best_minimax_eval_tiebreaker = minimax_eval.eval;
+                            memcpy(best_model_mov, mov, CHESS_MAX_MOVE_LEN);
+                        }
+
                         if (minimax_eval.eval == best_minimax_eval)
                         {
-                            if (model_eval > best_model_eval)
+                            if (model_eval > best_model_eval_tiebreaker)
                             {
-                                best_model_eval = model_eval;
-                                memcpy(best_mov, mov, CHESS_MAX_MOVE_LEN);
+                                best_model_eval_tiebreaker = model_eval;
+                                memcpy(best_minimax_mov, mov, CHESS_MAX_MOVE_LEN);
                             }
                         }
 
                         if (minimax_eval.eval < best_minimax_eval)
                         {
                             best_minimax_eval = minimax_eval.eval;
-                            memcpy(best_mov, mov, CHESS_MAX_MOVE_LEN);
+                            best_model_eval_tiebreaker = model_eval;
+                            memcpy(best_minimax_mov, mov, CHESS_MAX_MOVE_LEN);
                         }
                     }
                 }
@@ -476,11 +521,14 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
         printf("-------+---------------+---------------+------------\n");
     }
 
-    MoveSearchResult mov_res;
-    memcpy(mov_res.mov, best_mov, CHESS_MAX_MOVE_LEN);
-    mov_res.model_eval = best_model_eval;
-    mov_res.minimax_eval = best_minimax_eval;
-    return mov_res;
+    DualMoveSearchResult dual_mov_res;
+    memcpy(dual_mov_res.model_mov_res.mov, best_model_mov, CHESS_MAX_MOVE_LEN);
+    memcpy(dual_mov_res.minimax_mov_res.mov, best_minimax_mov, CHESS_MAX_MOVE_LEN);
+    dual_mov_res.model_mov_res.model_eval = best_model_eval;
+    dual_mov_res.minimax_mov_res.model_eval = best_model_eval_tiebreaker;
+    dual_mov_res.model_mov_res.minimax_eval = best_minimax_eval_tiebreaker;
+    dual_mov_res.minimax_mov_res.minimax_eval = best_minimax_eval;
+    return dual_mov_res;
 }
 
 void play_chess(const char *model_path, bool white_flg, int depth, bool print_flg)
@@ -545,11 +593,12 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
                 printf("CHECK!\n");
             }
 
-            MoveSearchResult mov_res;
+            DualMoveSearchResult dual_mov_res;
 
             copy_board(board, cpy_board);
-            mov_res = get_best_move(cpy_board, white_mov_flg, print_flg, depth, model);
-            printf("MoveSearchResult: %s\t%f (%f)\n", mov_res.mov, mov_res.model_eval, mov_res.minimax_eval);
+            dual_mov_res = get_best_move(cpy_board, white_mov_flg, print_flg, depth, model);
+            printf("  Model: %s\t%f (%f)\n", dual_mov_res.model_mov_res.mov, dual_mov_res.model_mov_res.model_eval, dual_mov_res.model_mov_res.minimax_eval);
+            printf("Minimax: %s\t%f (%f)\n", dual_mov_res.minimax_mov_res.mov, dual_mov_res.minimax_mov_res.model_eval, dual_mov_res.minimax_mov_res.minimax_eval);
 
             // Now accept user input.
             memset(mov, 0, CHESS_MAX_MOVE_LEN);
@@ -558,10 +607,14 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
             std::cin >> mov;
             system("cls");
 
-            // Allow user to confirm they want to make recommended move.
-            if (strlen(mov) <= 1)
+            // Allow user to confirm they want to make a recommended move.
+            if (strcmp(mov, "a") == 0)
             {
-                strcpy(mov, mov_res.mov);
+                strcpy(mov, dual_mov_res.model_mov_res.mov);
+            }
+            else if (strcmp(mov, "b") == 0)
+            {
+                strcpy(mov, dual_mov_res.minimax_mov_res.mov);
             }
 
             change_board_w_mov(board, mov, white_mov_flg);
@@ -583,11 +636,12 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
                 printf("CHECK!\n");
             }
 
-            MoveSearchResult mov_res;
+            DualMoveSearchResult dual_mov_res;
 
             copy_board(board, cpy_board);
-            mov_res = get_best_move(cpy_board, white_mov_flg, print_flg, depth, model);
-            printf("MoveSearchResult: %s\t%f (%f)\n", mov_res.mov, mov_res.model_eval, mov_res.minimax_eval);
+            dual_mov_res = get_best_move(cpy_board, white_mov_flg, print_flg, depth, model);
+            printf("  Model: %s\t%f (%f)\n", dual_mov_res.model_mov_res.mov, dual_mov_res.model_mov_res.model_eval, dual_mov_res.model_mov_res.minimax_eval);
+            printf("Minimax: %s\t%f (%f)\n", dual_mov_res.minimax_mov_res.mov, dual_mov_res.minimax_mov_res.model_eval, dual_mov_res.minimax_mov_res.minimax_eval);
 
             // Now accept user input.
             memset(mov, 0, CHESS_MAX_MOVE_LEN);
@@ -595,10 +649,14 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
             std::cin >> mov;
             system("cls");
 
-            // Allow user to confirm they want to make recommended move.
-            if (strlen(mov) <= 1)
+            // Allow user to confirm they want to make a recommended move.
+            if (strcmp(mov, "a") == 0)
             {
-                strcpy(mov, mov_res.mov);
+                strcpy(mov, dual_mov_res.model_mov_res.mov);
+            }
+            else if (strcmp(mov, "b") == 0)
+            {
+                strcpy(mov, dual_mov_res.minimax_mov_res.mov);
             }
 
             change_board_w_mov(board, mov, white_mov_flg);
@@ -614,11 +672,11 @@ int main(int argc, char **argv)
 {
     srand(time(NULL));
 
-    dump_pgn("TEST");
+    //dump_pgn("TEST");
 
-    train_chess("TEST");
+    //train_chess("TEST");
 
-    //play_chess("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn", true, 3, true);
+    play_chess("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn", true, 3, true);
 
     return 0;
 }
