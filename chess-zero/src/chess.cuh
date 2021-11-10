@@ -122,6 +122,8 @@ int boardcmp(int *a, int *b);
 
 void print_board(int *board);
 
+void print_flipped_board(int *board);
+
 void print_influence_board(int *board);
 
 float piece_to_float(ChessPiece piece);
@@ -141,3 +143,5 @@ void reverse_one_hot_encode_board(float *one_hot_board, int *out);
 float eval_board(int *board);
 
 MinimaxEvaluation get_minimax_eval(int *board, bool white_mov_flg, bool cur_white_mov_flg, int max_depth, int cur_depth, float cur_best_eval);
+
+float activate_minimax_eval(float val);

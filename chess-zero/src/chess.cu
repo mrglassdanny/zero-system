@@ -2464,6 +2464,74 @@ void print_board(int *board)
     printf("\n\n");
 }
 
+void print_flipped_board(int *board)
+{
+    printf("   +---+---+---+---+---+---+---+---+");
+    printf("\n");
+    for (int i = 0; i < CHESS_BOARD_ROW_CNT; i++)
+    {
+        printf("%d  ", i + 1);
+        printf("|");
+        for (int j = CHESS_BOARD_COL_CNT - 1; j >= 0; j--)
+        {
+
+            switch ((ChessPiece)board[(i * CHESS_BOARD_COL_CNT) + j])
+            {
+            case ChessPiece::WhitePawn:
+                printf(" P |");
+                break;
+            case ChessPiece::BlackPawn:
+                printf(" p |");
+                break;
+            case ChessPiece::WhiteKnight:
+                printf(" N |");
+                break;
+            case ChessPiece::BlackKnight:
+                printf(" n |");
+                break;
+            case ChessPiece::WhiteBishop:
+                printf(" B |");
+                break;
+            case ChessPiece::BlackBishop:
+                printf(" b |");
+                break;
+            case ChessPiece::WhiteRook:
+                printf(" R |");
+                break;
+            case ChessPiece::BlackRook:
+                printf(" r |");
+                break;
+            case ChessPiece::WhiteQueen:
+                printf(" Q |");
+                break;
+            case ChessPiece::BlackQueen:
+                printf(" q |");
+                break;
+            case ChessPiece::WhiteKing:
+                printf(" K |");
+                break;
+            case ChessPiece::BlackKing:
+                printf(" k |");
+                break;
+            default:
+                printf("   |");
+                break;
+            }
+        }
+        printf("\n");
+        printf("   +---+---+---+---+---+---+---+---+");
+        printf("\n");
+    }
+
+    printf("    ");
+    for (int j = CHESS_BOARD_COL_CNT - 1; j >= 0; j--)
+    {
+        printf(" %c  ", get_col_fr_adj_col(j));
+    }
+
+    printf("\n\n");
+}
+
 void print_influence_board(int *board)
 {
     // Print in a more viewable format(a8 at top left of screen).
@@ -2936,4 +3004,9 @@ MinimaxEvaluation get_minimax_eval(int *board, bool white_mov_flg, bool cur_whit
 
     minimax_eval.prune_flg = false;
     return minimax_eval;
+}
+
+float activate_minimax_eval(float val)
+{
+    return ((exp(1.15f * val) - exp(-(1.15 * val))) / (exp(val) + exp(-val)));
 }
