@@ -24,11 +24,6 @@ struct MoveSearchResultTrio
     MoveSearchResult hybrid_mov_res;
 };
 
-float get_adj_chess_tanh(float val)
-{
-    return ((exp(1.15f * val) - exp(-(1.15 * val))) / (exp(val) + exp(-val)));
-}
-
 void dump_pgn(const char *pgn_name)
 {
     char file_name_buf[256];
@@ -112,7 +107,7 @@ void dump_pgn(const char *pgn_name)
                     fwrite(&lbl, sizeof(float), 1, labels_file);
 
                     // Random moves:
-                    for (int i = 0; i < 5; i++)
+                    for (int i = 0; i < 3; i++)
                     {
                         ChessMove rand_chess_move = get_random_move(cpy_board, white_mov_flg, board);
 
@@ -241,9 +236,9 @@ void train_chess(const char *pgn_name)
 {
     OnDiskSupervisor *sup = get_chess_supervisor(pgn_name);
 
-    Model *model = new Model(CostFunction::MSE, 0.1f);
+    Model *model = new Model(CostFunction::MSE, 0.01f);
 
-    model->add_layer(new ConvolutionalLayer(sup->get_x_shape(), 128, 5, 5, InitializationFunction::Xavier));
+    model->add_layer(new ConvolutionalLayer(sup->get_x_shape(), 128, 3, 3, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), 512, InitializationFunction::Xavier));
@@ -298,7 +293,7 @@ MoveSearchResultTrio get_best_move(int *immut_board, bool white_mov_flg, bool pr
         minimax_eval_tiebreaker = 100.0f;
     }
 
-    float best_hybrid_eval;
+    float best_hybrid_eval = -100.0f;
     float hybrid_eval;
     float hybrid_model_eval;
     float hybrid_minimax_eval;
@@ -376,7 +371,7 @@ MoveSearchResultTrio get_best_move(int *immut_board, bool white_mov_flg, bool pr
 
                         // Hybrid evaluation:
                         {
-                            hybrid_eval = model_eval + get_adj_chess_tanh(minimax_eval.eval);
+                            hybrid_eval = model_eval + activate_minimax_eval(minimax_eval.eval);
                         }
 
                         if (print_flg)
@@ -495,7 +490,7 @@ MoveSearchResultTrio get_best_move(int *immut_board, bool white_mov_flg, bool pr
 
                         // Hybrid evaluation:
                         {
-                            hybrid_eval = model_eval + (-1.0f * get_adj_chess_tanh(minimax_eval.eval));
+                            hybrid_eval = model_eval + (-1.0f * activate_minimax_eval(minimax_eval.eval));
                         }
 
                         if (print_flg)
@@ -666,7 +661,7 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
 
             change_board_w_mov(board, mov, white_mov_flg);
             white_mov_flg = !white_mov_flg;
-            print_board(board);
+            print_flipped_board(board);
         }
 
         printf("move\tmodel\t\tminimax\t\tpruned\n");
@@ -729,11 +724,11 @@ int main(int argc, char **argv)
 {
     srand(time(NULL));
 
-    dump_pgn("TEST");
+    dump_pgn("Carlsen");
 
-    train_chess("TEST");
+    train_chess("Carlsen");
 
-    //play_chess("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn", true, 4, true);
+    //play_chess("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn", true, 3, true);
 
     return 0;
 }
