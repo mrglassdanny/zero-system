@@ -1363,12 +1363,10 @@ void DropoutLayer::evaluate(Tensor *nxt_n, bool train_flg)
 Tensor *DropoutLayer::derive(Tensor *dc)
 {
     {
-        {
-            int threads_per_block = CUDA_THREADS_PER_BLOCK;
-            int num_blocks = (this->n->get_cnt() / threads_per_block) + 1;
-            k_derive_dropout<<<num_blocks, threads_per_block>>>(dc->get_arr(), this->dropout_mask->get_arr(),
-                                                                this->n->get_cnt(), this->dropout_rate);
-        }
+        int threads_per_block = CUDA_THREADS_PER_BLOCK;
+        int num_blocks = (this->n->get_cnt() / threads_per_block) + 1;
+        k_derive_dropout<<<num_blocks, threads_per_block>>>(dc->get_arr(), this->dropout_mask->get_arr(),
+                                                            this->n->get_cnt(), this->dropout_rate);
     }
 
     return dc;

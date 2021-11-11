@@ -12,7 +12,7 @@ namespace zero
     {
         class Model
         {
-        private:
+        protected:
             std::vector<Layer *> layers;
             CostFunction cost_fn;
             float learning_rate;
