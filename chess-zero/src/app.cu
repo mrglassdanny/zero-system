@@ -77,30 +77,30 @@ void dump_pgn(const char *pgn_name)
                     // Make move:
                     ChessMove gm_chess_move = change_board_w_mov(board, pl->arr[mov_idx], white_mov_flg);
 
-                    // // Pre-move board + move (src & dst indexes):
-                    // {
-                    //     float flt_src_idx = (float)gm_chess_move.src_idx;
-                    //     Tensor *src = Tensor::one_hot_encode(Device::Cpu, 1, CHESS_BOARD_LEN, &flt_src_idx);
-                    //     float flt_dst_idx = (float)gm_chess_move.dst_idx;
-                    //     Tensor *dst = Tensor::one_hot_encode(Device::Cpu, 1, CHESS_BOARD_LEN, &flt_dst_idx);
-                    //     memcpy(flt_one_hot_board_w_move, flt_premov_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-                    //     memcpy(&flt_one_hot_board_w_move[CHESS_ONE_HOT_ENCODED_BOARD_LEN], src->get_arr(), sizeof(float) * CHESS_BOARD_LEN);
-                    //     memcpy(&flt_one_hot_board_w_move[CHESS_ONE_HOT_ENCODED_BOARD_LEN + CHESS_BOARD_LEN], dst->get_arr(), sizeof(float) * CHESS_BOARD_LEN);
-                    //     delete src;
-                    //     delete dst;
-                    //     fwrite(flt_one_hot_board_w_move, sizeof(float) * (CHESS_ONE_HOT_ENCODED_BOARD_LEN + (CHESS_BOARD_LEN * 2)), 1, boards_file);
-                    // }
-
-                    // Pre-move board + post-move board stacked:
+                    // Pre-move board + move (src & dst indexes):
                     {
-                        // Post-move encode:
-                        one_hot_encode_board(board, flt_postmov_one_hot_board);
-
-                        // Stack pre-move and post-move boards then write:
-                        memcpy(flt_stacked_one_hot_board, flt_premov_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-                        memcpy(&flt_stacked_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], flt_postmov_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-                        fwrite(flt_stacked_one_hot_board, sizeof(float) * (CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2), 1, boards_file);
+                        float flt_src_idx = (float)gm_chess_move.src_idx;
+                        Tensor *src = Tensor::one_hot_encode(Device::Cpu, 1, CHESS_BOARD_LEN, &flt_src_idx);
+                        float flt_dst_idx = (float)gm_chess_move.dst_idx;
+                        Tensor *dst = Tensor::one_hot_encode(Device::Cpu, 1, CHESS_BOARD_LEN, &flt_dst_idx);
+                        memcpy(flt_one_hot_board_w_move, flt_premov_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
+                        memcpy(&flt_one_hot_board_w_move[CHESS_ONE_HOT_ENCODED_BOARD_LEN], src->get_arr(), sizeof(float) * CHESS_BOARD_LEN);
+                        memcpy(&flt_one_hot_board_w_move[CHESS_ONE_HOT_ENCODED_BOARD_LEN + CHESS_BOARD_LEN], dst->get_arr(), sizeof(float) * CHESS_BOARD_LEN);
+                        delete src;
+                        delete dst;
+                        fwrite(flt_one_hot_board_w_move, sizeof(float) * (CHESS_ONE_HOT_ENCODED_BOARD_LEN + (CHESS_BOARD_LEN * 2)), 1, boards_file);
                     }
+
+                    // // Pre-move board + post-move board stacked:
+                    // {
+                    //     // Post-move encode:
+                    //     one_hot_encode_board(board, flt_postmov_one_hot_board);
+
+                    //     // Stack pre-move and post-move boards then write:
+                    //     memcpy(flt_stacked_one_hot_board, flt_premov_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
+                    //     memcpy(&flt_stacked_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], flt_postmov_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
+                    //     fwrite(flt_stacked_one_hot_board, sizeof(float) * (CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2), 1, boards_file);
+                    // }
 
                     // Write label:
                     lbl = 1.0f;
@@ -115,32 +115,33 @@ void dump_pgn(const char *pgn_name)
                         {
                             // Random move:
                             {
-                                // // Pre-move board + move (src & dst indexes):
-                                // {
-                                //     float flt_src_idx = (float)rand_chess_move.src_idx;
-                                //     Tensor *src = Tensor::one_hot_encode(Device::Cpu, 1, CHESS_BOARD_LEN, &flt_src_idx);
-                                //     float flt_dst_idx = (float)rand_chess_move.dst_idx;
-                                //     Tensor *dst = Tensor::one_hot_encode(Device::Cpu, 1, CHESS_BOARD_LEN, &flt_dst_idx);
-                                //     memcpy(flt_one_hot_board_w_move, flt_premov_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-                                //     memcpy(&flt_one_hot_board_w_move[CHESS_ONE_HOT_ENCODED_BOARD_LEN], src->get_arr(), sizeof(float) * CHESS_BOARD_LEN);
-                                //     memcpy(&flt_one_hot_board_w_move[CHESS_ONE_HOT_ENCODED_BOARD_LEN + CHESS_BOARD_LEN], dst->get_arr(), sizeof(float) * CHESS_BOARD_LEN);
-                                //     delete src;
-                                //     delete dst;
-                                //     fwrite(flt_one_hot_board_w_move, sizeof(float) * (CHESS_ONE_HOT_ENCODED_BOARD_LEN + (CHESS_BOARD_LEN * 2)), 1, boards_file);
-                                // }
-
-                                // Pre-move board + post-move board stacked:
+                                // Pre-move board + move (src & dst indexes):
                                 {
-                                    simulate_board_change_w_srcdst_idx(cpy_board, rand_chess_move.src_idx, rand_chess_move.dst_idx, sim_board);
-
-                                    // Post-move encode:
-                                    one_hot_encode_board(sim_board, flt_postmov_one_hot_board);
-
-                                    // Stack pre-move and post-move boards then write:
-                                    memcpy(flt_stacked_one_hot_board, flt_premov_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-                                    memcpy(&flt_stacked_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], flt_postmov_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-                                    fwrite(flt_stacked_one_hot_board, sizeof(float) * (CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2), 1, boards_file);
+                                    float flt_src_idx = (float)rand_chess_move.src_idx;
+                                    Tensor *src = Tensor::one_hot_encode(Device::Cpu, 1, CHESS_BOARD_LEN, &flt_src_idx);
+                                    float flt_dst_idx = (float)rand_chess_move.dst_idx;
+                                    Tensor *dst = Tensor::one_hot_encode(Device::Cpu, 1, CHESS_BOARD_LEN, &flt_dst_idx);
+                                    memcpy(flt_one_hot_board_w_move, flt_premov_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
+                                    memcpy(&flt_one_hot_board_w_move[CHESS_ONE_HOT_ENCODED_BOARD_LEN], src->get_arr(), sizeof(float) * CHESS_BOARD_LEN);
+                                    memcpy(&flt_one_hot_board_w_move[CHESS_ONE_HOT_ENCODED_BOARD_LEN + CHESS_BOARD_LEN], dst->get_arr(), sizeof(float) * CHESS_BOARD_LEN);
+                                    delete src;
+                                    delete dst;
+                                    fwrite(flt_one_hot_board_w_move, sizeof(float) * (CHESS_ONE_HOT_ENCODED_BOARD_LEN + (CHESS_BOARD_LEN * 2)), 1, boards_file);
                                 }
+
+                                // // Pre-move board + post-move board stacked:
+                                // {
+                                //     // Simulate random move:
+                                //     simulate_board_change_w_srcdst_idx(cpy_board, rand_chess_move.src_idx, rand_chess_move.dst_idx, sim_board);
+
+                                //     // Post-move encode:
+                                //     one_hot_encode_board(sim_board, flt_postmov_one_hot_board);
+
+                                //     // Stack pre-move and post-move boards then write:
+                                //     memcpy(flt_stacked_one_hot_board, flt_premov_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
+                                //     memcpy(&flt_stacked_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], flt_postmov_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
+                                //     fwrite(flt_stacked_one_hot_board, sizeof(float) * (CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2), 1, boards_file);
+                                // }
 
                                 // Write label:
                                 lbl = 0.0f;
@@ -150,30 +151,30 @@ void dump_pgn(const char *pgn_name)
                             // GM move every other random move:
                             if (i % 2 == 0)
                             {
-                                // // Pre-move board + move (src & dst indexes):
-                                // {
-                                //     float flt_src_idx = (float)gm_chess_move.src_idx;
-                                //     Tensor *src = Tensor::one_hot_encode(Device::Cpu, 1, CHESS_BOARD_LEN, &flt_src_idx);
-                                //     float flt_dst_idx = (float)gm_chess_move.dst_idx;
-                                //     Tensor *dst = Tensor::one_hot_encode(Device::Cpu, 1, CHESS_BOARD_LEN, &flt_dst_idx);
-                                //     memcpy(flt_one_hot_board_w_move, flt_premov_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-                                //     memcpy(&flt_one_hot_board_w_move[CHESS_ONE_HOT_ENCODED_BOARD_LEN], src->get_arr(), sizeof(float) * CHESS_BOARD_LEN);
-                                //     memcpy(&flt_one_hot_board_w_move[CHESS_ONE_HOT_ENCODED_BOARD_LEN + CHESS_BOARD_LEN], dst->get_arr(), sizeof(float) * CHESS_BOARD_LEN);
-                                //     delete src;
-                                //     delete dst;
-                                //     fwrite(flt_one_hot_board_w_move, sizeof(float) * (CHESS_ONE_HOT_ENCODED_BOARD_LEN + (CHESS_BOARD_LEN * 2)), 1, boards_file);
-                                // }
-
-                                // Pre-move board + post-move board stacked:
+                                // Pre-move board + move (src & dst indexes):
                                 {
-                                    // Post-move encode:
-                                    one_hot_encode_board(board, flt_postmov_one_hot_board);
-
-                                    // Stack pre-move and post-move boards then write:
-                                    memcpy(flt_stacked_one_hot_board, flt_premov_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-                                    memcpy(&flt_stacked_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], flt_postmov_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-                                    fwrite(flt_stacked_one_hot_board, sizeof(float) * (CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2), 1, boards_file);
+                                    float flt_src_idx = (float)gm_chess_move.src_idx;
+                                    Tensor *src = Tensor::one_hot_encode(Device::Cpu, 1, CHESS_BOARD_LEN, &flt_src_idx);
+                                    float flt_dst_idx = (float)gm_chess_move.dst_idx;
+                                    Tensor *dst = Tensor::one_hot_encode(Device::Cpu, 1, CHESS_BOARD_LEN, &flt_dst_idx);
+                                    memcpy(flt_one_hot_board_w_move, flt_premov_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
+                                    memcpy(&flt_one_hot_board_w_move[CHESS_ONE_HOT_ENCODED_BOARD_LEN], src->get_arr(), sizeof(float) * CHESS_BOARD_LEN);
+                                    memcpy(&flt_one_hot_board_w_move[CHESS_ONE_HOT_ENCODED_BOARD_LEN + CHESS_BOARD_LEN], dst->get_arr(), sizeof(float) * CHESS_BOARD_LEN);
+                                    delete src;
+                                    delete dst;
+                                    fwrite(flt_one_hot_board_w_move, sizeof(float) * (CHESS_ONE_HOT_ENCODED_BOARD_LEN + (CHESS_BOARD_LEN * 2)), 1, boards_file);
                                 }
+
+                                // // Pre-move board + post-move board stacked:
+                                // {
+                                //     // Post-move encode:
+                                //     one_hot_encode_board(board, flt_postmov_one_hot_board);
+
+                                //     // Stack pre-move and post-move boards then write:
+                                //     memcpy(flt_stacked_one_hot_board, flt_premov_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
+                                //     memcpy(&flt_stacked_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], flt_postmov_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
+                                //     fwrite(flt_stacked_one_hot_board, sizeof(float) * (CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2), 1, boards_file);
+                                // }
 
                                 // Write label:
                                 lbl = 1.0f;
@@ -225,8 +226,9 @@ OnDiskSupervisor *get_chess_supervisor(const char *pgn_name)
     memset(label_name_buf, 0, 256);
     sprintf(label_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\%s.bl", pgn_name);
 
-    //std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 2, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
-    std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT * 2, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
+    std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 2, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
+    //std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT * 2, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
+    //std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
 
     OnDiskSupervisor *sup = new OnDiskSupervisor(0.90f, 0.10f, board_name_buf, label_name_buf, x_shape, 0);
 
@@ -242,7 +244,7 @@ void train_chess(const char *pgn_name)
     model->add_layer(new ConvolutionalLayer(sup->get_x_shape(), 64, 3, 3, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
-    model->add_layer(new LinearLayer(model->get_output_shape(), 1024, InitializationFunction::Xavier));
+    model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 64, 3, 3, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), 256, InitializationFunction::Xavier));
