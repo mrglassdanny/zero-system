@@ -48,7 +48,7 @@ struct ChessMove
     int dst_idx;
 };
 
-struct MinimaxEvaluation
+struct MinimaxResult
 {
     float eval;
     bool prune_flg;
@@ -142,6 +142,6 @@ void reverse_one_hot_encode_board(float *one_hot_board, int *out);
 
 float eval_board(int *board);
 
-MinimaxEvaluation get_minimax_eval(int *board, bool white_mov_flg, bool cur_white_mov_flg, int max_depth, int cur_depth, float cur_best_eval);
+MinimaxResult get_minimax(int *board, bool white_mov_flg, bool cur_white_mov_flg, int max_depth, int cur_depth, float best_minimax_eval);
 
 float activate_minimax_eval(float val);

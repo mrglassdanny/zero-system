@@ -2882,33 +2882,31 @@ float eval_board(int *board)
     return (eval * 0.90f) + (influence_eval * 0.10f);
 }
 
-MinimaxEvaluation get_minimax_eval(int *board, bool white_mov_flg, bool cur_white_mov_flg, int max_depth, int cur_depth, float cur_best_eval)
+MinimaxResult get_minimax(int *board, bool white_mov_flg, bool cur_white_mov_flg, int max_depth, int cur_depth, float best_minimax_eval)
 {
-    MinimaxEvaluation minimax_eval;
+    MinimaxResult minimax_res;
 
     if (is_in_checkmate(board, !white_mov_flg))
     {
         if (white_mov_flg)
         {
-            minimax_eval.eval = 100.0f;
-            minimax_eval.prune_flg = false;
-            return minimax_eval;
+            minimax_res.eval = 100.0f;
+            minimax_res.prune_flg = false;
+            return minimax_res;
         }
         else
         {
-            minimax_eval.eval = -100.0f;
-            minimax_eval.prune_flg = false;
-            return minimax_eval;
+            minimax_res.eval = -100.0f;
+            minimax_res.prune_flg = false;
+            return minimax_res;
         }
     }
 
     if (cur_depth == max_depth)
     {
-        float eval = eval_board(board);
-        minimax_eval.eval = eval;
-
-        minimax_eval.prune_flg = false;
-        return minimax_eval;
+        minimax_res.eval = eval_board(board);
+        minimax_res.prune_flg = false;
+        return minimax_res;
     }
 
     int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
@@ -2935,21 +2933,22 @@ MinimaxEvaluation get_minimax_eval(int *board, bool white_mov_flg, bool cur_whit
 
                     simulate_board_change_w_srcdst_idx(board, piece_idx, legal_moves[mov_idx], sim_board);
 
-                    MinimaxEvaluation w_minimax_eval = get_minimax_eval(sim_board, white_mov_flg, !cur_white_mov_flg, max_depth, cur_depth + 1, cur_best_eval);
+                    MinimaxResult w_minimax_res = get_minimax(sim_board, white_mov_flg, !cur_white_mov_flg, max_depth, cur_depth + 1, best_minimax_eval);
 
+                    // If current depth is 1, we know that we are evaluating from black's point of view.
                     if (cur_depth == 1)
                     {
-                        if (w_minimax_eval.eval > cur_best_eval)
+                        if (w_minimax_res.eval >= best_minimax_eval)
                         {
-                            minimax_eval.eval = w_minimax_eval.eval;
-                            minimax_eval.prune_flg = true;
-                            return minimax_eval;
+                            minimax_res.eval = w_minimax_res.eval;
+                            minimax_res.prune_flg = true;
+                            return minimax_res;
                         }
                     }
 
-                    if (w_minimax_eval.eval > max)
+                    if (w_minimax_res.eval > max)
                     {
-                        max = w_minimax_eval.eval;
+                        max = w_minimax_res.eval;
                     }
                 }
             }
@@ -2972,21 +2971,22 @@ MinimaxEvaluation get_minimax_eval(int *board, bool white_mov_flg, bool cur_whit
 
                     simulate_board_change_w_srcdst_idx(board, piece_idx, legal_moves[mov_idx], sim_board);
 
-                    MinimaxEvaluation b_minimax_eval = get_minimax_eval(sim_board, white_mov_flg, !cur_white_mov_flg, max_depth, cur_depth + 1, cur_best_eval);
+                    MinimaxResult b_minimax_res = get_minimax(sim_board, white_mov_flg, !cur_white_mov_flg, max_depth, cur_depth + 1, best_minimax_eval);
 
+                    // If current depth is 1, we know that we are evaluating from white's point of view.
                     if (cur_depth == 1)
                     {
-                        if (b_minimax_eval.eval < cur_best_eval)
+                        if (b_minimax_res.eval <= best_minimax_eval)
                         {
-                            minimax_eval.eval = b_minimax_eval.eval;
-                            minimax_eval.prune_flg = true;
-                            return minimax_eval;
+                            minimax_res.eval = b_minimax_res.eval;
+                            minimax_res.prune_flg = true;
+                            return minimax_res;
                         }
                     }
 
-                    if (b_minimax_eval.eval < min)
+                    if (b_minimax_res.eval < min)
                     {
-                        min = b_minimax_eval.eval;
+                        min = b_minimax_res.eval;
                     }
                 }
             }
@@ -2995,15 +2995,15 @@ MinimaxEvaluation get_minimax_eval(int *board, bool white_mov_flg, bool cur_whit
 
     if (cur_white_mov_flg)
     {
-        minimax_eval.eval = max;
+        minimax_res.eval = max;
     }
     else
     {
-        minimax_eval.eval = min;
+        minimax_res.eval = min;
     }
 
-    minimax_eval.prune_flg = false;
-    return minimax_eval;
+    minimax_res.prune_flg = false;
+    return minimax_res;
 }
 
 float activate_minimax_eval(float val)
