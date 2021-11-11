@@ -107,7 +107,7 @@ void dump_pgn(const char *pgn_name)
                     fwrite(&lbl, sizeof(float), 1, labels_file);
 
                     // Random moves:
-                    for (int i = 0; i < 3; i++)
+                    for (int i = 0; i < 5; i++)
                     {
                         ChessMove rand_chess_move = get_random_move(cpy_board, white_mov_flg, board);
 
@@ -147,7 +147,8 @@ void dump_pgn(const char *pgn_name)
                                 fwrite(&lbl, sizeof(float), 1, labels_file);
                             }
 
-                            // GM move:
+                            // GM move every other random move:
+                            if (i % 2 == 0)
                             {
                                 // Pre-move board + move (src & dst indexes):
                                 {
@@ -727,11 +728,11 @@ int main(int argc, char **argv)
 {
     srand(time(NULL));
 
-    dump_pgn("Carlsen");
+    //dump_pgn("Carlsen");
 
-    train_chess("Carlsen");
+    //train_chess("Carlsen");
 
-    //play_chess("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn", true, 3, true);
+    play_chess("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn", true, 3, true);
 
     return 0;
 }
