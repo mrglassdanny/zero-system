@@ -284,7 +284,7 @@ MoveSearchResultTrio get_best_move(int *immut_board, bool white_mov_flg, bool pr
     float model_eval_tiebreaker = -1.0f;
 
     float best_minimax_eval;
-    MinimaxEvaluation minimax_eval;
+    MinimaxResult minimax_res;
     float minimax_eval_tiebreaker = -1.0f;
     if (white_mov_flg)
     {
@@ -370,24 +370,24 @@ MoveSearchResultTrio get_best_move(int *immut_board, bool white_mov_flg, bool pr
 
                         // Minimax evaluation:
                         {
-                            minimax_eval = get_minimax_eval(sim_board, white_mov_flg, !white_mov_flg, depth, 1, best_minimax_eval);
+                            minimax_res = get_minimax(sim_board, white_mov_flg, !white_mov_flg, depth, 1, best_minimax_eval);
                         }
 
                         // Hybrid evaluation:
                         {
-                            hybrid_eval = model_eval + activate_minimax_eval(minimax_eval.eval);
+                            hybrid_eval = model_eval + activate_minimax_eval(minimax_res.eval);
                         }
 
                         if (print_flg)
                         {
-                            printf("%s\t%f\t%f\t%d\n", mov, model_eval, minimax_eval.eval, minimax_eval.prune_flg);
+                            printf("%s\t%f\t%f\t%d\n", mov, model_eval, minimax_res.eval, minimax_res.prune_flg);
                         }
 
                         if (model_eval == best_model_eval)
                         {
-                            if (minimax_eval.eval > minimax_eval_tiebreaker)
+                            if (minimax_res.eval > minimax_eval_tiebreaker)
                             {
-                                minimax_eval_tiebreaker = minimax_eval.eval;
+                                minimax_eval_tiebreaker = minimax_res.eval;
                                 memcpy(model_mov, mov, CHESS_MAX_MOVE_LEN);
                             }
                         }
@@ -395,11 +395,11 @@ MoveSearchResultTrio get_best_move(int *immut_board, bool white_mov_flg, bool pr
                         if (model_eval > best_model_eval)
                         {
                             best_model_eval = model_eval;
-                            minimax_eval_tiebreaker = minimax_eval.eval;
+                            minimax_eval_tiebreaker = minimax_res.eval;
                             memcpy(model_mov, mov, CHESS_MAX_MOVE_LEN);
                         }
 
-                        if (minimax_eval.eval == best_minimax_eval)
+                        if (minimax_res.eval == best_minimax_eval)
                         {
                             if (model_eval > model_eval_tiebreaker)
                             {
@@ -408,9 +408,9 @@ MoveSearchResultTrio get_best_move(int *immut_board, bool white_mov_flg, bool pr
                             }
                         }
 
-                        if (minimax_eval.eval > best_minimax_eval)
+                        if (minimax_res.eval > best_minimax_eval)
                         {
-                            best_minimax_eval = minimax_eval.eval;
+                            best_minimax_eval = minimax_res.eval;
                             model_eval_tiebreaker = model_eval;
                             memcpy(minimax_mov, mov, CHESS_MAX_MOVE_LEN);
                         }
@@ -419,7 +419,7 @@ MoveSearchResultTrio get_best_move(int *immut_board, bool white_mov_flg, bool pr
                         {
                             best_hybrid_eval = hybrid_eval;
                             hybrid_model_eval = model_eval;
-                            hybrid_minimax_eval = minimax_eval.eval;
+                            hybrid_minimax_eval = minimax_res.eval;
                             memcpy(hybrid_mov, mov, CHESS_MAX_MOVE_LEN);
                         }
                     }
@@ -489,24 +489,24 @@ MoveSearchResultTrio get_best_move(int *immut_board, bool white_mov_flg, bool pr
 
                         // Minimax evaluation:
                         {
-                            minimax_eval = get_minimax_eval(sim_board, white_mov_flg, !white_mov_flg, depth, 1, best_minimax_eval);
+                            minimax_res = get_minimax(sim_board, white_mov_flg, !white_mov_flg, depth, 1, best_minimax_eval);
                         }
 
                         // Hybrid evaluation:
                         {
-                            hybrid_eval = model_eval + (-1.0f * activate_minimax_eval(minimax_eval.eval));
+                            hybrid_eval = model_eval + (-1.0f * activate_minimax_eval(minimax_res.eval));
                         }
 
                         if (print_flg)
                         {
-                            printf("%s\t%f\t%f\t%d\n", mov, model_eval, minimax_eval.eval, minimax_eval.prune_flg);
+                            printf("%s\t%f\t%f\t%d\n", mov, model_eval, minimax_res.eval, minimax_res.prune_flg);
                         }
 
                         if (model_eval == best_model_eval)
                         {
-                            if (minimax_eval.eval < minimax_eval_tiebreaker)
+                            if (minimax_res.eval < minimax_eval_tiebreaker)
                             {
-                                minimax_eval_tiebreaker = minimax_eval.eval;
+                                minimax_eval_tiebreaker = minimax_res.eval;
                                 memcpy(model_mov, mov, CHESS_MAX_MOVE_LEN);
                             }
                         }
@@ -514,11 +514,11 @@ MoveSearchResultTrio get_best_move(int *immut_board, bool white_mov_flg, bool pr
                         if (model_eval > best_model_eval)
                         {
                             best_model_eval = model_eval;
-                            minimax_eval_tiebreaker = minimax_eval.eval;
+                            minimax_eval_tiebreaker = minimax_res.eval;
                             memcpy(model_mov, mov, CHESS_MAX_MOVE_LEN);
                         }
 
-                        if (minimax_eval.eval == best_minimax_eval)
+                        if (minimax_res.eval == best_minimax_eval)
                         {
                             if (model_eval > model_eval_tiebreaker)
                             {
@@ -527,9 +527,9 @@ MoveSearchResultTrio get_best_move(int *immut_board, bool white_mov_flg, bool pr
                             }
                         }
 
-                        if (minimax_eval.eval < best_minimax_eval)
+                        if (minimax_res.eval < best_minimax_eval)
                         {
-                            best_minimax_eval = minimax_eval.eval;
+                            best_minimax_eval = minimax_res.eval;
                             model_eval_tiebreaker = model_eval;
                             memcpy(minimax_mov, mov, CHESS_MAX_MOVE_LEN);
                         }
@@ -538,7 +538,7 @@ MoveSearchResultTrio get_best_move(int *immut_board, bool white_mov_flg, bool pr
                         {
                             best_hybrid_eval = hybrid_eval;
                             hybrid_model_eval = model_eval;
-                            hybrid_minimax_eval = minimax_eval.eval;
+                            hybrid_minimax_eval = minimax_res.eval;
                             memcpy(hybrid_mov, mov, CHESS_MAX_MOVE_LEN);
                         }
                     }
