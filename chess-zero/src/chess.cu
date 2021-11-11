@@ -2859,7 +2859,7 @@ void reverse_one_hot_encode_board(float *one_hot_board, int *out)
 
 float eval_board(int *board)
 {
-    float eval = 0.0f;
+    float material_eval = 0.0f;
     float flt_board[CHESS_BOARD_LEN];
     board_to_float(board, flt_board, false);
 
@@ -2871,7 +2871,7 @@ float eval_board(int *board)
 
     for (int i = 0; i < CHESS_BOARD_LEN; i++)
     {
-        eval += flt_board[i];
+        material_eval += flt_board[i];
     }
 
     for (int i = 0; i < CHESS_BOARD_LEN; i++)
@@ -2879,7 +2879,7 @@ float eval_board(int *board)
         influence_eval += flt_influence_board[i];
     }
 
-    return (eval * 0.90f) + (influence_eval * 0.10f);
+    return (material_eval * 0.90f) + (influence_eval * 0.10f);
 }
 
 MinimaxResult get_minimax(int *board, bool white_mov_flg, bool cur_white_mov_flg, int max_depth, int cur_depth, float best_minimax_eval)
