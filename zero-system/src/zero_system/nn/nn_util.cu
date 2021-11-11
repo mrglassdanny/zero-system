@@ -53,15 +53,32 @@ void Report::update_correct_cnt(Tensor *n, Tensor *y)
         float y_val = y->get_val(0);
         float n_val = n->get_val(0);
 
-        float lower = y_val < n_val ? y_val : n_val;
-        float upper = y_val < n_val ? n_val : y_val;
+        // TODO
 
-        float prcnt = 1.0f - (lower / upper);
+        // float lower = y_val < n_val ? y_val : n_val;
+        // float upper = y_val < n_val ? n_val : y_val;
 
-        // 10% is our number.
-        if (prcnt <= 0.10f)
+        // float prcnt = 1.0f - (lower / upper);
+
+        // // 10% is our number.
+        // if (prcnt <= 0.10f)
+        // {
+        //     this->correct_cnt++;
+        // }
+
+        if (y_val == 0.0f)
         {
-            this->correct_cnt++;
+            if (n_val == 0.0f)
+            {
+                this->correct_cnt++;
+            }
+        }
+        else
+        {
+            if (n_val > 0.0f)
+            {
+                this->correct_cnt++;
+            }
         }
     }
 }
