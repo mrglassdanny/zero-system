@@ -112,11 +112,11 @@ void get_move_legality_mask(int *board, int piece_idx, float *out);
 
 ChessMove get_random_move(int *board, bool white_mov_flg, int *cmp_board);
 
-void simulate_board_change_w_srcdst_idx(int *board, int src_idx, int dst_idx, int *out);
+ChessMove change_board_w_mov(int *board, const char *mov, bool white_mov_flg);
 
 void translate_srcdst_idx_to_mov(int *board, int src_idx, int dst_idx, char *out);
 
-ChessMove change_board_w_mov(int *board, const char *mov, bool white_mov_flg);
+void simulate_board_change_w_srcdst_idx(int *board, int src_idx, int dst_idx, int *out);
 
 int boardcmp(int *a, int *b);
 

@@ -1949,69 +1949,6 @@ ChessMove get_random_move(int *board, bool white_mov_flg, int *cmp_board)
     return src_dst_idx;
 }
 
-void simulate_board_change_w_srcdst_idx(int *board, int src_idx, int dst_idx, int *out)
-{
-    copy_board(board, out);
-    out[dst_idx] = out[src_idx];
-    out[src_idx] = ChessPiece::Empty;
-}
-
-void translate_srcdst_idx_to_mov(int *board, int src_idx, int dst_idx, char *out)
-{
-    memset(out, 0, CHESS_MAX_MOVE_LEN);
-
-    ChessPiece piece = (ChessPiece)board[src_idx];
-    char piece_id = get_char_fr_piece((ChessPiece)board[src_idx]);
-    char src_col = get_col_fr_idx(src_idx);
-    int src_row = get_row_fr_idx(src_idx);
-    char dst_col = get_col_fr_idx(dst_idx);
-    int dst_row = get_row_fr_idx(dst_idx);
-
-    // Check for castle.
-    if (piece == ChessPiece::WhiteKing || piece == ChessPiece::BlackKing)
-    {
-        int src_adj_col = get_adj_col_fr_col(src_col);
-        int src_adj_row = get_adj_row_fr_row(src_row);
-        int dst_adj_col = get_adj_col_fr_col(dst_col);
-        int dst_adj_row = get_adj_row_fr_row(dst_row);
-        if ((src_adj_col - dst_adj_col) == -2)
-        {
-            memcpy(out, "O-O", 3);
-            return;
-        }
-        else if ((src_adj_col - dst_adj_col) == 2)
-        {
-            memcpy(out, "O-O-O", 5);
-            return;
-        }
-    }
-
-    // Example format going forward: piece id|src col|src row|dst col|dst row|promo (or space)|promo piece id (or space)
-    // ^always 7 chars
-
-    int move_ctr = 0;
-
-    out[move_ctr++] = piece_id;
-
-    out[move_ctr++] = src_col;
-    out[move_ctr++] = (char)(src_row + '0');
-
-    out[move_ctr++] = dst_col;
-    out[move_ctr++] = (char)(dst_row + '0');
-
-    // Check for pawn promotion. If none, set last 2 chars to ' '.
-    if ((piece == ChessPiece::WhitePawn && dst_row == 8) || (piece == ChessPiece::BlackPawn && dst_row == 1))
-    {
-        out[move_ctr++] = '=';
-        out[move_ctr++] = 'Q';
-    }
-    else
-    {
-        out[move_ctr++] = ' ';
-        out[move_ctr++] = ' ';
-    }
-}
-
 ChessMove change_board_w_mov(int *board, const char *immut_mov, bool white_mov_flg)
 {
     char mut_mov[CHESS_MAX_MOVE_LEN];
@@ -2388,6 +2325,82 @@ ChessMove change_board_w_mov(int *board, const char *immut_mov, bool white_mov_f
     chess_move.src_idx = src_idx;
     chess_move.dst_idx = dst_idx;
     return chess_move;
+}
+
+void translate_srcdst_idx_to_mov(int *board, int src_idx, int dst_idx, char *out)
+{
+    memset(out, 0, CHESS_MAX_MOVE_LEN);
+
+    ChessPiece piece = (ChessPiece)board[src_idx];
+    char piece_id = get_char_fr_piece((ChessPiece)board[src_idx]);
+    char src_col = get_col_fr_idx(src_idx);
+    int src_row = get_row_fr_idx(src_idx);
+    char dst_col = get_col_fr_idx(dst_idx);
+    int dst_row = get_row_fr_idx(dst_idx);
+
+    // Check for castle.
+    if (piece == ChessPiece::WhiteKing || piece == ChessPiece::BlackKing)
+    {
+        int src_adj_col = get_adj_col_fr_col(src_col);
+        int src_adj_row = get_adj_row_fr_row(src_row);
+        int dst_adj_col = get_adj_col_fr_col(dst_col);
+        int dst_adj_row = get_adj_row_fr_row(dst_row);
+        if ((src_adj_col - dst_adj_col) == -2)
+        {
+            memcpy(out, "O-O", 3);
+            return;
+        }
+        else if ((src_adj_col - dst_adj_col) == 2)
+        {
+            memcpy(out, "O-O-O", 5);
+            return;
+        }
+    }
+
+    // Example format going forward: piece id|src col|src row|dst col|dst row|promo (or space)|promo piece id (or space)
+    // ^always 7 chars
+
+    int move_ctr = 0;
+
+    out[move_ctr++] = piece_id;
+
+    out[move_ctr++] = src_col;
+    out[move_ctr++] = (char)(src_row + '0');
+
+    out[move_ctr++] = dst_col;
+    out[move_ctr++] = (char)(dst_row + '0');
+
+    // Check for pawn promotion. If none, set last 2 chars to ' '.
+    if ((piece == ChessPiece::WhitePawn && dst_row == 8) || (piece == ChessPiece::BlackPawn && dst_row == 1))
+    {
+        out[move_ctr++] = '=';
+        out[move_ctr++] = 'Q';
+    }
+    else
+    {
+        out[move_ctr++] = ' ';
+        out[move_ctr++] = ' ';
+    }
+}
+
+void simulate_board_change_w_srcdst_idx(int *board, int src_idx, int dst_idx, int *out)
+{
+    char mov[CHESS_MAX_MOVE_LEN];
+
+    copy_board(board, out);
+
+    translate_srcdst_idx_to_mov(out, src_idx, dst_idx, mov);
+
+    ChessPiece piece = (ChessPiece)out[src_idx];
+
+    if (is_piece_white(piece))
+    {
+        change_board_w_mov(out, mov, true);
+    }
+    else
+    {
+        change_board_w_mov(out, mov, false);
+    }
 }
 
 int boardcmp(int *a, int *b)

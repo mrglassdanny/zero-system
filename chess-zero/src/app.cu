@@ -239,24 +239,27 @@ void train_chess(const char *pgn_name)
 {
     OnDiskSupervisor *sup = get_chess_supervisor(pgn_name);
 
-    Model *model = new Model(CostFunction::MSE, 0.01f);
+    Model *model = new Model(CostFunction::MSE, 0.1f);
 
-    model->add_layer(new ConvolutionalLayer(sup->get_x_shape(), 64, 3, 3, InitializationFunction::Xavier));
+    model->add_layer(new ConvolutionalLayer(sup->get_x_shape(), 64, 1, 1, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
     model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 64, 3, 3, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
-    model->add_layer(new LinearLayer(model->get_output_shape(), 256, InitializationFunction::Xavier));
+    model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 64, 3, 3, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
-    model->add_layer(new LinearLayer(model->get_output_shape(), 32, InitializationFunction::Xavier));
+    model->add_layer(new LinearLayer(model->get_output_shape(), 512, InitializationFunction::Xavier));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
+
+    model->add_layer(new LinearLayer(model->get_output_shape(), 64, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), Tensor::get_cnt(sup->get_y_shape()), InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
-    model->train_and_test(sup, 100, 3, "C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.csv");
+    model->train_and_test(sup, 50, 5, "C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.csv");
 
     model->save("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn");
 
@@ -271,7 +274,7 @@ void train_chess_existing(const char *pgn_name, const char *model_path)
 
     Model *model = new Model(model_path);
 
-    model->train_and_test(sup, 100, 5, "C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess-existing.csv");
+    model->train_and_test(sup, 50, 5, "C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess-existing.csv");
 
     model->save(model_path);
 
@@ -748,6 +751,8 @@ int main(int argc, char **argv)
     dump_pgn("Capablanca");
 
     train_chess("Capablanca");
+
+    //train_chess_existing("Capablanca", "C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn");
 
     //play_chess("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn", true, 3, true);
 
