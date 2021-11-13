@@ -2075,8 +2075,9 @@ ChessMove change_board_w_mov(int *board, const char *immut_mov, bool white_mov_f
             {
                 // Minor/major piece move.
                 piece = get_piece_fr_char(mut_mov[0], white_mov_flg);
+                dst_col = mut_mov[1];
                 dst_row = get_row_fr_char(mut_mov[2]);
-                dst_idx = get_idx_fr_colrow(mut_mov[1], dst_row);
+                dst_idx = get_idx_fr_colrow(dst_col, dst_row);
 
                 int found = 0;
                 for (int i = 0; i < CHESS_BOARD_LEN; i++)
@@ -2135,19 +2136,36 @@ ChessMove change_board_w_mov(int *board, const char *immut_mov, bool white_mov_f
         if (isupper(mut_mov[0]) == 1)
         {
             // Disambiguated minor/major piece move.
+            dst_col = mut_mov[2];
             dst_row = get_row_fr_char(mut_mov[3]);
             piece = get_piece_fr_char(mut_mov[0], white_mov_flg);
-            src_col = mut_mov[1];
-            dst_idx = get_idx_fr_colrow(mut_mov[2], dst_row);
 
-            for (int i = 0; i < CHESS_BOARD_LEN; i++)
+            if (isdigit(mut_mov[1]))
             {
-                if (get_col_fr_idx(i) == src_col && board[i] == piece)
+                src_row = get_row_fr_char(mut_mov[1]);
+                src_col = dst_col;
+
+                dst_idx = get_idx_fr_colrow(dst_col, dst_row);
+
+                board[dst_idx] = piece;
+                src_idx = get_idx_fr_colrow(src_col, src_row);
+                board[src_idx] = ChessPiece::Empty;
+            }
+            else
+            {
+                src_col = mut_mov[1];
+
+                dst_idx = get_idx_fr_colrow(dst_col, dst_row);
+
+                for (int i = 0; i < CHESS_BOARD_LEN; i++)
                 {
-                    board[dst_idx] = piece;
-                    src_idx = i;
-                    board[src_idx] = ChessPiece::Empty;
-                    break;
+                    if (get_col_fr_idx(i) == src_col && board[i] == piece)
+                    {
+                        board[dst_idx] = piece;
+                        src_idx = i;
+                        board[src_idx] = ChessPiece::Empty;
+                        break;
+                    }
                 }
             }
         }
