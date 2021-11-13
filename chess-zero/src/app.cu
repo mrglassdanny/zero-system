@@ -54,6 +54,7 @@ void dump_pgn(const char *pgn_name)
 
     // Skip openings!
     int start_mov_idx = 10;
+    int rand_mov_cnt = 3;
 
     printf("Total Games: %d\n", pgn->cnt);
 
@@ -91,23 +92,12 @@ void dump_pgn(const char *pgn_name)
                         fwrite(flt_one_hot_board_w_move, sizeof(float) * (CHESS_ONE_HOT_ENCODED_BOARD_LEN + (CHESS_BOARD_LEN * 2)), 1, boards_file);
                     }
 
-                    // // Pre-move board + post-move board stacked:
-                    // {
-                    //     // Post-move encode:
-                    //     one_hot_encode_board(board, flt_postmov_one_hot_board);
-
-                    //     // Stack pre-move and post-move boards then write:
-                    //     memcpy(flt_stacked_one_hot_board, flt_premov_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-                    //     memcpy(&flt_stacked_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], flt_postmov_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-                    //     fwrite(flt_stacked_one_hot_board, sizeof(float) * (CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2), 1, boards_file);
-                    // }
-
                     // Write label:
                     lbl = 1.0f;
                     fwrite(&lbl, sizeof(float), 1, labels_file);
 
                     // Random moves:
-                    for (int i = 0; i < 5; i++)
+                    for (int i = 0; i < rand_mov_cnt; i++)
                     {
                         ChessMove rand_chess_move = get_random_move(cpy_board, white_mov_flg, board);
 
@@ -128,20 +118,6 @@ void dump_pgn(const char *pgn_name)
                                     delete dst;
                                     fwrite(flt_one_hot_board_w_move, sizeof(float) * (CHESS_ONE_HOT_ENCODED_BOARD_LEN + (CHESS_BOARD_LEN * 2)), 1, boards_file);
                                 }
-
-                                // // Pre-move board + post-move board stacked:
-                                // {
-                                //     // Simulate random move:
-                                //     simulate_board_change_w_srcdst_idx(cpy_board, rand_chess_move.src_idx, rand_chess_move.dst_idx, sim_board);
-
-                                //     // Post-move encode:
-                                //     one_hot_encode_board(sim_board, flt_postmov_one_hot_board);
-
-                                //     // Stack pre-move and post-move boards then write:
-                                //     memcpy(flt_stacked_one_hot_board, flt_premov_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-                                //     memcpy(&flt_stacked_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], flt_postmov_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-                                //     fwrite(flt_stacked_one_hot_board, sizeof(float) * (CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2), 1, boards_file);
-                                // }
 
                                 // Write label:
                                 lbl = 0.0f;
@@ -164,17 +140,6 @@ void dump_pgn(const char *pgn_name)
                                     delete dst;
                                     fwrite(flt_one_hot_board_w_move, sizeof(float) * (CHESS_ONE_HOT_ENCODED_BOARD_LEN + (CHESS_BOARD_LEN * 2)), 1, boards_file);
                                 }
-
-                                // // Pre-move board + post-move board stacked:
-                                // {
-                                //     // Post-move encode:
-                                //     one_hot_encode_board(board, flt_postmov_one_hot_board);
-
-                                //     // Stack pre-move and post-move boards then write:
-                                //     memcpy(flt_stacked_one_hot_board, flt_premov_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-                                //     memcpy(&flt_stacked_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], flt_postmov_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-                                //     fwrite(flt_stacked_one_hot_board, sizeof(float) * (CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2), 1, boards_file);
-                                // }
 
                                 // Write label:
                                 lbl = 1.0f;
@@ -227,8 +192,6 @@ OnDiskSupervisor *get_chess_supervisor(const char *pgn_name)
     sprintf(label_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\%s.bl", pgn_name);
 
     std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 2, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
-    //std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT * 2, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
-    //std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
 
     OnDiskSupervisor *sup = new OnDiskSupervisor(0.90f, 0.10f, board_name_buf, label_name_buf, x_shape, 0);
 
@@ -369,23 +332,6 @@ MoveSearchResultTrio get_best_move(int *immut_board, bool white_mov_flg, bool pr
                             model_eval = pred->get_val(0);
                             delete pred;
                             delete x;
-
-                            // // Pre-move board + post-move board stacked:
-
-                            // // Post-move encode.
-                            // one_hot_encode_board(sim_board, flt_postmov_one_hot_board);
-
-                            // // Stack pre-move and post-move boards then write.
-                            // memcpy(flt_stacked_one_hot_board, flt_premov_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-                            // memcpy(&flt_stacked_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], flt_postmov_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-
-                            // std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT * 2, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
-                            // Tensor *x = new Tensor(Device::Cpu, x_shape);
-                            // x->set_arr(flt_stacked_one_hot_board);
-                            // Tensor *pred = model->predict(x);
-                            // model_eval = pred->get_val(0);
-                            // delete pred;
-                            // delete x;
                         }
 
                         // Minimax evaluation:
@@ -488,23 +434,6 @@ MoveSearchResultTrio get_best_move(int *immut_board, bool white_mov_flg, bool pr
                             model_eval = pred->get_val(0);
                             delete pred;
                             delete x;
-
-                            // // Pre-move board + post-move board stacked:
-
-                            // // Post-move encode.
-                            // one_hot_encode_board(sim_board, flt_postmov_one_hot_board);
-
-                            // // Stack pre-move and post-move boards then write.
-                            // memcpy(flt_stacked_one_hot_board, flt_premov_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-                            // memcpy(&flt_stacked_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN], flt_postmov_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-
-                            // std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT * 2, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
-                            // Tensor *x = new Tensor(Device::Cpu, x_shape);
-                            // x->set_arr(flt_stacked_one_hot_board);
-                            // Tensor *pred = model->predict(x);
-                            // model_eval = pred->get_val(0);
-                            // delete pred;
-                            // delete x;
                         }
 
                         // Minimax evaluation:
@@ -748,9 +677,9 @@ int main(int argc, char **argv)
 {
     srand(time(NULL));
 
-    dump_pgn("Capablanca");
+    dump_pgn("ALL");
 
-    train_chess("Capablanca");
+    //train_chess("Capablanca");
 
     //train_chess_existing("Capablanca", "C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn");
 
