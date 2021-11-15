@@ -677,9 +677,9 @@ int main(int argc, char **argv)
 {
     srand(time(NULL));
 
-    dump_pgn("ALL");
+    dump_pgn("Capablanca");
 
-    //train_chess("Capablanca");
+    train_chess("Capablanca");
 
     //train_chess_existing("Capablanca", "C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn");
 
