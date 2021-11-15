@@ -1954,8 +1954,8 @@ ChessMove change_board_w_mov(int *board, const char *immut_mov, bool white_mov_f
     char mut_mov[CHESS_MAX_MOVE_LEN];
     memcpy(mut_mov, immut_mov, CHESS_MAX_MOVE_LEN);
 
-    int src_idx;
-    int dst_idx;
+    int src_idx = CHESS_INVALID_VALUE;
+    int dst_idx = CHESS_INVALID_VALUE;
     char src_col;
     char dst_col;
     int src_row;
@@ -2084,7 +2084,7 @@ ChessMove change_board_w_mov(int *board, const char *immut_mov, bool white_mov_f
                 {
                     if (board[i] == piece)
                     {
-                        get_legal_moves(board, i, legal_moves, false);
+                        get_legal_moves(board, i, legal_moves, true);
                         for (int j = 0; j < CHESS_MAX_LEGAL_MOVE_CNT; j++)
                         {
                             if (legal_moves[j] == dst_idx)
@@ -2111,20 +2111,41 @@ ChessMove change_board_w_mov(int *board, const char *immut_mov, bool white_mov_f
             {
                 // Disambiguated pawn move.
                 src_col = mut_mov[0];
+                dst_col = mut_mov[1];
                 dst_row = get_row_fr_char(mut_mov[2]);
-                dst_idx = get_idx_fr_colrow(mut_mov[1], dst_row);
+                dst_idx = get_idx_fr_colrow(dst_col, dst_row);
 
                 if (white_mov_flg)
                 {
                     piece = ChessPiece::WhitePawn;
                     src_idx = get_idx_fr_colrow(src_col, dst_row - 1);
                     board[src_idx] = ChessPiece::Empty;
+
+                    // Check if en passant:
+                    if ((ChessPiece)board[dst_idx] == ChessPiece::Empty)
+                    {
+                        int en_passant_pawn_idx = get_idx_fr_colrow(dst_col, dst_row - 1);
+                        if ((ChessPiece)board[en_passant_pawn_idx] == ChessPiece::BlackPawn)
+                        {
+                            board[en_passant_pawn_idx] = ChessPiece::Empty;
+                        }
+                    }
                 }
                 else
                 {
                     piece = ChessPiece::BlackPawn;
                     src_idx = get_idx_fr_colrow(src_col, dst_row + 1);
                     board[src_idx] = ChessPiece::Empty;
+
+                    // Check if en passant:
+                    if ((ChessPiece)board[dst_idx] == ChessPiece::Empty)
+                    {
+                        int en_passant_pawn_idx = get_idx_fr_colrow(dst_col, dst_row + 1);
+                        if ((ChessPiece)board[en_passant_pawn_idx] == ChessPiece::WhitePawn)
+                        {
+                            board[en_passant_pawn_idx] = ChessPiece::Empty;
+                        }
+                    }
                 }
 
                 board[dst_idx] = piece;
@@ -2143,13 +2164,19 @@ ChessMove change_board_w_mov(int *board, const char *immut_mov, bool white_mov_f
             if (isdigit(mut_mov[1]))
             {
                 src_row = get_row_fr_char(mut_mov[1]);
-                src_col = dst_col;
 
                 dst_idx = get_idx_fr_colrow(dst_col, dst_row);
 
-                board[dst_idx] = piece;
-                src_idx = get_idx_fr_colrow(src_col, src_row);
-                board[src_idx] = ChessPiece::Empty;
+                for (int i = 0; i < CHESS_BOARD_LEN; i++)
+                {
+                    if (get_row_fr_idx(i) == src_row && board[i] == piece)
+                    {
+                        board[dst_idx] = piece;
+                        src_idx = i;
+                        board[src_idx] = ChessPiece::Empty;
+                        break;
+                    }
+                }
             }
             else
             {
@@ -2194,7 +2221,7 @@ ChessMove change_board_w_mov(int *board, const char *immut_mov, bool white_mov_f
                 {
                     if (board[i] == piece)
                     {
-                        get_legal_moves(board, i, legal_moves, false);
+                        get_legal_moves(board, i, legal_moves, true);
                         for (int j = 0; j < CHESS_MAX_LEGAL_MOVE_CNT; j++)
                         {
                             if (legal_moves[j] == dst_idx)
@@ -2282,31 +2309,26 @@ ChessMove change_board_w_mov(int *board, const char *immut_mov, bool white_mov_f
                 if (mut_mov[3] == '=')
                 {
                     src_col = mut_mov[0];
+                    dst_col = mut_mov[1];
                     dst_row = get_row_fr_char(mut_mov[2]);
-                    dst_idx = get_idx_fr_colrow(mut_mov[1], dst_row);
-                    piece_char = mut_mov[4];
-                    piece = get_piece_fr_char(piece_char, white_mov_flg);
-                    ChessPiece promo_piece = piece;
+                    dst_idx = get_idx_fr_colrow(dst_col, dst_row);
+                    char promo_piece_char = mut_mov[4];
+                    ChessPiece promo_piece = get_piece_fr_char(promo_piece_char, white_mov_flg);
 
                     if (white_mov_flg)
                     {
+                        src_row = dst_row - 1;
                         piece = ChessPiece::WhitePawn;
                     }
                     else
                     {
+                        src_row = dst_row + 1;
                         piece = ChessPiece::BlackPawn;
                     }
 
-                    for (int i = 0; i < CHESS_BOARD_LEN; i++)
-                    {
-                        if (get_col_fr_idx(i) == src_col && board[i] == piece)
-                        {
-                            board[dst_idx] = promo_piece;
-                            src_idx = i;
-                            board[src_idx] = ChessPiece::Empty;
-                            break;
-                        }
-                    }
+                    src_idx = get_idx_fr_colrow(src_col, src_row);
+                    board[dst_idx] = promo_piece;
+                    board[src_idx] = ChessPiece::Empty;
                 }
             }
         }
