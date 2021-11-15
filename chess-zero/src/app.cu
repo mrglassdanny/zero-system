@@ -46,14 +46,12 @@ void dump_pgn(const char *pgn_name)
     int sim_board[CHESS_BOARD_LEN];
 
     float flt_premov_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
-    float flt_postmov_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
     float flt_one_hot_board_w_move[CHESS_ONE_HOT_ENCODED_BOARD_LEN + (CHESS_BOARD_LEN * 2)];
-    float flt_stacked_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2];
 
     float lbl;
 
     // Skip openings!
-    int start_mov_idx = 10;
+    int start_mov_idx = 8;
     int rand_mov_cnt = 3;
 
     printf("Total Games: %d\n", pgn->cnt);
@@ -202,21 +200,21 @@ void train_chess(const char *pgn_name)
 {
     OnDiskSupervisor *sup = get_chess_supervisor(pgn_name);
 
-    Model *model = new Model(CostFunction::MSE, 0.01f);
+    Model *model = new Model(CostFunction::MSE, 0.001f);
 
     model->add_layer(new ConvolutionalLayer(sup->get_x_shape(), 64, 1, 1, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
-    model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 64, 3, 3, InitializationFunction::Xavier));
+    model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 64, 8, 8, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
-    model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 64, 3, 3, InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
-
-    model->add_layer(new LinearLayer(model->get_output_shape(), 512, InitializationFunction::Xavier));
+    model->add_layer(new LinearLayer(model->get_output_shape(), 128, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), 64, InitializationFunction::Xavier));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
+
+    model->add_layer(new LinearLayer(model->get_output_shape(), 32, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), Tensor::get_cnt(sup->get_y_shape()), InitializationFunction::Xavier));
@@ -254,9 +252,7 @@ MoveSearchResultTrio get_best_move(int *immut_board, bool white_mov_flg, bool pr
     int sim_board[CHESS_BOARD_LEN];
 
     float flt_premov_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
-    float flt_postmov_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
     float flt_one_hot_board_w_move[CHESS_ONE_HOT_ENCODED_BOARD_LEN + (CHESS_BOARD_LEN * 2)];
-    float flt_stacked_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN * 2];
 
     char model_mov[CHESS_MAX_MOVE_LEN];
     char minimax_mov[CHESS_MAX_MOVE_LEN];
@@ -526,38 +522,38 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
 
     bool white_mov_flg = true;
 
-    // Go ahead and make opening moves since we do not train the model on openings.
-    {
-        change_board_w_mov(board, "d4", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
+    // // Go ahead and make opening moves since we do not train the model on openings.
+    // {
+    //     change_board_w_mov(board, "d4", white_mov_flg);
+    //     white_mov_flg = !white_mov_flg;
 
-        change_board_w_mov(board, "Nf6", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
+    //     change_board_w_mov(board, "Nf6", white_mov_flg);
+    //     white_mov_flg = !white_mov_flg;
 
-        change_board_w_mov(board, "c4", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
+    //     change_board_w_mov(board, "c4", white_mov_flg);
+    //     white_mov_flg = !white_mov_flg;
 
-        change_board_w_mov(board, "e6", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
+    //     change_board_w_mov(board, "e6", white_mov_flg);
+    //     white_mov_flg = !white_mov_flg;
 
-        change_board_w_mov(board, "Nc3", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
+    //     change_board_w_mov(board, "Nc3", white_mov_flg);
+    //     white_mov_flg = !white_mov_flg;
 
-        change_board_w_mov(board, "Bb4", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
+    //     change_board_w_mov(board, "Bb4", white_mov_flg);
+    //     white_mov_flg = !white_mov_flg;
 
-        change_board_w_mov(board, "Qc2", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
+    //     change_board_w_mov(board, "Qc2", white_mov_flg);
+    //     white_mov_flg = !white_mov_flg;
 
-        change_board_w_mov(board, "O-O", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
+    //     change_board_w_mov(board, "O-O", white_mov_flg);
+    //     white_mov_flg = !white_mov_flg;
 
-        change_board_w_mov(board, "a3", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
+    //     change_board_w_mov(board, "a3", white_mov_flg);
+    //     white_mov_flg = !white_mov_flg;
 
-        change_board_w_mov(board, "Bxc3+", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-    }
+    //     change_board_w_mov(board, "Bxc3+", white_mov_flg);
+    //     white_mov_flg = !white_mov_flg;
+    // }
 
     print_board(board);
 

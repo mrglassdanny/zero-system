@@ -545,6 +545,7 @@ void Model::train_and_test(Supervisor *supervisor, int train_batch_size, int tar
             {
                 if (_getch() == 'q')
                 {
+                    printf("Quitting...");
                     break;
                 }
             }
@@ -626,6 +627,7 @@ void Model::all(Supervisor *supervisor, int train_batch_size, int target_epoch, 
             {
                 if (_getch() == 'q')
                 {
+                    printf("Quitting...");
                     break;
                 }
             }
