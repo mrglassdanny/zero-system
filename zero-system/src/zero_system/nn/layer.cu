@@ -57,6 +57,16 @@ __device__ float d_derive_cosine(float val)
 
 // Kernel functions:
 
+__global__ void k_add_residual(float *n_arr, float res_sum, int n_cnt)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < n_cnt)
+    {
+        n_arr[tid] += res_sum;
+    }
+}
+
 __global__ void k_dot(float *n_arr, float *w_arr, float *nxt_n_arr, int n_cnt, int nxt_n_cnt)
 {
     __shared__ float temp[CUDA_THREADS_PER_BLOCK];
@@ -1083,9 +1093,7 @@ void LinearLayer::save(FILE *file_ptr)
 
 // ConvolutionalLayer functions:
 
-ConvolutionalLayer::ConvolutionalLayer(std::vector<int> n_shape,
-                                       int fltr_cnt, int w_row_cnt, int w_col_cnt,
-                                       InitializationFunction init_fn)
+ConvolutionalLayer::ConvolutionalLayer(std::vector<int> n_shape, int fltr_cnt, int w_row_cnt, int w_col_cnt, InitializationFunction init_fn)
     : LearnableLayer(n_shape)
 {
     int chan_cnt = n_shape[0];

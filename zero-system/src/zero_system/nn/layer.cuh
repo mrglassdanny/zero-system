@@ -81,9 +81,7 @@ namespace zero
         {
             // NOTE: we only support stride of 1!
         public:
-            ConvolutionalLayer(std::vector<int> n_shape,
-                               int fltr_cnt, int w_row_cnt, int w_col_cnt,
-                               InitializationFunction init_fn);
+            ConvolutionalLayer(std::vector<int> n_shape, int fltr_cnt, int w_row_cnt, int w_col_cnt, InitializationFunction init_fn);
             ConvolutionalLayer(FILE *file_ptr);
             ~ConvolutionalLayer();
 
