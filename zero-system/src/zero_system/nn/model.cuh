@@ -27,6 +27,7 @@ namespace zero
             void save(const char *path);
 
             void add_layer(Layer *lyr);
+            Layer *get_previous_layer(int back_cnt);
 
             std::vector<int> get_input_shape();
             std::vector<int> get_output_shape();

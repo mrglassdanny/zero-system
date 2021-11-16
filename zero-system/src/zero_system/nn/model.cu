@@ -196,6 +196,12 @@ void Model::add_layer(Layer *lyr)
     this->layers.push_back(lyr);
 }
 
+Layer *Model::get_previous_layer(int back_cnt)
+{
+    int lst_lyr_idx = this->layers.size() - 1;
+    return this->layers[lst_lyr_idx - back_cnt];
+}
+
 std::vector<int> Model::get_input_shape()
 {
     return this->layers[0]->get_input_shape();
