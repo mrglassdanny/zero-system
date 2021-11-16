@@ -486,6 +486,8 @@ Report Model::test(Batch *batch)
 
         rpt.update_correct_cnt(pred, y);
 
+        printf("PREDICTION: %f\tACTUAL: %f\n", pred->get_val(0), y->get_val(0));
+
         delete pred;
 
         // Convert back to CPU as to not overload GPU.
@@ -551,7 +553,7 @@ void Model::train_and_test(Supervisor *supervisor, int train_batch_size, int tar
             {
                 if (_getch() == 'q')
                 {
-                    printf("Quitting...");
+                    printf("Quitting...\n");
                     break;
                 }
             }
@@ -633,7 +635,7 @@ void Model::all(Supervisor *supervisor, int train_batch_size, int target_epoch, 
             {
                 if (_getch() == 'q')
                 {
-                    printf("Quitting...");
+                    printf("Quitting...\n");
                     break;
                 }
             }
