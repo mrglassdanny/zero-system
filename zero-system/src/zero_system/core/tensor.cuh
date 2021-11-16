@@ -84,6 +84,7 @@ namespace zero
 
             TensorTuple get_min();
             TensorTuple get_max();
+            float get_sum();
 
             void dump_to_csv(const char *csv_file_name);
         };

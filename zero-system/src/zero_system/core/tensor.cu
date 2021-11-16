@@ -699,6 +699,18 @@ TensorTuple Tensor::get_max()
     return tup;
 }
 
+float Tensor::get_sum()
+{
+    float sum = 0.0f;
+
+    for (int i = 0; i < this->get_cnt(); i++)
+    {
+        sum += this->get_val(i);
+    }
+
+    return sum;
+}
+
 void Tensor::dump_to_csv(const char *csv_file_name)
 {
     int dim_cnt = this->shape.size();
