@@ -1,8 +1,7 @@
 
 #include <iostream>
 
-#include <zero_system/nn/nn.cuh>
-#include <zero_system/nn/cnn.cuh>
+#include <zero_system/nn/model.cuh>
 
 using namespace zero::core;
 using namespace zero::nn;
@@ -13,24 +12,21 @@ int main(int argc, char **argv)
     Tensor *x = Tensor::from_csv("C:\\Users\\danie\\OneDrive\\Desktop\\palpck-x.csv");
     Tensor *y = Tensor::from_csv("C:\\Users\\danie\\OneDrive\\Desktop\\palpck-y.csv");
 
-    Supervisor *sup = new Supervisor(x->get_row_cnt(), x->get_col_cnt(), 0,
-                                     x->get_arr(Cpu), y->get_arr(Cpu), Cpu);
+    InMemorySupervisor *sup = new InMemorySupervisor(0.90f, 0.10f, x->get_cnt(), x->get_shape()[0],
+                                                     0, x->get_arr(), y->get_arr(), Device::Cpu);
 
-    NN *nn = new NN(MSE, 0.01f);
+    Model *model = new Model(CostFunction::MSE, 0.01f);
 
-    nn->add_layer(x->get_col_cnt());
-    nn->add_layer(18, ReLU);
-    nn->add_layer(12, ReLU);
-    nn->add_layer(6, ReLU);
-    nn->add_layer(y->get_col_cnt(), ReLU);
+    model->add_layer(new LinearLayer(x->get_shape(), 18, InitializationFunction::Xavier));
+    model->add_layer(new LinearLayer(model->get_output_shape(), 12, InitializationFunction::Xavier));
+    model->add_layer(new LinearLayer(model->get_output_shape(), 6, InitializationFunction::Xavier));
+    model->add_layer(new LinearLayer(model->get_output_shape(), y->get_shape()[0], InitializationFunction::Xavier));
 
-    nn->compile();
+    model->all(sup, 100, 1000, "C:\\Users\\danie\\OneDrive\\Desktop\\lm-zero-train.csv");
 
-    nn->all(sup, 100, 1000, "C:\\Users\\danie\\OneDrive\\Desktop\\lm-zero-train.csv");
+    model->save("C:\\Users\\danie\\OneDrive\\Desktop\\lm-zero.nn");
 
-    nn->save("C:\\Users\\danie\\OneDrive\\Desktop\\lm-zero.nn");
-
-    delete nn;
+    delete model;
     delete sup;
 
     delete x;
