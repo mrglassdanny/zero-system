@@ -486,8 +486,6 @@ Report Model::test(Batch *batch)
 
         rpt.update_correct_cnt(pred, y);
 
-        printf("PREDICTION: %f\tACTUAL: %f\n", pred->get_val(0), y->get_val(0));
-
         delete pred;
 
         // Convert back to CPU as to not overload GPU.

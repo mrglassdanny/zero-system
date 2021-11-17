@@ -2816,7 +2816,7 @@ float eval_board(int *board)
         influence_eval += flt_influence_board[i];
     }
 
-    return (material_eval * 0.90f) + (influence_eval * 0.10f);
+    return (material_eval * 1.00f) + (influence_eval * 0.05f);
 }
 
 MinimaxResult get_minimax(int *board, bool white_mov_flg, bool cur_white_mov_flg, int max_depth, int cur_depth, float best_minimax_eval)
