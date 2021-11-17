@@ -43,14 +43,14 @@ void dump_pgn(const char *pgn_name)
 
     int *board = init_board();
     int cpy_board[CHESS_BOARD_LEN];
+    int sim_board[CHESS_BOARD_LEN];
 
-    float flt_premov_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
-    float flt_one_hot_board_w_move[CHESS_ONE_HOT_ENCODED_BOARD_LEN + (CHESS_BOARD_LEN * 2)];
+    float flt_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
 
     float lbl;
 
     // Skip openings!
-    int start_mov_idx = 8;
+    int start_mov_idx = 10;
     int rand_mov_cnt = 3;
 
     printf("Total Games: %d\n", pgn->cnt);
@@ -59,7 +59,19 @@ void dump_pgn(const char *pgn_name)
     {
         PGNMoveList *pl = pgn->games[game_idx];
 
+        // Make sure we have a winner:
+        if (pl->white_won_flg || pl->black_won_flg)
         {
+            // Set label now that we know who won:
+            if (pl->white_won_flg)
+            {
+                lbl = 1.0f;
+            }
+            else
+            {
+                lbl = -1.0f;
+            }
+
             white_mov_flg = true;
 
             for (int mov_idx = 0; mov_idx < pl->cnt; mov_idx++)
@@ -69,83 +81,41 @@ void dump_pgn(const char *pgn_name)
                     // Copy pre-move board:
                     copy_board(board, cpy_board);
 
-                    // Pre-move encode:
-                    one_hot_encode_board(board, flt_premov_one_hot_board);
-
                     // Make move:
                     ChessMove gm_chess_move = change_board_w_mov(board, pl->arr[mov_idx], white_mov_flg);
 
-                    // Pre-move board + move (src & dst indexes):
-                    {
-                        float flt_src_idx = (float)gm_chess_move.src_idx;
-                        Tensor *src = Tensor::one_hot_encode(Device::Cpu, 1, CHESS_BOARD_LEN, &flt_src_idx);
-                        float flt_dst_idx = (float)gm_chess_move.dst_idx;
-                        Tensor *dst = Tensor::one_hot_encode(Device::Cpu, 1, CHESS_BOARD_LEN, &flt_dst_idx);
-                        memcpy(flt_one_hot_board_w_move, flt_premov_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-                        memcpy(&flt_one_hot_board_w_move[CHESS_ONE_HOT_ENCODED_BOARD_LEN], src->get_arr(), sizeof(float) * CHESS_BOARD_LEN);
-                        memcpy(&flt_one_hot_board_w_move[CHESS_ONE_HOT_ENCODED_BOARD_LEN + CHESS_BOARD_LEN], dst->get_arr(), sizeof(float) * CHESS_BOARD_LEN);
-                        delete src;
-                        delete dst;
-                        fwrite(flt_one_hot_board_w_move, sizeof(float) * (CHESS_ONE_HOT_ENCODED_BOARD_LEN + (CHESS_BOARD_LEN * 2)), 1, boards_file);
-                    }
+                    // Write board:
+                    one_hot_encode_board(board, flt_one_hot_board);
+                    fwrite(flt_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN, 1, boards_file);
 
                     // Write label:
-                    lbl = 1.0f;
                     fwrite(&lbl, sizeof(float), 1, labels_file);
 
                     // Random moves:
-                    for (int i = 0; i < rand_mov_cnt; i++)
+                    if ((pl->white_won_flg && !white_mov_flg) || (pl->black_won_flg && white_mov_flg))
                     {
-                        ChessMove rand_chess_move = get_random_move(cpy_board, white_mov_flg, board);
-
-                        if (rand_chess_move.src_idx != CHESS_INVALID_VALUE)
+                        for (int i = 0; i < rand_mov_cnt; i++)
                         {
-                            // Random move:
+                            ChessMove rand_chess_move = get_random_move(cpy_board, white_mov_flg, board);
+
+                            if (rand_chess_move.src_idx != CHESS_INVALID_VALUE)
                             {
-                                // Pre-move board + move (src & dst indexes):
+                                // Random move:
                                 {
-                                    float flt_src_idx = (float)rand_chess_move.src_idx;
-                                    Tensor *src = Tensor::one_hot_encode(Device::Cpu, 1, CHESS_BOARD_LEN, &flt_src_idx);
-                                    float flt_dst_idx = (float)rand_chess_move.dst_idx;
-                                    Tensor *dst = Tensor::one_hot_encode(Device::Cpu, 1, CHESS_BOARD_LEN, &flt_dst_idx);
-                                    memcpy(flt_one_hot_board_w_move, flt_premov_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-                                    memcpy(&flt_one_hot_board_w_move[CHESS_ONE_HOT_ENCODED_BOARD_LEN], src->get_arr(), sizeof(float) * CHESS_BOARD_LEN);
-                                    memcpy(&flt_one_hot_board_w_move[CHESS_ONE_HOT_ENCODED_BOARD_LEN + CHESS_BOARD_LEN], dst->get_arr(), sizeof(float) * CHESS_BOARD_LEN);
-                                    delete src;
-                                    delete dst;
-                                    fwrite(flt_one_hot_board_w_move, sizeof(float) * (CHESS_ONE_HOT_ENCODED_BOARD_LEN + (CHESS_BOARD_LEN * 2)), 1, boards_file);
+                                    simulate_board_change_w_srcdst_idx(cpy_board, rand_chess_move.src_idx, rand_chess_move.dst_idx, sim_board);
+
+                                    // Write board:
+                                    one_hot_encode_board(sim_board, flt_one_hot_board);
+                                    fwrite(flt_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN, 1, boards_file);
+
+                                    // Write label:
+                                    fwrite(&lbl, sizeof(float), 1, labels_file);
                                 }
-
-                                // Write label:
-                                lbl = 0.0f;
-                                fwrite(&lbl, sizeof(float), 1, labels_file);
                             }
-
-                            // GM move every other random move:
-                            if (i % 2 == 0)
+                            else
                             {
-                                // Pre-move board + move (src & dst indexes):
-                                {
-                                    float flt_src_idx = (float)gm_chess_move.src_idx;
-                                    Tensor *src = Tensor::one_hot_encode(Device::Cpu, 1, CHESS_BOARD_LEN, &flt_src_idx);
-                                    float flt_dst_idx = (float)gm_chess_move.dst_idx;
-                                    Tensor *dst = Tensor::one_hot_encode(Device::Cpu, 1, CHESS_BOARD_LEN, &flt_dst_idx);
-                                    memcpy(flt_one_hot_board_w_move, flt_premov_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-                                    memcpy(&flt_one_hot_board_w_move[CHESS_ONE_HOT_ENCODED_BOARD_LEN], src->get_arr(), sizeof(float) * CHESS_BOARD_LEN);
-                                    memcpy(&flt_one_hot_board_w_move[CHESS_ONE_HOT_ENCODED_BOARD_LEN + CHESS_BOARD_LEN], dst->get_arr(), sizeof(float) * CHESS_BOARD_LEN);
-                                    delete src;
-                                    delete dst;
-                                    fwrite(flt_one_hot_board_w_move, sizeof(float) * (CHESS_ONE_HOT_ENCODED_BOARD_LEN + (CHESS_BOARD_LEN * 2)), 1, boards_file);
-                                }
-
-                                // Write label:
-                                lbl = 1.0f;
-                                fwrite(&lbl, sizeof(float), 1, labels_file);
+                                break;
                             }
-                        }
-                        else
-                        {
-                            break;
                         }
                     }
                 }
@@ -188,7 +158,7 @@ OnDiskSupervisor *get_chess_supervisor(const char *pgn_name)
     memset(label_name_buf, 0, 256);
     sprintf(label_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\%s.bl", pgn_name);
 
-    std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 2, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
+    std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
 
     OnDiskSupervisor *sup = new OnDiskSupervisor(0.90f, 0.10f, board_name_buf, label_name_buf, x_shape, 0);
 
@@ -199,24 +169,24 @@ void train_chess(const char *pgn_name)
 {
     OnDiskSupervisor *sup = get_chess_supervisor(pgn_name);
 
-    Model *model = new Model(CostFunction::MSE, 0.001f);
+    Model *model = new Model(CostFunction::MSE, 0.01f);
 
     model->add_layer(new ConvolutionalLayer(sup->get_x_shape(), 64, 1, 1, InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
     model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 64, 3, 3, InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), 512, InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), 64, InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), Tensor::get_cnt(sup->get_y_shape()), InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
-    model->train_and_test(sup, 64, 30, "C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.csv");
+    model->train_and_test(sup, 64, 10, "C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.csv");
 
     model->save("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn");
 
@@ -669,9 +639,9 @@ int main(int argc, char **argv)
 {
     srand(time(NULL));
 
-    dump_pgn("TEST");
+    dump_pgn("Capablanca");
 
-    train_chess("TEST");
+    train_chess("Capablanca");
 
     //train_chess_existing("Capablanca", "C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn");
 
