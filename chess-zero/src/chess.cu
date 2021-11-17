@@ -2721,25 +2721,24 @@ void one_hot_encode_board(int *board, int *out)
             out[i + (CHESS_BOARD_LEN * 5)] = 1;
             break;
         case ChessPiece::BlackPawn:
-            out[i + (CHESS_BOARD_LEN * 6)] = 1;
+            out[i] = -1;
             break;
         case ChessPiece::BlackKnight:
-            out[i + (CHESS_BOARD_LEN * 7)] = 1;
+            out[i + (CHESS_BOARD_LEN)] = -1;
             break;
         case ChessPiece::BlackBishop:
-            out[i + (CHESS_BOARD_LEN * 8)] = 1;
+            out[i + (CHESS_BOARD_LEN * 2)] = -1;
             break;
         case ChessPiece::BlackRook:
-            out[i + (CHESS_BOARD_LEN * 9)] = 1;
+            out[i + (CHESS_BOARD_LEN * 3)] = -1;
             break;
         case ChessPiece::BlackQueen:
-            out[i + (CHESS_BOARD_LEN * 10)] = 1;
+            out[i + (CHESS_BOARD_LEN * 4)] = -1;
             break;
         case ChessPiece::BlackKing:
-            out[i + (CHESS_BOARD_LEN * 11)] = 1;
+            out[i + (CHESS_BOARD_LEN * 5)] = -1;
             break;
         default: // ChessPiece::Empty:
-            out[i + (CHESS_BOARD_LEN * 12)] = 1;
             break;
         }
     }
@@ -2772,140 +2771,25 @@ void one_hot_encode_board(int *board, float *out)
             out[i + (CHESS_BOARD_LEN * 5)] = 1.0f;
             break;
         case ChessPiece::BlackPawn:
-            out[i + (CHESS_BOARD_LEN * 6)] = 1.0f;
+            out[i] = -1.0f;
             break;
         case ChessPiece::BlackKnight:
-            out[i + (CHESS_BOARD_LEN * 7)] = 1.0f;
+            out[i + (CHESS_BOARD_LEN)] = -1.0f;
             break;
         case ChessPiece::BlackBishop:
-            out[i + (CHESS_BOARD_LEN * 8)] = 1.0f;
+            out[i + (CHESS_BOARD_LEN * 2)] = -1.0f;
             break;
         case ChessPiece::BlackRook:
-            out[i + (CHESS_BOARD_LEN * 9)] = 1.0f;
+            out[i + (CHESS_BOARD_LEN * 3)] = -1.0f;
             break;
         case ChessPiece::BlackQueen:
-            out[i + (CHESS_BOARD_LEN * 10)] = 1.0f;
+            out[i + (CHESS_BOARD_LEN * 4)] = -1.0f;
             break;
         case ChessPiece::BlackKing:
-            out[i + (CHESS_BOARD_LEN * 11)] = 1.0f;
+            out[i + (CHESS_BOARD_LEN * 5)] = -1.0f;
             break;
         default: // ChessPiece::Empty:
-            out[i + (CHESS_BOARD_LEN * 12)] = 1.0f;
             break;
-        }
-    }
-}
-
-void reverse_one_hot_encode_board(int *one_hot_board, int *out)
-{
-    memset(out, 0, sizeof(int) * CHESS_BOARD_LEN);
-
-    for (int i = 0; i < CHESS_ONE_HOT_ENCODE_COMBINATION_CNT; i++)
-    {
-        for (int j = 0; j < CHESS_BOARD_LEN; j++)
-        {
-            if (one_hot_board[i * CHESS_BOARD_LEN + j] == 1)
-            {
-                switch (i)
-                {
-                case 0:
-                    out[j] = (int)ChessPiece::WhitePawn;
-                    break;
-                case 1:
-                    out[j] = (int)ChessPiece::WhiteKnight;
-                    break;
-                case 2:
-                    out[j] = (int)ChessPiece::WhiteBishop;
-                    break;
-                case 3:
-                    out[j] = (int)ChessPiece::WhiteRook;
-                    break;
-                case 4:
-                    out[j] = (int)ChessPiece::WhiteQueen;
-                    break;
-                case 5:
-                    out[j] = (int)ChessPiece::WhiteKing;
-                    break;
-                case 6:
-                    out[j] = (int)ChessPiece::BlackPawn;
-                    break;
-                case 7:
-                    out[j] = (int)ChessPiece::BlackKnight;
-                    break;
-                case 8:
-                    out[j] = (int)ChessPiece::BlackBishop;
-                    break;
-                case 9:
-                    out[j] = (int)ChessPiece::BlackRook;
-                    break;
-                case 10:
-                    out[j] = (int)ChessPiece::BlackQueen;
-                    break;
-                case 11:
-                    out[j] = (int)ChessPiece::BlackKing;
-                    break;
-                case 12:
-                    out[j] = (int)ChessPiece::Empty;
-                    break;
-                }
-            }
-        }
-    }
-}
-
-void reverse_one_hot_encode_board(float *one_hot_board, int *out)
-{
-    memset(out, 0, sizeof(int) * CHESS_BOARD_LEN);
-
-    for (int i = 0; i < CHESS_ONE_HOT_ENCODE_COMBINATION_CNT; i++)
-    {
-        for (int j = 0; j < CHESS_BOARD_LEN; j++)
-        {
-            if (one_hot_board[i * CHESS_BOARD_LEN + j] == 1.0f)
-            {
-                switch (i)
-                {
-                case 0:
-                    out[j] = (int)ChessPiece::WhitePawn;
-                    break;
-                case 1:
-                    out[j] = (int)ChessPiece::WhiteKnight;
-                    break;
-                case 2:
-                    out[j] = (int)ChessPiece::WhiteBishop;
-                    break;
-                case 3:
-                    out[j] = (int)ChessPiece::WhiteRook;
-                    break;
-                case 4:
-                    out[j] = (int)ChessPiece::WhiteQueen;
-                    break;
-                case 5:
-                    out[j] = (int)ChessPiece::WhiteKing;
-                    break;
-                case 6:
-                    out[j] = (int)ChessPiece::BlackPawn;
-                    break;
-                case 7:
-                    out[j] = (int)ChessPiece::BlackKnight;
-                    break;
-                case 8:
-                    out[j] = (int)ChessPiece::BlackBishop;
-                    break;
-                case 9:
-                    out[j] = (int)ChessPiece::BlackRook;
-                    break;
-                case 10:
-                    out[j] = (int)ChessPiece::BlackQueen;
-                    break;
-                case 11:
-                    out[j] = (int)ChessPiece::BlackKing;
-                    break;
-                case 12:
-                    out[j] = (int)ChessPiece::Empty;
-                    break;
-                }
-            }
         }
     }
 }
