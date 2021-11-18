@@ -125,7 +125,7 @@ OnDiskSupervisor *get_chess_supervisor(const char *pgn_name)
 
     std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
 
-    OnDiskSupervisor *sup = new OnDiskSupervisor(0.90f, 0.05f, board_name_buf, label_name_buf, x_shape, 0);
+    OnDiskSupervisor *sup = new OnDiskSupervisor(0.95f, 0.05f, board_name_buf, label_name_buf, x_shape, 0);
 
     return sup;
 }
@@ -137,31 +137,27 @@ void train_chess(const char *pgn_name)
     Model *model = new Model(CostFunction::MSE, 0.001f);
 
     model->add_layer(new ConvolutionalLayer(sup->get_x_shape(), 128, 1, 1, InitializationFunction::Xavier));
-    //model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
-
-    model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 256, 3, 3, InitializationFunction::Xavier));
-    //model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
     model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 128, 3, 3, InitializationFunction::Xavier));
-    //model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
+
+    model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 128, 3, 3, InitializationFunction::Xavier));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), 2048, InitializationFunction::Xavier));
-    //model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), 1024, InitializationFunction::Xavier));
-    //model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), 512, InitializationFunction::Xavier));
-    //model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), 64, InitializationFunction::Xavier));
-    //model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), Tensor::get_cnt(sup->get_y_shape()), InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
-    //model->train_and_test(sup, 64, 20, "C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.csv");
-    model->all(sup, 64, 20, "C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.csv");
+    model->train_and_test(sup, 64, 2, "C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.csv");
 
     model->save("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn");
 
@@ -184,16 +180,18 @@ MoveSearchResultTrio get_best_move(int *immut_board, bool white_mov_flg, bool pr
     char hybrid_mov[CHESS_MAX_MOVE_LEN];
 
     float best_model_eval;
+    float model_eval;
+    float model_eval_tiebreaker;
     if (white_mov_flg)
     {
         best_model_eval = -1.0f;
+        model_eval_tiebreaker = -1.0f;
     }
     else
     {
         best_model_eval = 1.0f;
+        model_eval_tiebreaker = 1.0f;
     }
-    float model_eval;
-    float model_eval_tiebreaker = -1.0f;
 
     float best_minimax_eval;
     MinimaxResult minimax_res;
@@ -381,7 +379,7 @@ MoveSearchResultTrio get_best_move(int *immut_board, bool white_mov_flg, bool pr
 
                         if (minimax_res.eval == best_minimax_eval)
                         {
-                            if (model_eval > model_eval_tiebreaker)
+                            if (model_eval < model_eval_tiebreaker)
                             {
                                 model_eval_tiebreaker = model_eval;
                                 memcpy(minimax_mov, mov, CHESS_MAX_MOVE_LEN);
@@ -589,11 +587,11 @@ int main(int argc, char **argv)
 {
     srand(time(NULL));
 
-    dump_pgn("Capablanca");
+    //dump_pgn("Capablanca");
 
-    train_chess("Capablanca");
+    //train_chess("Capablanca");
 
-    //play_chess("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn", true, 3, true);
+    play_chess("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn", true, 3, true);
 
     return 0;
 }

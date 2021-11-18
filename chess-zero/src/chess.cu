@@ -1811,11 +1811,11 @@ void get_influence_board(int *board, float *out)
                 {
                     if (is_piece_white(piece))
                     {
-                        out[mov_dst_idx] += 1.0f;
+                        //out[mov_dst_idx] += 1.0f;
                     }
                     else if (is_piece_black(piece))
                     {
-                        out[mov_dst_idx] -= 1.0f;
+                        //out[mov_dst_idx] -= 1.0f;
                     }
                 }
                 else
