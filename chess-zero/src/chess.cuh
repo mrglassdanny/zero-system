@@ -20,7 +20,7 @@
 
 #define CHESS_INVALID_VALUE -1
 
-#define CHESS_ONE_HOT_ENCODE_COMBINATION_CNT 13
+#define CHESS_ONE_HOT_ENCODE_COMBINATION_CNT 6
 #define CHESS_ONE_HOT_ENCODED_BOARD_LEN (CHESS_BOARD_LEN * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT)
 
 using namespace zero::core;
@@ -104,7 +104,7 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
 
 void get_piece_influence(int *board, int piece_idx, int *out);
 
-void get_influence_board(int *board, int *out);
+void get_influence_board(int *board, float *out);
 
 void get_piece_legality_mask(int *board, bool white_mov_flg, float *out);
 
@@ -124,21 +124,15 @@ void print_board(int *board);
 
 void print_flipped_board(int *board);
 
-void print_influence_board(int *board);
+void print_influence_board(float *board);
 
 float piece_to_float(ChessPiece piece);
 
-void board_to_float(int *board, float *out, bool scale_down_flg);
-
-void influence_board_to_float(int *influence_board, float *out, bool scale_down_flg);
+void board_to_float(int *board, float *out);
 
 void one_hot_encode_board(int *board, int *out);
 
 void one_hot_encode_board(int *board, float *out);
-
-void reverse_one_hot_encode_board(int *one_hot_board, int *out);
-
-void reverse_one_hot_encode_board(float *one_hot_board, int *out);
 
 float eval_board(int *board);
 

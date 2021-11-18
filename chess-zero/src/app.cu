@@ -42,16 +42,12 @@ void dump_pgn(const char *pgn_name)
     bool white_mov_flg;
 
     int *board = init_board();
-    int cpy_board[CHESS_BOARD_LEN];
-
-    float flt_premov_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
-    float flt_one_hot_board_w_move[CHESS_ONE_HOT_ENCODED_BOARD_LEN + (CHESS_BOARD_LEN * 2)];
+    float flt_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
 
     float lbl;
 
     // Skip openings!
-    int start_mov_idx = 8;
-    int rand_mov_cnt = 3;
+    int start_mov_idx = 10;
 
     printf("Total Games: %d\n", pgn->cnt);
 
@@ -59,95 +55,34 @@ void dump_pgn(const char *pgn_name)
     {
         PGNMoveList *pl = pgn->games[game_idx];
 
+        // Make sure we have a winner:
+        if (pl->white_won_flg || pl->black_won_flg)
         {
+            // Set label now that we know who won:
+            if (pl->white_won_flg)
+            {
+                lbl = 1.0f;
+            }
+            else
+            {
+                lbl = -1.0f;
+            }
+
             white_mov_flg = true;
 
             for (int mov_idx = 0; mov_idx < pl->cnt; mov_idx++)
             {
                 if (mov_idx >= start_mov_idx)
                 {
-                    // Copy pre-move board:
-                    copy_board(board, cpy_board);
-
-                    // Pre-move encode:
-                    one_hot_encode_board(board, flt_premov_one_hot_board);
-
                     // Make move:
                     ChessMove gm_chess_move = change_board_w_mov(board, pl->arr[mov_idx], white_mov_flg);
 
-                    // Pre-move board + move (src & dst indexes):
-                    {
-                        float flt_src_idx = (float)gm_chess_move.src_idx;
-                        Tensor *src = Tensor::one_hot_encode(Device::Cpu, 1, CHESS_BOARD_LEN, &flt_src_idx);
-                        float flt_dst_idx = (float)gm_chess_move.dst_idx;
-                        Tensor *dst = Tensor::one_hot_encode(Device::Cpu, 1, CHESS_BOARD_LEN, &flt_dst_idx);
-                        memcpy(flt_one_hot_board_w_move, flt_premov_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-                        memcpy(&flt_one_hot_board_w_move[CHESS_ONE_HOT_ENCODED_BOARD_LEN], src->get_arr(), sizeof(float) * CHESS_BOARD_LEN);
-                        memcpy(&flt_one_hot_board_w_move[CHESS_ONE_HOT_ENCODED_BOARD_LEN + CHESS_BOARD_LEN], dst->get_arr(), sizeof(float) * CHESS_BOARD_LEN);
-                        delete src;
-                        delete dst;
-                        fwrite(flt_one_hot_board_w_move, sizeof(float) * (CHESS_ONE_HOT_ENCODED_BOARD_LEN + (CHESS_BOARD_LEN * 2)), 1, boards_file);
-                    }
+                    // Write board:
+                    one_hot_encode_board(board, flt_one_hot_board);
+                    fwrite(flt_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN, 1, boards_file);
 
                     // Write label:
-                    lbl = 1.0f;
                     fwrite(&lbl, sizeof(float), 1, labels_file);
-
-                    // Random moves:
-                    for (int i = 0; i < rand_mov_cnt; i++)
-                    {
-                        ChessMove rand_chess_move = get_random_move(cpy_board, white_mov_flg, board);
-
-                        if (rand_chess_move.src_idx != CHESS_INVALID_VALUE)
-                        {
-                            // Random move:
-                            {
-                                // Pre-move board + move (src & dst indexes):
-                                {
-                                    float flt_src_idx = (float)rand_chess_move.src_idx;
-                                    Tensor *src = Tensor::one_hot_encode(Device::Cpu, 1, CHESS_BOARD_LEN, &flt_src_idx);
-                                    float flt_dst_idx = (float)rand_chess_move.dst_idx;
-                                    Tensor *dst = Tensor::one_hot_encode(Device::Cpu, 1, CHESS_BOARD_LEN, &flt_dst_idx);
-                                    memcpy(flt_one_hot_board_w_move, flt_premov_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-                                    memcpy(&flt_one_hot_board_w_move[CHESS_ONE_HOT_ENCODED_BOARD_LEN], src->get_arr(), sizeof(float) * CHESS_BOARD_LEN);
-                                    memcpy(&flt_one_hot_board_w_move[CHESS_ONE_HOT_ENCODED_BOARD_LEN + CHESS_BOARD_LEN], dst->get_arr(), sizeof(float) * CHESS_BOARD_LEN);
-                                    delete src;
-                                    delete dst;
-                                    fwrite(flt_one_hot_board_w_move, sizeof(float) * (CHESS_ONE_HOT_ENCODED_BOARD_LEN + (CHESS_BOARD_LEN * 2)), 1, boards_file);
-                                }
-
-                                // Write label:
-                                lbl = 0.0f;
-                                fwrite(&lbl, sizeof(float), 1, labels_file);
-                            }
-
-                            // GM move every other random move:
-                            if (i % 2 == 0)
-                            {
-                                // Pre-move board + move (src & dst indexes):
-                                {
-                                    float flt_src_idx = (float)gm_chess_move.src_idx;
-                                    Tensor *src = Tensor::one_hot_encode(Device::Cpu, 1, CHESS_BOARD_LEN, &flt_src_idx);
-                                    float flt_dst_idx = (float)gm_chess_move.dst_idx;
-                                    Tensor *dst = Tensor::one_hot_encode(Device::Cpu, 1, CHESS_BOARD_LEN, &flt_dst_idx);
-                                    memcpy(flt_one_hot_board_w_move, flt_premov_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-                                    memcpy(&flt_one_hot_board_w_move[CHESS_ONE_HOT_ENCODED_BOARD_LEN], src->get_arr(), sizeof(float) * CHESS_BOARD_LEN);
-                                    memcpy(&flt_one_hot_board_w_move[CHESS_ONE_HOT_ENCODED_BOARD_LEN + CHESS_BOARD_LEN], dst->get_arr(), sizeof(float) * CHESS_BOARD_LEN);
-                                    delete src;
-                                    delete dst;
-                                    fwrite(flt_one_hot_board_w_move, sizeof(float) * (CHESS_ONE_HOT_ENCODED_BOARD_LEN + (CHESS_BOARD_LEN * 2)), 1, boards_file);
-                                }
-
-                                // Write label:
-                                lbl = 1.0f;
-                                fwrite(&lbl, sizeof(float), 1, labels_file);
-                            }
-                        }
-                        else
-                        {
-                            break;
-                        }
-                    }
                 }
                 else
                 {
@@ -188,9 +123,9 @@ OnDiskSupervisor *get_chess_supervisor(const char *pgn_name)
     memset(label_name_buf, 0, 256);
     sprintf(label_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\%s.bl", pgn_name);
 
-    std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 2, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
+    std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
 
-    OnDiskSupervisor *sup = new OnDiskSupervisor(0.90f, 0.10f, board_name_buf, label_name_buf, x_shape, 0);
+    OnDiskSupervisor *sup = new OnDiskSupervisor(0.95f, 0.05f, board_name_buf, label_name_buf, x_shape, 0);
 
     return sup;
 }
@@ -201,39 +136,30 @@ void train_chess(const char *pgn_name)
 
     Model *model = new Model(CostFunction::MSE, 0.001f);
 
-    model->add_layer(new ConvolutionalLayer(sup->get_x_shape(), 64, 1, 1, InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
+    model->add_layer(new ConvolutionalLayer(sup->get_x_shape(), 256, 1, 1, InitializationFunction::Xavier));
 
-    model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 64, 3, 3, InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
+    model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 256, 3, 3, InitializationFunction::Xavier));
+
+    model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 256, 3, 3, InitializationFunction::Xavier));
+
+    model->add_layer(new LinearLayer(model->get_output_shape(), 2048, InitializationFunction::Xavier));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
+
+    model->add_layer(new LinearLayer(model->get_output_shape(), 2048, InitializationFunction::Xavier));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), 512, InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
-    model->add_layer(new LinearLayer(model->get_output_shape(), 64, InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
+    model->add_layer(new LinearLayer(model->get_output_shape(), 512, InitializationFunction::Xavier));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), Tensor::get_cnt(sup->get_y_shape()), InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
-    model->train_and_test(sup, 64, 30, "C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.csv");
+    model->train_and_test(sup, 64, 2, "C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.csv");
 
     model->save("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn");
-
-    delete model;
-
-    delete sup;
-}
-
-void train_chess_existing(const char *pgn_name, const char *model_path)
-{
-    OnDiskSupervisor *sup = get_chess_supervisor(pgn_name);
-
-    Model *model = new Model(model_path);
-
-    model->train_and_test(sup, 50, 5, "C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess-existing.csv");
-
-    model->save(model_path);
 
     delete model;
 
@@ -247,20 +173,29 @@ MoveSearchResultTrio get_best_move(int *immut_board, bool white_mov_flg, bool pr
 
     int sim_board[CHESS_BOARD_LEN];
 
-    float flt_premov_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
-    float flt_one_hot_board_w_move[CHESS_ONE_HOT_ENCODED_BOARD_LEN + (CHESS_BOARD_LEN * 2)];
+    float flt_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
 
     char model_mov[CHESS_MAX_MOVE_LEN];
     char minimax_mov[CHESS_MAX_MOVE_LEN];
     char hybrid_mov[CHESS_MAX_MOVE_LEN];
 
-    float best_model_eval = -1.0f;
+    float best_model_eval;
     float model_eval;
-    float model_eval_tiebreaker = -1.0f;
+    float model_eval_tiebreaker;
+    if (white_mov_flg)
+    {
+        best_model_eval = -1.0f;
+        model_eval_tiebreaker = -1.0f;
+    }
+    else
+    {
+        best_model_eval = 1.0f;
+        model_eval_tiebreaker = 1.0f;
+    }
 
     float best_minimax_eval;
     MinimaxResult minimax_res;
-    float minimax_eval_tiebreaker = -1.0f;
+    float minimax_eval_tiebreaker;
     if (white_mov_flg)
     {
         best_minimax_eval = -100.0f;
@@ -272,13 +207,18 @@ MoveSearchResultTrio get_best_move(int *immut_board, bool white_mov_flg, bool pr
         minimax_eval_tiebreaker = 100.0f;
     }
 
-    float best_hybrid_eval = -100.0f;
+    float best_hybrid_eval;
+    if (white_mov_flg)
+    {
+        best_hybrid_eval = -100.0f;
+    }
+    else
+    {
+        best_hybrid_eval = 100.0f;
+    }
     float hybrid_eval;
     float hybrid_model_eval;
     float hybrid_minimax_eval;
-
-    // Go ahead and encode pre-move board.
-    one_hot_encode_board(immut_board, flt_premov_one_hot_board);
 
     for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
     {
@@ -305,21 +245,10 @@ MoveSearchResultTrio get_best_move(int *immut_board, bool white_mov_flg, bool pr
 
                         // Model evaluation:
                         {
-                            // Pre-move board + move (src & dst indexes):
-
-                            float flt_src_idx = (float)piece_idx;
-                            Tensor *src = Tensor::one_hot_encode(Device::Cpu, 1, CHESS_BOARD_LEN, &flt_src_idx);
-                            float flt_dst_idx = (float)legal_moves[mov_idx];
-                            Tensor *dst = Tensor::one_hot_encode(Device::Cpu, 1, CHESS_BOARD_LEN, &flt_dst_idx);
-                            memcpy(flt_one_hot_board_w_move, flt_premov_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-                            memcpy(&flt_one_hot_board_w_move[CHESS_ONE_HOT_ENCODED_BOARD_LEN], src->get_arr(), sizeof(float) * CHESS_BOARD_LEN);
-                            memcpy(&flt_one_hot_board_w_move[CHESS_ONE_HOT_ENCODED_BOARD_LEN + CHESS_BOARD_LEN], dst->get_arr(), sizeof(float) * CHESS_BOARD_LEN);
-                            delete src;
-                            delete dst;
-
-                            std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 2, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
+                            one_hot_encode_board(sim_board, flt_one_hot_board);
+                            std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
                             Tensor *x = new Tensor(Device::Cpu, x_shape);
-                            x->set_arr(flt_one_hot_board_w_move);
+                            x->set_arr(flt_one_hot_board);
                             Tensor *pred = model->predict(x);
                             model_eval = pred->get_val(0);
                             delete pred;
@@ -407,21 +336,10 @@ MoveSearchResultTrio get_best_move(int *immut_board, bool white_mov_flg, bool pr
 
                         // Model evaluation:
                         {
-                            // Pre-move board + move (src & dst indexes):
-
-                            float flt_src_idx = (float)piece_idx;
-                            Tensor *src = Tensor::one_hot_encode(Device::Cpu, 1, CHESS_BOARD_LEN, &flt_src_idx);
-                            float flt_dst_idx = (float)legal_moves[mov_idx];
-                            Tensor *dst = Tensor::one_hot_encode(Device::Cpu, 1, CHESS_BOARD_LEN, &flt_dst_idx);
-                            memcpy(flt_one_hot_board_w_move, flt_premov_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
-                            memcpy(&flt_one_hot_board_w_move[CHESS_ONE_HOT_ENCODED_BOARD_LEN], src->get_arr(), sizeof(float) * CHESS_BOARD_LEN);
-                            memcpy(&flt_one_hot_board_w_move[CHESS_ONE_HOT_ENCODED_BOARD_LEN + CHESS_BOARD_LEN], dst->get_arr(), sizeof(float) * CHESS_BOARD_LEN);
-                            delete src;
-                            delete dst;
-
-                            std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT + 2, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
+                            one_hot_encode_board(sim_board, flt_one_hot_board);
+                            std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
                             Tensor *x = new Tensor(Device::Cpu, x_shape);
-                            x->set_arr(flt_one_hot_board_w_move);
+                            x->set_arr(flt_one_hot_board);
                             Tensor *pred = model->predict(x);
                             model_eval = pred->get_val(0);
                             delete pred;
@@ -435,7 +353,7 @@ MoveSearchResultTrio get_best_move(int *immut_board, bool white_mov_flg, bool pr
 
                         // Hybrid evaluation:
                         {
-                            hybrid_eval = model_eval + (-1.0f * activate_minimax_eval(minimax_res.eval));
+                            hybrid_eval = model_eval + activate_minimax_eval(minimax_res.eval);
                         }
 
                         if (print_flg)
@@ -452,7 +370,7 @@ MoveSearchResultTrio get_best_move(int *immut_board, bool white_mov_flg, bool pr
                             }
                         }
 
-                        if (model_eval > best_model_eval)
+                        if (model_eval < best_model_eval)
                         {
                             best_model_eval = model_eval;
                             minimax_eval_tiebreaker = minimax_res.eval;
@@ -461,7 +379,7 @@ MoveSearchResultTrio get_best_move(int *immut_board, bool white_mov_flg, bool pr
 
                         if (minimax_res.eval == best_minimax_eval)
                         {
-                            if (model_eval > model_eval_tiebreaker)
+                            if (model_eval < model_eval_tiebreaker)
                             {
                                 model_eval_tiebreaker = model_eval;
                                 memcpy(minimax_mov, mov, CHESS_MAX_MOVE_LEN);
@@ -475,7 +393,7 @@ MoveSearchResultTrio get_best_move(int *immut_board, bool white_mov_flg, bool pr
                             memcpy(minimax_mov, mov, CHESS_MAX_MOVE_LEN);
                         }
 
-                        if (hybrid_eval > best_hybrid_eval)
+                        if (hybrid_eval < best_hybrid_eval)
                         {
                             best_hybrid_eval = hybrid_eval;
                             hybrid_model_eval = model_eval;
@@ -529,25 +447,25 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
         change_board_w_mov(board, "c4", white_mov_flg);
         white_mov_flg = !white_mov_flg;
 
-        change_board_w_mov(board, "e6", white_mov_flg);
+        change_board_w_mov(board, "g6", white_mov_flg);
         white_mov_flg = !white_mov_flg;
 
         change_board_w_mov(board, "Nc3", white_mov_flg);
         white_mov_flg = !white_mov_flg;
 
-        change_board_w_mov(board, "Bb4", white_mov_flg);
+        change_board_w_mov(board, "Bg7", white_mov_flg);
         white_mov_flg = !white_mov_flg;
 
-        change_board_w_mov(board, "Qc2", white_mov_flg);
+        change_board_w_mov(board, "e4", white_mov_flg);
         white_mov_flg = !white_mov_flg;
 
-        change_board_w_mov(board, "O-O", white_mov_flg);
+        change_board_w_mov(board, "d6", white_mov_flg);
         white_mov_flg = !white_mov_flg;
 
-        change_board_w_mov(board, "a3", white_mov_flg);
+        change_board_w_mov(board, "f3", white_mov_flg);
         white_mov_flg = !white_mov_flg;
 
-        change_board_w_mov(board, "Bxc3+", white_mov_flg);
+        change_board_w_mov(board, "Nbd7", white_mov_flg);
         white_mov_flg = !white_mov_flg;
     }
 
@@ -669,11 +587,9 @@ int main(int argc, char **argv)
 {
     srand(time(NULL));
 
-    dump_pgn("TEST");
+    dump_pgn("Capablanca");
 
-    train_chess("TEST");
-
-    //train_chess_existing("Capablanca", "C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn");
+    train_chess("Capablanca");
 
     //play_chess("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn", true, 3, true);
 

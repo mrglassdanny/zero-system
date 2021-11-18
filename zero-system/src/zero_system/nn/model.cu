@@ -486,8 +486,6 @@ Report Model::test(Batch *batch)
 
         rpt.update_correct_cnt(pred, y);
 
-        printf("PREDICTION: %f\tACTUAL: %f\n", pred->get_val(0), y->get_val(0));
-
         delete pred;
 
         // Convert back to CPU as to not overload GPU.
@@ -542,7 +540,7 @@ void Model::train_and_test(Supervisor *supervisor, int train_batch_size, int tar
         delete train_batch;
 
         // Quit if we hit target epoch count.
-        if (epoch == target_epoch)
+        if (epoch >= target_epoch)
         {
             break;
         }
@@ -624,7 +622,7 @@ void Model::all(Supervisor *supervisor, int train_batch_size, int target_epoch, 
         }
 
         // Quit if we hit target epoch count.
-        if (epoch == target_epoch)
+        if (epoch >= target_epoch)
         {
             break;
         }

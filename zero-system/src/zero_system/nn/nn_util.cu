@@ -66,14 +66,14 @@ void Report::update_correct_cnt(Tensor *n, Tensor *y)
         //     this->correct_cnt++;
         // }
 
-        if (y_val == 0.0f)
+        if (y_val < 0.0f)
         {
-            if (n_val == 0.0f)
+            if (n_val < 0.0f)
             {
                 this->correct_cnt++;
             }
         }
-        else
+        else if (y_val > 0.0f)
         {
             if (n_val > 0.0f)
             {
