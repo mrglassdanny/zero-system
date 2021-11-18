@@ -1811,11 +1811,11 @@ void get_influence_board(int *board, float *out)
                 {
                     if (is_piece_white(piece))
                     {
-                        //out[mov_dst_idx] += 1.0f;
+                        out[mov_dst_idx] += 0.5f;
                     }
                     else if (is_piece_black(piece))
                     {
-                        //out[mov_dst_idx] -= 1.0f;
+                        out[mov_dst_idx] -= 0.5f;
                     }
                 }
                 else
@@ -1826,22 +1826,22 @@ void get_influence_board(int *board, float *out)
                     {
                         if (is_piece_same_color(piece, dst_piece))
                         {
-                            out[mov_dst_idx] += 1.0f;
+                            out[mov_dst_idx] += 0.5f;
                         }
                         else
                         {
-                            out[mov_dst_idx] += abs(piece_to_float(dst_piece));
+                            out[mov_dst_idx] += (abs(piece_to_float(dst_piece)) / 2.0f);
                         }
                     }
                     else if (is_piece_black(piece))
                     {
                         if (is_piece_same_color(piece, dst_piece))
                         {
-                            out[mov_dst_idx] -= 1.0f;
+                            out[mov_dst_idx] -= 0.5f;
                         }
                         else
                         {
-                            out[mov_dst_idx] -= abs(piece_to_float(dst_piece));
+                            out[mov_dst_idx] -= (abs(piece_to_float(dst_piece)) / 2.0f);
                         }
                     }
                 }
