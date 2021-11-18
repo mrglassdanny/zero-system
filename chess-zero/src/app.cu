@@ -125,7 +125,7 @@ OnDiskSupervisor *get_chess_supervisor(const char *pgn_name)
 
     std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
 
-    OnDiskSupervisor *sup = new OnDiskSupervisor(0.975f, 0.025f, board_name_buf, label_name_buf, x_shape, 0);
+    OnDiskSupervisor *sup = new OnDiskSupervisor(0.90f, 0.05f, board_name_buf, label_name_buf, x_shape, 0);
 
     return sup;
 }
@@ -146,38 +146,24 @@ void train_chess(const char *pgn_name)
     //model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), 2048, InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
+    //model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), 1024, InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
+    //model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), 512, InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
+    //model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), 64, InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
+    //model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), Tensor::get_cnt(sup->get_y_shape()), InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
-    model->train_and_test(sup, 64, 20, "C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.csv");
+    //model->train_and_test(sup, 64, 20, "C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.csv");
+    model->all(sup, 64, 20, "C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.csv");
 
     model->save("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn");
-
-    delete model;
-
-    delete sup;
-}
-
-void train_chess_existing(const char *pgn_name, const char *model_path)
-{
-    OnDiskSupervisor *sup = get_chess_supervisor(pgn_name);
-
-    Model *model = new Model(model_path);
-
-    model->train_and_test(sup, 50, 5, "C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess-existing.csv");
-
-    model->save(model_path);
 
     delete model;
 
@@ -603,11 +589,9 @@ int main(int argc, char **argv)
 {
     srand(time(NULL));
 
-    dump_pgn("ALL");
+    dump_pgn("Capablanca");
 
-    train_chess("ALL");
-
-    //train_chess_existing("Capablanca", "C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn");
+    train_chess("Capablanca");
 
     //play_chess("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn", true, 3, true);
 
