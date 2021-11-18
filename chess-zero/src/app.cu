@@ -137,13 +137,13 @@ void train_chess(const char *pgn_name)
     Model *model = new Model(CostFunction::MSE, 0.001f);
 
     model->add_layer(new ConvolutionalLayer(sup->get_x_shape(), 128, 1, 1, InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
+    //model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
     model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 256, 3, 3, InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
+    //model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
     model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 128, 3, 3, InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
+    //model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), 2048, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
@@ -603,13 +603,13 @@ int main(int argc, char **argv)
 {
     srand(time(NULL));
 
-    //dump_pgn("Capablanca");
+    dump_pgn("ALL");
 
-    //train_chess("Capablanca");
+    train_chess("ALL");
 
     //train_chess_existing("Capablanca", "C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn");
 
-    play_chess("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn", true, 3, true);
+    //play_chess("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn", true, 3, true);
 
     return 0;
 }
