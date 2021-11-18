@@ -42,16 +42,12 @@ void dump_pgn(const char *pgn_name)
     bool white_mov_flg;
 
     int *board = init_board();
-    int cpy_board[CHESS_BOARD_LEN];
-    int sim_board[CHESS_BOARD_LEN];
-
     float flt_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
 
     float lbl;
 
     // Skip openings!
     int start_mov_idx = 10;
-    int rand_mov_cnt = 3;
 
     printf("Total Games: %d\n", pgn->cnt);
 
@@ -78,9 +74,6 @@ void dump_pgn(const char *pgn_name)
             {
                 if (mov_idx >= start_mov_idx)
                 {
-                    // Copy pre-move board:
-                    copy_board(board, cpy_board);
-
                     // Make move:
                     ChessMove gm_chess_move = change_board_w_mov(board, pl->arr[mov_idx], white_mov_flg);
 
@@ -90,34 +83,6 @@ void dump_pgn(const char *pgn_name)
 
                     // Write label:
                     fwrite(&lbl, sizeof(float), 1, labels_file);
-
-                    // Random moves:
-                    if ((pl->white_won_flg && !white_mov_flg) || (pl->black_won_flg && white_mov_flg))
-                    {
-                        for (int i = 0; i < rand_mov_cnt; i++)
-                        {
-                            ChessMove rand_chess_move = get_random_move(cpy_board, white_mov_flg, board);
-
-                            if (rand_chess_move.src_idx != CHESS_INVALID_VALUE)
-                            {
-                                // Random move:
-                                {
-                                    simulate_board_change_w_srcdst_idx(cpy_board, rand_chess_move.src_idx, rand_chess_move.dst_idx, sim_board);
-
-                                    // Write board:
-                                    one_hot_encode_board(sim_board, flt_one_hot_board);
-                                    fwrite(flt_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN, 1, boards_file);
-
-                                    // Write label:
-                                    fwrite(&lbl, sizeof(float), 1, labels_file);
-                                }
-                            }
-                            else
-                            {
-                                break;
-                            }
-                        }
-                    }
                 }
                 else
                 {
@@ -498,25 +463,25 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
         change_board_w_mov(board, "c4", white_mov_flg);
         white_mov_flg = !white_mov_flg;
 
-        change_board_w_mov(board, "e6", white_mov_flg);
+        change_board_w_mov(board, "g6", white_mov_flg);
         white_mov_flg = !white_mov_flg;
 
         change_board_w_mov(board, "Nc3", white_mov_flg);
         white_mov_flg = !white_mov_flg;
 
-        change_board_w_mov(board, "Bb4", white_mov_flg);
+        change_board_w_mov(board, "Bg7", white_mov_flg);
         white_mov_flg = !white_mov_flg;
 
-        change_board_w_mov(board, "Qc2", white_mov_flg);
+        change_board_w_mov(board, "e4", white_mov_flg);
         white_mov_flg = !white_mov_flg;
 
-        change_board_w_mov(board, "O-O", white_mov_flg);
+        change_board_w_mov(board, "d6", white_mov_flg);
         white_mov_flg = !white_mov_flg;
 
-        change_board_w_mov(board, "a3", white_mov_flg);
+        change_board_w_mov(board, "f3", white_mov_flg);
         white_mov_flg = !white_mov_flg;
 
-        change_board_w_mov(board, "Bxc3+", white_mov_flg);
+        change_board_w_mov(board, "Nbd7", white_mov_flg);
         white_mov_flg = !white_mov_flg;
     }
 
@@ -638,13 +603,13 @@ int main(int argc, char **argv)
 {
     srand(time(NULL));
 
-    dump_pgn("Capablanca");
+    //dump_pgn("Capablanca");
 
-    train_chess("Capablanca");
+    //train_chess("Capablanca");
 
     //train_chess_existing("Capablanca", "C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn");
 
-    //play_chess("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn", true, 3, true);
+    play_chess("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn", true, 3, true);
 
     return 0;
 }

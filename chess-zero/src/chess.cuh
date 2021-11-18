@@ -104,7 +104,7 @@ void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg
 
 void get_piece_influence(int *board, int piece_idx, int *out);
 
-void get_influence_board(int *board, int *out);
+void get_influence_board(int *board, float *out);
 
 void get_piece_legality_mask(int *board, bool white_mov_flg, float *out);
 
@@ -124,13 +124,11 @@ void print_board(int *board);
 
 void print_flipped_board(int *board);
 
-void print_influence_board(int *board);
+void print_influence_board(float *board);
 
 float piece_to_float(ChessPiece piece);
 
-void board_to_float(int *board, float *out, bool scale_down_flg);
-
-void influence_board_to_float(int *influence_board, float *out, bool scale_down_flg);
+void board_to_float(int *board, float *out);
 
 void one_hot_encode_board(int *board, int *out);
 

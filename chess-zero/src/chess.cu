@@ -1784,7 +1784,7 @@ void get_piece_influence(int *board, int piece_idx, int *out)
     }
 }
 
-void get_influence_board(int *board, int *out)
+void get_influence_board(int *board, float *out)
 {
     int moves[CHESS_MAX_LEGAL_MOVE_CNT];
 
@@ -1807,13 +1807,43 @@ void get_influence_board(int *board, int *out)
                     break;
                 }
 
-                if (is_piece_white(piece))
+                if ((ChessPiece)board[mov_dst_idx] == ChessPiece::Empty)
                 {
-                    out[mov_dst_idx] += 1;
+                    if (is_piece_white(piece))
+                    {
+                        out[mov_dst_idx] += 1.0f;
+                    }
+                    else if (is_piece_black(piece))
+                    {
+                        out[mov_dst_idx] -= 1.0f;
+                    }
                 }
-                else if (is_piece_black(piece))
+                else
                 {
-                    out[mov_dst_idx] -= 1;
+                    ChessPiece dst_piece = (ChessPiece)board[mov_dst_idx];
+
+                    if (is_piece_white(piece))
+                    {
+                        if (is_piece_same_color(piece, dst_piece))
+                        {
+                            out[mov_dst_idx] += 1.0f;
+                        }
+                        else
+                        {
+                            out[mov_dst_idx] += abs(piece_to_float(dst_piece));
+                        }
+                    }
+                    else if (is_piece_black(piece))
+                    {
+                        if (is_piece_same_color(piece, dst_piece))
+                        {
+                            out[mov_dst_idx] -= 1.0f;
+                        }
+                        else
+                        {
+                            out[mov_dst_idx] -= abs(piece_to_float(dst_piece));
+                        }
+                    }
                 }
             }
         }
@@ -2585,7 +2615,7 @@ void print_flipped_board(int *board)
     printf("\n\n");
 }
 
-void print_influence_board(int *board)
+void print_influence_board(float *board)
 {
     // Print in a more viewable format(a8 at top left of screen).
     printf("   +---+---+---+---+---+---+---+---+");
@@ -2596,7 +2626,7 @@ void print_influence_board(int *board)
         printf("|");
         for (int j = 0; j < CHESS_BOARD_COL_CNT; j++)
         {
-            int val = board[(i * CHESS_BOARD_COL_CNT) + j];
+            int val = ceil(board[(i * CHESS_BOARD_COL_CNT) + j]);
 
             if (val < 0)
             {
@@ -2658,39 +2688,11 @@ float piece_to_float(ChessPiece piece)
     }
 }
 
-void board_to_float(int *board, float *out, bool scale_down_flg)
+void board_to_float(int *board, float *out)
 {
-    if (scale_down_flg)
+    for (int i = 0; i < CHESS_BOARD_LEN; i++)
     {
-        for (int i = 0; i < CHESS_BOARD_LEN; i++)
-        {
-            out[i] = piece_to_float((ChessPiece)board[i]) / 10.0f;
-        }
-    }
-    else
-    {
-        for (int i = 0; i < CHESS_BOARD_LEN; i++)
-        {
-            out[i] = piece_to_float((ChessPiece)board[i]);
-        }
-    }
-}
-
-void influence_board_to_float(int *influence_board, float *out, bool scale_down_flg)
-{
-    if (scale_down_flg)
-    {
-        for (int i = 0; i < CHESS_BOARD_LEN; i++)
-        {
-            out[i] = (float)influence_board[i] / 10.0f;
-        }
-    }
-    else
-    {
-        for (int i = 0; i < CHESS_BOARD_LEN; i++)
-        {
-            out[i] = (float)influence_board[i];
-        }
+        out[i] = piece_to_float((ChessPiece)board[i]);
     }
 }
 
@@ -2798,13 +2800,11 @@ float eval_board(int *board)
 {
     float material_eval = 0.0f;
     float flt_board[CHESS_BOARD_LEN];
-    board_to_float(board, flt_board, false);
+    board_to_float(board, flt_board);
 
     float influence_eval = 0.0f;
-    int influence_board[CHESS_BOARD_LEN];
-    float flt_influence_board[CHESS_BOARD_LEN];
+    float influence_board[CHESS_BOARD_LEN];
     get_influence_board(board, influence_board);
-    influence_board_to_float(influence_board, flt_influence_board, false);
 
     for (int i = 0; i < CHESS_BOARD_LEN; i++)
     {
@@ -2813,10 +2813,10 @@ float eval_board(int *board)
 
     for (int i = 0; i < CHESS_BOARD_LEN; i++)
     {
-        influence_eval += flt_influence_board[i];
+        influence_eval += influence_board[i];
     }
 
-    return (material_eval * 1.00f) + (influence_eval * 0.05f);
+    return (material_eval * 0.90f) + (influence_eval * 0.10f);
 }
 
 MinimaxResult get_minimax(int *board, bool white_mov_flg, bool cur_white_mov_flg, int max_depth, int cur_depth, float best_minimax_eval)
