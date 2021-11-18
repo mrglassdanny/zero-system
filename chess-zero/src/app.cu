@@ -169,15 +169,15 @@ void train_chess(const char *pgn_name)
 {
     OnDiskSupervisor *sup = get_chess_supervisor(pgn_name);
 
-    Model *model = new Model(CostFunction::MSE, 0.01f);
+    Model *model = new Model(CostFunction::MSE, 0.001f);
 
     model->add_layer(new ConvolutionalLayer(sup->get_x_shape(), 512, 1, 1, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
-    model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 256, 3, 3, InitializationFunction::Xavier));
+    model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 512, 3, 3, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
-    model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 256, 3, 3, InitializationFunction::Xavier));
+    model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 512, 3, 3, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), 2048, InitializationFunction::Xavier));
@@ -189,16 +189,16 @@ void train_chess(const char *pgn_name)
     model->add_layer(new LinearLayer(model->get_output_shape(), 1024, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
-    model->add_layer(new LinearLayer(model->get_output_shape(), 512, InitializationFunction::Xavier));
+    model->add_layer(new LinearLayer(model->get_output_shape(), 256, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
-    model->add_layer(new LinearLayer(model->get_output_shape(), 128, InitializationFunction::Xavier));
+    model->add_layer(new LinearLayer(model->get_output_shape(), 64, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), Tensor::get_cnt(sup->get_y_shape()), InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
-    model->train_and_test(sup, 64, 20, "C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.csv");
+    model->train_and_test(sup, 256, 20, "C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.csv");
 
     model->save("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn");
 
