@@ -136,22 +136,22 @@ void train_chess(const char *pgn_name)
 
     Model *model = new Model(CostFunction::MSE, 0.001f);
 
-    model->add_layer(new ConvolutionalLayer(sup->get_x_shape(), 128, 1, 1, InitializationFunction::Xavier));
+    model->add_layer(new ConvolutionalLayer(sup->get_x_shape(), 256, 1, 1, InitializationFunction::Xavier));
 
-    model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 128, 3, 3, InitializationFunction::Xavier));
+    model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 256, 3, 3, InitializationFunction::Xavier));
 
-    model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 128, 3, 3, InitializationFunction::Xavier));
+    model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 256, 3, 3, InitializationFunction::Xavier));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), 2048, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
-    model->add_layer(new LinearLayer(model->get_output_shape(), 1024, InitializationFunction::Xavier));
+    model->add_layer(new LinearLayer(model->get_output_shape(), 2048, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), 512, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
-    model->add_layer(new LinearLayer(model->get_output_shape(), 64, InitializationFunction::Xavier));
+    model->add_layer(new LinearLayer(model->get_output_shape(), 512, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), Tensor::get_cnt(sup->get_y_shape()), InitializationFunction::Xavier));
@@ -195,7 +195,7 @@ MoveSearchResultTrio get_best_move(int *immut_board, bool white_mov_flg, bool pr
 
     float best_minimax_eval;
     MinimaxResult minimax_res;
-    float minimax_eval_tiebreaker = -1.0f;
+    float minimax_eval_tiebreaker;
     if (white_mov_flg)
     {
         best_minimax_eval = -100.0f;
@@ -587,11 +587,11 @@ int main(int argc, char **argv)
 {
     srand(time(NULL));
 
-    //dump_pgn("Capablanca");
+    dump_pgn("Capablanca");
 
-    //train_chess("Capablanca");
+    train_chess("Capablanca");
 
-    play_chess("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn", true, 3, true);
+    //play_chess("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn", true, 3, true);
 
     return 0;
 }
