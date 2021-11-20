@@ -125,7 +125,7 @@ OnDiskSupervisor *get_chess_supervisor(const char *pgn_name)
 
     std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
 
-    OnDiskSupervisor *sup = new OnDiskSupervisor(0.95f, 0.05f, board_name_buf, label_name_buf, x_shape, 0);
+    OnDiskSupervisor *sup = new OnDiskSupervisor(1.00f, 0.00f, board_name_buf, label_name_buf, x_shape, 0);
 
     return sup;
 }
