@@ -46,7 +46,7 @@ void dump_pgn(const char *pgn_name)
 
     float lbl;
 
-    // Skip openings!
+    // Skip openings:
     int start_mov_idx = 10;
 
     printf("Total Games: %d\n", pgn->cnt);
@@ -55,17 +55,19 @@ void dump_pgn(const char *pgn_name)
     {
         PGNMoveList *pl = pgn->games[game_idx];
 
-        // Make sure we have a winner:
-        if (pl->white_won_flg || pl->black_won_flg)
         {
-            // Set label now that we know who won:
+            // Set label now that we know result:
             if (pl->white_won_flg)
             {
                 lbl = 1.0f;
             }
-            else
+            else if (pl->black_won_flg)
             {
                 lbl = -1.0f;
+            }
+            else
+            {
+                lbl = 0.0f;
             }
 
             white_mov_flg = true;
@@ -75,7 +77,7 @@ void dump_pgn(const char *pgn_name)
                 if (mov_idx >= start_mov_idx)
                 {
                     // Make move:
-                    ChessMove gm_chess_move = change_board_w_mov(board, pl->arr[mov_idx], white_mov_flg);
+                    change_board_w_mov(board, pl->arr[mov_idx], white_mov_flg);
 
                     // Write board:
                     one_hot_encode_board(board, flt_one_hot_board);
