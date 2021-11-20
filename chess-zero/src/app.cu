@@ -28,15 +28,15 @@ void dump_pgn(const char *pgn_name)
 {
     char file_name_buf[256];
     memset(file_name_buf, 0, 256);
-    sprintf(file_name_buf, "c:\\users\\d0g0825\\ml-data\\chess-zero\\%s.pgn", pgn_name);
+    sprintf(file_name_buf, "data\\%s.pgn", pgn_name);
     PGNImport *pgn = PGNImport_init(file_name_buf);
 
     memset(file_name_buf, 0, 256);
-    sprintf(file_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\%s.bs", pgn_name);
+    sprintf(file_name_buf, "C:\\Users\\danny\\Desktop\\chess-zero\\%s.bs", pgn_name);
     FILE *boards_file = fopen(file_name_buf, "wb");
 
     memset(file_name_buf, 0, 256);
-    sprintf(file_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\%s.bl", pgn_name);
+    sprintf(file_name_buf, "C:\\Users\\danny\\Desktop\\chess-zero\\%s.bl", pgn_name);
     FILE *labels_file = fopen(file_name_buf, "wb");
 
     bool white_mov_flg;
@@ -118,10 +118,10 @@ OnDiskSupervisor *get_chess_supervisor(const char *pgn_name)
     char label_name_buf[256];
 
     memset(board_name_buf, 0, 256);
-    sprintf(board_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\%s.bs", pgn_name);
+    sprintf(board_name_buf, "C:\\Users\\danny\\Desktop\\chess-zero\\%s.bs", pgn_name);
 
     memset(label_name_buf, 0, 256);
-    sprintf(label_name_buf, "c:\\users\\d0g0825\\desktop\\temp\\chess-zero\\%s.bl", pgn_name);
+    sprintf(label_name_buf, "C:\\Users\\danny\\Desktop\\chess-zero\\%s.bl", pgn_name);
 
     std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
 
@@ -155,9 +155,9 @@ void train_chess(const char *pgn_name)
     model->add_layer(new LinearLayer(model->get_output_shape(), Tensor::get_cnt(sup->get_y_shape()), InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
-    model->train_and_test(sup, 64, 1, "C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.csv");
+    model->train_and_test(sup, 64, 1, "C:\\Users\\danny\\Desktop\\chess-zero\\chess-zero-train.csv");
 
-    model->save("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn");
+    model->save("C:\\Users\\danny\\Desktop\\chess-zero\\chess-zero.nn");
 
     delete model;
 
@@ -585,11 +585,11 @@ int main(int argc, char **argv)
 {
     srand(time(NULL));
 
-    dump_pgn("ALL");
+    dump_pgn("train");
 
-    train_chess("ALL");
+    //train_chess("train");
 
-    //play_chess("C:\\Users\\d0g0825\\Desktop\\temp\\chess-zero\\chess.nn", true, 3, true);
+    //play_chess("C:\\Users\\danny\\Desktop\\chess-zero\\chess-zero.nn", true, 3, true);
 
     return 0;
 }
