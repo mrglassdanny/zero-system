@@ -80,6 +80,13 @@ void Report::update_correct_cnt(Tensor *n, Tensor *y)
                 this->correct_cnt++;
             }
         }
+        else
+        {
+            if (n_val == 0.0f)
+            {
+                this->correct_cnt++;
+            }
+        }
     }
 }
 
