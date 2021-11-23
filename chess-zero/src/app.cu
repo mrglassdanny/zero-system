@@ -10,6 +10,8 @@
 using namespace zero::core;
 using namespace zero::nn;
 
+#define CHESS_START_MOVE_IDX 10
+
 struct MoveSearchResult
 {
     char mov[CHESS_MAX_MOVE_LEN];
@@ -22,6 +24,14 @@ struct MoveSearchResultTrio
     MoveSearchResult model_mov_res;
     MoveSearchResult minimax_mov_res;
     MoveSearchResult hybrid_mov_res;
+};
+
+struct Opening
+{
+    int all_board_states[CHESS_BOARD_LEN * CHESS_START_MOVE_IDX];
+    int white_win_cnt;
+    int black_win_cnt;
+    int tie_cnt;
 };
 
 void dump_pgn(const char *pgn_name)
@@ -45,9 +55,6 @@ void dump_pgn(const char *pgn_name)
     float flt_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
 
     float lbl;
-
-    // Skip openings:
-    int start_mov_idx = 10;
 
     printf("Total Games: %d\n", pgn->cnt);
 
@@ -74,7 +81,7 @@ void dump_pgn(const char *pgn_name)
 
             for (int mov_idx = 0; mov_idx < pl->cnt; mov_idx++)
             {
-                if (mov_idx >= start_mov_idx)
+                if (mov_idx >= CHESS_START_MOVE_IDX)
                 {
                     // Make move:
                     change_board_w_mov(board, pl->arr[mov_idx], white_mov_flg);
@@ -112,6 +119,107 @@ void dump_pgn(const char *pgn_name)
     PGNImport_free(pgn);
 
     system("cls");
+}
+
+std::vector<Opening> get_pgn_openings(const char *pgn_name)
+{
+    char file_name_buf[256];
+    memset(file_name_buf, 0, 256);
+    sprintf(file_name_buf, "data\\%s.pgn", pgn_name);
+    PGNImport *pgn = PGNImport_init(file_name_buf);
+
+    std::vector<Opening> openings;
+    int all_board_states[CHESS_BOARD_LEN * CHESS_START_MOVE_IDX];
+
+    bool white_mov_flg;
+
+    int *board = init_board();
+
+    printf("Total Games: %d\n", pgn->cnt);
+
+    for (int game_idx = 0; game_idx < pgn->cnt; game_idx++)
+    {
+        PGNMoveList *pl = pgn->games[game_idx];
+
+        {
+            white_mov_flg = true;
+
+            for (int mov_idx = 0; mov_idx < CHESS_START_MOVE_IDX; mov_idx++)
+            {
+                // Make move:
+                change_board_w_mov(board, pl->arr[mov_idx], white_mov_flg);
+
+                memcpy(&all_board_states[mov_idx * CHESS_BOARD_LEN], board, sizeof(int) * CHESS_BOARD_LEN);
+
+                white_mov_flg = !white_mov_flg;
+            }
+
+            bool opening_exists_flg = false;
+
+            for (int i = 0; i < openings.size(); i++)
+            {
+                if (memcmp(all_board_states, openings[i].all_board_states, sizeof(int) * (CHESS_BOARD_LEN * CHESS_START_MOVE_IDX)) == 0)
+                {
+                    opening_exists_flg = true;
+
+                    if (pl->white_won_flg)
+                    {
+                        openings[i].white_win_cnt++;
+                    }
+                    else if (pl->black_won_flg)
+                    {
+                        openings[i].black_win_cnt++;
+                    }
+                    else
+                    {
+                        openings[i].tie_cnt++;
+                    }
+
+                    break;
+                }
+            }
+
+            if (!opening_exists_flg)
+            {
+                Opening opening;
+
+                memcpy(opening.all_board_states, all_board_states, sizeof(int) * (CHESS_BOARD_LEN * CHESS_START_MOVE_IDX));
+                opening.white_win_cnt = 0;
+                opening.black_win_cnt = 0;
+                opening.tie_cnt = 0;
+
+                if (pl->white_won_flg)
+                {
+                    opening.white_win_cnt++;
+                }
+                else if (pl->black_won_flg)
+                {
+                    opening.black_win_cnt++;
+                }
+                else
+                {
+                    opening.tie_cnt++;
+                }
+
+                openings.push_back(opening);
+            }
+
+            reset_board(board);
+        }
+
+        if (game_idx % 10 == 0)
+        {
+            printf("%d / %d (%f%%)\n", game_idx, pgn->cnt, (((game_idx * 1.0) / (pgn->cnt * 1.0) * 100.0)));
+        }
+    }
+
+    free(board);
+
+    PGNImport_free(pgn);
+
+    system("cls");
+
+    return openings;
 }
 
 OnDiskSupervisor *get_chess_supervisor(const char *pgn_name)
@@ -428,48 +536,26 @@ MoveSearchResultTrio get_best_move(int *immut_board, bool white_mov_flg, bool pr
 
 void play_chess(const char *model_path, bool white_flg, int depth, bool print_flg)
 {
-    Model *model = new Model(model_path);
-
     int *board = init_board();
     int cpy_board[CHESS_BOARD_LEN];
     char mov[CHESS_MAX_MOVE_LEN];
 
     bool white_mov_flg = true;
 
-    // // Go ahead and make opening moves since we do not train the model on openings.
+    print_board(board);
+
+    int all_board_states_1[CHESS_BOARD_LEN * CHESS_START_MOVE_IDX];
+    int all_board_states_2[CHESS_BOARD_LEN * CHESS_START_MOVE_IDX];
+
+    memset(all_board_states_1, 0, sizeof(int) * (CHESS_BOARD_LEN * CHESS_START_MOVE_IDX));
+    memset(all_board_states_2, 0, sizeof(int) * (CHESS_BOARD_LEN * CHESS_START_MOVE_IDX));
+
+    for (int i = 0; i < CHESS_START_MOVE_IDX; i++)
     {
-        change_board_w_mov(board, "d4", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-
-        change_board_w_mov(board, "Nf6", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-
-        change_board_w_mov(board, "c4", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-
-        change_board_w_mov(board, "g6", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-
-        change_board_w_mov(board, "Nc3", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-
-        change_board_w_mov(board, "Bg7", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-
-        change_board_w_mov(board, "e4", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-
-        change_board_w_mov(board, "d6", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-
-        change_board_w_mov(board, "f3", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
-
-        change_board_w_mov(board, "Nbd7", white_mov_flg);
-        white_mov_flg = !white_mov_flg;
+        int _board[CHESS_BOARD_LEN];
     }
 
-    print_board(board);
+    Model *model = new Model(model_path);
 
     while (1)
     {
@@ -589,9 +675,11 @@ int main(int argc, char **argv)
 
     //dump_pgn("train");
 
-    train_chess("train");
+    std::vector<Opening> vec = get_pgn_openings("train");
 
-    //play_chess("C:\\Users\\danny\\Desktop\\chess-zero\\chess-zero.nn", true, 3, true);
+    //train_chess("train");
+
+    play_chess("C:\\Users\\danny\\Desktop\\chess-zero\\chess-zero.nn", true, 3, true);
 
     return 0;
 }
