@@ -156,23 +156,23 @@ std::vector<Opening> get_pgn_openings(const char *pgn_name)
 
             bool opening_exists_flg = false;
 
-            for (int i = 0; i < openings.size(); i++)
+            for (int mov_idx = 0; mov_idx < openings.size(); mov_idx++)
             {
-                if (memcmp(all_board_states, openings[i].all_board_states, sizeof(int) * (CHESS_BOARD_LEN * CHESS_START_MOVE_IDX)) == 0)
+                if (memcmp(all_board_states, openings[mov_idx].all_board_states, sizeof(int) * (CHESS_BOARD_LEN * CHESS_START_MOVE_IDX)) == 0)
                 {
                     opening_exists_flg = true;
 
                     if (pl->white_won_flg)
                     {
-                        openings[i].white_win_cnt++;
+                        openings[mov_idx].white_win_cnt++;
                     }
                     else if (pl->black_won_flg)
                     {
-                        openings[i].black_win_cnt++;
+                        openings[mov_idx].black_win_cnt++;
                     }
                     else
                     {
-                        openings[i].tie_cnt++;
+                        openings[mov_idx].tie_cnt++;
                     }
 
                     break;
@@ -542,28 +542,104 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
 
     bool white_mov_flg = true;
 
-    print_board(board);
+    int opening_idx = 0;
 
-    int all_board_states_1[CHESS_BOARD_LEN * CHESS_START_MOVE_IDX];
-    int all_board_states_2[CHESS_BOARD_LEN * CHESS_START_MOVE_IDX];
+    std::vector<Opening> openings = get_pgn_openings("train");
 
-    memset(all_board_states_1, 0, sizeof(int) * (CHESS_BOARD_LEN * CHESS_START_MOVE_IDX));
-    memset(all_board_states_2, 0, sizeof(int) * (CHESS_BOARD_LEN * CHESS_START_MOVE_IDX));
-
-    for (int i = 0; i < CHESS_START_MOVE_IDX; i++)
+    for (int mov_idx = 0; mov_idx < CHESS_START_MOVE_IDX; mov_idx++)
     {
-        int _board[CHESS_BOARD_LEN];
+
+        if (white_flg)
+        {
+            // White move:
+            print_board(board);
+            memcpy(board, &openings[opening_idx].all_board_states[mov_idx * CHESS_BOARD_LEN],
+                   sizeof(int) * (CHESS_BOARD_LEN));
+            system("cls");
+            white_mov_flg = !white_mov_flg;
+            mov_idx++;
+
+            // Black move now:
+            print_flipped_board(board);
+            memset(mov, 0, CHESS_MAX_MOVE_LEN);
+            printf("BLACK: ");
+            std::cin >> mov;
+            system("cls");
+            change_board_w_mov(board, mov, white_mov_flg);
+            white_mov_flg = !white_mov_flg;
+
+            // Check opening match:
+            bool opening_match_flg = true;
+            while (memcmp(board, &openings[opening_idx].all_board_states[mov_idx * CHESS_BOARD_LEN],
+                          sizeof(int) * CHESS_BOARD_LEN) != 0)
+            {
+                opening_idx++;
+
+                if (opening_idx >= openings.size())
+                {
+                    opening_match_flg = false;
+                    break;
+                }
+            }
+
+            if (!opening_match_flg)
+            {
+                break;
+            }
+        }
+        else
+        {
+            // White move:
+            print_board(board);
+            memset(mov, 0, CHESS_MAX_MOVE_LEN);
+            printf("WHITE: ");
+            std::cin >> mov;
+            system("cls");
+            change_board_w_mov(board, mov, white_mov_flg);
+            white_mov_flg = !white_mov_flg;
+
+            // Check opening match:
+            bool opening_match_flg = true;
+            while (memcmp(board, &openings[opening_idx].all_board_states[mov_idx * CHESS_BOARD_LEN],
+                          sizeof(int) * CHESS_BOARD_LEN) != 0)
+            {
+                opening_idx++;
+
+                if (opening_idx >= openings.size())
+                {
+                    opening_match_flg = false;
+                    break;
+                }
+            }
+
+            if (!opening_match_flg)
+            {
+                break;
+            }
+
+            mov_idx++;
+
+            // Black move now:
+            print_flipped_board(board);
+            memcpy(board, &openings[opening_idx].all_board_states[mov_idx * CHESS_BOARD_LEN],
+                   sizeof(int) * (CHESS_BOARD_LEN));
+            system("cls");
+            white_mov_flg = !white_mov_flg;
+        }
     }
+
+    system("cls");
 
     Model *model = new Model(model_path);
 
-    while (1)
+    while (true)
     {
 
         printf("move\tmodel\t\tminimax\t\tpruned\n");
         printf("-------+---------------+---------------+------------\n");
 
         // White move:
+        print_board(board);
         {
 
             if (is_in_checkmate(board, true))
@@ -587,7 +663,7 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
 
             printf("-------+---------------+---------------+------------\n");
 
-            // Now accept user input.
+            // Now accept user input:
             memset(mov, 0, CHESS_MAX_MOVE_LEN);
             printf("WHITE (a, b, c, <custom>): ");
 
@@ -610,13 +686,13 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
 
             change_board_w_mov(board, mov, white_mov_flg);
             white_mov_flg = !white_mov_flg;
-            print_flipped_board(board);
         }
 
         printf("move\tmodel\t\tminimax\t\tpruned\n");
         printf("-------+---------------+---------------+------------\n");
 
         // Black move:
+        print_flipped_board(board);
         {
 
             if (is_in_checkmate(board, false))
@@ -640,7 +716,7 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
 
             printf("-------+---------------+---------------+------------\n");
 
-            // Now accept user input.
+            // Now accept user input:
             memset(mov, 0, CHESS_MAX_MOVE_LEN);
             printf("BLACK (a, b, c, <custom>): ");
             std::cin >> mov;
@@ -662,7 +738,6 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
 
             change_board_w_mov(board, mov, white_mov_flg);
             white_mov_flg = !white_mov_flg;
-            print_board(board);
         }
     }
 
@@ -674,8 +749,6 @@ int main(int argc, char **argv)
     srand(time(NULL));
 
     //dump_pgn("train");
-
-    std::vector<Opening> vec = get_pgn_openings("train");
 
     //train_chess("train");
 
