@@ -121,6 +121,30 @@ void dump_pgn(const char *pgn_name)
     system("cls");
 }
 
+bool opening_game_cnt_sort_func(Opening a, Opening b)
+{
+    int a_cnt = a.white_win_cnt + a.black_win_cnt + a.tie_cnt;
+    int b_cnt = b.white_win_cnt + b.black_win_cnt + b.tie_cnt;
+
+    return a_cnt > b_cnt;
+}
+
+bool opening_white_wins_sort_func(Opening a, Opening b)
+{
+    int a_cnt = a.white_win_cnt;
+    int b_cnt = b.white_win_cnt;
+
+    return a_cnt > b_cnt;
+}
+
+bool opening_black_wins_sort_func(Opening a, Opening b)
+{
+    int a_cnt = a.black_win_cnt;
+    int b_cnt = b.black_win_cnt;
+
+    return a_cnt > b_cnt;
+}
+
 std::vector<Opening> get_pgn_openings(const char *pgn_name)
 {
     char file_name_buf[256];
@@ -135,7 +159,7 @@ std::vector<Opening> get_pgn_openings(const char *pgn_name)
 
     int *board = init_board();
 
-    printf("Total Games: %d\n", pgn->cnt);
+    printf("Processing PGN openings...\n");
 
     for (int game_idx = 0; game_idx < pgn->cnt; game_idx++)
     {
@@ -205,11 +229,6 @@ std::vector<Opening> get_pgn_openings(const char *pgn_name)
             }
 
             reset_board(board);
-        }
-
-        if (game_idx % 10 == 0)
-        {
-            printf("%d / %d (%f%%)\n", game_idx, pgn->cnt, (((game_idx * 1.0) / (pgn->cnt * 1.0) * 100.0)));
         }
     }
 
@@ -540,12 +559,24 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
     int cpy_board[CHESS_BOARD_LEN];
     char mov[CHESS_MAX_MOVE_LEN];
 
+    Model *model = new Model(model_path);
+
     bool white_mov_flg = true;
 
     int opening_idx = 0;
 
     std::vector<Opening> openings = get_pgn_openings("train");
 
+    if (white_flg)
+    {
+        std::sort(openings.begin(), openings.end(), opening_white_wins_sort_func);
+    }
+    else
+    {
+        std::sort(openings.begin(), openings.end(), opening_black_wins_sort_func);
+    }
+
+    // Opening:
     for (int mov_idx = 0; mov_idx < CHESS_START_MOVE_IDX; mov_idx++)
     {
 
@@ -614,6 +645,62 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
 
             if (!opening_match_flg)
             {
+                // Make black move from model since no opening match:
+                {
+                    print_flipped_board(board);
+
+                    printf("move\tmodel\t\tminimax\t\tpruned\n");
+                    printf("-------+---------------+---------------+------------\n");
+
+                    // Black move:
+                    {
+
+                        if (is_in_checkmate(board, false))
+                        {
+                            printf("CHECKMATE!\n");
+                            break;
+                        }
+
+                        if (is_in_check(board, false))
+                        {
+                            printf("CHECK!\n");
+                        }
+
+                        MoveSearchResultTrio trio_mov_res;
+
+                        copy_board(board, cpy_board);
+                        trio_mov_res = get_best_move(cpy_board, white_mov_flg, print_flg, depth, model);
+                        printf("%s\t%f\t%f\t-\n", trio_mov_res.model_mov_res.mov, trio_mov_res.model_mov_res.model_eval, trio_mov_res.model_mov_res.minimax_eval);
+                        printf("%s\t%f\t%f\t-\n", trio_mov_res.minimax_mov_res.mov, trio_mov_res.minimax_mov_res.model_eval, trio_mov_res.minimax_mov_res.minimax_eval);
+                        printf("%s\t%f\t%f\t-\n", trio_mov_res.hybrid_mov_res.mov, trio_mov_res.hybrid_mov_res.model_eval, trio_mov_res.hybrid_mov_res.minimax_eval);
+
+                        printf("-------+---------------+---------------+------------\n");
+
+                        // Now accept user input:
+                        memset(mov, 0, CHESS_MAX_MOVE_LEN);
+                        printf("BLACK (a, b, c, <custom>): ");
+                        std::cin >> mov;
+                        system("cls");
+
+                        // Allow user to confirm they want to make a recommended move.
+                        if (strcmp(mov, "a") == 0)
+                        {
+                            strcpy(mov, trio_mov_res.model_mov_res.mov);
+                        }
+                        else if (strcmp(mov, "b") == 0)
+                        {
+                            strcpy(mov, trio_mov_res.minimax_mov_res.mov);
+                        }
+                        else if (strcmp(mov, "c") == 0)
+                        {
+                            strcpy(mov, trio_mov_res.hybrid_mov_res.mov);
+                        }
+
+                        change_board_w_mov(board, mov, white_mov_flg);
+                        white_mov_flg = !white_mov_flg;
+                    }
+                }
+
                 break;
             }
 
@@ -630,16 +717,16 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
 
     system("cls");
 
-    Model *model = new Model(model_path);
-
+    // Middle/end:
     while (true)
     {
+
+        print_board(board);
 
         printf("move\tmodel\t\tminimax\t\tpruned\n");
         printf("-------+---------------+---------------+------------\n");
 
         // White move:
-        print_board(board);
         {
 
             if (is_in_checkmate(board, true))
@@ -653,46 +740,50 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
                 printf("CHECK!\n");
             }
 
-            MoveSearchResultTrio trio_mov_res;
-
-            copy_board(board, cpy_board);
-            trio_mov_res = get_best_move(cpy_board, white_mov_flg, print_flg, depth, model);
-            printf("%s\t%f\t%f\t-\n", trio_mov_res.model_mov_res.mov, trio_mov_res.model_mov_res.model_eval, trio_mov_res.model_mov_res.minimax_eval);
-            printf("%s\t%f\t%f\t-\n", trio_mov_res.minimax_mov_res.mov, trio_mov_res.minimax_mov_res.model_eval, trio_mov_res.minimax_mov_res.minimax_eval);
-            printf("%s\t%f\t%f\t-\n", trio_mov_res.hybrid_mov_res.mov, trio_mov_res.hybrid_mov_res.model_eval, trio_mov_res.hybrid_mov_res.minimax_eval);
-
-            printf("-------+---------------+---------------+------------\n");
-
-            // Now accept user input:
-            memset(mov, 0, CHESS_MAX_MOVE_LEN);
-            printf("WHITE (a, b, c, <custom>): ");
-
-            std::cin >> mov;
-            system("cls");
-
-            // Allow user to confirm they want to make a recommended move.
-            if (strcmp(mov, "a") == 0)
+            if (white_flg)
             {
-                strcpy(mov, trio_mov_res.model_mov_res.mov);
-            }
-            else if (strcmp(mov, "b") == 0)
-            {
-                strcpy(mov, trio_mov_res.minimax_mov_res.mov);
-            }
-            else if (strcmp(mov, "c") == 0)
-            {
-                strcpy(mov, trio_mov_res.hybrid_mov_res.mov);
+                MoveSearchResultTrio trio_mov_res;
+
+                copy_board(board, cpy_board);
+                trio_mov_res = get_best_move(cpy_board, white_mov_flg, print_flg, depth, model);
+                printf("%s\t%f\t%f\t-\n", trio_mov_res.model_mov_res.mov, trio_mov_res.model_mov_res.model_eval, trio_mov_res.model_mov_res.minimax_eval);
+                printf("%s\t%f\t%f\t-\n", trio_mov_res.minimax_mov_res.mov, trio_mov_res.minimax_mov_res.model_eval, trio_mov_res.minimax_mov_res.minimax_eval);
+                printf("%s\t%f\t%f\t-\n", trio_mov_res.hybrid_mov_res.mov, trio_mov_res.hybrid_mov_res.model_eval, trio_mov_res.hybrid_mov_res.minimax_eval);
+
+                printf("-------+---------------+---------------+------------\n");
+
+                // Now accept user input:
+                memset(mov, 0, CHESS_MAX_MOVE_LEN);
+                printf("WHITE (a, b, c, <custom>): ");
+
+                std::cin >> mov;
+                system("cls");
+
+                // Allow user to confirm they want to make a recommended move.
+                if (strcmp(mov, "a") == 0)
+                {
+                    strcpy(mov, trio_mov_res.model_mov_res.mov);
+                }
+                else if (strcmp(mov, "b") == 0)
+                {
+                    strcpy(mov, trio_mov_res.minimax_mov_res.mov);
+                }
+                else if (strcmp(mov, "c") == 0)
+                {
+                    strcpy(mov, trio_mov_res.hybrid_mov_res.mov);
+                }
             }
 
             change_board_w_mov(board, mov, white_mov_flg);
             white_mov_flg = !white_mov_flg;
         }
 
+        print_flipped_board(board);
+
         printf("move\tmodel\t\tminimax\t\tpruned\n");
         printf("-------+---------------+---------------+------------\n");
 
         // Black move:
-        print_flipped_board(board);
         {
 
             if (is_in_checkmate(board, false))
@@ -752,7 +843,7 @@ int main(int argc, char **argv)
 
     //train_chess("train");
 
-    play_chess("C:\\Users\\danny\\Desktop\\chess-zero\\chess-zero.nn", true, 3, true);
+    play_chess("C:\\Users\\danny\\Desktop\\chess-zero\\chess-zero.nn", true, 3, false);
 
     return 0;
 }
