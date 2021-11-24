@@ -284,7 +284,7 @@ void train_chess(const char *pgn_name)
     model->add_layer(new LinearLayer(model->get_output_shape(), Tensor::get_cnt(sup->get_y_shape()), InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
-    model->train_and_test(sup, 64, 1, "C:\\Users\\danny\\Desktop\\chess-zero\\chess-zero-train.csv");
+    model->train_and_test(sup, 64, 3, "C:\\Users\\danny\\Desktop\\chess-zero\\chess-zero-train.csv");
 
     model->save("C:\\Users\\danny\\Desktop\\chess-zero\\chess-zero.nn");
 
