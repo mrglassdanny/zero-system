@@ -755,7 +755,6 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
                 // Now accept user input:
                 memset(mov, 0, CHESS_MAX_MOVE_LEN);
                 printf("WHITE (a, b, c, <custom>): ");
-
                 std::cin >> mov;
                 system("cls");
 
@@ -772,6 +771,14 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
                 {
                     strcpy(mov, trio_mov_res.hybrid_mov_res.mov);
                 }
+            }
+            else
+            {
+                // Now accept user input:
+                memset(mov, 0, CHESS_MAX_MOVE_LEN);
+                printf("WHITE: ");
+                std::cin >> mov;
+                system("cls");
             }
 
             change_board_w_mov(board, mov, white_mov_flg);
@@ -797,34 +804,45 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
                 printf("CHECK!\n");
             }
 
-            MoveSearchResultTrio trio_mov_res;
-
-            copy_board(board, cpy_board);
-            trio_mov_res = get_best_move(cpy_board, white_mov_flg, print_flg, depth, model);
-            printf("%s\t%f\t%f\t-\n", trio_mov_res.model_mov_res.mov, trio_mov_res.model_mov_res.model_eval, trio_mov_res.model_mov_res.minimax_eval);
-            printf("%s\t%f\t%f\t-\n", trio_mov_res.minimax_mov_res.mov, trio_mov_res.minimax_mov_res.model_eval, trio_mov_res.minimax_mov_res.minimax_eval);
-            printf("%s\t%f\t%f\t-\n", trio_mov_res.hybrid_mov_res.mov, trio_mov_res.hybrid_mov_res.model_eval, trio_mov_res.hybrid_mov_res.minimax_eval);
-
-            printf("-------+---------------+---------------+------------\n");
-
-            // Now accept user input:
-            memset(mov, 0, CHESS_MAX_MOVE_LEN);
-            printf("BLACK (a, b, c, <custom>): ");
-            std::cin >> mov;
-            system("cls");
-
-            // Allow user to confirm they want to make a recommended move.
-            if (strcmp(mov, "a") == 0)
+            if (!white_flg)
             {
-                strcpy(mov, trio_mov_res.model_mov_res.mov);
+                MoveSearchResultTrio trio_mov_res;
+
+                copy_board(board, cpy_board);
+                trio_mov_res = get_best_move(cpy_board, white_mov_flg, print_flg, depth, model);
+                printf("%s\t%f\t%f\t-\n", trio_mov_res.model_mov_res.mov, trio_mov_res.model_mov_res.model_eval, trio_mov_res.model_mov_res.minimax_eval);
+                printf("%s\t%f\t%f\t-\n", trio_mov_res.minimax_mov_res.mov, trio_mov_res.minimax_mov_res.model_eval, trio_mov_res.minimax_mov_res.minimax_eval);
+                printf("%s\t%f\t%f\t-\n", trio_mov_res.hybrid_mov_res.mov, trio_mov_res.hybrid_mov_res.model_eval, trio_mov_res.hybrid_mov_res.minimax_eval);
+
+                printf("-------+---------------+---------------+------------\n");
+
+                // Now accept user input:
+                memset(mov, 0, CHESS_MAX_MOVE_LEN);
+                printf("BLACK (a, b, c, <custom>): ");
+                std::cin >> mov;
+                system("cls");
+
+                // Allow user to confirm they want to make a recommended move.
+                if (strcmp(mov, "a") == 0)
+                {
+                    strcpy(mov, trio_mov_res.model_mov_res.mov);
+                }
+                else if (strcmp(mov, "b") == 0)
+                {
+                    strcpy(mov, trio_mov_res.minimax_mov_res.mov);
+                }
+                else if (strcmp(mov, "c") == 0)
+                {
+                    strcpy(mov, trio_mov_res.hybrid_mov_res.mov);
+                }
             }
-            else if (strcmp(mov, "b") == 0)
+            else
             {
-                strcpy(mov, trio_mov_res.minimax_mov_res.mov);
-            }
-            else if (strcmp(mov, "c") == 0)
-            {
-                strcpy(mov, trio_mov_res.hybrid_mov_res.mov);
+                // Now accept user input:
+                memset(mov, 0, CHESS_MAX_MOVE_LEN);
+                printf("BLACK: ");
+                std::cin >> mov;
+                system("cls");
             }
 
             change_board_w_mov(board, mov, white_mov_flg);
