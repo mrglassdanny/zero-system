@@ -859,9 +859,9 @@ int main(int argc, char **argv)
 
     //dump_pgn("train");
 
-    //train_chess("train");
+    train_chess("train");
 
-    play_chess("C:\\Users\\danny\\Desktop\\chess-zero\\chess-zero.nn", true, 2, true);
+    //play_chess("C:\\Users\\danny\\Desktop\\chess-zero\\chess-zero.nn", true, 3, true);
 
     return 0;
 }
