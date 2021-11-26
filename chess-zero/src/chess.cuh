@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <zero_system/core/tensor.cuh>
+#include <zero_system/nn/model.cuh>
 
 #define CHESS_BOARD_ROW_CNT 8
 #define CHESS_BOARD_COL_CNT 8
@@ -24,6 +25,7 @@
 #define CHESS_ONE_HOT_ENCODED_BOARD_LEN (CHESS_BOARD_LEN * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT)
 
 using namespace zero::core;
+using namespace zero::nn;
 
 typedef enum ChessPiece
 {
@@ -134,8 +136,8 @@ void one_hot_encode_board(int *board, int *out);
 
 void one_hot_encode_board(int *board, float *out);
 
-float eval_board(int *board);
+float eval_board(int *board, Model *model);
 
-MinimaxResult get_minimax(int *board, bool white_mov_flg, bool cur_white_mov_flg, int max_depth, int cur_depth, float best_minimax_eval);
+MinimaxResult get_minimax(int *board, bool white_mov_flg, bool cur_white_mov_flg, int max_depth, int cur_depth, float best_minimax_eval, Model *model);
 
 float activate_minimax_eval(float val);

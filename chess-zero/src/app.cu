@@ -15,15 +15,7 @@ using namespace zero::nn;
 struct MoveSearchResult
 {
     char mov[CHESS_MAX_MOVE_LEN];
-    float model_eval;
     float minimax_eval;
-};
-
-struct MoveSearchResultTrio
-{
-    MoveSearchResult model_mov_res;
-    MoveSearchResult minimax_mov_res;
-    MoveSearchResult hybrid_mov_res;
 };
 
 struct Opening
@@ -293,7 +285,7 @@ void train_chess(const char *pgn_name)
     delete sup;
 }
 
-MoveSearchResultTrio get_best_move(int *immut_board, bool white_mov_flg, bool print_flg, int depth, Model *model)
+MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_flg, int depth, Model *model)
 {
     int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
     char mov[CHESS_MAX_MOVE_LEN];
@@ -302,50 +294,17 @@ MoveSearchResultTrio get_best_move(int *immut_board, bool white_mov_flg, bool pr
 
     float flt_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
 
-    char model_mov[CHESS_MAX_MOVE_LEN];
     char minimax_mov[CHESS_MAX_MOVE_LEN];
-    char hybrid_mov[CHESS_MAX_MOVE_LEN];
-
-    float best_model_eval;
-    float model_eval;
-    float model_eval_tiebreaker;
-    if (white_mov_flg)
-    {
-        best_model_eval = -1.0f;
-        model_eval_tiebreaker = -1.0f;
-    }
-    else
-    {
-        best_model_eval = 1.0f;
-        model_eval_tiebreaker = 1.0f;
-    }
-
     float best_minimax_eval;
     MinimaxResult minimax_res;
-    float minimax_eval_tiebreaker;
     if (white_mov_flg)
     {
         best_minimax_eval = -100.0f;
-        minimax_eval_tiebreaker = -100.0f;
     }
     else
     {
         best_minimax_eval = 100.0f;
-        minimax_eval_tiebreaker = 100.0f;
     }
-
-    float best_hybrid_eval;
-    if (white_mov_flg)
-    {
-        best_hybrid_eval = -100.0f;
-    }
-    else
-    {
-        best_hybrid_eval = 100.0f;
-    }
-    float hybrid_eval;
-    float hybrid_model_eval;
-    float hybrid_minimax_eval;
 
     for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
     {
@@ -370,71 +329,20 @@ MoveSearchResultTrio get_best_move(int *immut_board, bool white_mov_flg, bool pr
                             translate_srcdst_idx_to_mov(immut_board, piece_idx, legal_moves[mov_idx], mov);
                         }
 
-                        // Model evaluation:
-                        {
-                            one_hot_encode_board(sim_board, flt_one_hot_board);
-                            std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
-                            Tensor *x = new Tensor(Device::Cpu, x_shape);
-                            x->set_arr(flt_one_hot_board);
-                            Tensor *pred = model->predict(x);
-                            model_eval = pred->get_val(0);
-                            delete pred;
-                            delete x;
-                        }
-
                         // Minimax evaluation:
                         {
-                            minimax_res = get_minimax(sim_board, white_mov_flg, !white_mov_flg, depth, 1, best_minimax_eval);
-                        }
-
-                        // Hybrid evaluation:
-                        {
-                            hybrid_eval = model_eval + activate_minimax_eval(minimax_res.eval);
+                            minimax_res = get_minimax(sim_board, white_mov_flg, !white_mov_flg, depth, 1, best_minimax_eval, model);
                         }
 
                         if (print_flg)
                         {
-                            printf("%s\t%f\t%f\t%d\n", mov, model_eval, minimax_res.eval, minimax_res.prune_flg);
-                        }
-
-                        if (model_eval == best_model_eval)
-                        {
-                            if (minimax_res.eval > minimax_eval_tiebreaker)
-                            {
-                                minimax_eval_tiebreaker = minimax_res.eval;
-                                memcpy(model_mov, mov, CHESS_MAX_MOVE_LEN);
-                            }
-                        }
-
-                        if (model_eval > best_model_eval)
-                        {
-                            best_model_eval = model_eval;
-                            minimax_eval_tiebreaker = minimax_res.eval;
-                            memcpy(model_mov, mov, CHESS_MAX_MOVE_LEN);
-                        }
-
-                        if (minimax_res.eval == best_minimax_eval)
-                        {
-                            if (model_eval > model_eval_tiebreaker)
-                            {
-                                model_eval_tiebreaker = model_eval;
-                                memcpy(minimax_mov, mov, CHESS_MAX_MOVE_LEN);
-                            }
+                            printf("%s\t%f\t%d\n", mov, minimax_res.eval, minimax_res.prune_flg);
                         }
 
                         if (minimax_res.eval > best_minimax_eval)
                         {
                             best_minimax_eval = minimax_res.eval;
-                            model_eval_tiebreaker = model_eval;
                             memcpy(minimax_mov, mov, CHESS_MAX_MOVE_LEN);
-                        }
-
-                        if (hybrid_eval > best_hybrid_eval)
-                        {
-                            best_hybrid_eval = hybrid_eval;
-                            hybrid_model_eval = model_eval;
-                            hybrid_minimax_eval = minimax_res.eval;
-                            memcpy(hybrid_mov, mov, CHESS_MAX_MOVE_LEN);
                         }
                     }
                 }
@@ -461,71 +369,20 @@ MoveSearchResultTrio get_best_move(int *immut_board, bool white_mov_flg, bool pr
                             translate_srcdst_idx_to_mov(immut_board, piece_idx, legal_moves[mov_idx], mov);
                         }
 
-                        // Model evaluation:
-                        {
-                            one_hot_encode_board(sim_board, flt_one_hot_board);
-                            std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
-                            Tensor *x = new Tensor(Device::Cpu, x_shape);
-                            x->set_arr(flt_one_hot_board);
-                            Tensor *pred = model->predict(x);
-                            model_eval = pred->get_val(0);
-                            delete pred;
-                            delete x;
-                        }
-
                         // Minimax evaluation:
                         {
-                            minimax_res = get_minimax(sim_board, white_mov_flg, !white_mov_flg, depth, 1, best_minimax_eval);
-                        }
-
-                        // Hybrid evaluation:
-                        {
-                            hybrid_eval = model_eval + activate_minimax_eval(minimax_res.eval);
+                            minimax_res = get_minimax(sim_board, white_mov_flg, !white_mov_flg, depth, 1, best_minimax_eval, model);
                         }
 
                         if (print_flg)
                         {
-                            printf("%s\t%f\t%f\t%d\n", mov, model_eval, minimax_res.eval, minimax_res.prune_flg);
-                        }
-
-                        if (model_eval == best_model_eval)
-                        {
-                            if (minimax_res.eval < minimax_eval_tiebreaker)
-                            {
-                                minimax_eval_tiebreaker = minimax_res.eval;
-                                memcpy(model_mov, mov, CHESS_MAX_MOVE_LEN);
-                            }
-                        }
-
-                        if (model_eval < best_model_eval)
-                        {
-                            best_model_eval = model_eval;
-                            minimax_eval_tiebreaker = minimax_res.eval;
-                            memcpy(model_mov, mov, CHESS_MAX_MOVE_LEN);
-                        }
-
-                        if (minimax_res.eval == best_minimax_eval)
-                        {
-                            if (model_eval < model_eval_tiebreaker)
-                            {
-                                model_eval_tiebreaker = model_eval;
-                                memcpy(minimax_mov, mov, CHESS_MAX_MOVE_LEN);
-                            }
+                            printf("%s\t%f\t%d\n", mov, minimax_res.eval, minimax_res.prune_flg);
                         }
 
                         if (minimax_res.eval < best_minimax_eval)
                         {
                             best_minimax_eval = minimax_res.eval;
-                            model_eval_tiebreaker = model_eval;
                             memcpy(minimax_mov, mov, CHESS_MAX_MOVE_LEN);
-                        }
-
-                        if (hybrid_eval < best_hybrid_eval)
-                        {
-                            best_hybrid_eval = hybrid_eval;
-                            hybrid_model_eval = model_eval;
-                            hybrid_minimax_eval = minimax_res.eval;
-                            memcpy(hybrid_mov, mov, CHESS_MAX_MOVE_LEN);
                         }
                     }
                 }
@@ -538,19 +395,10 @@ MoveSearchResultTrio get_best_move(int *immut_board, bool white_mov_flg, bool pr
         printf("-------+---------------+---------------+------------\n");
     }
 
-    MoveSearchResultTrio trio_mov_res;
-
-    memcpy(trio_mov_res.model_mov_res.mov, model_mov, CHESS_MAX_MOVE_LEN);
-    memcpy(trio_mov_res.minimax_mov_res.mov, minimax_mov, CHESS_MAX_MOVE_LEN);
-    memcpy(trio_mov_res.hybrid_mov_res.mov, hybrid_mov, CHESS_MAX_MOVE_LEN);
-    trio_mov_res.model_mov_res.model_eval = best_model_eval;
-    trio_mov_res.minimax_mov_res.model_eval = model_eval_tiebreaker;
-    trio_mov_res.hybrid_mov_res.model_eval = hybrid_model_eval;
-    trio_mov_res.model_mov_res.minimax_eval = minimax_eval_tiebreaker;
-    trio_mov_res.minimax_mov_res.minimax_eval = best_minimax_eval;
-    trio_mov_res.hybrid_mov_res.minimax_eval = hybrid_minimax_eval;
-
-    return trio_mov_res;
+    MoveSearchResult mov_res;
+    memcpy(mov_res.mov, minimax_mov, CHESS_MAX_MOVE_LEN);
+    mov_res.minimax_eval = best_minimax_eval;
+    return mov_res;
 }
 
 void play_chess(const char *model_path, bool white_flg, int depth, bool print_flg)
@@ -649,9 +497,6 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
                 {
                     print_flipped_board(board);
 
-                    printf("move\tmodel\t\tminimax\t\tpruned\n");
-                    printf("-------+---------------+---------------+------------\n");
-
                     // Black move:
                     {
 
@@ -666,34 +511,27 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
                             printf("CHECK!\n");
                         }
 
-                        MoveSearchResultTrio trio_mov_res;
+                        printf("move\t\tminimax\t\tpruned\n");
+                        printf("-------+---------------+------------\n");
+
+                        MoveSearchResult mov_res;
 
                         copy_board(board, cpy_board);
-                        trio_mov_res = get_best_move(cpy_board, white_mov_flg, print_flg, depth, model);
-                        printf("%s\t%f\t%f\t-\n", trio_mov_res.model_mov_res.mov, trio_mov_res.model_mov_res.model_eval, trio_mov_res.model_mov_res.minimax_eval);
-                        printf("%s\t%f\t%f\t-\n", trio_mov_res.minimax_mov_res.mov, trio_mov_res.minimax_mov_res.model_eval, trio_mov_res.minimax_mov_res.minimax_eval);
-                        printf("%s\t%f\t%f\t-\n", trio_mov_res.hybrid_mov_res.mov, trio_mov_res.hybrid_mov_res.model_eval, trio_mov_res.hybrid_mov_res.minimax_eval);
+                        mov_res = get_best_move(cpy_board, white_mov_flg, print_flg, depth, model);
+                        printf("%s\t%f\t%f\t-\n", mov_res.mov, mov_res.minimax_eval);
 
-                        printf("-------+---------------+---------------+------------\n");
+                        printf("-------+---------------+------------\n");
 
                         // Now accept user input:
                         memset(mov, 0, CHESS_MAX_MOVE_LEN);
-                        printf("BLACK (a, b, c, <custom>): ");
+                        printf("BLACK (a OR <custom>): ");
                         std::cin >> mov;
                         system("cls");
 
                         // Allow user to confirm they want to make a recommended move.
                         if (strcmp(mov, "a") == 0)
                         {
-                            strcpy(mov, trio_mov_res.model_mov_res.mov);
-                        }
-                        else if (strcmp(mov, "b") == 0)
-                        {
-                            strcpy(mov, trio_mov_res.minimax_mov_res.mov);
-                        }
-                        else if (strcmp(mov, "c") == 0)
-                        {
-                            strcpy(mov, trio_mov_res.hybrid_mov_res.mov);
+                            strcpy(mov, mov_res.mov);
                         }
 
                         change_board_w_mov(board, mov, white_mov_flg);
@@ -723,9 +561,6 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
 
         print_board(board);
 
-        printf("move\tmodel\t\tminimax\t\tpruned\n");
-        printf("-------+---------------+---------------+------------\n");
-
         // White move:
         {
 
@@ -742,34 +577,27 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
 
             if (white_flg)
             {
-                MoveSearchResultTrio trio_mov_res;
+                printf("move\t\tminimax\t\tpruned\n");
+                printf("-------+---------------+------------\n");
+
+                MoveSearchResult mov_res;
 
                 copy_board(board, cpy_board);
-                trio_mov_res = get_best_move(cpy_board, white_mov_flg, print_flg, depth, model);
-                printf("%s\t%f\t%f\t-\n", trio_mov_res.model_mov_res.mov, trio_mov_res.model_mov_res.model_eval, trio_mov_res.model_mov_res.minimax_eval);
-                printf("%s\t%f\t%f\t-\n", trio_mov_res.minimax_mov_res.mov, trio_mov_res.minimax_mov_res.model_eval, trio_mov_res.minimax_mov_res.minimax_eval);
-                printf("%s\t%f\t%f\t-\n", trio_mov_res.hybrid_mov_res.mov, trio_mov_res.hybrid_mov_res.model_eval, trio_mov_res.hybrid_mov_res.minimax_eval);
+                mov_res = get_best_move(cpy_board, white_mov_flg, print_flg, depth, model);
+                printf("%s\t%f\t%f\t-\n", mov_res.mov, mov_res.minimax_eval);
 
-                printf("-------+---------------+---------------+------------\n");
+                printf("-------+---------------+------------\n");
 
                 // Now accept user input:
                 memset(mov, 0, CHESS_MAX_MOVE_LEN);
-                printf("WHITE (a, b, c, <custom>): ");
+                printf("WHITE (a OR <custom>): ");
                 std::cin >> mov;
                 system("cls");
 
                 // Allow user to confirm they want to make a recommended move.
                 if (strcmp(mov, "a") == 0)
                 {
-                    strcpy(mov, trio_mov_res.model_mov_res.mov);
-                }
-                else if (strcmp(mov, "b") == 0)
-                {
-                    strcpy(mov, trio_mov_res.minimax_mov_res.mov);
-                }
-                else if (strcmp(mov, "c") == 0)
-                {
-                    strcpy(mov, trio_mov_res.hybrid_mov_res.mov);
+                    strcpy(mov, mov_res.mov);
                 }
             }
             else
@@ -787,9 +615,6 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
 
         print_flipped_board(board);
 
-        printf("move\tmodel\t\tminimax\t\tpruned\n");
-        printf("-------+---------------+---------------+------------\n");
-
         // Black move:
         {
 
@@ -806,34 +631,27 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
 
             if (!white_flg)
             {
-                MoveSearchResultTrio trio_mov_res;
+                printf("move\t\tminimax\t\tpruned\n");
+                printf("-------+---------------+------------\n");
+
+                MoveSearchResult mov_res;
 
                 copy_board(board, cpy_board);
-                trio_mov_res = get_best_move(cpy_board, white_mov_flg, print_flg, depth, model);
-                printf("%s\t%f\t%f\t-\n", trio_mov_res.model_mov_res.mov, trio_mov_res.model_mov_res.model_eval, trio_mov_res.model_mov_res.minimax_eval);
-                printf("%s\t%f\t%f\t-\n", trio_mov_res.minimax_mov_res.mov, trio_mov_res.minimax_mov_res.model_eval, trio_mov_res.minimax_mov_res.minimax_eval);
-                printf("%s\t%f\t%f\t-\n", trio_mov_res.hybrid_mov_res.mov, trio_mov_res.hybrid_mov_res.model_eval, trio_mov_res.hybrid_mov_res.minimax_eval);
+                mov_res = get_best_move(cpy_board, white_mov_flg, print_flg, depth, model);
+                printf("%s\t%f\t%f\t-\n", mov_res.mov, mov_res.minimax_eval);
 
-                printf("-------+---------------+---------------+------------\n");
+                printf("-------+---------------+------------\n");
 
                 // Now accept user input:
                 memset(mov, 0, CHESS_MAX_MOVE_LEN);
-                printf("BLACK (a, b, c, <custom>): ");
+                printf("BLACK (a OR <custom>): ");
                 std::cin >> mov;
                 system("cls");
 
                 // Allow user to confirm they want to make a recommended move.
                 if (strcmp(mov, "a") == 0)
                 {
-                    strcpy(mov, trio_mov_res.model_mov_res.mov);
-                }
-                else if (strcmp(mov, "b") == 0)
-                {
-                    strcpy(mov, trio_mov_res.minimax_mov_res.mov);
-                }
-                else if (strcmp(mov, "c") == 0)
-                {
-                    strcpy(mov, trio_mov_res.hybrid_mov_res.mov);
+                    strcpy(mov, mov_res.mov);
                 }
             }
             else
