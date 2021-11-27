@@ -445,7 +445,7 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
 
     if (print_flg)
     {
-        printf("-------+---------------+---------------+------------\n");
+        printf("-------+---------------+---------------\n");
     }
 
     MoveSearchResult mov_res;
@@ -734,9 +734,9 @@ int main(int argc, char **argv)
 
     //train_chess_existing("train");
 
-    test_chess("test", "C:\\Users\\danny\\Desktop\\chess-zero\\chess-zero-existing.nn");
+    //test_chess("test", "C:\\Users\\danny\\Desktop\\chess-zero\\chess-zero.nn");
 
-    //play_chess("C:\\Users\\danny\\Desktop\\chess-zero\\chess-zero-existing.nn", true, 3, true);
+    play_chess("C:\\Users\\danny\\Desktop\\chess-zero\\chess-zero.nn", true, 3, true);
 
     return 0;
 }

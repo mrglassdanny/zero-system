@@ -2863,7 +2863,7 @@ MinimaxResult get_minimax(int *board, bool white_mov_flg, bool cur_white_mov_flg
 
         if (white_mov_flg)
         {
-            if (minimax_res.eval < depth_0_minimax_eval)
+            if (minimax_res.eval < (depth_0_minimax_eval + depth_0_minimax_eval * 0.50f))
             {
                 minimax_res.prune_flg = true;
                 return minimax_res;
@@ -2871,7 +2871,7 @@ MinimaxResult get_minimax(int *board, bool white_mov_flg, bool cur_white_mov_flg
         }
         else
         {
-            if (minimax_res.eval > depth_0_minimax_eval)
+            if (minimax_res.eval > (depth_0_minimax_eval + depth_0_minimax_eval * 0.50f))
             {
                 minimax_res.prune_flg = true;
                 return minimax_res;
