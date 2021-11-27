@@ -233,7 +233,7 @@ std::vector<Opening> get_pgn_openings(const char *pgn_name)
     return openings;
 }
 
-OnDiskSupervisor *get_chess_supervisor(const char *pgn_name)
+OnDiskSupervisor *get_chess_train_supervisor(const char *pgn_name)
 {
     char board_name_buf[256];
     char label_name_buf[256];
@@ -251,9 +251,27 @@ OnDiskSupervisor *get_chess_supervisor(const char *pgn_name)
     return sup;
 }
 
+OnDiskSupervisor *get_chess_test_supervisor(const char *pgn_name)
+{
+    char board_name_buf[256];
+    char label_name_buf[256];
+
+    memset(board_name_buf, 0, 256);
+    sprintf(board_name_buf, "C:\\Users\\danny\\Desktop\\chess-zero\\%s.bs", pgn_name);
+
+    memset(label_name_buf, 0, 256);
+    sprintf(label_name_buf, "C:\\Users\\danny\\Desktop\\chess-zero\\%s.bl", pgn_name);
+
+    std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
+
+    OnDiskSupervisor *sup = new OnDiskSupervisor(0.00f, 1.00f, board_name_buf, label_name_buf, x_shape, 0);
+
+    return sup;
+}
+
 void train_chess(const char *pgn_name)
 {
-    OnDiskSupervisor *sup = get_chess_supervisor(pgn_name);
+    OnDiskSupervisor *sup = get_chess_train_supervisor(pgn_name);
 
     Model *model = new Model(CostFunction::MSE, 0.001f);
 
@@ -279,6 +297,39 @@ void train_chess(const char *pgn_name)
     model->train_and_test(sup, 64, 3, "C:\\Users\\danny\\Desktop\\chess-zero\\chess-zero-train.csv");
 
     model->save("C:\\Users\\danny\\Desktop\\chess-zero\\chess-zero.nn");
+
+    delete model;
+
+    delete sup;
+}
+
+void train_chess_existing(const char *pgn_name, const char *model_path)
+{
+    OnDiskSupervisor *sup = get_chess_train_supervisor(pgn_name);
+
+    Model *model = new Model(model_path);
+    model->set_learning_rate(0.0001f);
+
+    model->train_and_test(sup, 64, 3, "C:\\Users\\danny\\Desktop\\chess-zero\\chess-zero-train.csv");
+
+    model->save("C:\\Users\\danny\\Desktop\\chess-zero\\chess-zero-existing.nn");
+
+    delete model;
+
+    delete sup;
+}
+
+void test_chess(const char *pgn_name, const char *model_path)
+{
+    OnDiskSupervisor *sup = get_chess_test_supervisor(pgn_name);
+
+    Model *model = new Model(model_path);
+
+    Batch *test_batch = sup->create_test_batch();
+
+    model->test(test_batch).print();
+
+    delete test_batch;
 
     delete model;
 
@@ -677,7 +728,11 @@ int main(int argc, char **argv)
 
     //dump_pgn("train");
 
-    train_chess("train");
+    //train_chess("train");
+
+    //train_chess_existing("train");
+
+    test_chess("test", "C:\\Users\\danny\\Desktop\\chess-zero\\chess-zero.nn");
 
     //play_chess("C:\\Users\\danny\\Desktop\\chess-zero\\chess-zero.nn", true, 3, true);
 
