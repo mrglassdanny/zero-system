@@ -357,6 +357,8 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
         best_minimax_eval = 100.0f;
     }
 
+    float depth_0_minimax_eval = eval_board(immut_board, model);
+
     for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
     {
         if (white_mov_flg)
@@ -382,7 +384,7 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
 
                         // Minimax evaluation:
                         {
-                            minimax_res = get_minimax(sim_board, white_mov_flg, !white_mov_flg, depth, 1, best_minimax_eval, model);
+                            minimax_res = get_minimax(sim_board, white_mov_flg, !white_mov_flg, depth, 1, depth_0_minimax_eval, best_minimax_eval, model);
                         }
 
                         if (print_flg)
@@ -422,7 +424,7 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
 
                         // Minimax evaluation:
                         {
-                            minimax_res = get_minimax(sim_board, white_mov_flg, !white_mov_flg, depth, 1, best_minimax_eval, model);
+                            minimax_res = get_minimax(sim_board, white_mov_flg, !white_mov_flg, depth, 1, depth_0_minimax_eval, best_minimax_eval, model);
                         }
 
                         if (print_flg)
@@ -562,14 +564,14 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
                             printf("CHECK!\n");
                         }
 
-                        printf("move\t\tminimax\t\tpruned\n");
+                        printf("move\tminimax\t\tpruned\n");
                         printf("-------+---------------+------------\n");
 
                         MoveSearchResult mov_res;
 
                         copy_board(board, cpy_board);
                         mov_res = get_best_move(cpy_board, white_mov_flg, print_flg, depth, model);
-                        printf("%s\t%f\t%f\t-\n", mov_res.mov, mov_res.minimax_eval);
+                        printf("%s\t%f\t-\n", mov_res.mov, mov_res.minimax_eval);
 
                         printf("-------+---------------+------------\n");
 
@@ -628,14 +630,14 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
 
             if (white_flg)
             {
-                printf("move\t\tminimax\t\tpruned\n");
+                printf("move\tminimax\t\tpruned\n");
                 printf("-------+---------------+------------\n");
 
                 MoveSearchResult mov_res;
 
                 copy_board(board, cpy_board);
                 mov_res = get_best_move(cpy_board, white_mov_flg, print_flg, depth, model);
-                printf("%s\t%f\t%f\t-\n", mov_res.mov, mov_res.minimax_eval);
+                printf("%s\t%f\t-\n", mov_res.mov, mov_res.minimax_eval);
 
                 printf("-------+---------------+------------\n");
 
@@ -682,14 +684,14 @@ void play_chess(const char *model_path, bool white_flg, int depth, bool print_fl
 
             if (!white_flg)
             {
-                printf("move\t\tminimax\t\tpruned\n");
+                printf("move\tminimax\t\tpruned\n");
                 printf("-------+---------------+------------\n");
 
                 MoveSearchResult mov_res;
 
                 copy_board(board, cpy_board);
                 mov_res = get_best_move(cpy_board, white_mov_flg, print_flg, depth, model);
-                printf("%s\t%f\t%f\t-\n", mov_res.mov, mov_res.minimax_eval);
+                printf("%s\t%f\t-\n", mov_res.mov, mov_res.minimax_eval);
 
                 printf("-------+---------------+------------\n");
 
@@ -726,15 +728,15 @@ int main(int argc, char **argv)
 {
     srand(time(NULL));
 
-    dump_pgn("test");
+    //dump_pgn("test");
 
     //train_chess("train");
 
     //train_chess_existing("train");
 
-    test_chess("test", "C:\\Users\\danny\\Desktop\\chess-zero\\chess-zero.nn");
+    test_chess("test", "C:\\Users\\danny\\Desktop\\chess-zero\\chess-zero-existing.nn");
 
-    //play_chess("C:\\Users\\danny\\Desktop\\chess-zero\\chess-zero.nn", true, 3, true);
+    //play_chess("C:\\Users\\danny\\Desktop\\chess-zero\\chess-zero-existing.nn", true, 3, true);
 
     return 0;
 }

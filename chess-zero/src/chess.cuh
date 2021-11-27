@@ -138,6 +138,6 @@ void one_hot_encode_board(int *board, float *out);
 
 float eval_board(int *board, Model *model);
 
-MinimaxResult get_minimax(int *board, bool white_mov_flg, bool cur_white_mov_flg, int max_depth, int cur_depth, float best_minimax_eval, Model *model);
+MinimaxResult get_minimax(int *board, bool white_mov_flg, bool cur_white_mov_flg, int max_depth, int cur_depth, float depth_0_minimax_eval, float best_minimax_eval, Model *model);
 
 float activate_minimax_eval(float val);
