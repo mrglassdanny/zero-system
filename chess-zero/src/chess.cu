@@ -2827,7 +2827,7 @@ float eval_board(int *board, Model *model)
         delete x;
     }
 
-    return activate_minimax_eval(material_eval) + model_eval;
+    return material_eval + model_eval;
 }
 
 MinimaxResult get_minimax(int *board, bool white_mov_flg, bool cur_white_mov_flg, int max_depth, int cur_depth, float depth_0_minimax_eval, float best_minimax_eval, Model *model)
@@ -2857,13 +2857,13 @@ MinimaxResult get_minimax(int *board, bool white_mov_flg, bool cur_white_mov_flg
         return minimax_res;
     }
 
-    if (cur_depth == 1)
+    if (cur_depth == 2)
     {
         minimax_res.eval = eval_board(board, model);
 
         if (white_mov_flg)
         {
-            if (minimax_res.eval < (depth_0_minimax_eval + depth_0_minimax_eval * 0.50f))
+            if (minimax_res.eval < (depth_0_minimax_eval * 1.50f))
             {
                 minimax_res.prune_flg = true;
                 return minimax_res;
@@ -2871,7 +2871,7 @@ MinimaxResult get_minimax(int *board, bool white_mov_flg, bool cur_white_mov_flg
         }
         else
         {
-            if (minimax_res.eval > (depth_0_minimax_eval + depth_0_minimax_eval * 0.50f))
+            if (minimax_res.eval > (depth_0_minimax_eval * 1.50f))
             {
                 minimax_res.prune_flg = true;
                 return minimax_res;
@@ -2974,9 +2974,4 @@ MinimaxResult get_minimax(int *board, bool white_mov_flg, bool cur_white_mov_flg
 
     minimax_res.prune_flg = false;
     return minimax_res;
-}
-
-float activate_minimax_eval(float val)
-{
-    return ((exp(1.2f * val) - exp(-(1.2 * val))) / (exp(val) + exp(-val)));
 }
