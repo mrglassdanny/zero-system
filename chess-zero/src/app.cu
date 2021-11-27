@@ -726,7 +726,7 @@ int main(int argc, char **argv)
 {
     srand(time(NULL));
 
-    //dump_pgn("train");
+    dump_pgn("test");
 
     //train_chess("train");
 
