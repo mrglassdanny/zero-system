@@ -2796,7 +2796,7 @@ void one_hot_encode_board(int *board, float *out)
     }
 }
 
-float eval_board(int *board, Model *model)
+float eval_board_w_model(int *board, Model *model)
 {
 
     float material_eval = 0.0f;
@@ -2830,7 +2830,26 @@ float eval_board(int *board, Model *model)
     return material_eval + model_eval;
 }
 
-MinimaxResult get_minimax(int *board, bool white_mov_flg, bool cur_white_mov_flg, int max_depth, int cur_depth, float depth_0_minimax_eval, float best_minimax_eval, Model *model)
+float eval_board(int *board)
+{
+
+    float material_eval = 0.0f;
+
+    // Material:
+    {
+        float flt_board[CHESS_BOARD_LEN];
+        board_to_float(board, flt_board);
+
+        for (int i = 0; i < CHESS_BOARD_LEN; i++)
+        {
+            material_eval += flt_board[i];
+        }
+    }
+
+    return material_eval;
+}
+
+MinimaxResult get_minimax(int *board, bool white_mov_flg, bool cur_white_mov_flg, int max_depth, int cur_depth, float depth_0_minimax_eval, float best_minimax_eval)
 {
     MinimaxResult minimax_res;
 
@@ -2852,14 +2871,14 @@ MinimaxResult get_minimax(int *board, bool white_mov_flg, bool cur_white_mov_flg
 
     if (cur_depth == max_depth)
     {
-        minimax_res.eval = eval_board(board, model);
+        minimax_res.eval = eval_board(board);
         minimax_res.prune_flg = false;
         return minimax_res;
     }
 
-   /* if (cur_depth == 2)
+    /* if (cur_depth == 2)
     {
-        minimax_res.eval = eval_board(board, model);
+        minimax_res.eval = eval_board(board);
 
         if (white_mov_flg)
         {
@@ -2903,7 +2922,7 @@ MinimaxResult get_minimax(int *board, bool white_mov_flg, bool cur_white_mov_flg
 
                     simulate_board_change_w_srcdst_idx(board, piece_idx, legal_moves[mov_idx], sim_board);
 
-                    MinimaxResult w_minimax_res = get_minimax(sim_board, white_mov_flg, !cur_white_mov_flg, max_depth, cur_depth + 1, depth_0_minimax_eval, best_minimax_eval, model);
+                    MinimaxResult w_minimax_res = get_minimax(sim_board, white_mov_flg, !cur_white_mov_flg, max_depth, cur_depth + 1, depth_0_minimax_eval, best_minimax_eval);
 
                     // If current depth is 1, we know that we are evaluating from black's point of view.
                     if (cur_depth == 1)
@@ -2941,7 +2960,7 @@ MinimaxResult get_minimax(int *board, bool white_mov_flg, bool cur_white_mov_flg
 
                     simulate_board_change_w_srcdst_idx(board, piece_idx, legal_moves[mov_idx], sim_board);
 
-                    MinimaxResult b_minimax_res = get_minimax(sim_board, white_mov_flg, !cur_white_mov_flg, max_depth, cur_depth + 1, depth_0_minimax_eval, best_minimax_eval, model);
+                    MinimaxResult b_minimax_res = get_minimax(sim_board, white_mov_flg, !cur_white_mov_flg, max_depth, cur_depth + 1, depth_0_minimax_eval, best_minimax_eval);
 
                     // If current depth is 1, we know that we are evaluating from white's point of view.
                     if (cur_depth == 1)

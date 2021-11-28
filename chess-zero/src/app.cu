@@ -16,6 +16,7 @@ struct MoveSearchResult
 {
     char mov[CHESS_MAX_MOVE_LEN];
     float minimax_eval;
+    float model_eval;
 };
 
 struct Opening
@@ -357,6 +358,16 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
         best_minimax_eval = 100.0f;
     }
 
+    float best_model_eval;
+    if (white_mov_flg)
+    {
+        best_model_eval = -100.0f;
+    }
+    else
+    {
+        best_model_eval = 100.0f;
+    }
+
     float depth_0_minimax_eval = eval_board(immut_board, model);
 
     for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
@@ -384,7 +395,7 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
 
                         // Minimax evaluation:
                         {
-                            minimax_res = get_minimax(sim_board, white_mov_flg, !white_mov_flg, depth, 1, depth_0_minimax_eval, best_minimax_eval, model);
+                            minimax_res = get_minimax(sim_board, white_mov_flg, !white_mov_flg, depth, 1, depth_0_minimax_eval, best_minimax_eval);
                         }
 
                         if (print_flg)
@@ -396,6 +407,43 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
                         {
                             best_minimax_eval = minimax_res.eval;
                             memcpy(minimax_mov, mov, CHESS_MAX_MOVE_LEN);
+
+                            // Model:
+                            {
+                                float flt_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
+
+                                one_hot_encode_board(immut_board, flt_one_hot_board);
+                                std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
+                                Tensor *x = new Tensor(Device::Cpu, x_shape);
+                                x->set_arr(flt_one_hot_board);
+                                Tensor *pred = model->predict(x);
+                                best_model_eval = pred->get_val(0);
+                                delete pred;
+                                delete x;
+                            }
+                        }
+                        else if (minimax_res.eval == best_minimax_eval)
+                        {
+                            // Model:
+                            float model_eval;
+                            {
+                                float flt_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
+
+                                one_hot_encode_board(immut_board, flt_one_hot_board);
+                                std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
+                                Tensor *x = new Tensor(Device::Cpu, x_shape);
+                                x->set_arr(flt_one_hot_board);
+                                Tensor *pred = model->predict(x);
+                                model_eval = pred->get_val(0);
+                                delete pred;
+                                delete x;
+                            }
+
+                            if (model_eval > best_model_eval)
+                            {
+                                best_model_eval = model_eval;
+                                memcpy(minimax_mov, mov, CHESS_MAX_MOVE_LEN);
+                            }
                         }
                     }
                 }
@@ -424,7 +472,7 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
 
                         // Minimax evaluation:
                         {
-                            minimax_res = get_minimax(sim_board, white_mov_flg, !white_mov_flg, depth, 1, depth_0_minimax_eval, best_minimax_eval, model);
+                            minimax_res = get_minimax(sim_board, white_mov_flg, !white_mov_flg, depth, 1, depth_0_minimax_eval, best_minimax_eval);
                         }
 
                         if (print_flg)
@@ -436,6 +484,43 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
                         {
                             best_minimax_eval = minimax_res.eval;
                             memcpy(minimax_mov, mov, CHESS_MAX_MOVE_LEN);
+
+                            // Model:
+                            {
+                                float flt_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
+
+                                one_hot_encode_board(immut_board, flt_one_hot_board);
+                                std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
+                                Tensor *x = new Tensor(Device::Cpu, x_shape);
+                                x->set_arr(flt_one_hot_board);
+                                Tensor *pred = model->predict(x);
+                                best_model_eval = pred->get_val(0);
+                                delete pred;
+                                delete x;
+                            }
+                        }
+                        else if (minimax_res.eval == best_minimax_eval)
+                        {
+                            // Model:
+                            float model_eval;
+                            {
+                                float flt_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
+
+                                one_hot_encode_board(immut_board, flt_one_hot_board);
+                                std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
+                                Tensor *x = new Tensor(Device::Cpu, x_shape);
+                                x->set_arr(flt_one_hot_board);
+                                Tensor *pred = model->predict(x);
+                                model_eval = pred->get_val(0);
+                                delete pred;
+                                delete x;
+                            }
+
+                            if (model_eval < best_model_eval)
+                            {
+                                best_model_eval = model_eval;
+                                memcpy(minimax_mov, mov, CHESS_MAX_MOVE_LEN);
+                            }
                         }
                     }
                 }
@@ -736,7 +821,7 @@ int main(int argc, char **argv)
 
     //test_chess("test", "C:\\Users\\danny\\Desktop\\chess-zero\\chess-zero.nn");
 
-    play_chess("C:\\Users\\danny\\Desktop\\chess-zero\\chess-zero.nn", false, 2, false);
+    play_chess("C:\\Users\\danny\\Desktop\\chess-zero\\chess-zero.nn", false, 4, false);
 
     return 0;
 }
