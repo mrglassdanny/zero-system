@@ -2876,7 +2876,7 @@ MinimaxResult get_minimax(int *board, bool white_mov_flg, bool cur_white_mov_flg
         return minimax_res;
     }
 
-    if (cur_depth == 2)
+    if (cur_depth == 3)
     {
         minimax_res.eval = eval_board(board);
 

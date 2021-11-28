@@ -410,8 +410,6 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
 
                             // Model:
                             {
-                                float flt_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
-
                                 one_hot_encode_board(immut_board, flt_one_hot_board);
                                 std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
                                 Tensor *x = new Tensor(Device::Cpu, x_shape);
@@ -427,8 +425,6 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
                             // Model:
                             float model_eval;
                             {
-                                float flt_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
-
                                 one_hot_encode_board(immut_board, flt_one_hot_board);
                                 std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
                                 Tensor *x = new Tensor(Device::Cpu, x_shape);
@@ -487,8 +483,6 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
 
                             // Model:
                             {
-                                float flt_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
-
                                 one_hot_encode_board(immut_board, flt_one_hot_board);
                                 std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
                                 Tensor *x = new Tensor(Device::Cpu, x_shape);
@@ -504,8 +498,6 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
                             // Model:
                             float model_eval;
                             {
-                                float flt_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
-
                                 one_hot_encode_board(immut_board, flt_one_hot_board);
                                 std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
                                 Tensor *x = new Tensor(Device::Cpu, x_shape);
@@ -821,7 +813,7 @@ int main(int argc, char **argv)
 
     //test_chess("test", "C:\\Users\\danny\\Desktop\\chess-zero\\chess-zero.nn");
 
-    play_chess("C:\\Users\\danny\\Desktop\\chess-zero\\chess-zero.nn", false, 4, false);
+    play_chess("C:\\Users\\danny\\Desktop\\chess-zero\\chess-zero.nn", false, 5, false);
 
     return 0;
 }
