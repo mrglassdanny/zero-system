@@ -368,7 +368,7 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, bool print_
         best_model_eval = 100.0f;
     }
 
-    float depth_0_minimax_eval = eval_board(immut_board, model);
+    float depth_0_minimax_eval = eval_board(immut_board);
 
     for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
     {
