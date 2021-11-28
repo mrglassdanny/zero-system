@@ -736,7 +736,7 @@ int main(int argc, char **argv)
 
     //test_chess("test", "C:\\Users\\danny\\Desktop\\chess-zero\\chess-zero.nn");
 
-    play_chess("C:\\Users\\danny\\Desktop\\chess-zero\\chess-zero.nn", true, 3, false);
+    play_chess("C:\\Users\\danny\\Desktop\\chess-zero\\chess-zero.nn", false, 2, false);
 
     return 0;
 }
