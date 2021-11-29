@@ -14,8 +14,8 @@ InMemorySupervisor *get_mnist_train_supervisor()
 
     int img_cnt = 60000;
 
-    FILE *img_file = fopen("C:\\Users\\d0g0825\\ML-Data\\mnist_digits\\train-images.idx3-ubyte", "rb");
-    FILE *lbl_file = fopen("C:\\Users\\d0g0825\\ML-Data\\mnist_digits\\train-labels.idx1-ubyte", "rb");
+    FILE *img_file = fopen("data\\train-images.idx3-ubyte", "rb");
+    FILE *lbl_file = fopen("data\\train-labels.idx1-ubyte", "rb");
 
     fseek(img_file, sizeof(int) * 4, 0);
     unsigned char *img_buf = (unsigned char *)malloc((sizeof(unsigned char) * img_area * img_cnt));
@@ -57,8 +57,8 @@ InMemorySupervisor *get_mnist_test_supervisor()
 
     int img_cnt = 10000;
 
-    FILE *img_file = fopen("C:\\Users\\d0g0825\\ML-Data\\mnist_digits\\t10k-images.idx3-ubyte", "rb");
-    FILE *lbl_file = fopen("C:\\Users\\d0g0825\\ML-Data\\mnist_digits\\t10k-labels.idx1-ubyte", "rb");
+    FILE *img_file = fopen("data\\t10k-images.idx3-ubyte", "rb");
+    FILE *lbl_file = fopen("data\\t10k-labels.idx1-ubyte", "rb");
 
     fseek(img_file, sizeof(int) * 4, 0);
     unsigned char *img_buf = (unsigned char *)malloc((sizeof(unsigned char) * img_area * img_cnt));
@@ -212,21 +212,21 @@ int main(int argc, char **argv)
     // model->add_layer(new LinearLayer(model->get_output_shape(), Tensor::get_cnt(train_sup->get_y_shape()), InitializationFunction::Xavier));
     // model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
-    // train_mnist(model, train_sup, 60, 30, "C:\\Users\\d0g0825\\Desktop\\temp\\mnist-zero\\mnist.csv");
+    // train_mnist(model, train_sup, 60, 30, "temp\\mnist.csv");
 
-    // model->save("C:\\Users\\d0g0825\\Desktop\\temp\\mnist-zero\\mnist.nn");
+    // model->save("temp\\mnist.nn");
 
     // TRAIN EXISTING =======================================================================================
 
-    // Model *model = new Model("C:\\Users\\d0g0825\\Desktop\\temp\\mnist-zero\\mnist.nn");
+    // Model *model = new Model("temp\\mnist.nn");
 
-    // train_mnist(model, train_sup, 60, 5, "C:\\Users\\d0g0825\\Desktop\\temp\\mnist-zero\\mnist.csv");
+    // train_mnist(model, train_sup, 60, 5, "temp\\mnist.csv");
 
-    // model->save("C:\\Users\\d0g0825\\Desktop\\temp\\mnist-zero\\mnist.nn");
+    // model->save("temp\\mnist.nn");
 
     // TEST EXISTING =======================================================================================
 
-    Model *model = new Model("C:\\Users\\d0g0825\\Desktop\\temp\\mnist-zero\\mnist.nn");
+    Model *model = new Model("temp\\mnist.nn");
 
     test_mnist(model, test_sup, train_sup);
 
