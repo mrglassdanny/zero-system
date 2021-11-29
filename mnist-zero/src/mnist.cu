@@ -158,19 +158,19 @@ void train_mnist(Model *model, InMemorySupervisor *train_sup, int train_batch_si
 void test_mnist(Model *model, InMemorySupervisor *test_sup, InMemorySupervisor *train_sup)
 {
     Batch *test_batch = test_sup->create_batch();
-    Batch *train_batch = train_sup->create_batch();
+    //Batch *train_batch = train_sup->create_batch();
 
     Report test_rpt = model->test(test_batch);
-    Report train_rpt = model->test(train_batch);
+    //Report train_rpt = model->test(train_batch);
 
     printf("TEST\t\t");
     test_rpt.print();
 
-    printf("TRAIN\t\t");
-    train_rpt.print();
+    //printf("TRAIN\t\t");
+    //train_rpt.print();
 
     delete test_batch;
-    delete train_batch;
+    //delete train_batch;
 }
 
 int main(int argc, char **argv)
