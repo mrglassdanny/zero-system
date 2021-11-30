@@ -2796,40 +2796,6 @@ void one_hot_encode_board(int *board, float *out)
     }
 }
 
-float eval_board_w_model(int *board, Model *model)
-{
-
-    float material_eval = 0.0f;
-    float model_eval = 0.0f;
-
-    // Material:
-    {
-        float flt_board[CHESS_BOARD_LEN];
-        board_to_float(board, flt_board);
-
-        for (int i = 0; i < CHESS_BOARD_LEN; i++)
-        {
-            material_eval += flt_board[i];
-        }
-    }
-
-    // Model:
-    {
-        float flt_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
-
-        one_hot_encode_board(board, flt_one_hot_board);
-        std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
-        Tensor *x = new Tensor(Device::Cpu, x_shape);
-        x->set_arr(flt_one_hot_board);
-        Tensor *pred = model->predict(x);
-        model_eval = pred->get_val(0);
-        delete pred;
-        delete x;
-    }
-
-    return material_eval + model_eval;
-}
-
 float eval_board(int *board)
 {
 
