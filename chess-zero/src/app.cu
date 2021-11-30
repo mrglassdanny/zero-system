@@ -10,10 +10,20 @@
 using namespace zero::core;
 using namespace zero::nn;
 
+#define CHESS_START_MOVE_IDX 10
+
 struct MoveSearchResult
 {
     char mov[CHESS_MAX_MOVE_LEN];
     float eval;
+};
+
+struct Opening
+{
+    int all_board_states[CHESS_BOARD_LEN * CHESS_START_MOVE_IDX];
+    int white_win_cnt;
+    int black_win_cnt;
+    int tie_cnt;
 };
 
 class Game
@@ -36,6 +46,249 @@ public:
         }
     }
 };
+
+void dump_pgn(const char *pgn_name)
+{
+    char file_name_buf[256];
+    memset(file_name_buf, 0, 256);
+    sprintf(file_name_buf, "data\\%s.pgn", pgn_name);
+    PGNImport *pgn = PGNImport_init(file_name_buf);
+
+    memset(file_name_buf, 0, 256);
+    sprintf(file_name_buf, "temp\\%s.bs", pgn_name);
+    FILE *boards_file = fopen(file_name_buf, "wb");
+
+    memset(file_name_buf, 0, 256);
+    sprintf(file_name_buf, "temp\\%s.bl", pgn_name);
+    FILE *labels_file = fopen(file_name_buf, "wb");
+
+    bool white_mov_flg;
+
+    int *board = init_board();
+    float flt_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
+
+    float lbl;
+
+    printf("Total Games: %d\n", pgn->cnt);
+
+    for (int game_idx = 0; game_idx < pgn->cnt; game_idx++)
+    {
+        PGNMoveList *pl = pgn->games[game_idx];
+
+        {
+            // Set label now that we know result:
+            if (pl->white_won_flg)
+            {
+                lbl = 1.0f;
+            }
+            else if (pl->black_won_flg)
+            {
+                lbl = -1.0f;
+            }
+            else
+            {
+                lbl = 0.0f;
+            }
+
+            white_mov_flg = true;
+
+            for (int mov_idx = 0; mov_idx < pl->cnt; mov_idx++)
+            {
+                if (mov_idx >= CHESS_START_MOVE_IDX)
+                {
+                    // Make move:
+                    change_board_w_mov(board, pl->arr[mov_idx], white_mov_flg);
+
+                    // Write board:
+                    one_hot_encode_board(board, flt_one_hot_board);
+                    fwrite(flt_one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN, 1, boards_file);
+
+                    // Write label:
+                    fwrite(&lbl, sizeof(float), 1, labels_file);
+                }
+                else
+                {
+                    // Make move.
+                    change_board_w_mov(board, pl->arr[mov_idx], white_mov_flg);
+                }
+
+                white_mov_flg = !white_mov_flg;
+            }
+
+            reset_board(board);
+        }
+
+        if (game_idx % 10 == 0)
+        {
+            printf("%d / %d (%f%%)\n", game_idx, pgn->cnt, (((game_idx * 1.0) / (pgn->cnt * 1.0) * 100.0)));
+        }
+    }
+
+    free(board);
+
+    fclose(boards_file);
+    fclose(labels_file);
+
+    PGNImport_free(pgn);
+
+    system("cls");
+}
+
+bool opening_game_cnt_sort_func(Opening a, Opening b)
+{
+    int a_cnt = a.white_win_cnt + a.black_win_cnt + a.tie_cnt;
+    int b_cnt = b.white_win_cnt + b.black_win_cnt + b.tie_cnt;
+
+    return a_cnt > b_cnt;
+}
+
+bool opening_white_wins_sort_func(Opening a, Opening b)
+{
+    int a_cnt = a.white_win_cnt;
+    int b_cnt = b.white_win_cnt;
+
+    return a_cnt > b_cnt;
+}
+
+bool opening_black_wins_sort_func(Opening a, Opening b)
+{
+    int a_cnt = a.black_win_cnt;
+    int b_cnt = b.black_win_cnt;
+
+    return a_cnt > b_cnt;
+}
+
+std::vector<Opening> get_pgn_openings(const char *pgn_name)
+{
+    char file_name_buf[256];
+    memset(file_name_buf, 0, 256);
+    sprintf(file_name_buf, "data\\%s.pgn", pgn_name);
+    PGNImport *pgn = PGNImport_init(file_name_buf);
+
+    std::vector<Opening> openings;
+    int all_board_states[CHESS_BOARD_LEN * CHESS_START_MOVE_IDX];
+
+    bool white_mov_flg;
+
+    int *board = init_board();
+
+    printf("Processing PGN openings...\n");
+
+    for (int game_idx = 0; game_idx < pgn->cnt; game_idx++)
+    {
+        PGNMoveList *pl = pgn->games[game_idx];
+
+        {
+            white_mov_flg = true;
+
+            for (int mov_idx = 0; mov_idx < CHESS_START_MOVE_IDX; mov_idx++)
+            {
+                // Make move:
+                change_board_w_mov(board, pl->arr[mov_idx], white_mov_flg);
+
+                memcpy(&all_board_states[mov_idx * CHESS_BOARD_LEN], board, sizeof(int) * CHESS_BOARD_LEN);
+
+                white_mov_flg = !white_mov_flg;
+            }
+
+            bool opening_exists_flg = false;
+
+            for (int mov_idx = 0; mov_idx < openings.size(); mov_idx++)
+            {
+                if (memcmp(all_board_states, openings[mov_idx].all_board_states, sizeof(int) * (CHESS_BOARD_LEN * CHESS_START_MOVE_IDX)) == 0)
+                {
+                    opening_exists_flg = true;
+
+                    if (pl->white_won_flg)
+                    {
+                        openings[mov_idx].white_win_cnt++;
+                    }
+                    else if (pl->black_won_flg)
+                    {
+                        openings[mov_idx].black_win_cnt++;
+                    }
+                    else
+                    {
+                        openings[mov_idx].tie_cnt++;
+                    }
+
+                    break;
+                }
+            }
+
+            if (!opening_exists_flg)
+            {
+                Opening opening;
+
+                memcpy(opening.all_board_states, all_board_states, sizeof(int) * (CHESS_BOARD_LEN * CHESS_START_MOVE_IDX));
+                opening.white_win_cnt = 0;
+                opening.black_win_cnt = 0;
+                opening.tie_cnt = 0;
+
+                if (pl->white_won_flg)
+                {
+                    opening.white_win_cnt++;
+                }
+                else if (pl->black_won_flg)
+                {
+                    opening.black_win_cnt++;
+                }
+                else
+                {
+                    opening.tie_cnt++;
+                }
+
+                openings.push_back(opening);
+            }
+
+            reset_board(board);
+        }
+    }
+
+    free(board);
+
+    PGNImport_free(pgn);
+
+    system("cls");
+
+    return openings;
+}
+
+OnDiskSupervisor *get_chess_train_supervisor(const char *pgn_name)
+{
+    char board_name_buf[256];
+    char label_name_buf[256];
+
+    memset(board_name_buf, 0, 256);
+    sprintf(board_name_buf, "temp\\%s.bs", pgn_name);
+
+    memset(label_name_buf, 0, 256);
+    sprintf(label_name_buf, "temp\\%s.bl", pgn_name);
+
+    std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
+
+    OnDiskSupervisor *sup = new OnDiskSupervisor(1.00f, 0.00f, board_name_buf, label_name_buf, x_shape, 0);
+
+    return sup;
+}
+
+OnDiskSupervisor *get_chess_test_supervisor(const char *pgn_name)
+{
+    char board_name_buf[256];
+    char label_name_buf[256];
+
+    memset(board_name_buf, 0, 256);
+    sprintf(board_name_buf, "temp\\%s.bs", pgn_name);
+
+    memset(label_name_buf, 0, 256);
+    sprintf(label_name_buf, "temp\\%s.bl", pgn_name);
+
+    std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
+
+    OnDiskSupervisor *sup = new OnDiskSupervisor(0.00f, 1.00f, board_name_buf, label_name_buf, x_shape, 0);
+
+    return sup;
+}
 
 Model *init_chess_model()
 {
