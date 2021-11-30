@@ -102,6 +102,8 @@ bool is_in_check(int *board, bool white_mov_flg);
 
 bool is_in_checkmate(int *board, bool white_mov_flg);
 
+bool is_in_stalemate(int *board, bool white_mov_flg);
+
 void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg);
 
 void get_piece_influence(int *board, int piece_idx, int *out);

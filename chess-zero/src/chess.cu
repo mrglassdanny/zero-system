@@ -500,6 +500,57 @@ bool is_in_checkmate(int *board, bool white_mov_flg)
     return in_checkmate_flg;
 }
 
+bool is_in_stalemate(int *board, bool white_mov_flg)
+{
+    bool in_stalemate_flg;
+    int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
+    memset(legal_moves, CHESS_INVALID_VALUE, sizeof(int) * CHESS_MAX_LEGAL_MOVE_CNT);
+
+    if (!is_in_check(board, white_mov_flg))
+    {
+        in_stalemate_flg = true;
+
+        if (white_mov_flg)
+        {
+            for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
+            {
+                if (is_piece_white((ChessPiece)board[piece_idx]))
+                {
+                    get_legal_moves(board, piece_idx, legal_moves, true);
+
+                    if (legal_moves[0] != CHESS_INVALID_VALUE)
+                    {
+                        in_stalemate_flg = false;
+                        break;
+                    }
+                }
+            }
+        }
+        else
+        {
+            for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
+            {
+                if (is_piece_black((ChessPiece)board[piece_idx]))
+                {
+                    get_legal_moves(board, piece_idx, legal_moves, true);
+
+                    if (legal_moves[0] != CHESS_INVALID_VALUE)
+                    {
+                        in_stalemate_flg = false;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    else
+    {
+        in_stalemate_flg = false;
+    }
+
+    return in_stalemate_flg;
+}
+
 void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg)
 {
     memset(out, CHESS_INVALID_VALUE, sizeof(int) * CHESS_MAX_LEGAL_MOVE_CNT);
@@ -2794,40 +2845,6 @@ void one_hot_encode_board(int *board, float *out)
             break;
         }
     }
-}
-
-float eval_board_w_model(int *board, Model *model)
-{
-
-    float material_eval = 0.0f;
-    float model_eval = 0.0f;
-
-    // Material:
-    {
-        float flt_board[CHESS_BOARD_LEN];
-        board_to_float(board, flt_board);
-
-        for (int i = 0; i < CHESS_BOARD_LEN; i++)
-        {
-            material_eval += flt_board[i];
-        }
-    }
-
-    // Model:
-    {
-        float flt_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
-
-        one_hot_encode_board(board, flt_one_hot_board);
-        std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
-        Tensor *x = new Tensor(Device::Cpu, x_shape);
-        x->set_arr(flt_one_hot_board);
-        Tensor *pred = model->predict(x);
-        model_eval = pred->get_val(0);
-        delete pred;
-        delete x;
-    }
-
-    return material_eval + model_eval;
 }
 
 float eval_board(int *board)
