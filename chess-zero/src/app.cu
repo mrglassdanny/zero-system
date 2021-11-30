@@ -16,11 +16,25 @@ struct MoveSearchResult
     float eval;
 };
 
-struct Game
+class Game
 {
+public:
     std::vector<Tensor *> board_states;
     std::vector<float> evals;
     float lbl;
+
+    Game()
+    {
+        this->lbl = 0.0f;
+    }
+
+    ~Game()
+    {
+        for (int i = 0; i < this->board_states.size(); i++)
+        {
+            delete this->board_states[i];
+        }
+    }
 };
 
 Model *init_chess_model()
@@ -169,7 +183,6 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, Model *mode
 Game *play_chess(Model *model)
 {
     Game *game = new Game();
-    game->lbl = 0.0f;
 
     int *board = init_board();
     float flt_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
@@ -178,36 +191,22 @@ Game *play_chess(Model *model)
 
     bool white_mov_flg = true;
 
-    int turn_cnt = 0;
+    int mov_cnt = 0;
 
     while (true)
     {
-        system("cls");
-        printf("Turn Count: %d\n", turn_cnt);
+        printf("Playing...\n");
         // White move:
         {
-            if (is_in_checkmate(board, true))
+            if (is_in_checkmate(board, white_mov_flg))
             {
                 game->lbl = -1.0f;
                 break;
             }
 
-            MoveSearchResult mov_res = get_best_move(board, white_mov_flg, model);
-
-            change_board_w_mov(board, mov_res.mov, white_mov_flg);
-            white_mov_flg = !white_mov_flg;
-
-            one_hot_encode_board(board, flt_one_hot_board);
-            Tensor *x = new Tensor(Device::Cpu, x_shape);
-            x->set_arr(flt_one_hot_board);
-            game->board_states.push_back(x);
-        }
-
-        // Black move:
-        {
-            if (is_in_checkmate(board, false))
+            if (is_in_stalemate(board, white_mov_flg))
             {
-                game->lbl = 1.0f;
+                game->lbl = 0.0f;
                 break;
             }
 
@@ -220,9 +219,65 @@ Game *play_chess(Model *model)
             Tensor *x = new Tensor(Device::Cpu, x_shape);
             x->set_arr(flt_one_hot_board);
             game->board_states.push_back(x);
+
+            // TODO: reflect/rotate board
+
+            mov_cnt++;
         }
 
-        turn_cnt += 2;
+        // Black move:
+        {
+            if (is_in_checkmate(board, white_mov_flg))
+            {
+                game->lbl = 1.0f;
+                break;
+            }
+
+            if (is_in_stalemate(board, white_mov_flg))
+            {
+                game->lbl = 0.0f;
+                break;
+            }
+
+            MoveSearchResult mov_res = get_best_move(board, white_mov_flg, model);
+
+            change_board_w_mov(board, mov_res.mov, white_mov_flg);
+            white_mov_flg = !white_mov_flg;
+
+            one_hot_encode_board(board, flt_one_hot_board);
+            Tensor *x = new Tensor(Device::Cpu, x_shape);
+            x->set_arr(flt_one_hot_board);
+            game->board_states.push_back(x);
+
+            // TODO: reflect/rotate board
+
+            mov_cnt++;
+        }
+
+        // Check if tie:
+        {
+            // 3 move repetition:
+            int board_cnt = game->board_states.size();
+            if (board_cnt > 6)
+            {
+                Tensor *x_1 = game->board_states[board_cnt - 1];
+                Tensor *x_2 = game->board_states[board_cnt - 3];
+                Tensor *x_3 = game->board_states[board_cnt - 5];
+
+                if (x_1->equals(x_2) && x_1->equals(x_3))
+                {
+                    game->lbl = 0.0f;
+                    break;
+                }
+            }
+
+            // Exceeds turn count:
+            if (mov_cnt >= 300)
+            {
+                game->lbl = 0.0f;
+                break;
+            }
+        }
     }
 
     free(board);
@@ -236,12 +291,17 @@ void train_chess(Model *model, Game *game)
 
     y->set_val(0, game->lbl);
 
+    float cost = 0.0f;
+
     for (int i = 0; i < game->board_states.size(); i++)
     {
         Tensor *pred = model->forward(game->board_states[i], true);
+        cost += model->cost(pred, y);
         model->backward(pred, y);
         delete pred;
     }
+
+    printf("COST: %f\n", cost / game->board_states.size());
 
     model->step(game->board_states.size());
 
@@ -254,11 +314,31 @@ int main(int argc, char **argv)
 
     Model *model = init_chess_model();
 
+    int white_win_cnt = 0;
+    int black_win_cnt = 0;
+    int tie_cnt = 0;
+
     int game_cnt = 0;
     while (true)
     {
+        system("cls");
+
         Game *game = play_chess(model);
         train_chess(model, game);
+
+        if (game->lbl == 1.0f)
+        {
+            white_win_cnt++;
+        }
+        else if (game->lbl == -1.0f)
+        {
+            black_win_cnt++;
+        }
+        else
+        {
+            tie_cnt++;
+        }
+
         delete game;
 
         if (_kbhit())
@@ -270,9 +350,7 @@ int main(int argc, char **argv)
             }
         }
 
-        printf("%d\n", game_cnt++);
-
-        _getch();
+        printf("%d (%d - %d - %d)\n", ++game_cnt, white_win_cnt, black_win_cnt, tie_cnt);
     }
 
     model->save("temp\\chess-zero.nn");

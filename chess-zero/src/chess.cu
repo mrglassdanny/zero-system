@@ -500,6 +500,57 @@ bool is_in_checkmate(int *board, bool white_mov_flg)
     return in_checkmate_flg;
 }
 
+bool is_in_stalemate(int *board, bool white_mov_flg)
+{
+    bool in_stalemate_flg;
+    int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
+    memset(legal_moves, CHESS_INVALID_VALUE, sizeof(int) * CHESS_MAX_LEGAL_MOVE_CNT);
+
+    if (!is_in_check(board, white_mov_flg))
+    {
+        in_stalemate_flg = true;
+
+        if (white_mov_flg)
+        {
+            for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
+            {
+                if (is_piece_white((ChessPiece)board[piece_idx]))
+                {
+                    get_legal_moves(board, piece_idx, legal_moves, true);
+
+                    if (legal_moves[0] != CHESS_INVALID_VALUE)
+                    {
+                        in_stalemate_flg = false;
+                        break;
+                    }
+                }
+            }
+        }
+        else
+        {
+            for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
+            {
+                if (is_piece_black((ChessPiece)board[piece_idx]))
+                {
+                    get_legal_moves(board, piece_idx, legal_moves, true);
+
+                    if (legal_moves[0] != CHESS_INVALID_VALUE)
+                    {
+                        in_stalemate_flg = false;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    else
+    {
+        in_stalemate_flg = false;
+    }
+
+    return in_stalemate_flg;
+}
+
 void get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg)
 {
     memset(out, CHESS_INVALID_VALUE, sizeof(int) * CHESS_MAX_LEGAL_MOVE_CNT);
