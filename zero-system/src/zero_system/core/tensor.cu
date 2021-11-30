@@ -528,6 +528,22 @@ void Tensor::print()
     this->to(orig_device);
 }
 
+bool Tensor::equals(Tensor *other)
+{
+    if (this->device == other->device)
+    {
+        if (this->shape == other->shape)
+        {
+            if (memcmp(this->arr, other->arr, sizeof(float) * this->get_cnt()) == 0)
+            {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
 std::vector<int> Tensor::get_shape()
 {
     return this->shape;

@@ -67,6 +67,8 @@ namespace zero
 
             void print();
 
+            bool equals(Tensor *other);
+
             std::vector<int> get_shape();
             int get_cnt();
             static int get_cnt(std::vector<int> shape);
