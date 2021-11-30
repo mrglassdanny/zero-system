@@ -195,17 +195,18 @@ Game *play_chess(Model *model)
 
     while (true)
     {
-        printf("Playing...\n");
         // White move:
         {
             if (is_in_checkmate(board, white_mov_flg))
             {
+                print_board(board);
                 game->lbl = -1.0f;
                 break;
             }
 
             if (is_in_stalemate(board, white_mov_flg))
             {
+                print_board(board);
                 game->lbl = 0.0f;
                 break;
             }
@@ -229,12 +230,14 @@ Game *play_chess(Model *model)
         {
             if (is_in_checkmate(board, white_mov_flg))
             {
+                print_board(board);
                 game->lbl = 1.0f;
                 break;
             }
 
             if (is_in_stalemate(board, white_mov_flg))
             {
+                print_board(board);
                 game->lbl = 0.0f;
                 break;
             }
@@ -266,6 +269,7 @@ Game *play_chess(Model *model)
 
                 if (x_1->equals(x_2) && x_1->equals(x_3))
                 {
+                    printf("3 move repetition!\n");
                     game->lbl = 0.0f;
                     break;
                 }
@@ -274,6 +278,7 @@ Game *play_chess(Model *model)
             // Exceeds turn count:
             if (mov_cnt >= 300)
             {
+                printf("Game count exceeded!\n");
                 game->lbl = 0.0f;
                 break;
             }
@@ -301,7 +306,7 @@ void train_chess(Model *model, Game *game)
         delete pred;
     }
 
-    printf("COST: %f\n", cost / game->board_states.size());
+    printf("Cost: %f\n", cost / game->board_states.size());
 
     model->step(game->board_states.size());
 
@@ -321,9 +326,11 @@ int main(int argc, char **argv)
     int game_cnt = 0;
     while (true)
     {
-        system("cls");
 
+        printf("Playing...\n");
         Game *game = play_chess(model);
+
+        printf("Training...\n");
         train_chess(model, game);
 
         if (game->lbl == 1.0f)
@@ -350,7 +357,7 @@ int main(int argc, char **argv)
             }
         }
 
-        printf("%d (%d - %d - %d)\n", ++game_cnt, white_win_cnt, black_win_cnt, tie_cnt);
+        printf("Game Breakdown: %d (%d - %d - %d)\n", ++game_cnt, white_win_cnt, black_win_cnt, tie_cnt);
     }
 
     model->save("temp\\chess-zero.nn");
