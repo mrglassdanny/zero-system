@@ -567,7 +567,7 @@ void train_chess(Model *model, Game *game)
     delete y;
 }
 
-int main(int argc, char **argv)
+int amain(int argc, char **argv)
 {
     srand(time(NULL));
 
@@ -615,6 +615,21 @@ int main(int argc, char **argv)
     }
 
     model->save("temp\\chess-zero.nn");
+
+    delete model;
+
+    return 0;
+}
+
+int main(int argc, char **argv)
+{
+    srand(time(NULL));
+
+    Model *model = init_chess_model();
+
+    play(model);
+
+    //model->save("temp\\chess-zero.nn");
 
     delete model;
 

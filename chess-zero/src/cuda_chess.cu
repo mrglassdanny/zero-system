@@ -919,7 +919,75 @@ __device__ void d_change_board_w_idxs(int *board, int src_idx, int dst_idx)
     board[dst_idx] = piece;
 }
 
+__device__ void d_one_hot_encode_board(int *board, float *out)
+{
+    for (int i = 0; i < CHESS_BOARD_LEN; i++)
+    {
+        switch ((ChessPiece)board[i])
+        {
+        case ChessPiece::WhitePawn:
+            out[i] = 1.0f;
+            break;
+        case ChessPiece::WhiteKnight:
+            out[i + CHESS_BOARD_LEN] = 1.0f;
+            break;
+        case ChessPiece::WhiteBishop:
+            out[i + (CHESS_BOARD_LEN * 2)] = 1.0f;
+            break;
+        case ChessPiece::WhiteRook:
+            out[i + (CHESS_BOARD_LEN * 3)] = 1.0f;
+            break;
+        case ChessPiece::WhiteQueen:
+            out[i + (CHESS_BOARD_LEN * 4)] = 1.0f;
+            break;
+        case ChessPiece::WhiteKing:
+            out[i + (CHESS_BOARD_LEN * 5)] = 1.0f;
+            break;
+        case ChessPiece::BlackPawn:
+            out[i] = -1.0f;
+            break;
+        case ChessPiece::BlackKnight:
+            out[i + (CHESS_BOARD_LEN)] = -1.0f;
+            break;
+        case ChessPiece::BlackBishop:
+            out[i + (CHESS_BOARD_LEN * 2)] = -1.0f;
+            break;
+        case ChessPiece::BlackRook:
+            out[i + (CHESS_BOARD_LEN * 3)] = -1.0f;
+            break;
+        case ChessPiece::BlackQueen:
+            out[i + (CHESS_BOARD_LEN * 4)] = -1.0f;
+            break;
+        case ChessPiece::BlackKing:
+            out[i + (CHESS_BOARD_LEN * 5)] = -1.0f;
+            break;
+        default: // ChessPiece::Empty:
+            break;
+        }
+    }
+}
+
 // Kernel functions:
+
+__global__ void k_set_arr(int *arr, int val, int cnt)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < cnt)
+    {
+        arr[tid] = val;
+    }
+}
+
+__global__ void k_set_arr(float *arr, float val, int cnt)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < cnt)
+    {
+        arr[tid] = val;
+    }
+}
 
 __global__ void k_reset_board(int *board)
 {
@@ -1002,6 +1070,16 @@ __global__ void k_copy_board(int *src, int *dst)
     }
 }
 
+__global__ void k_copy_board(int *src, int *dst, int dst_offset)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < CHESS_BOARD_LEN)
+    {
+        dst[dst_offset + tid] = src[tid];
+    }
+}
+
 __global__ void k_clear_one_hot_board(float *board)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -1062,7 +1140,57 @@ __global__ void k_one_hot_encode_board(int *board, float *out)
     }
 }
 
-__global__ bool k_is_cell_under_attack(int *board, int cell_idx, bool white_pov_flg, bool *flg)
+__global__ void k_one_hot_encode_board(int *board, float *out, int out_offset)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < CHESS_BOARD_LEN)
+    {
+        switch ((ChessPiece)board[tid])
+        {
+        case ChessPiece::WhitePawn:
+            out[tid + out_offset] = 1.0f;
+            break;
+        case ChessPiece::WhiteKnight:
+            out[tid + out_offset + CHESS_BOARD_LEN] = 1.0f;
+            break;
+        case ChessPiece::WhiteBishop:
+            out[tid + out_offset + (CHESS_BOARD_LEN * 2)] = 1.0f;
+            break;
+        case ChessPiece::WhiteRook:
+            out[tid + out_offset + (CHESS_BOARD_LEN * 3)] = 1.0f;
+            break;
+        case ChessPiece::WhiteQueen:
+            out[tid + out_offset + (CHESS_BOARD_LEN * 4)] = 1.0f;
+            break;
+        case ChessPiece::WhiteKing:
+            out[tid + out_offset + (CHESS_BOARD_LEN * 5)] = 1.0f;
+            break;
+        case ChessPiece::BlackPawn:
+            out[tid + out_offset] = -1.0f;
+            break;
+        case ChessPiece::BlackKnight:
+            out[tid + out_offset + (CHESS_BOARD_LEN)] = -1.0f;
+            break;
+        case ChessPiece::BlackBishop:
+            out[tid + out_offset + (CHESS_BOARD_LEN * 2)] = -1.0f;
+            break;
+        case ChessPiece::BlackRook:
+            out[tid + out_offset + (CHESS_BOARD_LEN * 3)] = -1.0f;
+            break;
+        case ChessPiece::BlackQueen:
+            out[tid + out_offset + (CHESS_BOARD_LEN * 4)] = -1.0f;
+            break;
+        case ChessPiece::BlackKing:
+            out[tid + out_offset + (CHESS_BOARD_LEN * 5)] = -1.0f;
+            break;
+        default: // ChessPiece::Empty:
+            break;
+        }
+    }
+}
+
+__global__ void k_is_cell_under_attack(int *board, int cell_idx, bool white_pov_flg, bool *flg)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -1207,13 +1335,47 @@ __global__ void k_has_no_legal_moves(int *board, bool white_mov_flg, bool *flg)
     }
 }
 
+__global__ void k_get_all_legal_move_board_states(int *board, bool white_mov_flg, int *board_states_arr)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < CHESS_BOARD_LEN)
+    {
+        if (white_mov_flg)
+        {
+            if ((white_mov_flg && d_is_piece_white((ChessPiece)board[tid])) || (!white_mov_flg && d_is_piece_black((ChessPiece)board[tid])))
+            {
+                int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
+                d_get_legal_moves(board, tid, legal_moves);
+
+                for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
+                {
+                    if (legal_moves[mov_idx] == CHESS_INVALID_VALUE)
+                    {
+                        return;
+                    }
+                    else
+                    {
+                        int sim_board[CHESS_BOARD_LEN];
+                        memcpy(sim_board, board, sizeof(int) * CHESS_BOARD_LEN);
+
+                        d_change_board_w_idxs(sim_board, tid, legal_moves[mov_idx]);
+
+                        memcpy(&board_states_arr[tid * CHESS_BOARD_LEN + (mov_idx * CHESS_BOARD_LEN)], sim_board, sizeof(int) * CHESS_BOARD_LEN);
+                    }
+                }
+            }
+        }
+    }
+}
+
 // Rotate
 
 // Reflect
 
 // Functions:
 
-void play()
+void play(Model *model)
 {
     int *board;
     cudaMalloc(&board, sizeof(int) * CHESS_BOARD_LEN);
@@ -1223,52 +1385,96 @@ void play()
     cudaMalloc(&board, sizeof(int) * CHESS_BOARD_LEN);
     float *one_hot_board;
     cudaMalloc(&one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
+    int *board_states_arr;
+    cudaMalloc(&board_states_arr, sizeof(int) * (CHESS_BOARD_LEN * CHESS_BOARD_LEN * CHESS_MAX_LEGAL_MOVE_CNT));
+
+    std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
+    Tensor *x = new Tensor(Device::Cuda, x_shape);
+    Tensor *temp = new Tensor(Device::Cuda, 1);
 
     bool white_mov_flg = true;
 
-    {
-        k_reset_board<<<(CHESS_BOARD_LEN / CUDA_THREADS_PER_BLOCK), CUDA_THREADS_PER_BLOCK>>>(board);
-    }
+    k_reset_board<<<(CHESS_BOARD_LEN / CUDA_THREADS_PER_BLOCK), CUDA_THREADS_PER_BLOCK>>>(board);
 
     while (true)
     {
         // WHITE MOVE:
-
-        // Clear one hot board:
         {
-            k_clear_one_hot_board<<<(CHESS_ONE_HOT_ENCODED_BOARD_LEN / CUDA_THREADS_PER_BLOCK), CUDA_THREADS_PER_BLOCK>>>(one_hot_board);
+            float best_eval = -100.0f;
+
+            k_set_arr<<<((CHESS_BOARD_LEN * CHESS_BOARD_LEN * CHESS_MAX_LEGAL_MOVE_CNT) / CUDA_THREADS_PER_BLOCK), CUDA_THREADS_PER_BLOCK>>>(board_states_arr, CHESS_INVALID_VALUE, CHESS_BOARD_LEN * CHESS_BOARD_LEN * CHESS_MAX_LEGAL_MOVE_CNT);
+
+            k_get_all_legal_move_board_states<<<(CHESS_BOARD_LEN / CUDA_THREADS_PER_BLOCK), CUDA_THREADS_PER_BLOCK>>>(board, white_mov_flg, board_states_arr);
+
+            for (int i = 0; i < CHESS_BOARD_LEN; i++)
+            {
+                for (int j = 0; j < CHESS_MAX_LEGAL_MOVE_CNT; j++)
+                {
+                    k_clear_one_hot_board<<<(CHESS_ONE_HOT_ENCODED_BOARD_LEN / CUDA_THREADS_PER_BLOCK), CUDA_THREADS_PER_BLOCK>>>(one_hot_board);
+                    k_one_hot_encode_board<<<(CHESS_BOARD_LEN / CUDA_THREADS_PER_BLOCK), CUDA_THREADS_PER_BLOCK>>>(board_states_arr, one_hot_board, i * CHESS_MAX_LEGAL_MOVE_CNT + (j * CHESS_BOARD_LEN));
+
+                    x->set_arr(one_hot_board);
+
+                    {
+                        Tensor *pred = model->forward(x, false);
+
+                        float eval = pred->get_val(0);
+                        if (eval > best_eval)
+                        {
+                            best_eval = eval;
+                            k_copy_board<<<(CHESS_BOARD_LEN / CUDA_THREADS_PER_BLOCK), CUDA_THREADS_PER_BLOCK>>>(board, board_states_arr, i * CHESS_MAX_LEGAL_MOVE_CNT + (j * CHESS_BOARD_LEN));
+                        }
+
+                        delete pred;
+                    }
+                }
+            }
+
+            white_mov_flg = !white_mov_flg;
         }
-
-        // One hot encode board:
-        {
-            k_one_hot_encode_board<<<(CHESS_BOARD_LEN / CUDA_THREADS_PER_BLOCK), CUDA_THREADS_PER_BLOCK>>>(board, one_hot_board);
-        }
-
-        // Get all legal moves and make prediction:
-
-        // Change board:
-
-        white_mov_flg = !white_mov_flg;
 
         // BLACK MOVE:
-
-        // Clear one hot board:
         {
-            k_clear_one_hot_board<<<(CHESS_ONE_HOT_ENCODED_BOARD_LEN / CUDA_THREADS_PER_BLOCK), CUDA_THREADS_PER_BLOCK>>>(one_hot_board);
+            float best_eval = 100.0f;
+
+            k_set_arr<<<((CHESS_BOARD_LEN * CHESS_BOARD_LEN * CHESS_MAX_LEGAL_MOVE_CNT) / CUDA_THREADS_PER_BLOCK), CUDA_THREADS_PER_BLOCK>>>(board_states_arr, CHESS_INVALID_VALUE, CHESS_BOARD_LEN * CHESS_BOARD_LEN * CHESS_MAX_LEGAL_MOVE_CNT);
+
+            k_get_all_legal_move_board_states<<<(CHESS_BOARD_LEN / CUDA_THREADS_PER_BLOCK), CUDA_THREADS_PER_BLOCK>>>(board, white_mov_flg, board_states_arr);
+
+            for (int i = 0; i < CHESS_BOARD_LEN; i++)
+            {
+                for (int j = 0; j < CHESS_MAX_LEGAL_MOVE_CNT; j++)
+                {
+                    k_clear_one_hot_board<<<(CHESS_ONE_HOT_ENCODED_BOARD_LEN / CUDA_THREADS_PER_BLOCK), CUDA_THREADS_PER_BLOCK>>>(one_hot_board);
+                    k_one_hot_encode_board<<<(CHESS_BOARD_LEN / CUDA_THREADS_PER_BLOCK), CUDA_THREADS_PER_BLOCK>>>(board_states_arr, one_hot_board, i * CHESS_MAX_LEGAL_MOVE_CNT + (j * CHESS_BOARD_LEN));
+
+                    x->set_arr(one_hot_board);
+
+                    {
+                        Tensor *pred = model->forward(x, false);
+
+                        float eval = pred->get_val(0);
+                        if (eval < best_eval)
+                        {
+                            best_eval = eval;
+                            k_copy_board<<<(CHESS_BOARD_LEN / CUDA_THREADS_PER_BLOCK), CUDA_THREADS_PER_BLOCK>>>(board, board_states_arr, i * CHESS_MAX_LEGAL_MOVE_CNT + (j * CHESS_BOARD_LEN));
+                        }
+
+                        delete pred;
+                    }
+                }
+            }
+
+            white_mov_flg = !white_mov_flg;
         }
 
-        // One hot encode board:
-        {
-            k_one_hot_encode_board<<<(CHESS_BOARD_LEN / CUDA_THREADS_PER_BLOCK), CUDA_THREADS_PER_BLOCK>>>(board, one_hot_board);
-        }
-
-        // Get all legal moves and make prediction:
-
-        // Change board:
-
-        white_mov_flg = !white_mov_flg;
+        printf("MOVE\n");
     }
 
+    delete temp;
+    delete x;
+
+    cudaFree(board_states_arr);
     cudaFree(one_hot_board);
     cudaFree(rotref_board);
     cudaFree(sim_board);
