@@ -1,59 +1,10 @@
 #include "cuda_chess.cuh"
 
-#define CHESS_BOARD_ROW_CNT 8
-#define CHESS_BOARD_COL_CNT 8
-#define CHESS_BOARD_LEN (CHESS_BOARD_COL_CNT * CHESS_BOARD_ROW_CNT)
+// Forward declarations:
 
-#define CHESS_MAX_LEGAL_MOVE_CNT 64
-
-#define CHESS_MAX_MOVE_LEN 8
-#define CHESS_MAX_GAME_MOVE_CNT 500
-
-#define CHESS_INVALID_VALUE -1
-
-#define CHESS_ONE_HOT_ENCODE_COMBINATION_CNT 6
-#define CHESS_ONE_HOT_ENCODED_BOARD_LEN (CHESS_BOARD_LEN * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT)
-
-typedef enum ChessPiece
-{
-    Empty = 0,
-    WhitePawn = 1,
-    WhiteKnight = 3,
-    WhiteBishop = 4,
-    WhiteRook = 6,
-    WhiteQueen = 9,
-    WhiteKing = 10,
-    BlackPawn = -1,
-    BlackKnight = -3,
-    BlackBishop = -4,
-    BlackRook = -6,
-    BlackQueen = -9,
-    BlackKing = -10
-} ChessPiece;
+__device__ void d_get_legal_moves(int *board, int piece_idx, int *out);
 
 // Device functions:
-
-__device__ bool d_is_piece_white(ChessPiece piece)
-{
-    return piece > 0;
-}
-
-__device__ bool d_is_piece_black(ChessPiece piece)
-{
-    return piece < 0;
-}
-
-__device__ bool d_is_piece_same_color(ChessPiece a, ChessPiece b)
-{
-    if ((d_is_piece_white(a) && d_is_piece_white(b)) || (d_is_piece_black(a) && d_is_piece_black(b)))
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
 
 __device__ int d_get_adj_col_fr_idx(int idx)
 {
@@ -95,9 +46,84 @@ __device__ bool d_is_adj_col_adj_row_valid(int adj_col, int adj_row)
     }
 }
 
-__device__ void d_get_legal_moves(int *board, int piece_idx, int *out, bool test_in_check_flg)
+__device__ bool d_is_piece_white(ChessPiece piece)
+{
+    return piece > 0;
+}
+
+__device__ bool d_is_piece_black(ChessPiece piece)
+{
+    return piece < 0;
+}
+
+__device__ bool d_is_piece_same_color(ChessPiece a, ChessPiece b)
+{
+    if ((d_is_piece_white(a) && d_is_piece_white(b)) || (d_is_piece_black(a) && d_is_piece_black(b)))
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+__device__ bool d_is_cell_under_attack(int *board, int cell_idx, bool white_pov_flg)
+{
+    int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
+
+    if (white_pov_flg)
+    {
+        for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
+        {
+            if (d_is_piece_black((ChessPiece)board[piece_idx]) && (ChessPiece)board[piece_idx] != ChessPiece::BlackKing)
+            {
+                d_get_legal_moves(board, piece_idx, legal_moves);
+
+                for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
+                {
+                    if (legal_moves[mov_idx] == CHESS_INVALID_VALUE)
+                    {
+                        break;
+                    }
+                    else if (legal_moves[mov_idx] == cell_idx)
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+    else
+    {
+        for (int piece_idx = 0; piece_idx < CHESS_BOARD_LEN; piece_idx++)
+        {
+            if (d_is_piece_white((ChessPiece)board[piece_idx]) && (ChessPiece)board[piece_idx] != ChessPiece::WhiteKing)
+            {
+                d_get_legal_moves(board, piece_idx, legal_moves);
+
+                for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
+                {
+                    if (legal_moves[mov_idx] == CHESS_INVALID_VALUE)
+                    {
+                        break;
+                    }
+                    else if (legal_moves[mov_idx] == cell_idx)
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
+__device__ void d_get_legal_moves(int *board, int piece_idx, int *out)
 {
     memset(out, CHESS_INVALID_VALUE, sizeof(int) * CHESS_MAX_LEGAL_MOVE_CNT);
+
     int mov_ctr = 0;
 
     ChessPiece piece = (ChessPiece)board[piece_idx];
@@ -105,14 +131,14 @@ __device__ void d_get_legal_moves(int *board, int piece_idx, int *out, bool test
     int adj_col = d_get_adj_col_fr_idx(piece_idx);
     int adj_row = d_get_adj_row_fr_idx(piece_idx);
 
-    int white_mov_flg;
+    bool white_mov_flg;
     if (d_is_piece_white(piece))
     {
-        white_mov_flg = 1;
+        white_mov_flg = true;
     }
     else
     {
-        white_mov_flg = 0;
+        white_mov_flg = false;
     }
 
     int test_idx;
@@ -752,7 +778,7 @@ __device__ void d_get_legal_moves(int *board, int piece_idx, int *out, bool test
             }
         }
 
-        // Castles.
+        // Castles:
         if (piece == ChessPiece::WhiteKing)
         {
             if (adj_col == 4 && adj_row == 0)
@@ -798,23 +824,104 @@ __device__ void d_get_legal_moves(int *board, int piece_idx, int *out, bool test
                     if (board[62] == ChessPiece::Empty && board[61] == ChessPiece::Empty &&
                         !d_is_cell_under_attack(board, 62, false) && !d_is_cell_under_attack(board, 61, false))
                     {
-                        out[mov_ctr++] = 61;
+                        out[mov_ctr++] = 62;
                     }
                 }
             }
         }
 
         break;
-    default: // Nothing...
+    default:
         break;
     }
 }
 
-// Change board with move (src idx & dst idx)
+__device__ void d_change_board_w_idxs(int *board, int src_idx, int dst_idx)
+{
+    ChessPiece piece = (ChessPiece)board[src_idx];
+
+    switch (piece)
+    {
+    case ChessPiece::WhitePawn:
+    case ChessPiece::BlackPawn:
+        // TODO: au passant
+        {
+            int dst_adj_col = d_get_adj_col_fr_idx(dst_idx);
+            int dst_adj_row = d_get_adj_row_fr_idx(dst_idx);
+
+            if (dst_adj_row == 7)
+            {
+                piece = ChessPiece::WhiteQueen;
+            }
+            else if (dst_adj_row == 0)
+            {
+                piece = ChessPiece::BlackQueen;
+            }
+        }
+        break;
+    case ChessPiece::WhiteKnight:
+    case ChessPiece::BlackKnight:
+    case ChessPiece::WhiteBishop:
+    case ChessPiece::BlackBishop:
+    case ChessPiece::WhiteRook:
+    case ChessPiece::BlackRook:
+    case ChessPiece::WhiteQueen:
+    case ChessPiece::BlackQueen:
+        break;
+    case ChessPiece::WhiteKing:
+    case ChessPiece::BlackKing:
+        // Castles:
+        {
+            int src_adj_col = d_get_adj_col_fr_idx(src_idx);
+            int src_adj_row = d_get_adj_row_fr_idx(src_idx);
+            int dst_adj_col = d_get_adj_col_fr_idx(dst_idx);
+            int dst_adj_row = d_get_adj_row_fr_idx(dst_idx);
+
+            if (piece == ChessPiece::WhiteKing)
+            {
+                if (src_adj_col == 4 && src_adj_row == 0)
+                {
+                    if (dst_adj_col == 2)
+                    {
+                        board[0] = ChessPiece::Empty;
+                        board[3] = ChessPiece::WhiteRook;
+                    }
+                    else if (dst_adj_col == 6)
+                    {
+                        board[7] = ChessPiece::Empty;
+                        board[5] = ChessPiece::WhiteRook;
+                    }
+                }
+            }
+            else
+            {
+                if (src_adj_col == 4 && src_adj_row == 7)
+                {
+                    if (dst_adj_col == 2)
+                    {
+                        board[56] = ChessPiece::Empty;
+                        board[59] = ChessPiece::BlackRook;
+                    }
+                    else if (dst_adj_col == 6)
+                    {
+                        board[63] = ChessPiece::Empty;
+                        board[61] = ChessPiece::BlackRook;
+                    }
+                }
+            }
+        }
+        break;
+    default:
+        break;
+    }
+
+    board[src_idx] = ChessPiece::Empty;
+    board[dst_idx] = piece;
+}
 
 // Kernel functions:
 
-__global__ void k_reset_board(float *board)
+__global__ void k_reset_board(int *board)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -885,6 +992,16 @@ __global__ void k_reset_board(float *board)
     }
 }
 
+__global__ void k_copy_board(int *src, int *dst)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < CHESS_BOARD_LEN)
+    {
+        dst[tid] = src[tid];
+    }
+}
+
 __global__ void k_clear_one_hot_board(float *board)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -895,7 +1012,6 @@ __global__ void k_clear_one_hot_board(float *board)
     }
 }
 
-// One hot encode
 __global__ void k_one_hot_encode_board(int *board, float *out)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -946,7 +1062,60 @@ __global__ void k_one_hot_encode_board(int *board, float *out)
     }
 }
 
-// Check
+__global__ bool k_is_cell_under_attack(int *board, int cell_idx, bool white_pov_flg, bool *flg)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < CHESS_BOARD_LEN)
+    {
+        int legal_moves[CHESS_MAX_LEGAL_MOVE_CNT];
+
+        if (white_pov_flg)
+        {
+            if (d_is_piece_black((ChessPiece)board[tid]) && (ChessPiece)board[tid] != ChessPiece::BlackKing)
+            {
+                d_get_legal_moves(board, tid, legal_moves);
+
+                for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
+                {
+                    if (legal_moves[mov_idx] == CHESS_INVALID_VALUE)
+                    {
+                        break;
+                    }
+
+                    if (legal_moves[mov_idx] == cell_idx)
+                    {
+                        *flg = true;
+                        return;
+                    }
+                }
+            }
+        }
+        else
+        {
+
+            if (d_is_piece_white((ChessPiece)board[tid]) && (ChessPiece)board[tid] != ChessPiece::WhiteKing)
+            {
+                d_get_legal_moves(board, tid, legal_moves);
+
+                for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
+                {
+                    if (legal_moves[mov_idx] == CHESS_INVALID_VALUE)
+                    {
+                        break;
+                    }
+
+                    if (legal_moves[mov_idx] == cell_idx)
+                    {
+                        *flg = true;
+                        return;
+                    }
+                }
+            }
+        }
+    }
+}
+
 __global__ void k_is_in_check(int *board, bool white_mov_flg, bool *flg)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -957,9 +1126,9 @@ __global__ void k_is_in_check(int *board, bool white_mov_flg, bool *flg)
 
         if (white_mov_flg)
         {
-            if (is_piece_black((ChessPiece)board[tid]))
+            if (d_is_piece_black((ChessPiece)board[tid]))
             {
-                d_get_legal_moves(board, tid, legal_moves, false);
+                d_get_legal_moves(board, tid, legal_moves);
 
                 for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
                 {
@@ -978,9 +1147,9 @@ __global__ void k_is_in_check(int *board, bool white_mov_flg, bool *flg)
         }
         else
         {
-            if (is_piece_white((ChessPiece)board[tid]))
+            if (d_is_piece_white((ChessPiece)board[tid]))
             {
-                d_get_legal_moves(board, tid, legal_moves, false);
+                d_get_legal_moves(board, tid, legal_moves);
 
                 for (int mov_idx = 0; mov_idx < CHESS_MAX_LEGAL_MOVE_CNT; mov_idx++)
                 {
@@ -1000,7 +1169,7 @@ __global__ void k_is_in_check(int *board, bool white_mov_flg, bool *flg)
     }
 }
 
-// Checkmate/Stalemate
+// TODO: this function is unnecesary -- we need to check if no legal moves available in caller since our test in check func is a kernel
 __global__ void k_has_no_legal_moves(int *board, bool white_mov_flg, bool *flg)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -1013,7 +1182,7 @@ __global__ void k_has_no_legal_moves(int *board, bool white_mov_flg, bool *flg)
         {
             if (d_is_piece_white((ChessPiece)board[tid]))
             {
-                d_get_legal_moves(board, tid, legal_moves, true);
+                d_get_legal_moves(board, tid, legal_moves);
 
                 if (legal_moves[0] != CHESS_INVALID_VALUE)
                 {
@@ -1026,7 +1195,7 @@ __global__ void k_has_no_legal_moves(int *board, bool white_mov_flg, bool *flg)
         {
             if (d_is_piece_black((ChessPiece)board[tid]))
             {
-                d_get_legal_moves(board, tid, legal_moves, true);
+                d_get_legal_moves(board, tid, legal_moves);
 
                 if (legal_moves[0] != CHESS_INVALID_VALUE)
                 {
@@ -1041,3 +1210,67 @@ __global__ void k_has_no_legal_moves(int *board, bool white_mov_flg, bool *flg)
 // Rotate
 
 // Reflect
+
+// Functions:
+
+void play()
+{
+    int *board;
+    cudaMalloc(&board, sizeof(int) * CHESS_BOARD_LEN);
+    int *sim_board;
+    cudaMalloc(&board, sizeof(int) * CHESS_BOARD_LEN);
+    int *rotref_board;
+    cudaMalloc(&board, sizeof(int) * CHESS_BOARD_LEN);
+    float *one_hot_board;
+    cudaMalloc(&one_hot_board, sizeof(float) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);
+
+    bool white_mov_flg = true;
+
+    {
+        k_reset_board<<<(CHESS_BOARD_LEN / CUDA_THREADS_PER_BLOCK), CUDA_THREADS_PER_BLOCK>>>(board);
+    }
+
+    while (true)
+    {
+        // WHITE MOVE:
+
+        // Clear one hot board:
+        {
+            k_clear_one_hot_board<<<(CHESS_ONE_HOT_ENCODED_BOARD_LEN / CUDA_THREADS_PER_BLOCK), CUDA_THREADS_PER_BLOCK>>>(one_hot_board);
+        }
+
+        // One hot encode board:
+        {
+            k_one_hot_encode_board<<<(CHESS_BOARD_LEN / CUDA_THREADS_PER_BLOCK), CUDA_THREADS_PER_BLOCK>>>(board, one_hot_board);
+        }
+
+        // Get all legal moves and make prediction:
+
+        // Change board:
+
+        white_mov_flg = !white_mov_flg;
+
+        // BLACK MOVE:
+
+        // Clear one hot board:
+        {
+            k_clear_one_hot_board<<<(CHESS_ONE_HOT_ENCODED_BOARD_LEN / CUDA_THREADS_PER_BLOCK), CUDA_THREADS_PER_BLOCK>>>(one_hot_board);
+        }
+
+        // One hot encode board:
+        {
+            k_one_hot_encode_board<<<(CHESS_BOARD_LEN / CUDA_THREADS_PER_BLOCK), CUDA_THREADS_PER_BLOCK>>>(board, one_hot_board);
+        }
+
+        // Get all legal moves and make prediction:
+
+        // Change board:
+
+        white_mov_flg = !white_mov_flg;
+    }
+
+    cudaFree(one_hot_board);
+    cudaFree(rotref_board);
+    cudaFree(sim_board);
+    cudaFree(board);
+}

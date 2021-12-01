@@ -5,6 +5,7 @@
 #include <zero_system/nn/model.cuh>
 
 #include "chess.cuh"
+#include "cuda_chess.cuh"
 #include "pgn.cuh"
 
 using namespace zero::core;

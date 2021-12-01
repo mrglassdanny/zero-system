@@ -10,5 +10,7 @@
 #include <zero_system/core/tensor.cuh>
 #include <zero_system/nn/model.cuh>
 
+#include "chess.cuh"
+
 using namespace zero::core;
 using namespace zero::nn;
