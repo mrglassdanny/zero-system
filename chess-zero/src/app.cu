@@ -407,6 +407,75 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, Model *mode
     return mov_res;
 }
 
+void bootstrap_play(Model *model)
+{
+    PGNImport *pgn = PGNImport_init("data\\bootstrap.pgn");
+
+    int *board = init_board();
+    int rot_board[CHESS_BOARD_LEN];
+    float flt_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
+
+    std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
+
+    bool white_mov_flg = true;
+
+    int mov_cnt = 0;
+
+    Tensor *x = new Tensor(Device::Cuda, x_shape);
+    Tensor *y = new Tensor(Device::Cuda, 1);
+
+    printf("Total Games: %d\n", pgn->cnt);
+
+    for (int game_idx = 0; game_idx < pgn->cnt; game_idx++)
+    {
+        PGNMoveList *pl = pgn->games[game_idx];
+
+        {
+            if (pl->white_won_flg)
+            {
+                y->set_val(0, 1.0f);
+            }
+            else if (pl->black_won_flg)
+            {
+                y->set_val(0, -1.0f);
+            }
+            else
+            {
+                y->set_val(0, 0.0f);
+            }
+
+            white_mov_flg = true;
+
+            for (int mov_idx = 0; mov_idx < pl->cnt; mov_idx++)
+            {
+                change_board_w_mov(board, pl->arr[mov_idx], white_mov_flg);
+
+                one_hot_encode_board(board, flt_one_hot_board);
+                x->set_arr(flt_one_hot_board);
+
+                Tensor *pred = model->forward(x, true);
+                model->backward(pred, y);
+                delete pred;
+
+                white_mov_flg = !white_mov_flg;
+            }
+
+            model->step(pl->cnt);
+
+            reset_board(board);
+        }
+    }
+
+    delete x;
+    delete y;
+
+    free(board);
+
+    PGNImport_free(pgn);
+
+    system("cls");
+}
+
 Game *self_play(Model *model)
 {
     Game *game = new Game();
