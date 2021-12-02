@@ -298,19 +298,16 @@ Model *init_chess_model()
     std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
     int y_shape = 1;
 
-    // model->add_layer(new ConvolutionalLayer(x_shape, 1, 1, 1, InitializationFunction::Xavier));
-    // model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
+    model->add_layer(new ConvolutionalLayer(x_shape, 1, 1, 1, InitializationFunction::Xavier));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
     // model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 1, 8, 8, InitializationFunction::Xavier));
     // model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
-    model->add_layer(new LinearLayer(x_shape, 1024, InitializationFunction::Xavier));
+    model->add_layer(new LinearLayer(model->get_output_shape(), 512, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
-    model->add_layer(new LinearLayer(model->get_output_shape(), 256, InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
-
-    model->add_layer(new LinearLayer(model->get_output_shape(), 64, InitializationFunction::Xavier));
+    model->add_layer(new LinearLayer(model->get_output_shape(), 128, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), 16, InitializationFunction::Xavier));
@@ -484,23 +481,23 @@ Game *play_chess(Model *model)
 
             // Rotate board:
 
-            rotate_board(board, rot_board, 90);
-            one_hot_encode_board(rot_board, flt_one_hot_board);
-            Tensor *x = new Tensor(Device::Cpu, x_shape);
-            x->set_arr(flt_one_hot_board);
-            game->board_states.push_back(x);
+            // rotate_board(board, rot_board, 90);
+            // one_hot_encode_board(rot_board, flt_one_hot_board);
+            // Tensor *x2 = new Tensor(Device::Cpu, x_shape);
+            // x2->set_arr(flt_one_hot_board);
+            // game->board_states.push_back(x2);
 
-            rotate_board(board, rot_board, 180);
-            one_hot_encode_board(rot_board, flt_one_hot_board);
-            Tensor *x = new Tensor(Device::Cpu, x_shape);
-            x->set_arr(flt_one_hot_board);
-            game->board_states.push_back(x);
+            // rotate_board(board, rot_board, 180);
+            // one_hot_encode_board(rot_board, flt_one_hot_board);
+            // Tensor *x3 = new Tensor(Device::Cpu, x_shape);
+            // x3->set_arr(flt_one_hot_board);
+            // game->board_states.push_back(x3);
 
-            rotate_board(board, rot_board, 270);
-            one_hot_encode_board(rot_board, flt_one_hot_board);
-            Tensor *x = new Tensor(Device::Cpu, x_shape);
-            x->set_arr(flt_one_hot_board);
-            game->board_states.push_back(x);
+            // rotate_board(board, rot_board, 270);
+            // one_hot_encode_board(rot_board, flt_one_hot_board);
+            // Tensor *x4 = new Tensor(Device::Cpu, x_shape);
+            // x4->set_arr(flt_one_hot_board);
+            // game->board_states.push_back(x4);
 
             mov_cnt++;
         }
@@ -533,23 +530,23 @@ Game *play_chess(Model *model)
 
             // Rotate board:
 
-            rotate_board(board, rot_board, 90);
-            one_hot_encode_board(rot_board, flt_one_hot_board);
-            Tensor *x = new Tensor(Device::Cpu, x_shape);
-            x->set_arr(flt_one_hot_board);
-            game->board_states.push_back(x);
+            // rotate_board(board, rot_board, 90);
+            // one_hot_encode_board(rot_board, flt_one_hot_board);
+            // Tensor *x2 = new Tensor(Device::Cpu, x_shape);
+            // x2->set_arr(flt_one_hot_board);
+            // game->board_states.push_back(x2);
 
-            rotate_board(board, rot_board, 180);
-            one_hot_encode_board(rot_board, flt_one_hot_board);
-            Tensor *x = new Tensor(Device::Cpu, x_shape);
-            x->set_arr(flt_one_hot_board);
-            game->board_states.push_back(x);
+            // rotate_board(board, rot_board, 180);
+            // one_hot_encode_board(rot_board, flt_one_hot_board);
+            // Tensor *x3 = new Tensor(Device::Cpu, x_shape);
+            // x3->set_arr(flt_one_hot_board);
+            // game->board_states.push_back(x3);
 
-            rotate_board(board, rot_board, 270);
-            one_hot_encode_board(rot_board, flt_one_hot_board);
-            Tensor *x = new Tensor(Device::Cpu, x_shape);
-            x->set_arr(flt_one_hot_board);
-            game->board_states.push_back(x);
+            // rotate_board(board, rot_board, 270);
+            // one_hot_encode_board(rot_board, flt_one_hot_board);
+            // Tensor *x4 = new Tensor(Device::Cpu, x_shape);
+            // x4->set_arr(flt_one_hot_board);
+            // game->board_states.push_back(x4);
 
             mov_cnt++;
         }
@@ -614,22 +611,6 @@ int main(int argc, char **argv)
 {
     srand(time(NULL));
 
-    int *board = init_board();
-    int _board[CHESS_BOARD_LEN];
-
-    print_board(board);
-
-    rotate_board(board, _board, 90);
-    print_board(_board);
-
-    rotate_board(board, _board, 180);
-    print_board(_board);
-
-    rotate_board(board, _board, 270);
-    print_board(_board);
-
-    _getch();
-
     Model *model = init_chess_model();
 
     int white_win_cnt = 0;
@@ -639,9 +620,10 @@ int main(int argc, char **argv)
     int game_cnt = 0;
     while (true)
     {
-
         printf("Playing...\n");
         Game *game = play_chess(model);
+
+        system("cls");
 
         printf("Training...\n");
         train_chess(model, game);
@@ -670,7 +652,7 @@ int main(int argc, char **argv)
             }
         }
 
-        printf("Game Breakdown: %d (%d - %d - %d)\n", ++game_cnt, white_win_cnt, black_win_cnt, tie_cnt);
+        printf("Games played: %d (%d - %d - %d)\n", ++game_cnt, white_win_cnt, black_win_cnt, tie_cnt);
     }
 
     model->save("temp\\chess-zero.nn");
