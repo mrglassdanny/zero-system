@@ -134,6 +134,8 @@ float piece_to_float(ChessPiece piece);
 
 void board_to_float(int *board, float *out);
 
+void rotate_board(int *board, int *out, int deg);
+
 void one_hot_encode_board(int *board, int *out);
 
 void one_hot_encode_board(int *board, float *out);

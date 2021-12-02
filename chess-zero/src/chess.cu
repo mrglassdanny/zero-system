@@ -2747,6 +2747,43 @@ void board_to_float(int *board, float *out)
     }
 }
 
+void rotate_board(int *board, int *out, int deg)
+{
+    switch (deg)
+    {
+    case 90:
+        for (int i = 0; i < CHESS_BOARD_ROW_CNT; i++)
+        {
+            for (int j = 0; j < CHESS_BOARD_COL_CNT; j++)
+            {
+                out[(i * CHESS_BOARD_COL_CNT) + j] = board[(j * CHESS_BOARD_ROW_CNT) + i];
+            }
+        }
+        break;
+    case 180:
+        for (int i = 0, _i = CHESS_BOARD_LEN - 1; i < CHESS_BOARD_LEN; i++, _i--)
+        {
+            out[i] = board[_i];
+        }
+        break;
+    case 270:
+        for (int i = 0, _i = CHESS_BOARD_ROW_CNT - 1; i < CHESS_BOARD_ROW_CNT; i++, _i--)
+        {
+            for (int j = 0, _j = CHESS_BOARD_COL_CNT - 1; j < CHESS_BOARD_COL_CNT; j++, _j--)
+            {
+                out[(i * CHESS_BOARD_COL_CNT) + j] = board[(_j * CHESS_BOARD_ROW_CNT) + _i];
+            }
+        }
+        break;
+    default:
+        for (int i = 0; i < CHESS_BOARD_LEN; i++)
+        {
+            out[i] = board[i];
+        }
+        break;
+    }
+}
+
 void one_hot_encode_board(int *board, int *out)
 {
     memset(out, 0, sizeof(int) * CHESS_ONE_HOT_ENCODED_BOARD_LEN);

@@ -445,6 +445,7 @@ Game *play_chess(Model *model)
     Game *game = new Game();
 
     int *board = init_board();
+    int rot_board[CHESS_BOARD_LEN];
     float flt_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
 
     std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
@@ -481,7 +482,25 @@ Game *play_chess(Model *model)
             x->set_arr(flt_one_hot_board);
             game->board_states.push_back(x);
 
-            // TODO: reflect/rotate board
+            // Rotate board:
+
+            rotate_board(board, rot_board, 90);
+            one_hot_encode_board(rot_board, flt_one_hot_board);
+            Tensor *x = new Tensor(Device::Cpu, x_shape);
+            x->set_arr(flt_one_hot_board);
+            game->board_states.push_back(x);
+
+            rotate_board(board, rot_board, 180);
+            one_hot_encode_board(rot_board, flt_one_hot_board);
+            Tensor *x = new Tensor(Device::Cpu, x_shape);
+            x->set_arr(flt_one_hot_board);
+            game->board_states.push_back(x);
+
+            rotate_board(board, rot_board, 270);
+            one_hot_encode_board(rot_board, flt_one_hot_board);
+            Tensor *x = new Tensor(Device::Cpu, x_shape);
+            x->set_arr(flt_one_hot_board);
+            game->board_states.push_back(x);
 
             mov_cnt++;
         }
@@ -512,7 +531,25 @@ Game *play_chess(Model *model)
             x->set_arr(flt_one_hot_board);
             game->board_states.push_back(x);
 
-            // TODO: reflect/rotate board
+            // Rotate board:
+
+            rotate_board(board, rot_board, 90);
+            one_hot_encode_board(rot_board, flt_one_hot_board);
+            Tensor *x = new Tensor(Device::Cpu, x_shape);
+            x->set_arr(flt_one_hot_board);
+            game->board_states.push_back(x);
+
+            rotate_board(board, rot_board, 180);
+            one_hot_encode_board(rot_board, flt_one_hot_board);
+            Tensor *x = new Tensor(Device::Cpu, x_shape);
+            x->set_arr(flt_one_hot_board);
+            game->board_states.push_back(x);
+
+            rotate_board(board, rot_board, 270);
+            one_hot_encode_board(rot_board, flt_one_hot_board);
+            Tensor *x = new Tensor(Device::Cpu, x_shape);
+            x->set_arr(flt_one_hot_board);
+            game->board_states.push_back(x);
 
             mov_cnt++;
         }
@@ -576,6 +613,22 @@ void train_chess(Model *model, Game *game)
 int main(int argc, char **argv)
 {
     srand(time(NULL));
+
+    int *board = init_board();
+    int _board[CHESS_BOARD_LEN];
+
+    print_board(board);
+
+    rotate_board(board, _board, 90);
+    print_board(_board);
+
+    rotate_board(board, _board, 180);
+    print_board(_board);
+
+    rotate_board(board, _board, 270);
+    print_board(_board);
+
+    _getch();
 
     Model *model = init_chess_model();
 
