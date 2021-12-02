@@ -537,6 +537,8 @@ Game *play_chess(Model *model)
                 break;
             }
         }
+
+        printf("%d\n", mov_cnt);
     }
 
     free(board);
@@ -567,7 +569,7 @@ void train_chess(Model *model, Game *game)
     delete y;
 }
 
-int amain(int argc, char **argv)
+int main(int argc, char **argv)
 {
     srand(time(NULL));
 
@@ -621,7 +623,7 @@ int amain(int argc, char **argv)
     return 0;
 }
 
-int main(int argc, char **argv)
+int amain(int argc, char **argv)
 {
     srand(time(NULL));
 

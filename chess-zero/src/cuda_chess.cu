@@ -1396,6 +1396,8 @@ void play(Model *model)
 
     k_reset_board<<<(CHESS_BOARD_LEN / CUDA_THREADS_PER_BLOCK), CUDA_THREADS_PER_BLOCK>>>(board);
 
+    int mov_ctr = 0;
+
     while (true)
     {
         // WHITE MOVE:
@@ -1416,16 +1418,16 @@ void play(Model *model)
                     x->set_arr(one_hot_board);
 
                     {
-                        Tensor *pred = model->forward(x, false);
-
-                        float eval = pred->get_val(0);
+                        //Tensor *pred = model->forward(x, false);
+                        float eval = rand() % 100 * 1.0f;
+                        //float eval = pred->get_val(0);
                         if (eval > best_eval)
                         {
                             best_eval = eval;
                             k_copy_board<<<(CHESS_BOARD_LEN / CUDA_THREADS_PER_BLOCK), CUDA_THREADS_PER_BLOCK>>>(board, board_states_arr, i * CHESS_MAX_LEGAL_MOVE_CNT + (j * CHESS_BOARD_LEN));
                         }
 
-                        delete pred;
+                        //delete pred;
                     }
                 }
             }
@@ -1451,16 +1453,17 @@ void play(Model *model)
                     x->set_arr(one_hot_board);
 
                     {
-                        Tensor *pred = model->forward(x, false);
+                        //Tensor *pred = model->forward(x, false);
+                        float eval = rand() % 100 * 1.0f;
+                        //float eval = pred->get_val(0);
+                        if (eval > best_eval)
+                            if (eval < best_eval)
+                            {
+                                best_eval = eval;
+                                k_copy_board<<<(CHESS_BOARD_LEN / CUDA_THREADS_PER_BLOCK), CUDA_THREADS_PER_BLOCK>>>(board, board_states_arr, i * CHESS_MAX_LEGAL_MOVE_CNT + (j * CHESS_BOARD_LEN));
+                            }
 
-                        float eval = pred->get_val(0);
-                        if (eval < best_eval)
-                        {
-                            best_eval = eval;
-                            k_copy_board<<<(CHESS_BOARD_LEN / CUDA_THREADS_PER_BLOCK), CUDA_THREADS_PER_BLOCK>>>(board, board_states_arr, i * CHESS_MAX_LEGAL_MOVE_CNT + (j * CHESS_BOARD_LEN));
-                        }
-
-                        delete pred;
+                        //delete pred;
                     }
                 }
             }
@@ -1468,7 +1471,9 @@ void play(Model *model)
             white_mov_flg = !white_mov_flg;
         }
 
-        printf("MOVE\n");
+        mov_ctr += 2;
+        printf("%d\n", mov_ctr);
+        system("cls");
     }
 
     delete temp;
