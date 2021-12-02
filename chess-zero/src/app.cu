@@ -255,42 +255,6 @@ std::vector<Opening> get_pgn_openings(const char *pgn_name)
     return openings;
 }
 
-OnDiskSupervisor *get_chess_train_supervisor(const char *pgn_name)
-{
-    char board_name_buf[256];
-    char label_name_buf[256];
-
-    memset(board_name_buf, 0, 256);
-    sprintf(board_name_buf, "temp\\%s.bs", pgn_name);
-
-    memset(label_name_buf, 0, 256);
-    sprintf(label_name_buf, "temp\\%s.bl", pgn_name);
-
-    std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
-
-    OnDiskSupervisor *sup = new OnDiskSupervisor(1.00f, 0.00f, board_name_buf, label_name_buf, x_shape, 0);
-
-    return sup;
-}
-
-OnDiskSupervisor *get_chess_test_supervisor(const char *pgn_name)
-{
-    char board_name_buf[256];
-    char label_name_buf[256];
-
-    memset(board_name_buf, 0, 256);
-    sprintf(board_name_buf, "temp\\%s.bs", pgn_name);
-
-    memset(label_name_buf, 0, 256);
-    sprintf(label_name_buf, "temp\\%s.bl", pgn_name);
-
-    std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
-
-    OnDiskSupervisor *sup = new OnDiskSupervisor(0.00f, 1.00f, board_name_buf, label_name_buf, x_shape, 0);
-
-    return sup;
-}
-
 Model *init_chess_model()
 {
     Model *model = new Model(CostFunction::MSE, 0.01f);
