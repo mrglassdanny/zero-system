@@ -5,13 +5,13 @@
 #include <zero_system/nn/model.cuh>
 
 #include "chess.cuh"
-#include "cuda_chess.cuh"
 #include "pgn.cuh"
 
 using namespace zero::core;
 using namespace zero::nn;
 
 #define CHESS_START_MOVE_IDX 10
+#define CHESS_SELF_PLAY_MAX_MOV_CNT 270
 
 struct MoveSearchResult
 {
@@ -293,21 +293,27 @@ OnDiskSupervisor *get_chess_test_supervisor(const char *pgn_name)
 
 Model *init_chess_model()
 {
-    Model *model = new Model(CostFunction::MSE, 0.001f);
+    Model *model = new Model(CostFunction::MSE, 0.01f);
 
     std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
     int y_shape = 1;
 
-    model->add_layer(new ConvolutionalLayer(x_shape, 32, 1, 1, InitializationFunction::Xavier));
+    // model->add_layer(new ConvolutionalLayer(x_shape, 1, 1, 1, InitializationFunction::Xavier));
+    // model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
+
+    // model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 1, 8, 8, InitializationFunction::Xavier));
+    // model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
+
+    model->add_layer(new LinearLayer(x_shape, 1024, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
-    model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 128, 8, 8, InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
-
-    model->add_layer(new LinearLayer(model->get_output_shape(), 512, InitializationFunction::Xavier));
+    model->add_layer(new LinearLayer(model->get_output_shape(), 256, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), 64, InitializationFunction::Xavier));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
+
+    model->add_layer(new LinearLayer(model->get_output_shape(), 16, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), y_shape, InitializationFunction::Xavier));
@@ -529,16 +535,14 @@ Game *play_chess(Model *model)
                 }
             }
 
-            // Exceeds turn count:
-            if (mov_cnt >= 300)
+            // Exceeds move count:
+            if (mov_cnt >= CHESS_SELF_PLAY_MAX_MOV_CNT)
             {
-                printf("Game count exceeded!\n");
+                printf("Move count exceeded!\n");
                 game->lbl = 0.0f;
                 break;
             }
         }
-
-        printf("%d\n", mov_cnt);
     }
 
     free(board);
@@ -617,21 +621,6 @@ int main(int argc, char **argv)
     }
 
     model->save("temp\\chess-zero.nn");
-
-    delete model;
-
-    return 0;
-}
-
-int amain(int argc, char **argv)
-{
-    srand(time(NULL));
-
-    Model *model = init_chess_model();
-
-    play(model);
-
-    //model->save("temp\\chess-zero.nn");
 
     delete model;
 
