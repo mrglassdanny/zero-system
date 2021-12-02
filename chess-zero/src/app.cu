@@ -255,7 +255,7 @@ std::vector<Opening> get_pgn_openings(const char *pgn_name)
     return openings;
 }
 
-Model *init_chess_model()
+Model *init_model()
 {
     Model *model = new Model(CostFunction::MSE, 0.01f);
 
@@ -280,6 +280,12 @@ Model *init_chess_model()
     model->add_layer(new LinearLayer(model->get_output_shape(), y_shape, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
+    return model;
+}
+
+Model *init_model(const char *model_path)
+{
+    Model *model = new Model(model_path);
     return model;
 }
 
@@ -401,7 +407,7 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, Model *mode
     return mov_res;
 }
 
-Game *play_chess(Model *model)
+Game *self_play(Model *model)
 {
     Game *game = new Game();
 
@@ -548,7 +554,7 @@ Game *play_chess(Model *model)
     return game;
 }
 
-void train_chess(Model *model, Game *game)
+void train(Model *model, Game *game)
 {
     Tensor *y = new Tensor(Device::Cuda, 1);
 
@@ -575,7 +581,7 @@ int main(int argc, char **argv)
 {
     srand(time(NULL));
 
-    Model *model = init_chess_model();
+    Model *model = init_model();
 
     int white_win_cnt = 0;
     int black_win_cnt = 0;
@@ -585,12 +591,12 @@ int main(int argc, char **argv)
     while (true)
     {
         printf("Playing...\n");
-        Game *game = play_chess(model);
+        Game *game = self_play(model);
 
         system("cls");
 
         printf("Training...\n");
-        train_chess(model, game);
+        train(model, game);
 
         if (game->lbl == 1.0f)
         {
