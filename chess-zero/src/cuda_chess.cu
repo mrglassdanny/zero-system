@@ -1375,7 +1375,7 @@ __global__ void k_get_all_legal_move_board_states(int *board, bool white_mov_flg
 
 // Functions:
 
-void play(Model *model)
+void cuda_play(Model *model)
 {
     int *board;
     cudaMalloc(&board, sizeof(int) * CHESS_BOARD_LEN);

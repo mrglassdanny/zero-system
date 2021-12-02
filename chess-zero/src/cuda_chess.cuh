@@ -15,4 +15,4 @@
 using namespace zero::core;
 using namespace zero::nn;
 
-void play(Model *model);
+void cuda_play(Model *model);
