@@ -407,7 +407,7 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, Model *mode
     return mov_res;
 }
 
-void bootstrap_play(Model *model)
+void bootstrap_learn(Model *model)
 {
     PGNImport *pgn = PGNImport_init("data\\bootstrap.pgn");
 
@@ -457,10 +457,36 @@ void bootstrap_play(Model *model)
                 model->backward(pred, y);
                 delete pred;
 
+                // {
+                //     // Rotate board:
+
+                //     rotate_board(board, rot_board, 90);
+                //     one_hot_encode_board(rot_board, flt_one_hot_board);
+                //     x->set_arr(flt_one_hot_board);
+                //     pred = model->forward(x, true);
+                //     model->backward(pred, y);
+                //     delete pred;
+
+                //     rotate_board(board, rot_board, 180);
+                //     one_hot_encode_board(rot_board, flt_one_hot_board);
+                //     x->set_arr(flt_one_hot_board);
+                //     pred = model->forward(x, true);
+                //     model->backward(pred, y);
+                //     delete pred;
+
+                //     rotate_board(board, rot_board, 270);
+                //     one_hot_encode_board(rot_board, flt_one_hot_board);
+                //     x->set_arr(flt_one_hot_board);
+                //     pred = model->forward(x, true);
+                //     model->backward(pred, y);
+                //     delete pred;
+                // }
+
                 white_mov_flg = !white_mov_flg;
             }
 
             model->step(pl->cnt);
+            //model->step(pl->cnt * 3);
 
             reset_board(board);
         }
@@ -623,7 +649,7 @@ Game *self_play(Model *model)
     return game;
 }
 
-void train(Model *model, Game *game)
+void self_train(Model *model, Game *game)
 {
     Tensor *y = new Tensor(Device::Cuda, 1);
 
@@ -646,17 +672,13 @@ void train(Model *model, Game *game)
     delete y;
 }
 
-int main(int argc, char **argv)
+void self_learn(Model *model)
 {
-    srand(time(NULL));
-
-    Model *model = init_model();
-
+    int game_cnt = 0;
     int white_win_cnt = 0;
     int black_win_cnt = 0;
     int tie_cnt = 0;
 
-    int game_cnt = 0;
     while (true)
     {
         printf("Playing...\n");
@@ -665,7 +687,7 @@ int main(int argc, char **argv)
         system("cls");
 
         printf("Training...\n");
-        train(model, game);
+        self_train(model, game);
 
         if (game->lbl == 1.0f)
         {
@@ -693,6 +715,13 @@ int main(int argc, char **argv)
 
         printf("Games played: %d (%d - %d - %d)\n", ++game_cnt, white_win_cnt, black_win_cnt, tie_cnt);
     }
+}
+
+int main(int argc, char **argv)
+{
+    srand(time(NULL));
+
+    Model *model = init_model();
 
     model->save("temp\\chess-zero.nn");
 
