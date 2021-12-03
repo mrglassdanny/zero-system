@@ -50,13 +50,13 @@ Model *init_model()
     model->add_layer(new ConvolutionalLayer(x_shape, 1, 1, 1, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
-    model->add_layer(new LinearLayer(model->get_output_shape(), 512, InitializationFunction::Xavier));
+    model->add_layer(new LinearLayer(model->get_output_shape(), 1024, InitializationFunction::Xavier));
+    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
+
+    model->add_layer(new LinearLayer(model->get_output_shape(), 1024, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), 128, InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
-
-    model->add_layer(new LinearLayer(model->get_output_shape(), 16, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
     model->add_layer(new LinearLayer(model->get_output_shape(), y_shape, InitializationFunction::Xavier));
@@ -618,7 +618,7 @@ int main(int argc, char **argv)
 
     //play_model(model, false);
 
-    //model->save("temp\\chess-zero.nn");
+    model->save("temp\\chess-zero.nn");
 
     delete model;
 
