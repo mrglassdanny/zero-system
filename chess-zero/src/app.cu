@@ -426,6 +426,8 @@ void bootstrap_learn(Model *model)
 
     printf("Total Games: %d\n", pgn->cnt);
 
+    float cost = 0.0f;
+
     for (int game_idx = 0; game_idx < pgn->cnt; game_idx++)
     {
         PGNMoveList *pl = pgn->games[game_idx];
@@ -454,41 +456,46 @@ void bootstrap_learn(Model *model)
                 x->set_arr(flt_one_hot_board);
 
                 Tensor *pred = model->forward(x, true);
+                cost += model->cost(pred, y);
                 model->backward(pred, y);
                 delete pred;
 
-                // {
-                //     // Rotate board:
+                // Rotate board:
+                {
 
-                //     rotate_board(board, rot_board, 90);
-                //     one_hot_encode_board(rot_board, flt_one_hot_board);
-                //     x->set_arr(flt_one_hot_board);
-                //     pred = model->forward(x, true);
-                //     model->backward(pred, y);
-                //     delete pred;
+                    rotate_board(board, rot_board, 90);
+                    one_hot_encode_board(rot_board, flt_one_hot_board);
+                    x->set_arr(flt_one_hot_board);
+                    pred = model->forward(x, true);
+                    model->backward(pred, y);
+                    delete pred;
 
-                //     rotate_board(board, rot_board, 180);
-                //     one_hot_encode_board(rot_board, flt_one_hot_board);
-                //     x->set_arr(flt_one_hot_board);
-                //     pred = model->forward(x, true);
-                //     model->backward(pred, y);
-                //     delete pred;
+                    rotate_board(board, rot_board, 180);
+                    one_hot_encode_board(rot_board, flt_one_hot_board);
+                    x->set_arr(flt_one_hot_board);
+                    pred = model->forward(x, true);
+                    model->backward(pred, y);
+                    delete pred;
 
-                //     rotate_board(board, rot_board, 270);
-                //     one_hot_encode_board(rot_board, flt_one_hot_board);
-                //     x->set_arr(flt_one_hot_board);
-                //     pred = model->forward(x, true);
-                //     model->backward(pred, y);
-                //     delete pred;
-                // }
+                    rotate_board(board, rot_board, 270);
+                    one_hot_encode_board(rot_board, flt_one_hot_board);
+                    x->set_arr(flt_one_hot_board);
+                    pred = model->forward(x, true);
+                    model->backward(pred, y);
+                    delete pred;
+                }
 
                 white_mov_flg = !white_mov_flg;
             }
 
-            model->step(pl->cnt);
-            //model->step(pl->cnt * 3);
+            cost /= pl->cnt * 4;
+            model->step(pl->cnt * 4);
 
             reset_board(board);
+
+            system("cls");
+            printf("Game: %d / %d (%f)\n", game_idx, pgn->cnt, cost);
+            cost = 0.0f;
         }
     }
 
@@ -545,24 +552,25 @@ Game *self_play(Model *model)
             game->board_states.push_back(x);
 
             // Rotate board:
+            {
+                rotate_board(board, rot_board, 90);
+                one_hot_encode_board(rot_board, flt_one_hot_board);
+                Tensor *x2 = new Tensor(Device::Cpu, x_shape);
+                x2->set_arr(flt_one_hot_board);
+                game->board_states.push_back(x2);
 
-            // rotate_board(board, rot_board, 90);
-            // one_hot_encode_board(rot_board, flt_one_hot_board);
-            // Tensor *x2 = new Tensor(Device::Cpu, x_shape);
-            // x2->set_arr(flt_one_hot_board);
-            // game->board_states.push_back(x2);
+                rotate_board(board, rot_board, 180);
+                one_hot_encode_board(rot_board, flt_one_hot_board);
+                Tensor *x3 = new Tensor(Device::Cpu, x_shape);
+                x3->set_arr(flt_one_hot_board);
+                game->board_states.push_back(x3);
 
-            // rotate_board(board, rot_board, 180);
-            // one_hot_encode_board(rot_board, flt_one_hot_board);
-            // Tensor *x3 = new Tensor(Device::Cpu, x_shape);
-            // x3->set_arr(flt_one_hot_board);
-            // game->board_states.push_back(x3);
-
-            // rotate_board(board, rot_board, 270);
-            // one_hot_encode_board(rot_board, flt_one_hot_board);
-            // Tensor *x4 = new Tensor(Device::Cpu, x_shape);
-            // x4->set_arr(flt_one_hot_board);
-            // game->board_states.push_back(x4);
+                rotate_board(board, rot_board, 270);
+                one_hot_encode_board(rot_board, flt_one_hot_board);
+                Tensor *x4 = new Tensor(Device::Cpu, x_shape);
+                x4->set_arr(flt_one_hot_board);
+                game->board_states.push_back(x4);
+            }
 
             mov_cnt++;
         }
@@ -594,24 +602,25 @@ Game *self_play(Model *model)
             game->board_states.push_back(x);
 
             // Rotate board:
+            {
+                rotate_board(board, rot_board, 90);
+                one_hot_encode_board(rot_board, flt_one_hot_board);
+                Tensor *x2 = new Tensor(Device::Cpu, x_shape);
+                x2->set_arr(flt_one_hot_board);
+                game->board_states.push_back(x2);
 
-            // rotate_board(board, rot_board, 90);
-            // one_hot_encode_board(rot_board, flt_one_hot_board);
-            // Tensor *x2 = new Tensor(Device::Cpu, x_shape);
-            // x2->set_arr(flt_one_hot_board);
-            // game->board_states.push_back(x2);
+                rotate_board(board, rot_board, 180);
+                one_hot_encode_board(rot_board, flt_one_hot_board);
+                Tensor *x3 = new Tensor(Device::Cpu, x_shape);
+                x3->set_arr(flt_one_hot_board);
+                game->board_states.push_back(x3);
 
-            // rotate_board(board, rot_board, 180);
-            // one_hot_encode_board(rot_board, flt_one_hot_board);
-            // Tensor *x3 = new Tensor(Device::Cpu, x_shape);
-            // x3->set_arr(flt_one_hot_board);
-            // game->board_states.push_back(x3);
-
-            // rotate_board(board, rot_board, 270);
-            // one_hot_encode_board(rot_board, flt_one_hot_board);
-            // Tensor *x4 = new Tensor(Device::Cpu, x_shape);
-            // x4->set_arr(flt_one_hot_board);
-            // game->board_states.push_back(x4);
+                rotate_board(board, rot_board, 270);
+                one_hot_encode_board(rot_board, flt_one_hot_board);
+                Tensor *x4 = new Tensor(Device::Cpu, x_shape);
+                x4->set_arr(flt_one_hot_board);
+                game->board_states.push_back(x4);
+            }
 
             mov_cnt++;
         }
@@ -722,6 +731,8 @@ int main(int argc, char **argv)
     srand(time(NULL));
 
     Model *model = init_model();
+
+    bootstrap_learn(model);
 
     model->save("temp\\chess-zero.nn");
 
