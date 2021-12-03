@@ -50,9 +50,6 @@ Model *init_model()
     model->add_layer(new ConvolutionalLayer(x_shape, 1, 1, 1, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
-    // model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 1, 8, 8, InitializationFunction::Xavier));
-    // model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
-
     model->add_layer(new LinearLayer(model->get_output_shape(), 512, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
 
