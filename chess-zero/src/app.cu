@@ -610,15 +610,16 @@ int main(int argc, char **argv)
 {
     srand(time(NULL));
 
-    Model *model = init_model();
+    //Model *model = init_model();
+    Model *model = init_model("temp\\bootstrapped-chess-zero.nn");
 
-    bootstrap_learn(model);
+    //bootstrap_learn(model);
 
     //self_learn(model);
 
-    //play_model(model, false);
+    play_model(model, false);
 
-    model->save("temp\\chess-zero.nn");
+    //model->save("temp\\chess-zero.nn");
 
     delete model;
 
