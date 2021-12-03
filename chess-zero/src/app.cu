@@ -407,108 +407,6 @@ MoveSearchResult get_best_move(int *immut_board, bool white_mov_flg, Model *mode
     return mov_res;
 }
 
-void bootstrap_learn(Model *model)
-{
-    PGNImport *pgn = PGNImport_init("data\\bootstrap.pgn");
-
-    int *board = init_board();
-    int rot_board[CHESS_BOARD_LEN];
-    float flt_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
-
-    std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
-
-    bool white_mov_flg = true;
-
-    int mov_cnt = 0;
-
-    Tensor *x = new Tensor(Device::Cuda, x_shape);
-    Tensor *y = new Tensor(Device::Cuda, 1);
-
-    printf("Total Games: %d\n", pgn->cnt);
-
-    float cost = 0.0f;
-
-    for (int game_idx = 0; game_idx < pgn->cnt; game_idx++)
-    {
-        PGNMoveList *pl = pgn->games[game_idx];
-
-        {
-            if (pl->white_won_flg)
-            {
-                y->set_val(0, 1.0f);
-            }
-            else if (pl->black_won_flg)
-            {
-                y->set_val(0, -1.0f);
-            }
-            else
-            {
-                y->set_val(0, 0.0f);
-            }
-
-            white_mov_flg = true;
-
-            for (int mov_idx = 0; mov_idx < pl->cnt; mov_idx++)
-            {
-                change_board_w_mov(board, pl->arr[mov_idx], white_mov_flg);
-
-                one_hot_encode_board(board, flt_one_hot_board);
-                x->set_arr(flt_one_hot_board);
-
-                Tensor *pred = model->forward(x, true);
-                cost += model->cost(pred, y);
-                model->backward(pred, y);
-                delete pred;
-
-                // Rotate board:
-                {
-
-                    rotate_board(board, rot_board, 90);
-                    one_hot_encode_board(rot_board, flt_one_hot_board);
-                    x->set_arr(flt_one_hot_board);
-                    pred = model->forward(x, true);
-                    model->backward(pred, y);
-                    delete pred;
-
-                    rotate_board(board, rot_board, 180);
-                    one_hot_encode_board(rot_board, flt_one_hot_board);
-                    x->set_arr(flt_one_hot_board);
-                    pred = model->forward(x, true);
-                    model->backward(pred, y);
-                    delete pred;
-
-                    rotate_board(board, rot_board, 270);
-                    one_hot_encode_board(rot_board, flt_one_hot_board);
-                    x->set_arr(flt_one_hot_board);
-                    pred = model->forward(x, true);
-                    model->backward(pred, y);
-                    delete pred;
-                }
-
-                white_mov_flg = !white_mov_flg;
-            }
-
-            cost /= pl->cnt * 4;
-            model->step(pl->cnt * 4);
-
-            reset_board(board);
-
-            system("cls");
-            printf("Game: %d / %d (%f)\n", game_idx, pgn->cnt, cost);
-            cost = 0.0f;
-        }
-    }
-
-    delete x;
-    delete y;
-
-    free(board);
-
-    PGNImport_free(pgn);
-
-    system("cls");
-}
-
 Game *self_play(Model *model)
 {
     Game *game = new Game();
@@ -529,15 +427,15 @@ Game *self_play(Model *model)
         {
             if (is_in_checkmate(board, white_mov_flg))
             {
-                print_board(board);
                 game->lbl = -1.0f;
+                printf("Black won!\n");
                 break;
             }
 
             if (is_in_stalemate(board, white_mov_flg))
             {
-                print_board(board);
                 game->lbl = 0.0f;
+                printf("Stalemate!\n");
                 break;
             }
 
@@ -579,15 +477,15 @@ Game *self_play(Model *model)
         {
             if (is_in_checkmate(board, white_mov_flg))
             {
-                print_board(board);
                 game->lbl = 1.0f;
+                printf("White won!\n");
                 break;
             }
 
             if (is_in_stalemate(board, white_mov_flg))
             {
-                print_board(board);
                 game->lbl = 0.0f;
+                printf("Stalemate!\n");
                 break;
             }
 
@@ -629,11 +527,11 @@ Game *self_play(Model *model)
         {
             // 3 move repetition:
             int board_cnt = game->board_states.size();
-            if (board_cnt > 6)
+            if (board_cnt > 24)
             {
                 Tensor *x_1 = game->board_states[board_cnt - 1];
-                Tensor *x_2 = game->board_states[board_cnt - 3];
-                Tensor *x_3 = game->board_states[board_cnt - 5];
+                Tensor *x_2 = game->board_states[board_cnt - 9];
+                Tensor *x_3 = game->board_states[board_cnt - 17];
 
                 if (x_1->equals(x_2) && x_1->equals(x_3))
                 {
@@ -681,6 +579,109 @@ void self_train(Model *model, Game *game)
     delete y;
 }
 
+void bootstrap_learn(Model *model)
+{
+    PGNImport *pgn = PGNImport_init("data\\bootstrap.pgn");
+
+    int *board = init_board();
+    int rot_board[CHESS_BOARD_LEN];
+    float flt_one_hot_board[CHESS_ONE_HOT_ENCODED_BOARD_LEN];
+
+    std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
+
+    bool white_mov_flg = true;
+
+    int mov_cnt = 0;
+
+    Tensor *x = new Tensor(Device::Cuda, x_shape);
+    Tensor *y = new Tensor(Device::Cuda, 1);
+
+    float cost = 0.0f;
+
+    for (int game_idx = 0; game_idx < pgn->cnt; game_idx++)
+    {
+        PGNMoveList *pl = pgn->games[game_idx];
+
+        {
+            if (pl->white_won_flg)
+            {
+                y->set_val(0, 1.0f);
+            }
+            else if (pl->black_won_flg)
+            {
+                y->set_val(0, -1.0f);
+            }
+            else
+            {
+                y->set_val(0, 0.0f);
+            }
+
+            white_mov_flg = true;
+
+            for (int mov_idx = 0; mov_idx < pl->cnt; mov_idx++)
+            {
+                change_board_w_mov(board, pl->arr[mov_idx], white_mov_flg);
+
+                one_hot_encode_board(board, flt_one_hot_board);
+                x->set_arr(flt_one_hot_board);
+
+                Tensor *pred = model->forward(x, true);
+                cost += model->cost(pred, y);
+                model->backward(pred, y);
+                delete pred;
+
+                // Rotate board:
+                {
+
+                    rotate_board(board, rot_board, 90);
+                    one_hot_encode_board(rot_board, flt_one_hot_board);
+                    x->set_arr(flt_one_hot_board);
+                    Tensor *pred2 = model->forward(x, true);
+                    cost += model->cost(pred2, y);
+                    model->backward(pred2, y);
+                    delete pred2;
+
+                    rotate_board(board, rot_board, 180);
+                    one_hot_encode_board(rot_board, flt_one_hot_board);
+                    x->set_arr(flt_one_hot_board);
+                    Tensor *pred3 = model->forward(x, true);
+                    cost += model->cost(pred3, y);
+                    model->backward(pred3, y);
+                    delete pred3;
+
+                    rotate_board(board, rot_board, 270);
+                    one_hot_encode_board(rot_board, flt_one_hot_board);
+                    x->set_arr(flt_one_hot_board);
+                    Tensor *pred4 = model->forward(x, true);
+                    cost += model->cost(pred4, y);
+                    model->backward(pred4, y);
+                    delete pred4;
+                }
+
+                white_mov_flg = !white_mov_flg;
+            }
+
+            cost /= (pl->cnt * 4);
+            model->step(pl->cnt * 4);
+
+            reset_board(board);
+
+            system("cls");
+            printf("Game: %d / %d (%f)\n", game_idx, pgn->cnt, cost);
+            cost = 0.0f;
+        }
+    }
+
+    delete x;
+    delete y;
+
+    free(board);
+
+    PGNImport_free(pgn);
+
+    system("cls");
+}
+
 void self_learn(Model *model)
 {
     int game_cnt = 0;
@@ -726,6 +727,103 @@ void self_learn(Model *model)
     }
 }
 
+void play_model(Model *model, bool model_white_flg)
+{
+    int *board = init_board();
+    char mov[CHESS_MAX_MOVE_LEN];
+
+    bool white_mov_flg = true;
+
+    while (true)
+    {
+
+        // White move:
+        {
+            if (is_in_checkmate(board, white_mov_flg))
+            {
+                printf("Checkmate -- Black won!\n");
+                print_board(board);
+                break;
+            }
+
+            if (is_in_stalemate(board, white_mov_flg))
+            {
+                printf("Stalemate!\n");
+                print_board(board);
+                break;
+            }
+
+            if (is_in_check(board, true))
+            {
+                printf("Check!\n");
+            }
+
+            if (model_white_flg)
+            {
+                MoveSearchResult mov_res = get_best_move(board, white_mov_flg, model);
+                change_board_w_mov(board, mov_res.mov, white_mov_flg);
+                white_mov_flg = !white_mov_flg;
+            }
+            else
+            {
+                print_board(board);
+                memset(mov, 0, CHESS_MAX_MOVE_LEN);
+                printf("White Move: ");
+                std::cin >> mov;
+                system("cls");
+                change_board_w_mov(board, mov, white_mov_flg);
+                white_mov_flg = !white_mov_flg;
+            }
+        }
+
+        system("cls");
+
+        // Black move:
+        {
+
+            if (is_in_checkmate(board, white_mov_flg))
+            {
+                printf("Checkmate -- White won!\n");
+                print_board(board);
+                break;
+            }
+
+            if (is_in_stalemate(board, white_mov_flg))
+            {
+                printf("Stalemate!\n");
+                print_board(board);
+                break;
+            }
+
+            if (is_in_check(board, true))
+            {
+                printf("Check!\n");
+            }
+
+            if (!model_white_flg)
+            {
+                MoveSearchResult mov_res = get_best_move(board, white_mov_flg, model);
+                change_board_w_mov(board, mov_res.mov, white_mov_flg);
+                white_mov_flg = !white_mov_flg;
+            }
+            else
+            {
+                print_flipped_board(board);
+                memset(mov, 0, CHESS_MAX_MOVE_LEN);
+                printf("Black Move: ");
+                std::cin >> mov;
+                system("cls");
+                change_board_w_mov(board, mov, white_mov_flg);
+                white_mov_flg = !white_mov_flg;
+            }
+        }
+
+        system("cls");
+    }
+
+    free(board);
+}
+
 int main(int argc, char **argv)
 {
     srand(time(NULL));
@@ -734,7 +832,11 @@ int main(int argc, char **argv)
 
     bootstrap_learn(model);
 
-    model->save("temp\\chess-zero.nn");
+    //self_learn(model);
+
+    //play_model(model, false);
+
+    //model->save("temp\\chess-zero.nn");
 
     delete model;
 
