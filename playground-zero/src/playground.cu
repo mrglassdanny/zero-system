@@ -44,6 +44,63 @@ void nn_test()
 	delete model;
 }
 
+void nn_performance()
+{
+	int batch_size = 100;
+	std::vector<int> x_shape{28, 28};
+	std::vector<int> y_shape{1};
+	Batch *batch = new Batch(true, batch_size);
+
+	for (int i = 0; i < batch_size; i++)
+	{
+		Tensor *x = new Tensor(Device::Cuda, x_shape);
+		x->set_all_rand(0.0f, 1.0f);
+
+		Tensor *y = new Tensor(Device::Cuda, y_shape);
+		y->set_all(1.0f);
+
+		batch->add(new Record(x, y));
+	}
+
+	Model *model = new Model(CostFunction::MSE, 0.001f);
+
+	model->add_layer(new LinearLayer(x_shape, 1024, InitializationFunction::He));
+	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
+
+	model->add_layer(new LinearLayer(x_shape, 1024, InitializationFunction::He));
+	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
+
+	model->add_layer(new LinearLayer(x_shape, 256, InitializationFunction::He));
+	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
+
+	model->add_layer(new LinearLayer(model->get_output_shape(), Tensor::get_cnt(y_shape), InitializationFunction::He));
+	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
+
+	printf("SYSTEM ZERO: PERFORMANCE TEST INITIATED...\n");
+	clock_t t;
+	t = clock();
+
+	for (int e = 0; e < 10; e++)
+	{
+		for (int i = 0; i < batch_size; i++)
+		{
+			Tensor *pred = model->forward(batch->get_x(i), true);
+			model->backward(pred, batch->get_y(i));
+			delete pred;
+		}
+		model->step(batch_size);
+	}
+
+	t = clock() - t;
+	double time_taken = ((double)t) / CLOCKS_PER_SEC;
+
+	printf("SYSTEM ZERO: PERFORMANCE TEST COMPLETE\n");
+	printf("SYSTEM ZERO: ELAPSED SECONDS: %f\n\n", time_taken);
+
+	delete model;
+	delete batch;
+}
+
 void kmeans_test()
 {
 	Tensor *x = Tensor::from_csv("data\\kmeans-data.csv");
@@ -63,7 +120,7 @@ int main(int argc, char **argv)
 {
 	srand(time(NULL));
 
-	nn_test();
+	nn_performance();
 
 	return 0;
 }
