@@ -46,7 +46,7 @@ void nn_test()
 
 void nn_performance()
 {
-	int batch_size = 100;
+	int batch_size = 512;
 	std::vector<int> x_shape{28, 28};
 	std::vector<int> y_shape{1};
 	Batch *batch = new Batch(true, batch_size);
@@ -64,13 +64,13 @@ void nn_performance()
 
 	Model *model = new Model(CostFunction::MSE, 0.001f);
 
-	model->add_layer(new LinearLayer(x_shape, 1024, InitializationFunction::He));
+	model->add_layer(new LinearLayer(x_shape, 2048, InitializationFunction::He));
+	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
+
+	model->add_layer(new LinearLayer(x_shape, 2048, InitializationFunction::He));
 	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
 
 	model->add_layer(new LinearLayer(x_shape, 1024, InitializationFunction::He));
-	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
-
-	model->add_layer(new LinearLayer(x_shape, 256, InitializationFunction::He));
 	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
 
 	model->add_layer(new LinearLayer(model->get_output_shape(), Tensor::get_cnt(y_shape), InitializationFunction::He));
