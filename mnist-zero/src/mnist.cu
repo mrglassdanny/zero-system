@@ -147,7 +147,7 @@ int main(int argc, char **argv)
     model->linear(Tensor::get_cnt(train_sup->get_y_shape()));
     model->activation(ActivationFunction::ReLU);
 
-    model->fit(train_sup, 64, 15, "temp\\mnist-train.csv");
+    model->fit(train_sup, 128, 15, "temp\\mnist-train.csv");
 
     model->save("temp\\mnist.nn");
 
