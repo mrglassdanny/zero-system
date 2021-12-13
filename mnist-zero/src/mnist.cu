@@ -112,13 +112,28 @@ Supervisor *get_mnist_test_supervisor()
 
 int main(int argc, char **argv)
 {
+    srand(time(NULL));
+
     Supervisor *train_sup = get_mnist_train_supervisor();
     Supervisor *test_sup = get_mnist_test_supervisor();
 
-    Model *model = new Model(CostFunction::CrossEntropy, 0.1f);
+    Model *model = new Model(CostFunction::CrossEntropy, 0.001f);
 
-    model->linear(train_sup->get_x_shape(), 1024);
+    model->convolutional(train_sup->get_x_shape(), 128, 3, 3);
     model->activation(ActivationFunction::ReLU);
+
+    model->convolutional(128, 3, 3);
+    model->activation(ActivationFunction::ReLU);
+
+    model->pooling(PoolingFunction::Max);
+
+    model->convolutional(128, 3, 3);
+    model->activation(ActivationFunction::ReLU);
+
+    model->convolutional(128, 3, 3);
+    model->activation(ActivationFunction::ReLU);
+
+    model->pooling(PoolingFunction::Max);
 
     model->linear(1024);
     model->activation(ActivationFunction::ReLU);
@@ -126,10 +141,13 @@ int main(int argc, char **argv)
     model->linear(256);
     model->activation(ActivationFunction::ReLU);
 
+    model->linear(64);
+    model->activation(ActivationFunction::ReLU);
+
     model->linear(Tensor::get_cnt(train_sup->get_y_shape()));
     model->activation(ActivationFunction::ReLU);
 
-    model->fit(train_sup, 64, 5, "temp\\mnist-train.csv");
+    model->fit(train_sup, 64, 15, "temp\\mnist-train.csv");
 
     model->save("temp\\mnist.nn");
 

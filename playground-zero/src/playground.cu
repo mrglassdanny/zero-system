@@ -11,7 +11,6 @@ using namespace zero::cluster;
 
 void nn_gradient_test()
 {
-
 	Model *model = new Model(CostFunction::CrossEntropy, 0.001f);
 
 	Tensor *x = new Tensor(Device::Cuda, 1, 32, 32);
