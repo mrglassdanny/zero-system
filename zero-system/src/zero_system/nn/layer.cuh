@@ -16,7 +16,6 @@ namespace zero
             Convolutional,
             Activation,
             Dropout,
-            Normalization,
             Pooling
         };
 
@@ -120,23 +119,6 @@ namespace zero
             DropoutLayer(std::vector<int> n_shape, float dropout_rate);
             DropoutLayer(FILE *file_ptr);
             ~DropoutLayer();
-
-            virtual LayerType get_type();
-            virtual void evaluate(Tensor *nxt_n, bool train_flg);
-            virtual Tensor *derive(Tensor *dc);
-            virtual void save(FILE *file_ptr);
-        };
-
-        class NormalizationLayer : public Layer
-        {
-        private:
-            float *d_mean_val;
-            float *d_stddev_val;
-
-        public:
-            NormalizationLayer(std::vector<int> n_shape);
-            NormalizationLayer(FILE *file_ptr);
-            ~NormalizationLayer();
 
             virtual LayerType get_type();
             virtual void evaluate(Tensor *nxt_n, bool train_flg);

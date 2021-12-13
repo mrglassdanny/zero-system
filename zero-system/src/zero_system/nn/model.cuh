@@ -27,7 +27,23 @@ namespace zero
             void save(const char *path);
 
             void add_layer(Layer *lyr);
-            Layer *get_previous_layer(int back_cnt);
+
+            void linear(int nxt_n_cnt);
+            void linear(int nxt_n_cnt, InitializationFunction init_fn);
+            void linear(std::vector<int> n_shape, int nxt_n_cnt, InitializationFunction init_fn);
+
+            void convolutional(int fltr_cnt, int w_row_cnt, int w_col_cnt);
+            void convolutional(int fltr_cnt, int w_row_cnt, int w_col_cnt, InitializationFunction init_fn);
+            void convolutional(std::vector<int> n_shape, int fltr_cnt, int w_row_cnt, int w_col_cnt, InitializationFunction init_fn);
+
+            void activation(ActivationFunction activation_fn);
+            void activation(std::vector<int> n_shape, ActivationFunction activation_fn);
+
+            void dropout(float dropout_rate);
+            void dropout(std::vector<int> n_shape, float dropout_rate);
+
+            void pooling(PoolingFunction pool_fn);
+            void pooling(std::vector<int> n_shape, PoolingFunction pool_fn);
 
             std::vector<int> get_input_shape();
             std::vector<int> get_output_shape();

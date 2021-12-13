@@ -196,10 +196,64 @@ void Model::add_layer(Layer *lyr)
     this->layers.push_back(lyr);
 }
 
-Layer *Model::get_previous_layer(int back_cnt)
+void Model::linear(int nxt_n_cnt)
 {
-    int lst_lyr_idx = this->layers.size() - 1;
-    return this->layers[lst_lyr_idx - back_cnt];
+    this->linear(this->get_output_shape(), nxt_n_cnt, InitializationFunction::Xavier);
+}
+
+void Model::linear(int nxt_n_cnt, InitializationFunction init_fn)
+{
+    this->linear(this->get_output_shape(), nxt_n_cnt, init_fn);
+}
+
+void Model::linear(std::vector<int> n_shape, int nxt_n_cnt, InitializationFunction init_fn)
+{
+    this->add_layer(new LinearLayer(n_shape, nxt_n_cnt, init_fn));
+}
+
+void Model::convolutional(int fltr_cnt, int w_row_cnt, int w_col_cnt)
+{
+    this->convolutional(this->get_output_shape(), fltr_cnt, w_row_cnt, w_col_cnt, InitializationFunction::Xavier);
+}
+
+void Model::convolutional(int fltr_cnt, int w_row_cnt, int w_col_cnt, InitializationFunction init_fn)
+{
+    this->convolutional(this->get_output_shape(), fltr_cnt, w_row_cnt, w_col_cnt, init_fn);
+}
+
+void Model::convolutional(std::vector<int> n_shape, int fltr_cnt, int w_row_cnt, int w_col_cnt, InitializationFunction init_fn)
+{
+    this->add_layer(new ConvolutionalLayer(n_shape, fltr_cnt, w_row_cnt, w_col_cnt, init_fn));
+}
+
+void Model::activation(ActivationFunction activation_fn)
+{
+    this->activation(this->get_output_shape(), activation_fn);
+}
+
+void Model::activation(std::vector<int> n_shape, ActivationFunction activation_fn)
+{
+    this->add_layer(new ActivationLayer(n_shape, activation_fn));
+}
+
+void Model::dropout(float dropout_rate)
+{
+    this->dropout(this->get_output_shape(), dropout_rate);
+}
+
+void Model::dropout(std::vector<int> n_shape, float dropout_rate)
+{
+    this->add_layer(new DropoutLayer(n_shape, dropout_rate));
+}
+
+void Model::pooling(PoolingFunction pool_fn)
+{
+    this->pooling(this->get_output_shape(), pool_fn);
+}
+
+void Model::pooling(std::vector<int> n_shape, PoolingFunction pool_fn)
+{
+    this->add_layer(new PoolingLayer(n_shape, pool_fn));
 }
 
 std::vector<int> Model::get_input_shape()
