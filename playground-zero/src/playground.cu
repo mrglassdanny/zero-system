@@ -51,7 +51,7 @@ void nn_performance_test()
 	int batch_size = 64;
 	std::vector<int> x_shape{28, 28};
 	std::vector<int> y_shape{1};
-	Batch *batch = new Batch(true, batch_size);
+	Batch *batch = new Batch(batch_size);
 
 	for (int i = 0; i < batch_size; i++)
 	{
