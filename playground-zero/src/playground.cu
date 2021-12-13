@@ -9,7 +9,7 @@ using namespace zero::core;
 using namespace zero::nn;
 using namespace zero::cluster;
 
-void nn_test()
+void nn_gradient_test()
 {
 
 	Model *model = new Model(CostFunction::CrossEntropy, 0.001f);
@@ -20,21 +20,21 @@ void nn_test()
 	Tensor *y = new Tensor(Device::Cuda, 8);
 	y->set_val(2, 1.0f);
 
-	model->add_layer(new ConvolutionalLayer(x->get_shape(), 3, 3, 3, InitializationFunction::He));
-	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
+	model->convolutional(x->get_shape(), 3, 3, 3);
+	model->activation(ActivationFunction::Sigmoid);
 
-	model->add_layer(new PoolingLayer(model->get_output_shape(), PoolingFunction::Average));
+	model->pooling(PoolingFunction::Average);
 
-	model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 3, 3, 3, InitializationFunction::He));
-	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
+	model->convolutional(3, 3, 3);
+	model->activation(ActivationFunction::Sigmoid);
 
-	model->add_layer(new PoolingLayer(model->get_output_shape(), PoolingFunction::Average));
+	model->pooling(PoolingFunction::Average);
 
-	model->add_layer(new LinearLayer(model->get_output_shape(), 32, InitializationFunction::He));
-	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
+	model->linear(32);
+	model->activation(ActivationFunction::Sigmoid);
 
-	model->add_layer(new LinearLayer(model->get_output_shape(), Tensor::get_cnt(y->get_shape()), InitializationFunction::He));
-	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
+	model->linear(Tensor::get_cnt(y->get_shape()));
+	model->activation(ActivationFunction::Sigmoid);
 
 	model->gradient_check(x, y, true);
 
@@ -44,7 +44,7 @@ void nn_test()
 	delete model;
 }
 
-void nn_performance()
+void nn_performance_test()
 {
 	int batch_size = 64;
 	std::vector<int> x_shape{28, 28};
@@ -64,17 +64,17 @@ void nn_performance()
 
 	Model *model = new Model(CostFunction::MSE, 0.001f);
 
-	model->add_layer(new LinearLayer(x_shape, 2048, InitializationFunction::He));
-	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
+	model->linear(x_shape, 2048);
+	model->activation(ActivationFunction::Sigmoid);
 
-	model->add_layer(new LinearLayer(model->get_output_shape(), 2048, InitializationFunction::He));
-	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
+	model->linear(2048);
+	model->activation(ActivationFunction::Sigmoid);
 
-	model->add_layer(new LinearLayer(model->get_output_shape(), 1024, InitializationFunction::He));
-	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
+	model->linear(1024);
+	model->activation(ActivationFunction::Sigmoid);
 
-	model->add_layer(new LinearLayer(model->get_output_shape(), Tensor::get_cnt(y_shape), InitializationFunction::He));
-	model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Sigmoid));
+	model->linear(Tensor::get_cnt(y_shape));
+	model->activation(ActivationFunction::Sigmoid);
 
 	printf("SYSTEM ZERO: PERFORMANCE TEST INITIATED...\n");
 	clock_t t;
@@ -120,7 +120,7 @@ int main(int argc, char **argv)
 {
 	srand(time(NULL));
 
-	nn_performance();
+	nn_performance_test();
 
 	return 0;
 }
