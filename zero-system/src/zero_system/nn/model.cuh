@@ -30,10 +30,12 @@ namespace zero
 
             void linear(int nxt_n_cnt);
             void linear(int nxt_n_cnt, InitializationFunction init_fn);
+            void linear(std::vector<int> n_shape, int nxt_n_cnt);
             void linear(std::vector<int> n_shape, int nxt_n_cnt, InitializationFunction init_fn);
 
             void convolutional(int fltr_cnt, int w_row_cnt, int w_col_cnt);
             void convolutional(int fltr_cnt, int w_row_cnt, int w_col_cnt, InitializationFunction init_fn);
+            void convolutional(std::vector<int> n_shape, int fltr_cnt, int w_row_cnt, int w_col_cnt);
             void convolutional(std::vector<int> n_shape, int fltr_cnt, int w_row_cnt, int w_col_cnt, InitializationFunction init_fn);
 
             void activation(ActivationFunction activation_fn);

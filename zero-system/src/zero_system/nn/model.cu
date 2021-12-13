@@ -203,6 +203,11 @@ void Model::linear(int nxt_n_cnt, InitializationFunction init_fn)
     this->linear(this->get_output_shape(), nxt_n_cnt, init_fn);
 }
 
+void Model::linear(std::vector<int> n_shape, int nxt_n_cnt)
+{
+    this->linear(n_shape, nxt_n_cnt, InitializationFunction::Xavier);
+}
+
 void Model::linear(std::vector<int> n_shape, int nxt_n_cnt, InitializationFunction init_fn)
 {
     this->add_layer(new LinearLayer(n_shape, nxt_n_cnt, init_fn));
@@ -216,6 +221,11 @@ void Model::convolutional(int fltr_cnt, int w_row_cnt, int w_col_cnt)
 void Model::convolutional(int fltr_cnt, int w_row_cnt, int w_col_cnt, InitializationFunction init_fn)
 {
     this->convolutional(this->get_output_shape(), fltr_cnt, w_row_cnt, w_col_cnt, init_fn);
+}
+
+void Model::convolutional(std::vector<int> n_shape, int fltr_cnt, int w_row_cnt, int w_col_cnt, InitializationFunction init_fn)
+{
+    this->convolutional(n_shape, fltr_cnt, w_row_cnt, w_col_cnt, InitializationFunction::Xavier);
 }
 
 void Model::convolutional(std::vector<int> n_shape, int fltr_cnt, int w_row_cnt, int w_col_cnt, InitializationFunction init_fn)
