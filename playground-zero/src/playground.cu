@@ -14,7 +14,7 @@ void nn_gradient_test()
 
 	Model *model = new Model(CostFunction::CrossEntropy, 0.001f);
 
-	Tensor *x = new Tensor(Device::Cuda, 1, 16, 16);
+	Tensor *x = new Tensor(Device::Cuda, 1, 32, 32);
 	x->set_all_rand(0.0f, 1.0f);
 
 	Tensor *y = new Tensor(Device::Cuda, 8);
@@ -23,14 +23,17 @@ void nn_gradient_test()
 	model->convolutional(x->get_shape(), 3, 3, 3);
 	model->activation(ActivationFunction::Sigmoid);
 
-	model->pooling(PoolingFunction::Average);
+	model->pooling(PoolingFunction::Max);
 
 	model->convolutional(3, 3, 3);
 	model->activation(ActivationFunction::Sigmoid);
 
 	model->pooling(PoolingFunction::Average);
 
-	model->linear(32);
+	model->linear(128);
+	model->activation(ActivationFunction::Sigmoid);
+
+	model->linear(82);
 	model->activation(ActivationFunction::Sigmoid);
 
 	model->linear(Tensor::get_cnt(y->get_shape()));
@@ -120,7 +123,7 @@ int main(int argc, char **argv)
 {
 	srand(time(NULL));
 
-	nn_performance_test();
+	nn_gradient_test();
 
 	return 0;
 }

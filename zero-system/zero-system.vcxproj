@@ -13,7 +13,7 @@
   <ItemGroup>
     <CudaCompile Include="src\zero_system\cluster\kmeans.cu" />
     <CudaCompile Include="src\zero_system\core\tensor.cu" />
-    <CudaCompile Include="src\zero_system\core\util.cu" />
+    <CudaCompile Include="src\zero_system\core\core_util.cu" />
     <CudaCompile Include="src\zero_system\nn\batch.cu" />
     <CudaCompile Include="src\zero_system\nn\layer.cu" />
     <CudaCompile Include="src\zero_system\nn\model.cu" />
@@ -21,10 +21,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\zero_system\cluster\kmeans.cuh" />
+    <ClInclude Include="src\zero_system\core\core_constants.cuh" />
     <ClInclude Include="src\zero_system\core\tensor.cuh" />
-    <ClInclude Include="src\zero_system\core\util.cuh" />
+    <ClInclude Include="src\zero_system\core\core_util.cuh" />
     <ClInclude Include="src\zero_system\nn\batch.cuh" />
-    <ClInclude Include="src\zero_system\nn\constants.cuh" />
+    <ClInclude Include="src\zero_system\nn\nn_constants.cuh" />
     <ClInclude Include="src\zero_system\nn\layer.cuh" />
     <ClInclude Include="src\zero_system\nn\model.cuh" />
     <ClInclude Include="src\zero_system\nn\nn_util.cuh" />

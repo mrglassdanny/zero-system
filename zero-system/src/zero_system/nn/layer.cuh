@@ -2,7 +2,7 @@
 
 #include "../core/tensor.cuh"
 #include "nn_util.cuh"
-#include "constants.cuh"
+#include "nn_constants.cuh"
 
 namespace zero
 {

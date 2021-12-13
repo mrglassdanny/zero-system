@@ -1,4 +1,4 @@
-#include "util.cuh"
+#include "core_util.cuh"
 
 using namespace zero::core;
 
