@@ -32,7 +32,7 @@ int main(int argc, char **argv)
     model->add_layer(new LinearLayer(model->get_output_shape(), 1, InitializationFunction::Xavier));
     model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
 
-    model->train_and_test(sup, 100, 5, "C:\\Users\\danie\\OneDrive\\Desktop\\lm-zero-train.csv");
+    model->fit(sup, 100, 5, "C:\\Users\\danie\\OneDrive\\Desktop\\lm-zero-train.csv");
 
     model->save("C:\\Users\\danie\\OneDrive\\Desktop\\lm-zero.nn");
 

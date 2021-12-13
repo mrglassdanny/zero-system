@@ -60,8 +60,7 @@ namespace zero
             Report train(Batch *batch);
             Report test(Batch *batch);
 
-            void train_and_test(Supervisor *supervisor, int train_batch_size, int target_epoch, const char *csv_path);
-            void all(Supervisor *supervisor, int train_batch_size, int target_epoch, const char *csv_path);
+            void fit(Supervisor *supervisor, int train_batch_size, int target_epoch, const char *csv_path);
 
             Tensor *predict(Tensor *x);
         };

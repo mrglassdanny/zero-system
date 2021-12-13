@@ -753,7 +753,7 @@ void Layer::set_neurons(Tensor *n)
     this->n->set_arr(n->get_arr(Device::Cuda));
 }
 
-void Layer::evaluate(Tensor *nxt_n, bool train_flg)
+void Layer::forward(Tensor *nxt_n, bool train_flg)
 {
     nxt_n->reset();
 }
@@ -939,9 +939,9 @@ std::vector<int> LinearLayer::get_output_shape()
     return this->b->get_shape();
 }
 
-void LinearLayer::evaluate(Tensor *nxt_n, bool train_flg)
+void LinearLayer::forward(Tensor *nxt_n, bool train_flg)
 {
-    Layer::evaluate(nxt_n, train_flg);
+    Layer::forward(nxt_n, train_flg);
 
     int n_cnt = this->n->get_cnt();
     int nxt_n_cnt = nxt_n->get_cnt();
@@ -961,7 +961,7 @@ void LinearLayer::evaluate(Tensor *nxt_n, bool train_flg)
     }
 }
 
-Tensor *LinearLayer::derive(Tensor *dc)
+Tensor *LinearLayer::backward(Tensor *dc)
 {
     int dc_cnt = dc->get_cnt();
     int n_cnt = this->n->get_cnt();
@@ -1064,9 +1064,9 @@ int ConvolutionalLayer::get_adjusted_input_cnt()
     return (this->n->get_shape()[1] * this->n->get_shape()[2]);
 }
 
-void ConvolutionalLayer::evaluate(Tensor *nxt_n, bool train_flg)
+void ConvolutionalLayer::forward(Tensor *nxt_n, bool train_flg)
 {
-    Layer::evaluate(nxt_n, train_flg);
+    Layer::forward(nxt_n, train_flg);
 
     int fltr_cnt = this->w->get_shape()[0];
     int chan_cnt = this->w->get_shape()[1];
@@ -1095,7 +1095,7 @@ void ConvolutionalLayer::evaluate(Tensor *nxt_n, bool train_flg)
     }
 }
 
-Tensor *ConvolutionalLayer::derive(Tensor *dc)
+Tensor *ConvolutionalLayer::backward(Tensor *dc)
 {
     int fltr_cnt = this->w->get_shape()[0];
     int chan_cnt = this->w->get_shape()[1];
@@ -1209,9 +1209,9 @@ LayerType ActivationLayer::get_type()
     return LayerType::Activation;
 }
 
-void ActivationLayer::evaluate(Tensor *nxt_n, bool train_flg)
+void ActivationLayer::forward(Tensor *nxt_n, bool train_flg)
 {
-    Layer::evaluate(nxt_n, train_flg);
+    Layer::forward(nxt_n, train_flg);
 
     {
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
@@ -1220,7 +1220,7 @@ void ActivationLayer::evaluate(Tensor *nxt_n, bool train_flg)
     }
 }
 
-Tensor *ActivationLayer::derive(Tensor *dc)
+Tensor *ActivationLayer::backward(Tensor *dc)
 {
     {
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
@@ -1264,9 +1264,9 @@ LayerType DropoutLayer::get_type()
     return LayerType::Dropout;
 }
 
-void DropoutLayer::evaluate(Tensor *nxt_n, bool train_flg)
+void DropoutLayer::forward(Tensor *nxt_n, bool train_flg)
 {
-    Layer::evaluate(nxt_n, train_flg);
+    Layer::forward(nxt_n, train_flg);
 
     if (train_flg)
     {
@@ -1295,7 +1295,7 @@ void DropoutLayer::evaluate(Tensor *nxt_n, bool train_flg)
     }
 }
 
-Tensor *DropoutLayer::derive(Tensor *dc)
+Tensor *DropoutLayer::backward(Tensor *dc)
 {
     {
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
@@ -1351,9 +1351,9 @@ std::vector<int> PoolingLayer::get_output_shape()
     return output_shape;
 }
 
-void PoolingLayer::evaluate(Tensor *nxt_n, bool train_flg)
+void PoolingLayer::forward(Tensor *nxt_n, bool train_flg)
 {
-    Layer::evaluate(nxt_n, train_flg);
+    Layer::forward(nxt_n, train_flg);
 
     int n_cnt = this->n->get_cnt();
     int nxt_n_cnt = nxt_n->get_cnt();
@@ -1370,7 +1370,7 @@ void PoolingLayer::evaluate(Tensor *nxt_n, bool train_flg)
     }
 }
 
-Tensor *PoolingLayer::derive(Tensor *dc)
+Tensor *PoolingLayer::backward(Tensor *dc)
 {
     int n_cnt = this->n->get_cnt();
     int dc_cnt = dc->get_cnt();

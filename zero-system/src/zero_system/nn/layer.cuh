@@ -35,8 +35,8 @@ namespace zero
             virtual int get_adjusted_input_cnt();
             virtual Tensor *get_neurons();
             virtual void set_neurons(Tensor *n);
-            virtual void evaluate(Tensor *nxt_n, bool train_flg);
-            virtual Tensor *derive(Tensor *dc) = 0;
+            virtual void forward(Tensor *nxt_n, bool train_flg);
+            virtual Tensor *backward(Tensor *dc) = 0;
             virtual void save(FILE *file_ptr);
         };
 
@@ -70,8 +70,8 @@ namespace zero
 
             virtual LayerType get_type();
             virtual std::vector<int> get_output_shape();
-            virtual void evaluate(Tensor *nxt_n, bool train_flg);
-            virtual Tensor *derive(Tensor *dc);
+            virtual void forward(Tensor *nxt_n, bool train_flg);
+            virtual Tensor *backward(Tensor *dc);
             virtual void save(FILE *file_ptr);
             virtual void step(int batch_size, float learning_rate);
         };
@@ -87,8 +87,8 @@ namespace zero
             virtual LayerType get_type();
             virtual std::vector<int> get_output_shape();
             virtual int get_adjusted_input_cnt();
-            virtual void evaluate(Tensor *nxt_n, bool train_flg);
-            virtual Tensor *derive(Tensor *dc);
+            virtual void forward(Tensor *nxt_n, bool train_flg);
+            virtual Tensor *backward(Tensor *dc);
             virtual void save(FILE *file_ptr);
             virtual void step(int batch_size, float learning_rate);
         };
@@ -104,8 +104,8 @@ namespace zero
             ~ActivationLayer();
 
             virtual LayerType get_type();
-            virtual void evaluate(Tensor *nxt_n, bool train_flg);
-            virtual Tensor *derive(Tensor *dc);
+            virtual void forward(Tensor *nxt_n, bool train_flg);
+            virtual Tensor *backward(Tensor *dc);
             virtual void save(FILE *file_ptr);
         };
 
@@ -121,8 +121,8 @@ namespace zero
             ~DropoutLayer();
 
             virtual LayerType get_type();
-            virtual void evaluate(Tensor *nxt_n, bool train_flg);
-            virtual Tensor *derive(Tensor *dc);
+            virtual void forward(Tensor *nxt_n, bool train_flg);
+            virtual Tensor *backward(Tensor *dc);
             virtual void save(FILE *file_ptr);
         };
 
@@ -140,8 +140,8 @@ namespace zero
 
             virtual LayerType get_type();
             std::vector<int> get_output_shape();
-            virtual void evaluate(Tensor *nxt_n, bool train_flg);
-            virtual Tensor *derive(Tensor *dc);
+            virtual void forward(Tensor *nxt_n, bool train_flg);
+            virtual Tensor *backward(Tensor *dc);
             virtual void save(FILE *file_ptr);
         };
     }

@@ -141,9 +141,6 @@ Model::Model(const char *path)
         case LayerType::Dropout:
             lyr = new DropoutLayer(file_ptr);
             break;
-        case LayerType::Normalization:
-            lyr = new NormalizationLayer(file_ptr);
-            break;
         case LayerType::Pooling:
             lyr = new PoolingLayer(file_ptr);
             break;
@@ -288,11 +285,11 @@ Tensor *Model::forward(Tensor *x, bool train_flg)
         Layer *lyr = this->layers[i];
         Layer *nxt_lyr = this->layers[i + 1];
 
-        lyr->evaluate(nxt_lyr->get_neurons(), train_flg);
+        lyr->forward(nxt_lyr->get_neurons(), train_flg);
     }
 
     Tensor *pred = new Tensor(Device::Cuda, lst_lyr->get_output_shape());
-    lst_lyr->evaluate(pred, train_flg);
+    lst_lyr->forward(pred, train_flg);
 
     return pred;
 }
@@ -338,7 +335,7 @@ void Model::backward(Tensor *pred, Tensor *y)
     for (int i = lst_lyr_idx; i >= 0; i--)
     {
         Layer *lyr = this->layers[i];
-        dc = lyr->derive(dc);
+        dc = lyr->backward(dc);
     }
 
     delete dc;
@@ -556,7 +553,7 @@ Report Model::test(Batch *batch)
 }
 
 // Trains and tests. Press 'q' to force quit.
-void Model::train_and_test(Supervisor *supervisor, int train_batch_size, int target_epoch, const char *csv_path)
+void Model::fit(Supervisor *supervisor, int batch_size, int target_epoch, const char *csv_path)
 {
     FILE *csv_file_ptr;
 
@@ -566,16 +563,12 @@ void Model::train_and_test(Supervisor *supervisor, int train_batch_size, int tar
         CSVUtils::write_csv_header(csv_file_ptr);
     }
 
-    Batch *test_batch = supervisor->create_test_batch();
-
-    int train_total_size = supervisor->get_cnt() * supervisor->get_train_pct();
-
     unsigned long int epoch = 0;
     unsigned long int iteration = 0;
 
     while (true)
     {
-        Batch *train_batch = supervisor->create_train_batch(train_batch_size);
+        Batch *train_batch = supervisor->create_batch(batch_size);
         Report train_rpt = this->train(train_batch);
 
         if (csv_path != nullptr)
@@ -612,97 +605,8 @@ void Model::train_and_test(Supervisor *supervisor, int train_batch_size, int tar
         }
 
         iteration++;
-        epoch = ((iteration * train_batch_size) / train_total_size);
+        epoch = ((iteration * batch_size) / supervisor->get_cnt());
     }
-
-    Report test_rpt = this->test(test_batch);
-    printf("TEST\t\t");
-    test_rpt.print();
-
-    delete test_batch;
-
-    if (csv_path != nullptr)
-    {
-        fclose(csv_file_ptr);
-    }
-}
-
-// Trains, validates, and tests. Press 'q' to force quit.
-void Model::all(Supervisor *supervisor, int train_batch_size, int target_epoch, const char *csv_path)
-{
-    FILE *csv_file_ptr;
-
-    if (csv_path != nullptr)
-    {
-        csv_file_ptr = fopen(csv_path, "w");
-        CSVUtils::write_csv_header(csv_file_ptr);
-    }
-
-    Batch *validation_batch = supervisor->create_validation_batch();
-    float prv_validation_cost = FLT_MAX;
-
-    Batch *test_batch = supervisor->create_test_batch();
-
-    int train_total_size = supervisor->get_cnt() * supervisor->get_train_pct();
-
-    unsigned long int epoch = 0;
-    unsigned long int iteration = 0;
-
-    while (true)
-    {
-        Batch *train_batch = supervisor->create_train_batch(train_batch_size);
-        Report train_rpt = this->train(train_batch);
-
-        if (csv_path != nullptr)
-        {
-            CSVUtils::write_to_csv(csv_file_ptr, epoch, iteration, train_rpt);
-        }
-
-        delete train_batch;
-
-        // Validate every epoch.
-        if (epoch != ((iteration * train_batch_size) / train_total_size))
-        {
-            Report validation_rpt = this->test(validation_batch);
-            printf("VALIDATION\t");
-            validation_rpt.print();
-
-            if (prv_validation_cost <= validation_rpt.cost)
-            {
-                break;
-            }
-
-            prv_validation_cost = validation_rpt.cost;
-        }
-
-        // Quit if we hit target epoch count.
-        if (epoch >= target_epoch)
-        {
-            break;
-        }
-
-        // Allow for manual override.
-        {
-            if (_kbhit())
-            {
-                if (_getch() == 'q')
-                {
-                    printf("Quitting...\n");
-                    break;
-                }
-            }
-        }
-
-        iteration++;
-        epoch = ((iteration * train_batch_size) / train_total_size);
-    }
-
-    Report test_rpt = this->test(test_batch);
-    printf("TEST\t\t");
-    test_rpt.print();
-
-    delete validation_batch;
-    delete test_batch;
 
     if (csv_path != nullptr)
     {
