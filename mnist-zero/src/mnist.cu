@@ -8,7 +8,7 @@ using namespace zero::nn;
 #define IMAGE_ROW_CNT 28
 #define IMAGE_COL_CNT 28
 
-InMemorySupervisor *get_mnist_train_supervisor()
+Supervisor *get_mnist_train_supervisor()
 {
     int img_area = IMAGE_ROW_CNT * IMAGE_COL_CNT;
 
@@ -43,15 +43,23 @@ InMemorySupervisor *get_mnist_train_supervisor()
     free(img_buf);
     free(lbl_buf);
 
-    InMemorySupervisor *sup = new InMemorySupervisor(1.0f, 0.0f, img_cnt, 784, 10, img_flt_buf, lbl_flt_buf, Device::Cpu);
+    FILE *img_dump_file = fopen("temp\\train-images", "wb");
+    FILE *lbl_dump_file = fopen("temp\\train-labels", "wb");
+
+    fwrite(img_flt_buf, sizeof(float), img_area * img_cnt, img_dump_file);
+    fwrite(lbl_flt_buf, sizeof(float), img_cnt, lbl_dump_file);
+
+    fclose(img_dump_file);
+    fclose(lbl_dump_file);
 
     free(lbl_flt_buf);
     free(img_flt_buf);
 
-    return sup;
+    std::vector<int> x_shape{1, IMAGE_ROW_CNT, IMAGE_COL_CNT};
+    return new Supervisor("temp\\train-images", "temp\\train-labels", x_shape, 10);
 }
 
-InMemorySupervisor *get_mnist_test_supervisor()
+Supervisor *get_mnist_test_supervisor()
 {
     int img_area = IMAGE_ROW_CNT * IMAGE_COL_CNT;
 
@@ -86,153 +94,47 @@ InMemorySupervisor *get_mnist_test_supervisor()
     free(img_buf);
     free(lbl_buf);
 
-    InMemorySupervisor *sup = new InMemorySupervisor(0.0f, 1.0f, img_cnt, 784, 10, img_flt_buf, lbl_flt_buf, Device::Cpu);
+    FILE *img_dump_file = fopen("temp\\test-images", "wb");
+    FILE *lbl_dump_file = fopen("temp\\test-labels", "wb");
+
+    fwrite(img_flt_buf, sizeof(float), img_area * img_cnt, img_dump_file);
+    fwrite(lbl_flt_buf, sizeof(float), img_cnt, lbl_dump_file);
+
+    fclose(img_dump_file);
+    fclose(lbl_dump_file);
 
     free(lbl_flt_buf);
     free(img_flt_buf);
 
-    return sup;
-}
-
-void train_mnist(Model *model, InMemorySupervisor *train_sup, int train_batch_size, int target_epoch, const char *csv_path)
-{
-    FILE *csv_file_ptr;
-
-    if (csv_path != nullptr)
-    {
-        csv_file_ptr = fopen(csv_path, "w");
-        CSVUtils::write_csv_header(csv_file_ptr);
-    }
-
-    int train_total_size = train_sup->get_cnt();
-    unsigned long int epoch = 0;
-    unsigned long int iteration = 0;
-
-    while (true)
-    {
-        Batch *train_batch = train_sup->create_train_batch(train_batch_size);
-        Report train_rpt = model->train(train_batch);
-
-        if (csv_path != nullptr)
-        {
-            CSVUtils::write_to_csv(csv_file_ptr, epoch, iteration, train_rpt);
-        }
-        else
-        {
-            if (iteration % 100 == 0)
-            {
-                printf("TRAIN\t\t");
-                train_rpt.print();
-            }
-        }
-
-        delete train_batch;
-
-        // Quit if we hit target epoch count.
-        if (epoch == target_epoch)
-        {
-            break;
-        }
-
-        // Allow for manual override.
-        {
-            if (_kbhit())
-            {
-                if (_getch() == 'q')
-                {
-                    break;
-                }
-            }
-        }
-
-        iteration++;
-        epoch = ((iteration * train_batch_size) / train_total_size);
-    }
-
-    if (csv_path != nullptr)
-    {
-        fclose(csv_file_ptr);
-    }
-}
-
-void test_mnist(Model *model, InMemorySupervisor *test_sup, InMemorySupervisor *train_sup)
-{
-    Batch *test_batch = test_sup->create_batch();
-    //Batch *train_batch = train_sup->create_batch();
-
-    Report test_rpt = model->test(test_batch);
-    //Report train_rpt = model->test(train_batch);
-
-    printf("TEST\t\t");
-    test_rpt.print();
-
-    //printf("TRAIN\t\t");
-    //train_rpt.print();
-
-    delete test_batch;
-    //delete train_batch;
+    std::vector<int> x_shape{1, IMAGE_ROW_CNT, IMAGE_COL_CNT};
+    return new Supervisor("temp\\test-images", "temp\\test-labels", x_shape, 10);
 }
 
 int main(int argc, char **argv)
 {
-    InMemorySupervisor *train_sup = get_mnist_train_supervisor();
-    InMemorySupervisor *test_sup = get_mnist_test_supervisor();
+    Supervisor *train_sup = get_mnist_train_supervisor();
+    Supervisor *test_sup = get_mnist_test_supervisor();
 
-    // TRAIN NEW =======================================================================================
+    Model *model = new Model(CostFunction::CrossEntropy, 0.1f);
 
-    // Model *model = new Model(CostFunction::CrossEntropy, 0.1f);
+    model->linear(train_sup->get_x_shape(), 1024);
+    model->activation(ActivationFunction::ReLU);
 
-    // std::vector<int> n_shape{1, IMAGE_ROW_CNT, IMAGE_COL_CNT};
+    model->linear(1024);
+    model->activation(ActivationFunction::ReLU);
 
-    // model->add_layer(new ConvolutionalLayer(n_shape, 64, 3, 3, InitializationFunction::Xavier));
-    // model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
+    model->linear(256);
+    model->activation(ActivationFunction::ReLU);
 
-    // model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 64, 3, 3, InitializationFunction::Xavier));
-    // model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
+    model->linear(Tensor::get_cnt(train_sup->get_y_shape()));
+    model->activation(ActivationFunction::ReLU);
 
-    // model->add_layer(new PoolingLayer(model->get_output_shape(), PoolingFunction::Max));
+    model->fit(train_sup, 64, 5, "temp\\mnist-train.csv");
 
-    // model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 64, 3, 3, InitializationFunction::Xavier));
-    // model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
-
-    // model->add_layer(new ConvolutionalLayer(model->get_output_shape(), 64, 3, 3, InitializationFunction::Xavier));
-    // model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
-
-    // model->add_layer(new PoolingLayer(model->get_output_shape(), PoolingFunction::Max));
-
-    // model->add_layer(new LinearLayer(model->get_output_shape(), 512, InitializationFunction::Xavier));
-    // model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
-
-    // model->add_layer(new LinearLayer(model->get_output_shape(), 128, InitializationFunction::Xavier));
-    // model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
-
-    // model->add_layer(new LinearLayer(model->get_output_shape(), 32, InitializationFunction::Xavier));
-    // model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
-
-    // model->add_layer(new LinearLayer(model->get_output_shape(), Tensor::get_cnt(train_sup->get_y_shape()), InitializationFunction::Xavier));
-    // model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::ReLU));
-
-    // train_mnist(model, train_sup, 60, 30, "temp\\mnist.csv");
-
-    // model->save("temp\\mnist.nn");
-
-    // TRAIN EXISTING =======================================================================================
-
-    // Model *model = new Model("temp\\mnist.nn");
-
-    // train_mnist(model, train_sup, 60, 5, "temp\\mnist.csv");
-
-    // model->save("temp\\mnist.nn");
-
-    // TEST EXISTING =======================================================================================
-
-    Model *model = new Model("temp\\mnist.nn");
-
-    test_mnist(model, test_sup, train_sup);
-
-    // =====================================================================================================
+    model->save("temp\\mnist.nn");
 
     delete model;
+
     delete train_sup;
     delete test_sup;
 
