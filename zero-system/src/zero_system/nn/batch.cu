@@ -17,24 +17,14 @@ Record::~Record()
 
 Batch::Batch(int batch_size)
 {
-    this->owns_records_flg = false;
-    this->records.reserve(batch_size);
-}
-
-Batch::Batch(bool owns_records_flg, int batch_size)
-{
-    this->owns_records_flg = owns_records_flg;
     this->records.reserve(batch_size);
 }
 
 Batch::~Batch()
 {
-    if (this->owns_records_flg)
+    for (int i = 0; i < this->records.size(); i++)
     {
-        for (int i = 0; i < this->records.size(); i++)
-        {
-            delete this->records[i];
-        }
+        delete this->records[i];
     }
 }
 
@@ -103,7 +93,7 @@ std::vector<int> Supervisor::get_y_shape()
 
 Batch *Supervisor::create_batch(int cnt, int lower, int upper, bool rand_flg)
 {
-    Batch *batch = new Batch(true, cnt);
+    Batch *batch = new Batch(cnt);
 
     int x_shape_cnt = Tensor::get_cnt(this->x_shape);
 

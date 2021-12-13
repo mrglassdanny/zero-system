@@ -17,7 +17,7 @@ namespace zero
         {
 
         public:
-            Tensor *x; // Record owns tensors!
+            Tensor *x;
             Tensor *y;
 
             Record(Tensor *x, Tensor *y);
@@ -27,12 +27,10 @@ namespace zero
         class Batch
         {
         private:
-            bool owns_records_flg;
             std::vector<Record *> records;
 
         public:
             Batch(int batch_size);
-            Batch(bool owns_records_flg, int batch_size);
             ~Batch();
 
             void add(Record *record);

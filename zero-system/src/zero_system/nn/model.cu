@@ -562,7 +562,6 @@ Report Model::test(Batch *batch)
     return rpt;
 }
 
-// Trains and tests. Press 'q' to force quit.
 void Model::fit(Supervisor *supervisor, int batch_size, int target_epoch, const char *csv_path)
 {
     FILE *csv_file_ptr;
