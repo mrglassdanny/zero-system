@@ -47,20 +47,20 @@ Model *init_model()
     std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
     int y_shape = 1;
 
-    model->add_layer(new ConvolutionalLayer(x_shape, 1, 1, 1, InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
+    model->convolutional(x_shape, 1, 1, 1);
+    model->activation(ActivationFunction::Tanh);
 
-    model->add_layer(new LinearLayer(model->get_output_shape(), 1024, InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
+    model->linear(1024);
+    model->activation(ActivationFunction::Tanh);
 
-    model->add_layer(new LinearLayer(model->get_output_shape(), 1024, InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
+    model->linear(1024);
+    model->activation(ActivationFunction::Tanh);
 
-    model->add_layer(new LinearLayer(model->get_output_shape(), 128, InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
+    model->linear(128);
+    model->activation(ActivationFunction::Tanh);
 
-    model->add_layer(new LinearLayer(model->get_output_shape(), y_shape, InitializationFunction::Xavier));
-    model->add_layer(new ActivationLayer(model->get_output_shape(), ActivationFunction::Tanh));
+    model->linear(y_shape);
+    model->activation(ActivationFunction::Tanh);
 
     return model;
 }
