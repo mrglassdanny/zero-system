@@ -13,30 +13,30 @@ void nn_gradient_test()
 {
 	Model *model = new Model(CostFunction::CrossEntropy, 0.001f);
 
-	Tensor *x = new Tensor(Device::Cuda, 1, 32, 32);
+	Tensor *x = new Tensor(Device::Cuda, 3, 16, 16);
 	x->set_all_rand(0.0f, 1.0f);
 
 	Tensor *y = new Tensor(Device::Cuda, 8);
 	y->set_val(2, 1.0f);
 
-	model->convolutional(x->get_shape(), 3, 3, 3);
+	model->convolutional(x->get_shape(), 8, 5, 5);
 	model->activation(ActivationFunction::Sigmoid);
 
 	model->pooling(PoolingFunction::Max);
 
-	model->convolutional(3, 3, 3);
+	model->convolutional(4, 3, 3);
 	model->activation(ActivationFunction::Sigmoid);
 
 	model->pooling(PoolingFunction::Average);
 
-	model->linear(128);
-	model->activation(ActivationFunction::Sigmoid);
+	model->linear(64);
+	model->activation(ActivationFunction::Tanh);
 
-	model->linear(82);
-	model->activation(ActivationFunction::Sigmoid);
+	model->linear(40);
+	model->activation(ActivationFunction::Tanh);
 
 	model->linear(Tensor::get_cnt(y->get_shape()));
-	model->activation(ActivationFunction::Sigmoid);
+	model->activation(ActivationFunction::Tanh);
 
 	model->gradient_check(x, y, true);
 
