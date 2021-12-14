@@ -119,20 +119,21 @@ int main(int argc, char **argv)
 
     Model *model = new Model(CostFunction::CrossEntropy, 0.01f);
 
-    model->convolutional(train_sup->get_x_shape(), 32, 3, 3);
+    model->convolutional(train_sup->get_x_shape(), 64, 3, 3);
+    model->activation(ActivationFunction::ReLU);
+
+    model->convolutional(64, 3, 3);
     model->activation(ActivationFunction::ReLU);
 
     model->pooling(PoolingFunction::Max);
 
-    model->convolutional(32, 3, 3);
+    model->linear(1024);
     model->activation(ActivationFunction::ReLU);
 
-    model->pooling(PoolingFunction::Max);
-
-    model->linear(512);
+    model->linear(1024);
     model->activation(ActivationFunction::ReLU);
 
-    model->linear(64);
+    model->linear(256);
     model->activation(ActivationFunction::ReLU);
 
     model->linear(Tensor::get_cnt(train_sup->get_y_shape()));
