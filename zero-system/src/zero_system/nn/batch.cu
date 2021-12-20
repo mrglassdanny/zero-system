@@ -72,9 +72,6 @@ void Batch::add_all(Tensor *xs, Tensor *ys)
         x->set_arr(x_arr);
         y->set_arr(y_arr);
 
-        x->print();
-        y->print();
-
         this->add(x, y);
     }
 }
