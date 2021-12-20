@@ -562,6 +562,34 @@ Report Model::test(Batch *batch)
     return rpt;
 }
 
+void Model::fit(Batch *batch)
+{
+    unsigned long int epoch = 0;
+    int batch_size = batch->get_size();
+
+    while (true)
+    {
+        Report train_rpt = this->train(batch);
+
+        printf("EPOCH: %d\t", epoch);
+        train_rpt.print();
+
+        // Allow for manual override.
+        {
+            if (_kbhit())
+            {
+                if (_getch() == 'q')
+                {
+                    printf("Quitting...\n");
+                    break;
+                }
+            }
+        }
+
+        epoch++;
+    }
+}
+
 void Model::fit(Supervisor *supervisor, int batch_size, int target_epoch, const char *csv_path)
 {
     FILE *csv_file_ptr;

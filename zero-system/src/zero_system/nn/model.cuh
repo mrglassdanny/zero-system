@@ -1,8 +1,8 @@
 #pragma once
 
 #include "layer.cuh"
-#include "nn_util.cuh"
 #include "batch.cuh"
+#include "nn_util.cuh"
 
 namespace zero
 {
@@ -16,8 +16,9 @@ namespace zero
             std::vector<Layer *> layers;
             CostFunction cost_fn;
             float learning_rate;
-
             float *d_cost_val;
+
+            void add_layer(Layer *lyr);
 
         public:
             Model(CostFunction cost_fn, float learning_rate);
@@ -25,8 +26,6 @@ namespace zero
             ~Model();
 
             void save(const char *path);
-
-            void add_layer(Layer *lyr);
 
             void linear(int nxt_n_cnt);
             void linear(int nxt_n_cnt, InitializationFunction init_fn);
@@ -62,6 +61,7 @@ namespace zero
             Report train(Batch *batch);
             Report test(Batch *batch);
 
+            void fit(Batch *batch);
             void fit(Supervisor *supervisor, int batch_size, int target_epoch, const char *csv_path);
 
             Tensor *predict(Tensor *x);

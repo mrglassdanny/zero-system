@@ -738,11 +738,6 @@ std::vector<int> Layer::get_output_shape()
     return this->n->get_shape();
 }
 
-int Layer::get_adjusted_input_cnt()
-{
-    return this->n->get_cnt();
-}
-
 Tensor *Layer::get_neurons()
 {
     return this->n;
@@ -1057,11 +1052,6 @@ LayerType ConvolutionalLayer::get_type()
 std::vector<int> ConvolutionalLayer::get_output_shape()
 {
     return this->b->get_shape();
-}
-
-int ConvolutionalLayer::get_adjusted_input_cnt()
-{
-    return (this->n->get_shape()[1] * this->n->get_shape()[2]);
 }
 
 void ConvolutionalLayer::forward(Tensor *nxt_n, bool train_flg)

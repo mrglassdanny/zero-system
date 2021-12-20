@@ -32,7 +32,6 @@ namespace zero
             virtual LayerType get_type() = 0;
             virtual std::vector<int> get_input_shape();
             virtual std::vector<int> get_output_shape();
-            virtual int get_adjusted_input_cnt();
             virtual Tensor *get_neurons();
             virtual void set_neurons(Tensor *n);
             virtual void forward(Tensor *nxt_n, bool train_flg);
@@ -86,7 +85,6 @@ namespace zero
 
             virtual LayerType get_type();
             virtual std::vector<int> get_output_shape();
-            virtual int get_adjusted_input_cnt();
             virtual void forward(Tensor *nxt_n, bool train_flg);
             virtual Tensor *backward(Tensor *dc);
             virtual void save(FILE *file_ptr);
