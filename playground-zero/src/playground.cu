@@ -117,14 +117,14 @@ void nn_approx_test()
 		delete ys;
 	}
 
-	Model *model = new Model(MSE, 0.000001f);
+	Model *model = new Model(MSE, 0.0001f);
 
 	model->linear(1, 2048);
-	//model->activation(Cosine);
+	model->activation(Tanh);
 	model->linear(2048);
-	//model->activation(Cosine);
+	model->activation(Tanh);
 	model->linear(2048);
-	//model->activation(Cosine);
+	model->activation(Tanh);
 	model->linear(1);
 
 	model->fit(batch);
