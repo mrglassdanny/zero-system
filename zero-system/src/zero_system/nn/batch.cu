@@ -61,7 +61,7 @@ void Batch::add_all(Tensor *xs, Tensor *ys)
         y_shape.push_back(ys->get_shape()[ys_shape_idx]);
     }
 
-    for (int record_idx = 0; record_idx > record_cnt; record_idx++)
+    for (int record_idx = 0; record_idx < record_cnt; record_idx++)
     {
         float *x_arr = &xs->get_arr()[record_idx * x_record_size];
         float *y_arr = &ys->get_arr()[record_idx * y_record_size];
@@ -71,6 +71,9 @@ void Batch::add_all(Tensor *xs, Tensor *ys)
 
         x->set_arr(x_arr);
         y->set_arr(y_arr);
+
+        x->print();
+        y->print();
 
         this->add(x, y);
     }
