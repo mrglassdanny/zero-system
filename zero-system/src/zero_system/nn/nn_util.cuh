@@ -11,6 +11,8 @@ namespace zero
         enum ActivationFunction
         {
             ReLU,
+            LeakyReLU,
+            AbsoluteValue,
             Sigmoid,
             Tanh,
             Sine,

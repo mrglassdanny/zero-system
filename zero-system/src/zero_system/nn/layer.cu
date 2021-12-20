@@ -15,6 +15,26 @@ __device__ float d_derive_relu(float relu_val)
     return relu_val > 0.0f ? 1.0f : 0.0f;
 }
 
+__device__ float d_leaky_relu(float val)
+{
+    return val > 0.0f ? val : (val * 0.2f);
+}
+
+__device__ float d_derive_leaky_relu(float leaky_relu_val)
+{
+    return leaky_relu_val > 0.0f ? 1.0f : 0.2f;
+}
+
+__device__ float d_absolute_value(float val)
+{
+    return val > 0.0f ? val : -val;
+}
+
+__device__ float d_derive_absolute_value(float val)
+{
+    return val > 0.0f ? 1.0f : -1.0f;
+}
+
 __device__ float d_sigmoid(float val)
 {
     return (1.0f / (1.0f + exp(-val)));
@@ -430,6 +450,12 @@ __global__ void k_activate(float *n_arr, float *nxt_n_arr, int n_cnt, Activation
         case ActivationFunction::ReLU:
             nxt_n_arr[tid] = d_relu(n_arr[tid]);
             break;
+        case ActivationFunction::LeakyReLU:
+            nxt_n_arr[tid] = d_leaky_relu(n_arr[tid]);
+            break;
+        case ActivationFunction::AbsoluteValue:
+            nxt_n_arr[tid] = d_absolute_value(n_arr[tid]);
+            break;
         case ActivationFunction::Sigmoid:
             nxt_n_arr[tid] = d_sigmoid(n_arr[tid]);
             break;
@@ -458,6 +484,12 @@ __global__ void k_derive_activation(float *n_arr, float *dc_arr, int n_cnt, Acti
         {
         case ActivationFunction::ReLU:
             dc_arr[tid] *= d_derive_relu(d_relu(n_arr[tid]));
+            break;
+        case ActivationFunction::LeakyReLU:
+            dc_arr[tid] *= d_derive_leaky_relu(d_leaky_relu(n_arr[tid]));
+            break;
+        case ActivationFunction::AbsoluteValue:
+            dc_arr[tid] *= d_derive_absolute_value(n_arr[tid]);
             break;
         case ActivationFunction::Sigmoid:
             dc_arr[tid] *= d_derive_sigmoid(d_sigmoid(n_arr[tid]));
