@@ -28,9 +28,48 @@ Batch::~Batch()
     }
 }
 
+void Batch::add(Tensor *x, Tensor *y)
+{
+    this->records.push_back(new Record(x, y));
+}
+
 void Batch::add(Record *record)
 {
     this->records.push_back(record);
+}
+
+void Batch::add_all(Tensor *xs, Tensor *ys)
+{
+    int record_cnt = xs->get_shape()[0];
+    int x_record_size = xs->get_cnt() / record_cnt;
+    int y_record_size = ys->get_cnt() / record_cnt;
+
+    std::vector<int> x_shape;
+    std::vector<int> y_shape;
+
+    for (int xs_shape_idx = 1; xs_shape_idx < xs->get_dim_cnt(); xs_shape_idx++)
+    {
+        x_shape.push_back(xs->get_shape()[xs_shape_idx]);
+    }
+
+    for (int ys_shape_idx = 1; ys_shape_idx < ys->get_dim_cnt(); ys_shape_idx++)
+    {
+        y_shape.push_back(ys->get_shape()[ys_shape_idx]);
+    }
+
+    for (int record_idx = 0; record_idx > record_cnt; record_idx++)
+    {
+        float *x_arr = &xs->get_arr()[record_idx * x_record_size];
+        float *y_arr = &ys->get_arr()[record_idx * y_record_size];
+
+        Tensor *x = new Tensor(xs->get_device(), x_shape);
+        Tensor *y = new Tensor(ys->get_device(), y_shape);
+
+        x->set_arr(x_arr);
+        y->set_arr(y_arr);
+
+        this->add(x, y);
+    }
 }
 
 int Batch::get_size()

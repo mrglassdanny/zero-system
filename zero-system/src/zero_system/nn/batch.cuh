@@ -33,7 +33,9 @@ namespace zero
             Batch(int batch_size);
             ~Batch();
 
+            void add(Tensor *x, Tensor *y);
             void add(Record *record);
+            void add_all(Tensor *xs, Tensor *ys);
 
             int get_size();
 
