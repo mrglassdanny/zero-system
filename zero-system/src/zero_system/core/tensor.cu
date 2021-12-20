@@ -544,6 +544,11 @@ bool Tensor::equals(Tensor *other)
     return false;
 }
 
+Device Tensor::get_device()
+{
+    return this->device;
+}
+
 std::vector<int> Tensor::get_shape()
 {
     return this->shape;

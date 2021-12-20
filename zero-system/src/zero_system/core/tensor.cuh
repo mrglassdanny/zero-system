@@ -38,9 +38,9 @@ namespace zero
         class Tensor
         {
         private:
-            float *arr;
             Device device;
             std::vector<int> shape;
+            float *arr;
 
         public:
             Tensor(Tensor &src);
@@ -64,6 +64,8 @@ namespace zero
             void print();
 
             bool equals(Tensor *other);
+
+            Device get_device();
 
             std::vector<int> get_shape();
             int get_cnt();
