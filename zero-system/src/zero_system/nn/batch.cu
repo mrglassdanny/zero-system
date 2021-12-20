@@ -15,6 +15,10 @@ Record::~Record()
     delete this->y;
 }
 
+Batch::Batch()
+{
+}
+
 Batch::Batch(int batch_size)
 {
     this->records.reserve(batch_size);

@@ -30,6 +30,7 @@ namespace zero
             std::vector<Record *> records;
 
         public:
+            Batch();
             Batch(int batch_size);
             ~Batch();
 
