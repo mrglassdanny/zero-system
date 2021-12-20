@@ -91,6 +91,16 @@ Tensor *Batch::get_y(int idx)
     return this->records[idx]->y;
 }
 
+std::vector<int> Batch::get_x_shape()
+{
+    return this->get_x(0)->get_shape();
+}
+
+std::vector<int> Batch::get_y_shape()
+{
+    return this->get_y(0)->get_shape();
+}
+
 Supervisor::Supervisor(const char *x_path, const char *y_path, std::vector<int> x_shape, int y_one_hot_cnt)
 {
     this->x_file_ptr = fopen(x_path, "rb");

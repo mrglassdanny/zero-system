@@ -42,6 +42,9 @@ namespace zero
 
             Tensor *get_x(int idx);
             Tensor *get_y(int idx);
+
+            std::vector<int> get_x_shape();
+            std::vector<int> get_y_shape();
         };
 
         class Supervisor
