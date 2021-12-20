@@ -208,6 +208,12 @@ void Model::linear(std::vector<int> n_shape, int nxt_n_cnt)
     this->linear(n_shape, nxt_n_cnt, InitializationFunction::Xavier);
 }
 
+void Model::linear(int n_cnt, int nxt_n_cnt)
+{
+    std::vector<int> n_shape{n_cnt};
+    this->linear(n_shape, nxt_n_cnt, InitializationFunction::Xavier);
+}
+
 void Model::linear(std::vector<int> n_shape, int nxt_n_cnt, InitializationFunction init_fn)
 {
     this->add_layer(new LinearLayer(n_shape, nxt_n_cnt, init_fn));
