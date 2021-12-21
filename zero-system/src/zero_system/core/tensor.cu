@@ -171,126 +171,6 @@ Tensor::~Tensor()
     }
 }
 
-Tensor *Tensor::one_hot_encode(Device device, int row_cnt, int col_cnt, float *cpu_arr)
-{
-    Tensor *tensor = new Tensor(device, row_cnt, col_cnt);
-    tensor->set_all(0.0f);
-
-    for (int row_idx = 0; row_idx < row_cnt; row_idx++)
-    {
-        int col_idx = (int)cpu_arr[row_idx];
-        if (col_idx >= 0 && col_idx < col_cnt)
-        {
-            tensor->set_val(row_idx * col_cnt + col_idx, 1.0f);
-        }
-        // If column index is less than 0 or is greater than or equal to column count, skip it!
-        // ^ this shouldn't happen...
-    }
-
-    return tensor;
-}
-
-// Geared toward small csv files (under 0.5 GB).
-Tensor *Tensor::from_csv(const char *csv_file_name)
-{
-    FILE *file_ptr = fopen(csv_file_name, "rb");
-
-    fseek(file_ptr, 0L, SEEK_END);
-    long long file_size = FileUtils::get_file_size(csv_file_name);
-    rewind(file_ptr);
-
-    char *buf = (char *)malloc(file_size + 1);
-    memset(buf, 0, file_size + 1);
-    fread(buf, 1, file_size, file_ptr);
-
-    fclose(file_ptr);
-
-    int buf_idx = 0;
-
-    int row_cnt = 0;
-    int col_cnt = 0;
-
-    while (buf[buf_idx] != '\n')
-    {
-        if (buf[buf_idx] == ',')
-        {
-            col_cnt++;
-        }
-
-        buf_idx++;
-    }
-
-    col_cnt++;
-    buf_idx++;
-
-    int lst_row_idx = 0;
-    for (int i = buf_idx; i < file_size; i++)
-    {
-        if (buf[i] == '\n')
-        {
-            row_cnt++;
-            lst_row_idx = i;
-        }
-    }
-
-    // If file does not end in newline, add to the row count.
-    if (lst_row_idx < file_size - 1)
-    {
-        row_cnt++;
-    }
-
-    Tensor *tensor = new Tensor(Device::Cpu, row_cnt, col_cnt);
-
-    char temp_buf[64];
-    memset(temp_buf, 0, 64);
-    int temp_buf_idx = 0;
-    int row_idx = 0;
-    int col_idx = 0;
-
-    for (; buf_idx < file_size; buf_idx++)
-    {
-        while (buf[buf_idx] != ',' && buf[buf_idx] != '\n' && buf_idx < file_size)
-        {
-            if (buf[buf_idx] != '"')
-            {
-                temp_buf[temp_buf_idx++] = buf[buf_idx];
-            }
-
-            buf_idx++;
-        }
-
-        if (buf[buf_idx] == ',')
-        {
-            tensor->set_val(row_idx * col_cnt + col_idx, (float)atof(temp_buf));
-            memset(temp_buf, 0, 64);
-            col_idx++;
-            temp_buf_idx = 0;
-        }
-        else if (buf[buf_idx] == '\n')
-        {
-            tensor->set_val(row_idx * col_cnt + col_idx, (float)atof(temp_buf));
-            memset(temp_buf, 0, 64);
-            row_idx++;
-            col_idx = 0;
-            temp_buf_idx = 0;
-        }
-    }
-
-    // Make sure to grab the last bit before we finish up!
-    if (temp_buf_idx > 0)
-    {
-        tensor->set_val(row_idx * col_cnt + col_idx, (float)atof(temp_buf));
-        memset(temp_buf, 0, 64);
-        row_idx++;
-        col_idx = 0;
-        temp_buf_idx = 0;
-    }
-
-    free(buf);
-
-    return tensor;
-}
-
 void Tensor::to(Device device)
 {
     int cnt = this->get_cnt();
@@ -732,7 +612,127 @@ float Tensor::get_sum()
     return sum;
 }
 
-void Tensor::dump_to_csv(const char *csv_file_name)
+Tensor *Tensor::one_hot_encode(Device device, int row_cnt, int col_cnt, float *cpu_arr)
+{
+    Tensor *tensor = new Tensor(device, row_cnt, col_cnt);
+    tensor->set_all(0.0f);
+
+    for (int row_idx = 0; row_idx < row_cnt; row_idx++)
+    {
+        int col_idx = (int)cpu_arr[row_idx];
+        if (col_idx >= 0 && col_idx < col_cnt)
+        {
+            tensor->set_val(row_idx * col_cnt + col_idx, 1.0f);
+        }
+        // If column index is less than 0 or is greater than or equal to column count, skip it!
+        // ^ this shouldn't happen...
+    }
+
+    return tensor;
+}
+
+// Geared toward small csv files (under 0.5 GB).
+Tensor *Tensor::fr_csv(const char *csv_file_name)
+{
+    FILE *file_ptr = fopen(csv_file_name, "rb");
+
+    fseek(file_ptr, 0L, SEEK_END);
+    long long file_size = FileUtils::get_file_size(csv_file_name);
+    rewind(file_ptr);
+
+    char *buf = (char *)malloc(file_size + 1);
+    memset(buf, 0, file_size + 1);
+    fread(buf, 1, file_size, file_ptr);
+
+    fclose(file_ptr);
+
+    int buf_idx = 0;
+
+    int row_cnt = 0;
+    int col_cnt = 0;
+
+    while (buf[buf_idx] != '\n')
+    {
+        if (buf[buf_idx] == ',')
+        {
+            col_cnt++;
+        }
+
+        buf_idx++;
+    }
+
+    col_cnt++;
+    buf_idx++;
+
+    int lst_row_idx = 0;
+    for (int i = buf_idx; i < file_size; i++)
+    {
+        if (buf[i] == '\n')
+        {
+            row_cnt++;
+            lst_row_idx = i;
+        }
+    }
+
+    // If file does not end in newline, add to the row count.
+    if (lst_row_idx < file_size - 1)
+    {
+        row_cnt++;
+    }
+
+    Tensor *tensor = new Tensor(Device::Cpu, row_cnt, col_cnt);
+
+    char temp_buf[64];
+    memset(temp_buf, 0, 64);
+    int temp_buf_idx = 0;
+    int row_idx = 0;
+    int col_idx = 0;
+
+    for (; buf_idx < file_size; buf_idx++)
+    {
+        while (buf[buf_idx] != ',' && buf[buf_idx] != '\n' && buf_idx < file_size)
+        {
+            if (buf[buf_idx] != '"')
+            {
+                temp_buf[temp_buf_idx++] = buf[buf_idx];
+            }
+
+            buf_idx++;
+        }
+
+        if (buf[buf_idx] == ',')
+        {
+            tensor->set_val(row_idx * col_cnt + col_idx, (float)atof(temp_buf));
+            memset(temp_buf, 0, 64);
+            col_idx++;
+            temp_buf_idx = 0;
+        }
+        else if (buf[buf_idx] == '\n')
+        {
+            tensor->set_val(row_idx * col_cnt + col_idx, (float)atof(temp_buf));
+            memset(temp_buf, 0, 64);
+            row_idx++;
+            col_idx = 0;
+            temp_buf_idx = 0;
+        }
+    }
+
+    // Make sure to grab the last bit before we finish up!
+    if (temp_buf_idx > 0)
+    {
+        tensor->set_val(row_idx * col_cnt + col_idx, (float)atof(temp_buf));
+        memset(temp_buf, 0, 64);
+        row_idx++;
+        col_idx = 0;
+        temp_buf_idx = 0;
+    }
+
+    free(buf);
+
+    return tensor;
+}
+
+void Tensor::to_csv(const char *csv_file_name)
 {
     int dim_cnt = this->shape.size();
 

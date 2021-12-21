@@ -52,9 +52,6 @@ namespace zero
             Tensor(Device device, std::vector<int> shape);
             ~Tensor();
 
-            static Tensor *one_hot_encode(Device device, int row_cnt, int col_cnt, float *cpu_arr);
-            static Tensor *from_csv(const char *csv_file_name);
-
             void to(Device device);
 
             void copy(Tensor *src);
@@ -86,7 +83,10 @@ namespace zero
             TensorTuple get_max();
             float get_sum();
 
-            void dump_to_csv(const char *csv_file_name);
+            static Tensor *one_hot_encode(Device device, int row_cnt, int col_cnt, float *cpu_arr);
+
+            static Tensor *fr_csv(const char *csv_file_name);
+            void to_csv(const char *csv_file_name);
         };
     }
 }
