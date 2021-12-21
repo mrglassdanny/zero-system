@@ -121,10 +121,6 @@ void nn_approx_test()
 
 	model->linear(1, 2048);
 	model->activation(Tanh);
-	model->linear(2048);
-	model->activation(Tanh);
-	model->linear(2048);
-	model->activation(Tanh);
 	model->linear(1);
 
 	model->fit(batch);
