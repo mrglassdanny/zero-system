@@ -108,8 +108,8 @@ void nn_approx_test()
 	Batch *batch = new Batch();
 
 	{
-		Tensor *xs = Tensor::from_csv("data/nn-approx-xs.csv");
-		Tensor *ys = Tensor::from_csv("data/nn-approx-ys.csv");
+		Tensor *xs = Tensor::fr_csv("data/nn-approx-xs.csv");
+		Tensor *ys = Tensor::fr_csv("data/nn-approx-ys.csv");
 
 		batch->add_all(xs, ys);
 
@@ -120,17 +120,25 @@ void nn_approx_test()
 	Model *model = new Model(MSE, 0.0001f);
 
 	model->linear(1, 2048);
-	model->activation(Tanh);
+	model->activation(Sigmoid);
+	model->linear(2048);
+	model->activation(Sigmoid);
 	model->linear(1);
 
 	model->fit(batch);
 
+	Tensor *preds = new Tensor(Device::Cpu, 1);
+
 	for (int i = 0; i < batch->get_size(); i++)
 	{
 		Tensor *pred = model->predict(batch->get_x(i));
-		printf("%f\n", pred->get_val(0));
+		preds->set_val(i, pred->get_val(0));
 		delete pred;
 	}
+
+	preds->to_csv("temp/nn-approx-preds.csv");
+
+	delete preds;
 
 	delete model;
 
@@ -139,7 +147,7 @@ void nn_approx_test()
 
 void kmeans_test()
 {
-	Tensor *x = Tensor::from_csv("data\\kmeans-data.csv");
+	Tensor *x = Tensor::fr_csv("data\\kmeans-data.csv");
 
 	KMeans::save_best(x, 3, 1000, "temp\\model.km");
 
