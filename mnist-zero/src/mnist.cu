@@ -117,29 +117,42 @@ int main(int argc, char **argv)
     Supervisor *train_sup = get_mnist_train_supervisor();
     Supervisor *test_sup = get_mnist_test_supervisor();
 
-    Model *model = new Model(CostFunction::CrossEntropy, 0.01f);
+    Model *model = new Model(CrossEntropy, 0.001f);
 
-    model->convolutional(train_sup->get_x_shape(), 64, 3, 3);
-    model->activation(ActivationFunction::ReLU);
-
-    model->convolutional(64, 3, 3);
-    model->activation(ActivationFunction::ReLU);
+    model->convolutional(train_sup->get_x_shape(), 512, 3, 3);
+    model->activation(ReLU);
 
     model->pooling(PoolingFunction::Max);
 
-    model->linear(1024);
-    model->activation(ActivationFunction::ReLU);
+    model->convolutional(512, 3, 3);
+    model->activation(ReLU);
 
-    model->linear(1024);
-    model->activation(ActivationFunction::ReLU);
+    model->pooling(PoolingFunction::Max);
 
-    model->linear(256);
-    model->activation(ActivationFunction::ReLU);
+    model->convolutional(512, 3, 3);
+    model->activation(ReLU);
+
+    model->pooling(PoolingFunction::Max);
+
+    model->convolutional(512, 3, 3);
+    model->activation(ReLU);
+
+    model->linear(2048);
+    model->activation(ReLU);
+
+    model->linear(2048);
+    model->activation(ReLU);
+
+    model->linear(512);
+    model->activation(ReLU);
+
+    model->linear(64);
+    model->activation(ReLU);
 
     model->linear(Tensor::get_cnt(train_sup->get_y_shape()));
-    model->activation(ActivationFunction::ReLU);
+    model->activation(Sigmoid);
 
-    model->fit(train_sup, 64, 5, "temp\\mnist-train.csv");
+    model->fit(train_sup, 64, 20, "temp\\mnist-train.csv");
 
     Batch *test_batch = test_sup->create_batch();
 
