@@ -117,16 +117,12 @@ void nn_approx_test()
 		delete ys;
 	}
 
-	Model *model = new Model(MSE, 0.0001f);
+	Model *model = new Model(MSE, 0.001f);
 
-	model->linear(3, 10000);
-	model->activation(Sine);
-	model->linear(10000);
-	model->activation(Sine);
-	model->linear(10000);
-	model->activation(Sine);
-	model->linear(10000);
-	model->activation(Sine);
+	model->linear(3, 128);
+	model->activation(Sigmoid);
+	model->linear(128);
+	model->activation(Sigmoid);
 	model->linear(1);
 
 	model->fit(batch);
