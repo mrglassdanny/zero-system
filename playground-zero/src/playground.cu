@@ -119,15 +119,19 @@ void nn_approx_test()
 
 	Model *model = new Model(MSE, 0.0001f);
 
-	model->linear(1, 2048);
-	model->activation(Sigmoid);
-	model->linear(2048);
-	model->activation(Sigmoid);
+	model->linear(3, 10000);
+	model->activation(Sine);
+	model->linear(10000);
+	model->activation(Sine);
+	model->linear(10000);
+	model->activation(Sine);
+	model->linear(10000);
+	model->activation(Sine);
 	model->linear(1);
 
 	model->fit(batch);
 
-	Tensor *preds = new Tensor(Device::Cpu, 1);
+	Tensor *preds = new Tensor(Device::Cpu, batch->get_size());
 
 	for (int i = 0; i < batch->get_size(); i++)
 	{
