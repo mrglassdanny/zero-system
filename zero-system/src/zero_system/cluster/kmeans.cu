@@ -379,6 +379,8 @@ void KMeans::run_elbow_analysis(Tensor *xs, int cluster_cnt_lower, int cluster_c
             kmeans->reset_clusters();
         }
 
+        printf("CLUSTERS: %d\tCOST: %f\n", cluster_cnt, min_cost);
+
         fprintf(csv_file_ptr, "%d,%f\n", cluster_cnt, min_cost);
 
         delete kmeans;
