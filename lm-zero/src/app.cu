@@ -12,11 +12,11 @@ int main(int argc, char **argv)
 {
     srand(time(NULL));
 
-    Tensor *xs = Tensor::fr_csv("data/locmst.csv");
+    Tensor *xs = Tensor::fr_csv("data/locmst-encoded.csv");
 
     // KMeans::run_elbow_analysis(xs, 100, 200, 20, "temp/elbow-analysis.csv");
 
-    printf("MIN COST: %f\n", KMeans::save_best(xs, 512, 250, "temp/model.km"));
+    printf("MIN COST: %f\n", KMeans::save_best(xs, 200, 1000, "temp/model.km"));
 
     KMeans *model = new KMeans("temp/model.km");
 
