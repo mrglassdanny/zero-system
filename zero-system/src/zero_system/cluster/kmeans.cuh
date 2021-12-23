@@ -26,13 +26,15 @@ namespace zero
 
             void save(const char *path);
 
-            void initialize_clusters(Tensor *x);
+            void initialize_clusters(Tensor *xs);
             void reset_clusters();
 
-            float train(Tensor *x);
-            Tensor *predict(Tensor *x);
+            float train(Tensor *xs);
+            Tensor *predict(Tensor *xs);
 
-            static void save_best(Tensor *x, int cluster_cnt, int iter_cnt, const char *path);
+            static float save_best(Tensor *xs, int cluster_cnt, int iter_cnt, const char *path);
+            static void run_elbow_analysis(Tensor *xs, int cluster_cnt_lower, int cluster_cnt_upper,
+                                           int iter_cnt, const char *csv_path);
         };
     }
 }
