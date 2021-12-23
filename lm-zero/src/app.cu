@@ -14,13 +14,18 @@ int main(int argc, char **argv)
 
     Tensor *xs = Tensor::fr_csv("data/locmst.csv");
 
-    KMeans::save_best(xs, 30, 10, "temp/model.km");
+    // KMeans::run_elbow_analysis(xs, 100, 200, 20, "temp/elbow-analysis.csv");
 
-    KMeans *km = new KMeans("temp/model.km");
+    printf("MIN COST: %f\n", KMeans::save_best(xs, 512, 250, "temp/model.km"));
 
-    km->print();
+    KMeans *model = new KMeans("temp/model.km");
 
-    delete km;
+    Tensor *preds = model->predict(xs);
+
+    preds->to_csv("temp/preds.csv");
+
+    delete preds;
+    delete model;
 
     delete xs;
 
