@@ -164,7 +164,7 @@ int main(int argc, char **argv)
 {
 	srand(time(NULL));
 
-	nn_approx_test();
+	nn_gradient_test();
 
 	return 0;
 }
