@@ -695,12 +695,12 @@ EmbeddableModel::~EmbeddableModel()
 {
 }
 
-void EmbeddableModel::add_embedding(Embedding *emb)
+void EmbeddableModel::add_embedding(Model *emb)
 {
     this->embeddings.push_back(emb);
 }
 
-void EmbeddableModel::embed(Embedding *emb)
+void EmbeddableModel::embed(Model *emb)
 {
     this->add_embedding(emb);
 }
@@ -715,7 +715,7 @@ Tensor *EmbeddableModel::forward(Tensor *x, bool train_flg)
     Layer *frst_lyr = this->layers[0];
     Layer *lst_lyr = this->layers[lst_lyr_idx];
 
-    for (Embedding *emb : this->embeddings)
+    for (Model *emb : this->embeddings)
     {
         Tensor *emb_pred = emb->forward(x, train_flg);
     }
@@ -740,10 +740,10 @@ Tensor *EmbeddableModel::backward(Tensor *pred, Tensor *y)
 {
     Tensor *dc = Model::backward(pred, y);
 
-    for (Embedding *emb : this->embeddings)
+    for (Model *emb : this->embeddings)
     {
         Tensor *cpy_dc = new Tensor(*dc);
-        emb->backward(cpy_dc);
+        emb->backward(cpy_dc, nullptr);
     }
 
     return dc;
@@ -751,7 +751,7 @@ Tensor *EmbeddableModel::backward(Tensor *pred, Tensor *y)
 
 void EmbeddableModel::step(int batch_size)
 {
-    for (Embedding *emb : this->embeddings)
+    for (Model *emb : this->embeddings)
     {
         emb->step(batch_size);
     }

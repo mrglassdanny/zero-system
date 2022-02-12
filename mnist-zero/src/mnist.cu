@@ -14,8 +14,8 @@ Supervisor *get_mnist_train_supervisor()
 
     int img_cnt = 60000;
 
-    FILE *img_file = fopen("data\\train-images.idx3-ubyte", "rb");
-    FILE *lbl_file = fopen("data\\train-labels.idx1-ubyte", "rb");
+    FILE *img_file = fopen("data/train-images.idx3-ubyte", "rb");
+    FILE *lbl_file = fopen("data/train-labels.idx1-ubyte", "rb");
 
     fseek(img_file, sizeof(int) * 4, 0);
     unsigned char *img_buf = (unsigned char *)malloc((sizeof(unsigned char) * img_area * img_cnt));
@@ -43,8 +43,8 @@ Supervisor *get_mnist_train_supervisor()
     free(img_buf);
     free(lbl_buf);
 
-    FILE *img_dump_file = fopen("temp\\train-images", "wb");
-    FILE *lbl_dump_file = fopen("temp\\train-labels", "wb");
+    FILE *img_dump_file = fopen("temp/train-images", "wb");
+    FILE *lbl_dump_file = fopen("temp/train-labels", "wb");
 
     fwrite(img_flt_buf, sizeof(float), img_area * img_cnt, img_dump_file);
     fwrite(lbl_flt_buf, sizeof(float), img_cnt, lbl_dump_file);
@@ -56,17 +56,17 @@ Supervisor *get_mnist_train_supervisor()
     free(img_flt_buf);
 
     std::vector<int> x_shape{1, IMAGE_ROW_CNT, IMAGE_COL_CNT};
-    return new Supervisor("temp\\train-images", "temp\\train-labels", x_shape, 10);
+    return new Supervisor("temp/train-images", "temp/train-labels", x_shape, 10);
 }
 
 Supervisor *get_mnist_test_supervisor()
 {
     int img_area = IMAGE_ROW_CNT * IMAGE_COL_CNT;
 
-    int img_cnt = 10000;
+    int img_cnt = 1;
 
-    FILE *img_file = fopen("data\\t10k-images.idx3-ubyte", "rb");
-    FILE *lbl_file = fopen("data\\t10k-labels.idx1-ubyte", "rb");
+    FILE *img_file = fopen("data/t10k-images.idx3-ubyte", "rb");
+    FILE *lbl_file = fopen("data/t10k-labels.idx1-ubyte", "rb");
 
     fseek(img_file, sizeof(int) * 4, 0);
     unsigned char *img_buf = (unsigned char *)malloc((sizeof(unsigned char) * img_area * img_cnt));
@@ -94,8 +94,8 @@ Supervisor *get_mnist_test_supervisor()
     free(img_buf);
     free(lbl_buf);
 
-    FILE *img_dump_file = fopen("temp\\test-images", "wb");
-    FILE *lbl_dump_file = fopen("temp\\test-labels", "wb");
+    FILE *img_dump_file = fopen("temp/test-images", "wb");
+    FILE *lbl_dump_file = fopen("temp/test-labels", "wb");
 
     fwrite(img_flt_buf, sizeof(float), img_area * img_cnt, img_dump_file);
     fwrite(lbl_flt_buf, sizeof(float), img_cnt, lbl_dump_file);
@@ -107,7 +107,7 @@ Supervisor *get_mnist_test_supervisor()
     free(img_flt_buf);
 
     std::vector<int> x_shape{1, IMAGE_ROW_CNT, IMAGE_COL_CNT};
-    return new Supervisor("temp\\test-images", "temp\\test-labels", x_shape, 10);
+    return new Supervisor("temp/test-images", "temp/test-labels", x_shape, 10);
 }
 
 int main(int argc, char **argv)
@@ -117,52 +117,44 @@ int main(int argc, char **argv)
     Supervisor *train_sup = get_mnist_train_supervisor();
     Supervisor *test_sup = get_mnist_test_supervisor();
 
-    ConvNet *conv = new ConvNet(CrossEntropy, 0.001f);
+    // ConvNet *conv = new ConvNet(CrossEntropy, 0.1f);
 
-    conv->convolutional(train_sup->get_x_shape(), 512, 3, 3);
-    conv->activation(ReLU);
+    // conv->convolutional(train_sup->get_x_shape(), 16, 3, 3);
+    // conv->activation(ReLU);
+    // conv->pooling(Max);
 
-    conv->pooling(PoolingFunction::Max);
+    // conv->convolutional(train_sup->get_x_shape(), 16, 3, 3);
+    // conv->activation(ReLU);
+    // conv->pooling(Max);
 
-    conv->convolutional(512, 3, 3);
-    conv->activation(ReLU);
+    // conv->linear(64);
+    // conv->activation(ReLU);
 
-    conv->pooling(PoolingFunction::Max);
+    // conv->linear(16);
+    // conv->activation(ReLU);
 
-    conv->convolutional(512, 3, 3);
-    conv->activation(ReLU);
+    // conv->linear(Tensor::get_cnt(train_sup->get_y_shape()));
+    // conv->activation(ReLU);
 
-    conv->pooling(PoolingFunction::Max);
+    // conv->fit(train_sup, 64, 20, "temp/mnist-train.csv");
 
-    conv->convolutional(512, 3, 3);
-    conv->activation(ReLU);
+    // Batch *test_batch = test_sup->create_batch();
 
-    conv->linear(2048);
-    conv->activation(ReLU);
+    // conv->test(test_batch).print();
 
-    conv->linear(2048);
-    conv->activation(ReLU);
+    // delete test_batch;
 
-    conv->linear(512);
-    conv->activation(ReLU);
+    // conv->save("temp/mnist.nn");
 
-    conv->linear(64);
-    conv->activation(ReLU);
+    // delete conv;
 
-    conv->linear(Tensor::get_cnt(train_sup->get_y_shape()));
-    conv->activation(Sigmoid);
+    // ============
 
-    conv->fit(train_sup, 64, 20, "temp\\mnist-train.csv");
-
+    ConvNet *conv = new ConvNet();
+    conv->load("temp/mnist.nn");
     Batch *test_batch = test_sup->create_batch();
-
     conv->test(test_batch).print();
-
     delete test_batch;
-
-    conv->save("temp\\mnist.nn");
-
-    delete conv;
 
     delete train_sup;
     delete test_sup;

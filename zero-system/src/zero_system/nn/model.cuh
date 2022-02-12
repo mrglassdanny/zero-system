@@ -1,7 +1,6 @@
 #pragma once
 
 #include "layer.cuh"
-#include "embedding.cuh"
 #include "batch.cuh"
 #include "nn_util.cuh"
 
@@ -22,6 +21,7 @@ namespace zero
 
         public:
             Model();
+            Model(const char *path);
             Model(CostFunction cost_fn, float learning_rate);
             ~Model();
 
@@ -65,6 +65,7 @@ namespace zero
         {
         public:
             ConvNet();
+            ConvNet(const char *path);
             ConvNet(CostFunction cost_fn, float learning_rate);
             ~ConvNet();
 
@@ -80,16 +81,17 @@ namespace zero
         class EmbeddableModel : public Model
         {
         protected:
-            std::vector<Embedding *> embeddings;
+            std::vector<Model *> embeddings;
 
-            void add_embedding(Embedding *emb);
+            void add_embedding(Model *emb);
 
         public:
             EmbeddableModel();
+            EmbeddableModel(const char *path);
             EmbeddableModel(CostFunction cost_fn, float learning_rate);
             ~EmbeddableModel();
 
-            void embed(Embedding *emb);
+            void embed(Model *emb);
 
             virtual Tensor *forward(Tensor *x, bool train_flg);
             virtual Tensor *backward(Tensor *pred, Tensor *y);
