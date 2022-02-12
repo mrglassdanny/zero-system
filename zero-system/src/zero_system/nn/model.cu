@@ -105,9 +105,6 @@ Model::Model(CostFunction cost_fn, float learning_rate)
 {
     this->cost_fn = cost_fn;
     this->learning_rate = learning_rate;
-
-    cudaMalloc(&this->d_cost_val, sizeof(float));
-    cudaMemset(this->d_cost_val, 0, sizeof(float));
 }
 
 Model::Model(const char *path)
@@ -151,9 +148,6 @@ Model::Model(const char *path)
         this->add_layer(lyr);
     }
 
-    cudaMalloc(&this->d_cost_val, sizeof(float));
-    cudaMemset(this->d_cost_val, 0, sizeof(float));
-
     fclose(file_ptr);
 }
 
@@ -163,8 +157,6 @@ Model::~Model()
     {
         delete lyr;
     }
-
-    cudaFree(this->d_cost_val);
 }
 
 void Model::save(const char *path)
@@ -285,23 +277,26 @@ float Model::cost(Tensor *pred, Tensor *y)
     // Convert to Cuda.
     y->to(Device::Cuda);
 
+    float *d_cost_val;
     float h_cost_val = 0.0f;
+
+    cudaMalloc(&d_cost_val, sizeof(float));
+    cudaMemset(d_cost_val, 0, sizeof(float));
 
     {
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
         int num_blocks = (pred->get_cnt() / threads_per_block) + 1;
         k_cost<<<num_blocks, threads_per_block>>>(pred->get_arr(), y->get_arr(),
-                                                  this->d_cost_val, pred->get_cnt(), this->cost_fn);
+                                                  d_cost_val, pred->get_cnt(), this->cost_fn);
     }
 
-    cudaMemcpy(&h_cost_val, this->d_cost_val, sizeof(float), cudaMemcpyDeviceToHost);
-
-    cudaMemset(this->d_cost_val, 0, sizeof(float));
+    cudaMemcpy(&h_cost_val, d_cost_val, sizeof(float), cudaMemcpyDeviceToHost);
+    cudaFree(d_cost_val);
 
     return h_cost_val;
 }
 
-void Model::backward(Tensor *pred, Tensor *y)
+Tensor *Model::backward(Tensor *pred, Tensor *y)
 {
     // Convert to Cuda.
     y->to(Device::Cuda);
@@ -324,7 +319,7 @@ void Model::backward(Tensor *pred, Tensor *y)
         dc = lyr->backward(dc);
     }
 
-    delete dc;
+    return dc;
 }
 
 void Model::step(int batch_size)
@@ -351,7 +346,7 @@ void Model::check_grad(Tensor *x, Tensor *y, bool print_flg)
     {
         Tensor *pred = this->forward(x, true);
         this->cost(pred, y);
-        this->backward(pred, y);
+        delete this->backward(pred, y);
         delete pred;
     }
 
@@ -481,7 +476,7 @@ Report Model::train(Batch *batch)
 
         Tensor *pred = this->forward(x, true);
         cost += this->cost(pred, y);
-        this->backward(pred, y);
+        delete this->backward(pred, y);
 
         rpt.update_correct_cnt(pred, y);
 
@@ -676,4 +671,84 @@ void ConvNet::pooling(PoolingFunction pool_fn)
 void ConvNet::pooling(std::vector<int> n_shape, PoolingFunction pool_fn)
 {
     this->add_layer(new PoolingLayer(n_shape, pool_fn));
+}
+
+// EmbeddableModel functions:
+
+EmbeddableModel::EmbeddableModel(CostFunction cost_fn, float learning_rate)
+    : Model(cost_fn, learning_rate)
+{
+}
+
+EmbeddableModel::EmbeddableModel(const char *path)
+    : Model(path)
+{
+}
+
+EmbeddableModel::~EmbeddableModel()
+{
+}
+
+void EmbeddableModel::add_embedding(Embedding *emb)
+{
+    this->embeddings.push_back(emb);
+}
+
+void EmbeddableModel::embed(Embedding *emb)
+{
+    this->add_embedding(emb);
+}
+
+Tensor *EmbeddableModel::forward(Tensor *x, bool train_flg)
+{
+    // Convert to Cuda.
+    x->to(Device::Cuda);
+
+    int lst_lyr_idx = this->layers.size() - 1;
+
+    Layer *frst_lyr = this->layers[0];
+    Layer *lst_lyr = this->layers[lst_lyr_idx];
+
+    for (Embedding *emb : this->embeddings)
+    {
+        Tensor *emb_pred = emb->forward(x, train_flg);
+    }
+
+    frst_lyr->set_neurons(x);
+
+    for (int i = 0; i < lst_lyr_idx; i++)
+    {
+        Layer *lyr = this->layers[i];
+        Layer *nxt_lyr = this->layers[i + 1];
+
+        lyr->forward(nxt_lyr->get_neurons(), train_flg);
+    }
+
+    Tensor *pred = new Tensor(Device::Cuda, lst_lyr->get_output_shape());
+    lst_lyr->forward(pred, train_flg);
+
+    return pred;
+}
+
+Tensor *EmbeddableModel::backward(Tensor *pred, Tensor *y)
+{
+    Tensor *dc = Model::backward(pred, y);
+
+    for (Embedding *emb : this->embeddings)
+    {
+        Tensor *cpy_dc = new Tensor(*dc);
+        emb->backward(cpy_dc);
+    }
+
+    return dc;
+}
+
+void EmbeddableModel::step(int batch_size)
+{
+    for (Embedding *emb : this->embeddings)
+    {
+        emb->step(batch_size);
+    }
+
+    Model::step(batch_size);
 }

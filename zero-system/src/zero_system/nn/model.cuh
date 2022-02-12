@@ -17,7 +17,6 @@ namespace zero
             std::vector<Layer *> layers;
             CostFunction cost_fn;
             float learning_rate;
-            float *d_cost_val;
 
             void add_layer(Layer *lyr);
 
@@ -46,8 +45,8 @@ namespace zero
             void set_learning_rate(float learning_rate);
 
             virtual Tensor *forward(Tensor *x, bool train_flg);
-            virtual float cost(Tensor *pred, Tensor *y);
-            virtual void backward(Tensor *pred, Tensor *y);
+            float cost(Tensor *pred, Tensor *y);
+            virtual Tensor *backward(Tensor *pred, Tensor *y);
             virtual void step(int batch_size);
 
             virtual void check_grad(Tensor *x, Tensor *y, bool print_flg);
@@ -75,6 +74,25 @@ namespace zero
 
             void pooling(PoolingFunction pool_fn);
             void pooling(std::vector<int> n_shape, PoolingFunction pool_fn);
+        };
+
+        class EmbeddableModel : public Model
+        {
+        protected:
+            std::vector<Embedding *> embeddings;
+
+            void add_embedding(Embedding *emb);
+
+        public:
+            EmbeddableModel(CostFunction cost_fn, float learning_rate);
+            EmbeddableModel(const char *path);
+            ~EmbeddableModel();
+
+            void embed(Embedding *emb);
+
+            virtual Tensor *forward(Tensor *x, bool train_flg);
+            virtual Tensor *backward(Tensor *pred, Tensor *y);
+            virtual void step(int batch_size);
         };
     }
 }

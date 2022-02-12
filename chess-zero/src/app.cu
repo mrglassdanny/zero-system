@@ -350,7 +350,7 @@ void self_train(Model *model, Game *game)
     {
         Tensor *pred = model->forward(game->board_states[i], true);
         cost += model->cost(pred, y);
-        model->backward(pred, y);
+        delete model->backward(pred, y);
         delete pred;
     }
 
@@ -409,7 +409,7 @@ void bootstrap_learn(Model *model)
 
                 Tensor *pred = model->forward(x, true);
                 cost += model->cost(pred, y);
-                model->backward(pred, y);
+                delete model->backward(pred, y);
                 delete pred;
 
                 // Rotate board:
@@ -420,7 +420,7 @@ void bootstrap_learn(Model *model)
                     x->set_arr(flt_one_hot_board);
                     Tensor *pred2 = model->forward(x, true);
                     cost += model->cost(pred2, y);
-                    model->backward(pred2, y);
+                    delete model->backward(pred2, y);
                     delete pred2;
 
                     rotate_board(board, rot_board, 180);
@@ -428,7 +428,7 @@ void bootstrap_learn(Model *model)
                     x->set_arr(flt_one_hot_board);
                     Tensor *pred3 = model->forward(x, true);
                     cost += model->cost(pred3, y);
-                    model->backward(pred3, y);
+                    delete model->backward(pred3, y);
                     delete pred3;
 
                     rotate_board(board, rot_board, 270);
@@ -436,7 +436,7 @@ void bootstrap_learn(Model *model)
                     x->set_arr(flt_one_hot_board);
                     Tensor *pred4 = model->forward(x, true);
                     cost += model->cost(pred4, y);
-                    model->backward(pred4, y);
+                    delete model->backward(pred4, y);
                     delete pred4;
                 }
 

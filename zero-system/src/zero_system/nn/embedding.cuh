@@ -34,7 +34,7 @@ namespace zero
             std::vector<int> get_output_shape();
 
             Tensor *forward(Tensor *x, bool train_flg);
-            void backward(Tensor *pred, Tensor *y);
+            void backward(Tensor *dc);
             void step(int batch_size);
         };
     }

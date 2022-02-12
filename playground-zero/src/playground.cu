@@ -87,7 +87,7 @@ void nn_performance_test()
 		for (int i = 0; i < batch_size; i++)
 		{
 			Tensor *pred = model->forward(batch->get_x(i), true);
-			model->backward(pred, batch->get_y(i));
+			delete model->backward(pred, batch->get_y(i));
 			delete pred;
 		}
 		model->step(batch_size);

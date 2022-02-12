@@ -137,7 +137,7 @@ namespace zero
             ~PoolingLayer();
 
             virtual LayerType get_type();
-            std::vector<int> get_output_shape();
+            virtual std::vector<int> get_output_shape();
             virtual void forward(Tensor *nxt_n, bool train_flg);
             virtual Tensor *backward(Tensor *dc);
             virtual void save(FILE *file_ptr);
