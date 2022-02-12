@@ -338,7 +338,7 @@ void Model::step(int batch_size)
     }
 }
 
-void Model::gradient_check(Tensor *x, Tensor *y, bool print_flg)
+void Model::check_grad(Tensor *x, Tensor *y, bool print_flg)
 {
     x->to(Device::Cuda);
     y->to(Device::Cuda);
