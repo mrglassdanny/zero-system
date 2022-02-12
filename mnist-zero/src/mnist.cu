@@ -156,6 +156,8 @@ int main(int argc, char **argv)
     conv->test(test_batch).print();
     delete test_batch;
 
+    delete conv;
+
     delete train_sup;
     delete test_sup;
 
