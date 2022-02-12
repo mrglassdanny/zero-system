@@ -101,13 +101,27 @@ __global__ void k_derive_cost(float *n_arr, float *y_arr, float *dc_arr, int n_c
 
 // Model functions:
 
+Model::Model()
+{
+    this->cost_fn = CostFunction::MSE;
+    this->learning_rate = 0.001f;
+}
+
 Model::Model(CostFunction cost_fn, float learning_rate)
 {
     this->cost_fn = cost_fn;
     this->learning_rate = learning_rate;
 }
 
-Model::Model(const char *path)
+Model::~Model()
+{
+    for (Layer *lyr : this->layers)
+    {
+        delete lyr;
+    }
+}
+
+void Model::load(const char *path)
 {
     FILE *file_ptr = fopen(path, "rb");
 
@@ -149,14 +163,6 @@ Model::Model(const char *path)
     }
 
     fclose(file_ptr);
-}
-
-Model::~Model()
-{
-    for (Layer *lyr : this->layers)
-    {
-        delete lyr;
-    }
 }
 
 void Model::save(const char *path)
@@ -629,13 +635,13 @@ Tensor *Model::predict(Tensor *x)
 
 // ConvNet functions:
 
-ConvNet::ConvNet(CostFunction cost_fn, float learning_rate)
-    : Model(cost_fn, learning_rate)
+ConvNet::ConvNet()
+    : Model()
 {
 }
 
-ConvNet::ConvNet(const char *path)
-    : Model(path)
+ConvNet::ConvNet(CostFunction cost_fn, float learning_rate)
+    : Model(cost_fn, learning_rate)
 {
 }
 
@@ -675,13 +681,13 @@ void ConvNet::pooling(std::vector<int> n_shape, PoolingFunction pool_fn)
 
 // EmbeddableModel functions:
 
-EmbeddableModel::EmbeddableModel(CostFunction cost_fn, float learning_rate)
-    : Model(cost_fn, learning_rate)
+EmbeddableModel::EmbeddableModel()
+    : Model()
 {
 }
 
-EmbeddableModel::EmbeddableModel(const char *path)
-    : Model(path)
+EmbeddableModel::EmbeddableModel(CostFunction cost_fn, float learning_rate)
+    : Model(cost_fn, learning_rate)
 {
 }
 

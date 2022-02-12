@@ -21,11 +21,12 @@ namespace zero
             void add_layer(Layer *lyr);
 
         public:
+            Model();
             Model(CostFunction cost_fn, float learning_rate);
-            Model(const char *path);
             ~Model();
 
-            void save(const char *path);
+            virtual void load(const char *path);
+            virtual void save(const char *path);
 
             void linear(int nxt_n_cnt);
             void linear(int nxt_n_cnt, InitializationFunction init_fn);
@@ -45,7 +46,7 @@ namespace zero
             void set_learning_rate(float learning_rate);
 
             virtual Tensor *forward(Tensor *x, bool train_flg);
-            float cost(Tensor *pred, Tensor *y);
+            virtual float cost(Tensor *pred, Tensor *y);
             virtual Tensor *backward(Tensor *pred, Tensor *y);
             virtual void step(int batch_size);
 
@@ -63,8 +64,8 @@ namespace zero
         class ConvNet : public Model
         {
         public:
+            ConvNet();
             ConvNet(CostFunction cost_fn, float learning_rate);
-            ConvNet(const char *path);
             ~ConvNet();
 
             void convolutional(int fltr_cnt, int w_row_cnt, int w_col_cnt);
@@ -84,8 +85,8 @@ namespace zero
             void add_embedding(Embedding *emb);
 
         public:
+            EmbeddableModel();
             EmbeddableModel(CostFunction cost_fn, float learning_rate);
-            EmbeddableModel(const char *path);
             ~EmbeddableModel();
 
             void embed(Embedding *emb);
