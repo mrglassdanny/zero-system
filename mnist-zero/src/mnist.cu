@@ -117,52 +117,52 @@ int main(int argc, char **argv)
     Supervisor *train_sup = get_mnist_train_supervisor();
     Supervisor *test_sup = get_mnist_test_supervisor();
 
-    Model *model = new Model(CrossEntropy, 0.001f);
+    ConvNet *conv = new ConvNet(CrossEntropy, 0.001f);
 
-    model->convolutional(train_sup->get_x_shape(), 512, 3, 3);
-    model->activation(ReLU);
+    conv->convolutional(train_sup->get_x_shape(), 512, 3, 3);
+    conv->activation(ReLU);
 
-    model->pooling(PoolingFunction::Max);
+    conv->pooling(PoolingFunction::Max);
 
-    model->convolutional(512, 3, 3);
-    model->activation(ReLU);
+    conv->convolutional(512, 3, 3);
+    conv->activation(ReLU);
 
-    model->pooling(PoolingFunction::Max);
+    conv->pooling(PoolingFunction::Max);
 
-    model->convolutional(512, 3, 3);
-    model->activation(ReLU);
+    conv->convolutional(512, 3, 3);
+    conv->activation(ReLU);
 
-    model->pooling(PoolingFunction::Max);
+    conv->pooling(PoolingFunction::Max);
 
-    model->convolutional(512, 3, 3);
-    model->activation(ReLU);
+    conv->convolutional(512, 3, 3);
+    conv->activation(ReLU);
 
-    model->linear(2048);
-    model->activation(ReLU);
+    conv->linear(2048);
+    conv->activation(ReLU);
 
-    model->linear(2048);
-    model->activation(ReLU);
+    conv->linear(2048);
+    conv->activation(ReLU);
 
-    model->linear(512);
-    model->activation(ReLU);
+    conv->linear(512);
+    conv->activation(ReLU);
 
-    model->linear(64);
-    model->activation(ReLU);
+    conv->linear(64);
+    conv->activation(ReLU);
 
-    model->linear(Tensor::get_cnt(train_sup->get_y_shape()));
-    model->activation(Sigmoid);
+    conv->linear(Tensor::get_cnt(train_sup->get_y_shape()));
+    conv->activation(Sigmoid);
 
-    model->fit(train_sup, 64, 20, "temp\\mnist-train.csv");
+    conv->fit(train_sup, 64, 20, "temp\\mnist-train.csv");
 
     Batch *test_batch = test_sup->create_batch();
 
-    model->test(test_batch).print();
+    conv->test(test_batch).print();
 
     delete test_batch;
 
-    model->save("temp\\mnist.nn");
+    conv->save("temp\\mnist.nn");
 
-    delete model;
+    delete conv;
 
     delete train_sup;
     delete test_sup;

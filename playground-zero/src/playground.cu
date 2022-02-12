@@ -11,7 +11,7 @@ using namespace zero::cluster;
 
 void nn_gradient_test()
 {
-	Model *model = new Model(CostFunction::CrossEntropy, 0.001f);
+	ConvNet *conv = new ConvNet(CostFunction::CrossEntropy, 0.001f);
 
 	Tensor *x = new Tensor(Device::Cuda, 3, 16, 16);
 	x->set_all_rand(0.0f, 1.0f);
@@ -19,31 +19,31 @@ void nn_gradient_test()
 	Tensor *y = new Tensor(Device::Cuda, 8);
 	y->set_val(2, 1.0f);
 
-	model->convolutional(x->get_shape(), 8, 5, 5);
-	model->activation(ActivationFunction::Sigmoid);
+	conv->convolutional(x->get_shape(), 8, 5, 5);
+	conv->activation(ActivationFunction::Sigmoid);
 
-	model->pooling(PoolingFunction::Max);
+	conv->pooling(PoolingFunction::Max);
 
-	model->convolutional(4, 3, 3);
-	model->activation(ActivationFunction::Sigmoid);
+	conv->convolutional(4, 3, 3);
+	conv->activation(ActivationFunction::Sigmoid);
 
-	model->pooling(PoolingFunction::Average);
+	conv->pooling(PoolingFunction::Average);
 
-	model->linear(64);
-	model->activation(ActivationFunction::Tanh);
+	conv->linear(64);
+	conv->activation(ActivationFunction::Tanh);
 
-	model->linear(40);
-	model->activation(ActivationFunction::Tanh);
+	conv->linear(40);
+	conv->activation(ActivationFunction::Tanh);
 
-	model->linear(Tensor::get_cnt(y->get_shape()));
-	model->activation(ActivationFunction::Tanh);
+	conv->linear(Tensor::get_cnt(y->get_shape()));
+	conv->activation(ActivationFunction::Tanh);
 
-	model->gradient_check(x, y, true);
+	conv->check_grad(x, y, true);
 
 	delete x;
 	delete y;
 
-	delete model;
+	delete conv;
 }
 
 void nn_performance_test()

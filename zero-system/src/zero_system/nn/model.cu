@@ -219,26 +219,6 @@ void Model::linear(std::vector<int> n_shape, int nxt_n_cnt, InitializationFuncti
     this->add_layer(new LinearLayer(n_shape, nxt_n_cnt, init_fn));
 }
 
-void Model::convolutional(int fltr_cnt, int w_row_cnt, int w_col_cnt)
-{
-    this->convolutional(this->get_output_shape(), fltr_cnt, w_row_cnt, w_col_cnt, InitializationFunction::Xavier);
-}
-
-void Model::convolutional(int fltr_cnt, int w_row_cnt, int w_col_cnt, InitializationFunction init_fn)
-{
-    this->convolutional(this->get_output_shape(), fltr_cnt, w_row_cnt, w_col_cnt, init_fn);
-}
-
-void Model::convolutional(std::vector<int> n_shape, int fltr_cnt, int w_row_cnt, int w_col_cnt)
-{
-    this->convolutional(n_shape, fltr_cnt, w_row_cnt, w_col_cnt, InitializationFunction::Xavier);
-}
-
-void Model::convolutional(std::vector<int> n_shape, int fltr_cnt, int w_row_cnt, int w_col_cnt, InitializationFunction init_fn)
-{
-    this->add_layer(new ConvolutionalLayer(n_shape, fltr_cnt, w_row_cnt, w_col_cnt, init_fn));
-}
-
 void Model::activation(ActivationFunction activation_fn)
 {
     this->activation(this->get_output_shape(), activation_fn);
@@ -257,16 +237,6 @@ void Model::dropout(float dropout_rate)
 void Model::dropout(std::vector<int> n_shape, float dropout_rate)
 {
     this->add_layer(new DropoutLayer(n_shape, dropout_rate));
-}
-
-void Model::pooling(PoolingFunction pool_fn)
-{
-    this->pooling(this->get_output_shape(), pool_fn);
-}
-
-void Model::pooling(std::vector<int> n_shape, PoolingFunction pool_fn)
-{
-    this->add_layer(new PoolingLayer(n_shape, pool_fn));
 }
 
 std::vector<int> Model::get_input_shape()
@@ -660,4 +630,50 @@ void Model::fit(Supervisor *supervisor, int batch_size, int target_epoch, const 
 Tensor *Model::predict(Tensor *x)
 {
     return this->forward(x, false);
+}
+
+// ConvNet functions:
+
+ConvNet::ConvNet(CostFunction cost_fn, float learning_rate)
+    : Model(cost_fn, learning_rate)
+{
+}
+
+ConvNet::ConvNet(const char *path)
+    : Model(path)
+{
+}
+
+ConvNet::~ConvNet()
+{
+}
+
+void ConvNet::convolutional(int fltr_cnt, int w_row_cnt, int w_col_cnt)
+{
+    this->convolutional(this->get_output_shape(), fltr_cnt, w_row_cnt, w_col_cnt, InitializationFunction::Xavier);
+}
+
+void ConvNet::convolutional(int fltr_cnt, int w_row_cnt, int w_col_cnt, InitializationFunction init_fn)
+{
+    this->convolutional(this->get_output_shape(), fltr_cnt, w_row_cnt, w_col_cnt, init_fn);
+}
+
+void ConvNet::convolutional(std::vector<int> n_shape, int fltr_cnt, int w_row_cnt, int w_col_cnt)
+{
+    this->convolutional(n_shape, fltr_cnt, w_row_cnt, w_col_cnt, InitializationFunction::Xavier);
+}
+
+void ConvNet::convolutional(std::vector<int> n_shape, int fltr_cnt, int w_row_cnt, int w_col_cnt, InitializationFunction init_fn)
+{
+    this->add_layer(new ConvolutionalLayer(n_shape, fltr_cnt, w_row_cnt, w_col_cnt, init_fn));
+}
+
+void ConvNet::pooling(PoolingFunction pool_fn)
+{
+    this->pooling(this->get_output_shape(), pool_fn);
+}
+
+void ConvNet::pooling(std::vector<int> n_shape, PoolingFunction pool_fn)
+{
+    this->add_layer(new PoolingLayer(n_shape, pool_fn));
 }

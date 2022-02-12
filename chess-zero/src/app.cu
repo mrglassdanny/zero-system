@@ -40,29 +40,29 @@ public:
     }
 };
 
-Model *init_model()
+ConvNet *init_model()
 {
-    Model *model = new Model(CostFunction::MSE, 0.01f);
+    ConvNet *conv = new ConvNet(CostFunction::MSE, 0.01f);
 
     std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
     int y_shape = 1;
 
-    model->convolutional(x_shape, 1, 1, 1);
-    model->activation(ActivationFunction::Tanh);
+    conv->convolutional(x_shape, 1, 1, 1);
+    conv->activation(ActivationFunction::Tanh);
 
-    model->linear(1024);
-    model->activation(ActivationFunction::Tanh);
+    conv->linear(1024);
+    conv->activation(ActivationFunction::Tanh);
 
-    model->linear(1024);
-    model->activation(ActivationFunction::Tanh);
+    conv->linear(1024);
+    conv->activation(ActivationFunction::Tanh);
 
-    model->linear(128);
-    model->activation(ActivationFunction::Tanh);
+    conv->linear(128);
+    conv->activation(ActivationFunction::Tanh);
 
-    model->linear(y_shape);
-    model->activation(ActivationFunction::Tanh);
+    conv->linear(y_shape);
+    conv->activation(ActivationFunction::Tanh);
 
-    return model;
+    return conv;
 }
 
 Model *init_model(const char *model_path)
@@ -610,16 +610,16 @@ int main(int argc, char **argv)
 {
     srand(time(NULL));
 
-    //Model *model = init_model();
+    // Model *model = init_model();
     Model *model = init_model("temp\\bootstrapped-chess-zero.nn");
 
-    //bootstrap_learn(model);
+    // bootstrap_learn(model);
 
-    //self_learn(model);
+    // self_learn(model);
 
     play_model(model, false);
 
-    //model->save("temp\\chess-zero.nn");
+    // model->save("temp\\chess-zero.nn");
 
     delete model;
 
