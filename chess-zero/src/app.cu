@@ -67,7 +67,8 @@ ConvNet *init_model()
 
 Model *init_model(const char *model_path)
 {
-    Model *model = new Model(model_path);
+    Model *model = new Model();
+    model->load(model_path);
     return model;
 }
 
