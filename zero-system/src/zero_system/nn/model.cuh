@@ -21,7 +21,6 @@ namespace zero
 
         public:
             Model();
-            Model(const char *path);
             Model(CostFunction cost_fn, float learning_rate);
             ~Model();
 
@@ -65,7 +64,6 @@ namespace zero
         {
         public:
             ConvNet();
-            ConvNet(const char *path);
             ConvNet(CostFunction cost_fn, float learning_rate);
             ~ConvNet();
 
@@ -87,7 +85,6 @@ namespace zero
 
         public:
             EmbeddableModel();
-            EmbeddableModel(const char *path);
             EmbeddableModel(CostFunction cost_fn, float learning_rate);
             ~EmbeddableModel();
 
