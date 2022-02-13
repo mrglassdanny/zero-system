@@ -91,6 +91,8 @@ namespace zero
             Embedding(int beg_x_idx, int end_x_idx);
             ~Embedding();
 
+            // TODO: load & save
+
             int get_beg_x_idx();
             int get_end_x_idx();
 
@@ -108,6 +110,8 @@ namespace zero
             EmbeddableModel();
             EmbeddableModel(CostFunction cost_fn, float learning_rate);
             ~EmbeddableModel();
+
+            // TODO: load & save
 
             void embed(Embedding *emb);
 

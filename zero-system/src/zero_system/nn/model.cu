@@ -254,7 +254,6 @@ void Model::set_learning_rate(float learning_rate)
 
 Tensor *Model::forward(Tensor *x, bool train_flg)
 {
-    // Convert to Cuda.
     x->to(Device::Cuda);
 
     int lst_lyr_idx = this->layers.size() - 1;
@@ -280,7 +279,6 @@ Tensor *Model::forward(Tensor *x, bool train_flg)
 
 float Model::cost(Tensor *pred, Tensor *y)
 {
-    // Convert to Cuda.
     y->to(Device::Cuda);
 
     float *d_cost_val;
@@ -304,7 +302,6 @@ float Model::cost(Tensor *pred, Tensor *y)
 
 Tensor *Model::backward(Tensor *pred, Tensor *y)
 {
-    // Convert to Cuda.
     y->to(Device::Cuda);
 
     Tensor *dc = new Tensor(Device::Cuda, pred->get_shape());
@@ -750,6 +747,10 @@ EmbeddableModel::EmbeddableModel(CostFunction cost_fn, float learning_rate)
 
 EmbeddableModel::~EmbeddableModel()
 {
+    for (Embedding *emb : this->embeddings)
+    {
+        delete emb;
+    }
 }
 
 void EmbeddableModel::add_embedding(Embedding *emb)
@@ -766,7 +767,6 @@ void EmbeddableModel::embed(Embedding *emb)
 
 Tensor *EmbeddableModel::forward(Tensor *x, bool train_flg)
 {
-    // Convert to Cuda.
     x->to(Device::Cuda);
 
     int lst_lyr_idx = this->layers.size() - 1;
@@ -792,9 +792,12 @@ Tensor *EmbeddableModel::forward(Tensor *x, bool train_flg)
         }
     }
 
-    // Now we need to adjust x tensor to match our updated shape and values due to embeddings:
+    // Now we need to create an adjusted x tensor to match our updated shape and values due to embeddings:
     Tensor *adj_x = new Tensor(x->get_device(), adj_frst_lyr_n_cnt);
     {
+        // Go ahead and copy old x values over to new adj x.
+        cudaMemcpy(adj_x->get_arr(), x->get_arr(), sizeof(float) * x->get_cnt(), cudaMemcpyDefault);
+
         for (Embedding *emb : this->embeddings)
         {
             int beg_x_idx = emb->get_beg_x_idx();
@@ -809,8 +812,14 @@ Tensor *EmbeddableModel::forward(Tensor *x, bool train_flg)
 
             Tensor *emb_pred = emb->forward(emb_x, train_flg);
 
-            for (int x_idx = beg_x_idx, emb_x_idx = 0; x_idx < emb_pred->get_cnt(); x_idx++, emb_x_idx++)
+            for (int emb_x_idx = 0, x_idx = beg_x_idx; emb_x_idx < emb_pred->get_cnt(); emb_x_idx++, x_idx++)
             {
+                // Make sure we are not invalidating non-embedded x values.
+                if (x_idx > end_x_idx)
+                {
+                    adj_x->set_val(x_idx + 1, adj_x->get_val(x_idx));
+                }
+
                 adj_x->set_val(x_idx, emb_pred->get_val(emb_x_idx));
             }
 
