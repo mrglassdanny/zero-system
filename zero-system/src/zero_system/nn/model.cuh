@@ -95,7 +95,7 @@ namespace zero
             int get_beg_x_idx();
             int get_end_x_idx();
 
-            virtual void backward(Tensor *dc);
+            void emb_backward(Tensor *dc);
         };
 
         class EmbeddableModel : public Model

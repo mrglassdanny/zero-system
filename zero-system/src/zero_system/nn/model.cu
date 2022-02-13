@@ -720,7 +720,7 @@ int Embedding::get_end_x_idx()
     return this->end_x_idx;
 }
 
-void Embedding::backward(Tensor *dc)
+void Embedding::emb_backward(Tensor *dc)
 {
     int lst_lyr_idx = this->layers.size() - 1;
 
@@ -774,7 +774,7 @@ Tensor *EmbeddableModel::forward(Tensor *x, bool train_flg)
     Layer *frst_lyr = this->layers[0];
     Layer *lst_lyr = this->layers[lst_lyr_idx];
 
-    // Make sure first layer shape is inline with embeddings:
+    // Make sure first layer shape is updated since embeddings will alter the shape:
     int adj_frst_lyr_n_cnt = Tensor::get_cnt(x->get_shape());
     {
         for (Embedding *emb : this->embeddings)
@@ -798,12 +798,23 @@ Tensor *EmbeddableModel::forward(Tensor *x, bool train_flg)
         // Go ahead and copy old x values over to new adj x.
         cudaMemcpy(adj_x->get_arr(), x->get_arr(), sizeof(float) * x->get_cnt(), cudaMemcpyDefault);
 
+        int beg_x_idx = 0;
+        int end_x_idx = 0;
+
+        int emb_input_shape_cnt = 0;
+        int emb_output_shape_cnt = 0;
+
+        int offset = 0;
+
         for (Embedding *emb : this->embeddings)
         {
-            int beg_x_idx = emb->get_beg_x_idx();
-            int end_x_idx = emb->get_end_x_idx();
+            beg_x_idx = emb->get_beg_x_idx();
+            end_x_idx = emb->get_end_x_idx();
 
-            Tensor *emb_x = new Tensor(x->get_device(), end_x_idx - beg_x_idx + 1);
+            emb_input_shape_cnt = Tensor::get_cnt(emb->get_input_shape());
+            emb_output_shape_cnt = Tensor::get_cnt(emb->get_output_shape());
+
+            Tensor *emb_x = new Tensor(x->get_device(), emb->get_input_shape());
 
             for (int x_idx = beg_x_idx, emb_x_idx = 0; x_idx <= end_x_idx; x_idx++, emb_x_idx++)
             {
@@ -812,16 +823,21 @@ Tensor *EmbeddableModel::forward(Tensor *x, bool train_flg)
 
             Tensor *emb_pred = emb->forward(emb_x, train_flg);
 
-            for (int emb_x_idx = 0, x_idx = beg_x_idx; emb_x_idx < emb_pred->get_cnt(); emb_x_idx++, x_idx++)
+            for (int emb_pred_idx = 0, adj_x_idx = beg_x_idx + offset; emb_pred_idx < emb_pred->get_cnt(); emb_pred_idx++, adj_x_idx++)
             {
-                // Make sure we are not invalidating non-embedded x values.
-                if (x_idx > end_x_idx)
+                // Need to shift remaining x values down.
+                if (adj_x_idx > end_x_idx + offset)
                 {
-                    adj_x->set_val(x_idx + 1, adj_x->get_val(x_idx));
+                    for (int i = adj_frst_lyr_n_cnt - 2; i >= adj_x_idx; i--)
+                    {
+                        adj_x->set_val(i + 1, adj_x->get_val(i));
+                    }
                 }
 
-                adj_x->set_val(x_idx, emb_pred->get_val(emb_x_idx));
+                adj_x->set_val(adj_x_idx, emb_pred->get_val(emb_pred_idx));
             }
+
+            offset += (emb_output_shape_cnt - emb_input_shape_cnt);
 
             delete emb_x;
             delete emb_pred;
@@ -852,7 +868,7 @@ Tensor *EmbeddableModel::backward(Tensor *pred, Tensor *y)
     for (Embedding *emb : this->embeddings)
     {
         Tensor *cpy_dc = new Tensor(*dc);
-        emb->backward(cpy_dc);
+        emb->emb_backward(cpy_dc);
     }
 
     return dc;
