@@ -81,16 +81,18 @@ namespace zero
         class Embedding : public Model
         {
         protected:
-            std::vector<int> x_idxs;
+            int beg_x_idx;
+            int end_x_idx;
 
         public:
             Embedding();
             Embedding(CostFunction cost_fn, float learning_rate);
             Embedding(int x_idx);
-            Embedding(std::vector<int> x_idxs);
+            Embedding(int beg_x_idx, int end_x_idx);
             ~Embedding();
 
-            std::vector<int> get_x_idxs();
+            int get_beg_x_idx();
+            int get_end_x_idx();
 
             virtual void backward(Tensor *dc);
         };

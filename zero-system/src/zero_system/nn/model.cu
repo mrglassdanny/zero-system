@@ -697,23 +697,30 @@ Embedding::Embedding(int x_idx)
     : Model()
 {
     this->cost_fn = CostFunction::None;
-    this->x_idxs.push_back(x_idx);
+    this->beg_x_idx = x_idx;
+    this->end_x_idx = x_idx;
 }
 
-Embedding::Embedding(std::vector<int> x_idxs)
+Embedding::Embedding(int beg_x_idx, int end_x_idx)
     : Model()
 {
     this->cost_fn = CostFunction::None;
-    this->x_idxs = x_idxs;
+    this->beg_x_idx = beg_x_idx;
+    this->end_x_idx = end_x_idx;
 }
 
 Embedding::~Embedding()
 {
 }
 
-std::vector<int> Embedding::get_x_idxs()
+int Embedding::get_beg_x_idx()
 {
-    return this->x_idxs;
+    return this->beg_x_idx;
+}
+
+int Embedding::get_end_x_idx()
+{
+    return this->end_x_idx;
 }
 
 void Embedding::backward(Tensor *dc)
@@ -767,22 +774,53 @@ Tensor *EmbeddableModel::forward(Tensor *x, bool train_flg)
     Layer *frst_lyr = this->layers[0];
     Layer *lst_lyr = this->layers[lst_lyr_idx];
 
-    for (Embedding *emb : this->embeddings)
+    // Make sure first layer shape is inline with embeddings:
+    int adj_frst_lyr_n_cnt = Tensor::get_cnt(x->get_shape());
     {
-        std::vector<int> emb_x_idxs = emb->get_x_idxs();
-
-        Tensor *emb_x = new Tensor(x->get_device(), emb_x_idxs.size());
-        for (int i = 0; i < emb_x_idxs.size(); i++)
+        for (Embedding *emb : this->embeddings)
         {
-            int x_idx = emb_x_idxs[i];
-            emb_x->set_val(0, x->get_val(x_idx));
+            adj_frst_lyr_n_cnt += Tensor::get_cnt(emb->get_output_shape());
+
+            // Make sure we subtract old dims.
+            adj_frst_lyr_n_cnt -= Tensor::get_cnt(emb->get_input_shape());
         }
 
-        Tensor *emb_pred = emb->forward(emb_x, train_flg);
-        delete emb_x;
+        if (Tensor::get_cnt(frst_lyr->get_input_shape()) != adj_frst_lyr_n_cnt)
+        {
+            std::vector<int> adj_frst_lyr_shape{adj_frst_lyr_n_cnt};
+            frst_lyr->reshape_neurons(adj_frst_lyr_shape);
+        }
     }
 
-    frst_lyr->set_neurons(x);
+    // Now we need to adjust x tensor to match our updated shape and values due to embeddings:
+    Tensor *adj_x = new Tensor(x->get_device(), adj_frst_lyr_n_cnt);
+    {
+        for (Embedding *emb : this->embeddings)
+        {
+            int beg_x_idx = emb->get_beg_x_idx();
+            int end_x_idx = emb->get_end_x_idx();
+
+            Tensor *emb_x = new Tensor(x->get_device(), end_x_idx - beg_x_idx + 1);
+
+            for (int x_idx = beg_x_idx, emb_x_idx = 0; x_idx <= end_x_idx; x_idx++, emb_x_idx++)
+            {
+                emb_x->set_val(emb_x_idx, x->get_val(x_idx));
+            }
+
+            Tensor *emb_pred = emb->forward(emb_x, train_flg);
+
+            for (int x_idx = beg_x_idx, emb_x_idx = 0; x_idx < emb_pred->get_cnt(); x_idx++, emb_x_idx++)
+            {
+                adj_x->set_val(x_idx, emb_pred->get_val(emb_x_idx));
+            }
+
+            delete emb_x;
+            delete emb_pred;
+        }
+    }
+
+    frst_lyr->set_neurons(adj_x);
+    delete adj_x;
 
     for (int i = 0; i < lst_lyr_idx; i++)
     {
