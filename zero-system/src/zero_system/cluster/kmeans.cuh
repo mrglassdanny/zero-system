@@ -1,8 +1,7 @@
 
 #include <vector>
 
-#include "../core/tensor.cuh"
-#include "../core/feature.cuh"
+#include "../core/mod.cuh"
 
 namespace zero
 {

@@ -2,13 +2,10 @@
 #include <iostream>
 #include <windows.h>
 
-#include <zero_system/nn/model.cuh>
+#include <zero_system/mod.cuh>
 
 #include "chess.cuh"
 #include "pgn.cuh"
-
-using namespace zero::core;
-using namespace zero::nn;
 
 #define CHESS_START_MOVE_IDX 10
 #define CHESS_SELF_PLAY_MAX_MOV_CNT 270

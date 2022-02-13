@@ -1,13 +1,6 @@
 #include <iostream>
 
-#include <zero_system/core/tensor.cuh>
-#include <zero_system/nn/layer.cuh>
-#include <zero_system/nn/model.cuh>
-#include <zero_system/cluster/kmeans.cuh>
-
-using namespace zero::core;
-using namespace zero::nn;
-using namespace zero::cluster;
+#include <zero_system/mod.cuh>
 
 void nn_gradient_test()
 {

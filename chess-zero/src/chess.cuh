@@ -7,8 +7,7 @@
 
 #include <vector>
 
-#include <zero_system/core/tensor.cuh>
-#include <zero_system/nn/model.cuh>
+#include <zero_system/mod.cuh>
 
 #define CHESS_BOARD_ROW_CNT 8
 #define CHESS_BOARD_COL_CNT 8
@@ -23,9 +22,6 @@
 
 #define CHESS_ONE_HOT_ENCODE_COMBINATION_CNT 6
 #define CHESS_ONE_HOT_ENCODED_BOARD_LEN (CHESS_BOARD_LEN * CHESS_ONE_HOT_ENCODE_COMBINATION_CNT)
-
-using namespace zero::core;
-using namespace zero::nn;
 
 typedef enum ChessPiece
 {

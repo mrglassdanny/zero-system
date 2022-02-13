@@ -1,12 +1,5 @@
 
-#include <iostream>
-
-#include <zero_system/nn/model.cuh>
-#include <zero_system/cluster/kmeans.cuh>
-
-using namespace zero::core;
-using namespace zero::nn;
-using namespace zero::cluster;
+#include <zero_system/mod.cuh>
 
 void locmst_cluster_test()
 {
@@ -30,7 +23,7 @@ void locmst_cluster_test()
 
 int main(int argc, char **argv)
 {
-    srand(time(NULL));
+    ZERO();
 
     Table *xs_tbl = Table::fr_csv("data/deeplm_data-test.csv");
     Table *ys_tbl = xs_tbl->split("elapsed_secs");
@@ -44,9 +37,9 @@ int main(int argc, char **argv)
     delete xs_tbl;
     delete ys_tbl;
 
-    Model *model = new Model();
+    EmbeddableModel *emb_model = new EmbeddableModel();
 
-    delete model;
+    delete emb_model;
 
     delete xs;
     delete ys;

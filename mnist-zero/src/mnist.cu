@@ -1,9 +1,6 @@
 #include <iostream>
 
-#include <zero_system/nn/model.cuh>
-
-using namespace zero::core;
-using namespace zero::nn;
+#include <zero_system/mod.cuh>
 
 #define IMAGE_ROW_CNT 28
 #define IMAGE_COL_CNT 28

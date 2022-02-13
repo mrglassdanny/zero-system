@@ -7,12 +7,8 @@
 
 #include <vector>
 
-#include <zero_system/core/tensor.cuh>
-#include <zero_system/nn/model.cuh>
+#include <zero_system/mod.cuh>
 
 #include "chess.cuh"
-
-using namespace zero::core;
-using namespace zero::nn;
 
 void cuda_play(Model *model);

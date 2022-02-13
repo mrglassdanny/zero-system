@@ -1,7 +1,6 @@
 #pragma once
 
-#include "../core/tensor.cuh"
-#include "../core/feature.cuh"
+#include "../core/mod.cuh"
 
 #include "layer.cuh"
 #include "batch.cuh"

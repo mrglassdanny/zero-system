@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../core/tensor.cuh"
+#include "../core/mod.cuh"
 
 namespace zero
 {
