@@ -8,10 +8,8 @@ using namespace zero::core;
 using namespace zero::nn;
 using namespace zero::cluster;
 
-int main(int argc, char **argv)
+void locmst_cluster_test()
 {
-    srand(time(NULL));
-
     Tensor *xs = Tensor::fr_csv("data/locmst-encoded.csv");
 
     // KMeans::run_elbow_analysis(xs, (int)(xs->get_shape()[0] * 0.05f), (int)(xs->get_shape()[0] * 0.15f), 10, "temp/elbow-analysis.csv");
@@ -28,6 +26,30 @@ int main(int argc, char **argv)
     delete model;
 
     delete xs;
+}
+
+int main(int argc, char **argv)
+{
+    srand(time(NULL));
+
+    Table *xs_tbl = Table::fr_csv("data/deeplm_data-test.csv");
+    Table *ys_tbl = xs_tbl->split("elapsed_secs");
+
+    xs_tbl->encode_ordinal("actcod");
+    xs_tbl->encode_onehot("typ");
+
+    Tensor *xs = Table::to_tensor(xs_tbl);
+    Tensor *ys = Table::to_tensor(ys_tbl);
+
+    delete xs_tbl;
+    delete ys_tbl;
+
+    Model *model = new Model();
+
+    delete model;
+
+    delete xs;
+    delete ys;
 
     return 0;
 }
