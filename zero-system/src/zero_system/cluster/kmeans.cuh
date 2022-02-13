@@ -2,6 +2,7 @@
 #include <vector>
 
 #include "../core/tensor.cuh"
+#include "../core/feature.cuh"
 
 namespace zero
 {
