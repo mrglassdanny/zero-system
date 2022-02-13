@@ -47,11 +47,10 @@ namespace zero
             void set_learning_rate(float learning_rate);
 
             virtual Tensor *forward(Tensor *x, bool train_flg);
-            virtual float cost(Tensor *pred, Tensor *y);
+            float cost(Tensor *pred, Tensor *y);
             virtual Tensor *backward(Tensor *pred, Tensor *y);
             virtual void step(int batch_size);
-
-            virtual void check_grad(Tensor *x, Tensor *y, bool print_flg);
+            void check_grad(Tensor *x, Tensor *y, bool print_flg);
 
             Report train(Batch *batch);
             Report test(Batch *batch);
