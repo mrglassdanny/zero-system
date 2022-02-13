@@ -767,7 +767,7 @@ Tensor *EmbeddableModel::forward(Tensor *x, bool train_flg)
     Layer *frst_lyr = this->layers[0];
     Layer *lst_lyr = this->layers[lst_lyr_idx];
 
-        for (Embedding *emb : this->embeddings)
+    for (Embedding *emb : this->embeddings)
     {
         std::vector<int> emb_x_idxs = emb->get_x_idxs();
 

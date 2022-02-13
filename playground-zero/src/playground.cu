@@ -155,7 +155,7 @@ void kmeans_test()
 
 int main(int argc, char **argv)
 {
-	srand(time(NULL));
+	ZERO();
 
 	nn_gradient_test();
 

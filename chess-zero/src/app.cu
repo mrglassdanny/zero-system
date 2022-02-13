@@ -606,7 +606,7 @@ void play_model(Model *model, bool model_white_flg)
 
 int main(int argc, char **argv)
 {
-    srand(time(NULL));
+    ZERO();
 
     // Model *model = init_model();
     Model *model = init_model("temp\\bootstrapped-chess-zero.nn");

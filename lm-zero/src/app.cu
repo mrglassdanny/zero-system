@@ -34,17 +34,24 @@ int main(int argc, char **argv)
     Tensor *xs = Table::to_tensor(xs_tbl);
     Tensor *ys = Table::to_tensor(ys_tbl);
 
+    int x_actcod_emb_idx = xs_tbl->get_column_idx("actcod");
+
     delete xs_tbl;
     delete ys_tbl;
 
     EmbeddableModel *emb_model = new EmbeddableModel();
 
-    xs->print();
-    ys->print();
+    Embedding *actcod_emb = new Embedding(x_actcod_emb_idx);
+    emb_model->embed(actcod_emb);
 
-    Embedding *emb = new Embedding(0);
+    emb_model->linear(xs->get_shape()[1], 64);
+    emb_model->activation(ReLU);
 
-    emb_model->embed(emb);
+    emb_model->linear(32);
+    emb_model->activation(ReLU);
+
+    emb_model->linear(1);
+    emb_model->activation(ReLU);
 
     delete emb_model;
 

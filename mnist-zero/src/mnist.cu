@@ -109,7 +109,7 @@ Supervisor *get_mnist_test_supervisor()
 
 int main(int argc, char **argv)
 {
-    srand(time(NULL));
+    ZERO();
 
     Supervisor *train_sup = get_mnist_train_supervisor();
     Supervisor *test_sup = get_mnist_test_supervisor();
