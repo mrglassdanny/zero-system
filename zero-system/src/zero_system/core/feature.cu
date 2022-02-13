@@ -30,6 +30,8 @@ Column::Column(const char *name, bool numeric, int row_cnt)
     memset(this->name, 0, sizeof(this->name));
     strcpy(this->name, name);
     this->numeric = numeric;
+    this->data = NULL;
+
     this->alloc_data(row_cnt);
 }
 
@@ -90,6 +92,7 @@ void Column::alloc_data(int row_cnt)
     if (this->data != NULL)
     {
         free(this->data);
+        this->data = NULL;
     }
 
     this->row_cnt = row_cnt;
@@ -415,6 +418,20 @@ std::vector<Column *> Column::encode_onehot()
     return onehot_cols;
 }
 
+Tensor *Column::to_tensor(Column *col)
+{
+    int row_cnt = col->row_cnt;
+
+    Tensor *tensor = new Tensor(Device::Cpu, row_cnt);
+
+    for (int row_idx = 0; row_idx < row_cnt; row_idx++)
+    {
+        tensor->set_val(row_idx, col->get_numeric_val(row_idx));
+    }
+
+    return tensor;
+}
+
 Table::Table() {}
 
 Table::~Table()
@@ -448,6 +465,11 @@ int Table::get_row_cnt()
     {
         return this->cols[0]->row_cnt;
     }
+}
+
+int Table::get_column_cnt()
+{
+    return this->cols.size();
 }
 
 void Table::add_column(Column *col)
@@ -852,4 +874,24 @@ void Table::to_csv(const char *csv_file_name, Table *tbl)
     }
 
     fclose(csv_file);
+}
+
+Tensor *Table::to_tensor(Table *tbl)
+{
+    int row_cnt = tbl->get_row_cnt();
+    int col_cnt = tbl->get_column_cnt();
+
+    Tensor *tensor = new Tensor(Device::Cpu, row_cnt, col_cnt);
+
+    for (int col_idx = 0; col_idx < col_cnt; col_idx++)
+    {
+        Column *col = tbl->get_column(col_idx);
+
+        for (int row_idx = 0; row_idx < row_cnt; row_idx++)
+        {
+            tensor->set_val(row_idx * col_cnt + col_idx, col->get_numeric_val(row_idx));
+        }
+    }
+
+    return tensor;
 }

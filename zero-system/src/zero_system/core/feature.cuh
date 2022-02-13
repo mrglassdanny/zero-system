@@ -1,5 +1,6 @@
 #pragma once
 
+#include "tensor.cuh"
 #include "core_util.cuh"
 
 #define COLUMN_NAME_MAX_LEN 64
@@ -58,6 +59,8 @@ namespace zero
 
             Column *encode_ordinal();
             std::vector<Column *> encode_onehot();
+
+            static Tensor *to_tensor(Column *col);
         };
 
         class Table
@@ -72,6 +75,7 @@ namespace zero
             void print();
 
             int get_row_cnt();
+            int get_column_cnt();
 
             void add_column(Column *col);
 
@@ -92,6 +96,8 @@ namespace zero
 
             static Table *fr_csv(const char *csv_file_name);
             static void to_csv(const char *csv_file_name, Table *tbl);
+
+            static Tensor *to_tensor(Table *tbl);
         };
     }
 }
