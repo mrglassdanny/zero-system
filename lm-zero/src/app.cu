@@ -39,6 +39,13 @@ int main(int argc, char **argv)
 
     EmbeddableModel *emb_model = new EmbeddableModel();
 
+    xs->print();
+    ys->print();
+
+    Embedding *emb = new Embedding(0);
+
+    emb_model->embed(emb);
+
     delete emb_model;
 
     delete xs;

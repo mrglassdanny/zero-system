@@ -78,19 +78,36 @@ namespace zero
             void pooling(std::vector<int> n_shape, PoolingFunction pool_fn);
         };
 
+        class Embedding : public Model
+        {
+        protected:
+            std::vector<int> x_idxs;
+
+        public:
+            Embedding();
+            Embedding(CostFunction cost_fn, float learning_rate);
+            Embedding(int x_idx);
+            Embedding(std::vector<int> x_idxs);
+            ~Embedding();
+
+            std::vector<int> get_x_idxs();
+
+            virtual void backward(Tensor *dc);
+        };
+
         class EmbeddableModel : public Model
         {
         protected:
-            std::vector<Model *> embeddings;
+            std::vector<Embedding *> embeddings;
 
-            void add_embedding(Model *emb);
+            void add_embedding(Embedding *emb);
 
         public:
             EmbeddableModel();
             EmbeddableModel(CostFunction cost_fn, float learning_rate);
             ~EmbeddableModel();
 
-            void embed(Model *emb);
+            void embed(Embedding *emb);
 
             virtual Tensor *forward(Tensor *x, bool train_flg);
             virtual Tensor *backward(Tensor *pred, Tensor *y);

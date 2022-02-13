@@ -21,6 +21,7 @@ namespace zero
 
         enum CostFunction
         {
+            None,
             MSE,
             CrossEntropy
         };

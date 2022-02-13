@@ -679,6 +679,56 @@ void ConvNet::pooling(std::vector<int> n_shape, PoolingFunction pool_fn)
     this->add_layer(new PoolingLayer(n_shape, pool_fn));
 }
 
+// Embedding functions:
+
+Embedding::Embedding()
+    : Model()
+{
+    this->cost_fn = CostFunction::None;
+}
+
+Embedding::Embedding(CostFunction cost_fn, float learning_rate)
+    : Model(cost_fn, learning_rate)
+{
+    this->cost_fn = CostFunction::None;
+}
+
+Embedding::Embedding(int x_idx)
+    : Model()
+{
+    this->cost_fn = CostFunction::None;
+    this->x_idxs.push_back(x_idx);
+}
+
+Embedding::Embedding(std::vector<int> x_idxs)
+    : Model()
+{
+    this->cost_fn = CostFunction::None;
+    this->x_idxs = x_idxs;
+}
+
+Embedding::~Embedding()
+{
+}
+
+std::vector<int> Embedding::get_x_idxs()
+{
+    return this->x_idxs;
+}
+
+void Embedding::backward(Tensor *dc)
+{
+    int lst_lyr_idx = this->layers.size() - 1;
+
+    for (int i = lst_lyr_idx; i >= 0; i--)
+    {
+        Layer *lyr = this->layers[i];
+        dc = lyr->backward(dc);
+    }
+
+    delete dc;
+}
+
 // EmbeddableModel functions:
 
 EmbeddableModel::EmbeddableModel()
@@ -695,12 +745,14 @@ EmbeddableModel::~EmbeddableModel()
 {
 }
 
-void EmbeddableModel::add_embedding(Model *emb)
+void EmbeddableModel::add_embedding(Embedding *emb)
 {
+    emb->set_learning_rate(this->learning_rate);
+
     this->embeddings.push_back(emb);
 }
 
-void EmbeddableModel::embed(Model *emb)
+void EmbeddableModel::embed(Embedding *emb)
 {
     this->add_embedding(emb);
 }
@@ -715,9 +767,19 @@ Tensor *EmbeddableModel::forward(Tensor *x, bool train_flg)
     Layer *frst_lyr = this->layers[0];
     Layer *lst_lyr = this->layers[lst_lyr_idx];
 
-    for (Model *emb : this->embeddings)
+        for (Embedding *emb : this->embeddings)
     {
-        Tensor *emb_pred = emb->forward(x, train_flg);
+        std::vector<int> emb_x_idxs = emb->get_x_idxs();
+
+        Tensor *emb_x = new Tensor(x->get_device(), emb_x_idxs.size());
+        for (int i = 0; i < emb_x_idxs.size(); i++)
+        {
+            int x_idx = emb_x_idxs[i];
+            emb_x->set_val(0, x->get_val(x_idx));
+        }
+
+        Tensor *emb_pred = emb->forward(emb_x, train_flg);
+        delete emb_x;
     }
 
     frst_lyr->set_neurons(x);
@@ -740,10 +802,10 @@ Tensor *EmbeddableModel::backward(Tensor *pred, Tensor *y)
 {
     Tensor *dc = Model::backward(pred, y);
 
-    for (Model *emb : this->embeddings)
+    for (Embedding *emb : this->embeddings)
     {
         Tensor *cpy_dc = new Tensor(*dc);
-        emb->backward(cpy_dc, nullptr);
+        emb->backward(cpy_dc);
     }
 
     return dc;
@@ -751,7 +813,7 @@ Tensor *EmbeddableModel::backward(Tensor *pred, Tensor *y)
 
 void EmbeddableModel::step(int batch_size)
 {
-    for (Model *emb : this->embeddings)
+    for (Embedding *emb : this->embeddings)
     {
         emb->step(batch_size);
     }
