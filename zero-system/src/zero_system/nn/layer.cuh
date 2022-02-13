@@ -35,6 +35,7 @@ namespace zero
             virtual std::vector<int> get_output_shape();
             virtual Tensor *get_neurons();
             virtual void set_neurons(Tensor *n);
+            virtual void reshape_neurons(std::vector<int> shape);
             virtual void forward(Tensor *nxt_n, bool train_flg);
             virtual Tensor *backward(Tensor *dc) = 0;
             virtual void save(FILE *file_ptr);
