@@ -724,13 +724,13 @@ Tensor *Embedding::emb_backward(Tensor *dc, int adj_x_offset)
 {
     int lst_lyr_idx = this->layers.size() - 1;
 
-    // Need to adjust derivatives tensor since embedding only influences a handful of next layer neurons.
+    // Need to adjust derivatives tensor since embedding only influences a handful of next layer neurons:
     {
         Tensor *adj_dc = new Tensor(dc->get_device(), this->get_output_shape());
 
-        for (int i = this->beg_x_idx + adj_x_offset, j = 0; j < adj_dc->get_cnt(); i++, j++)
+        for (int adj_dc_idx = 0, dc_idx = this->beg_x_idx + adj_x_offset; adj_dc_idx < adj_dc->get_cnt(); adj_dc_idx++, dc_idx++)
         {
-            adj_dc->set_val(j, dc->get_val(i));
+            adj_dc->set_val(adj_dc_idx, dc->get_val(dc_idx));
         }
 
         delete dc;
