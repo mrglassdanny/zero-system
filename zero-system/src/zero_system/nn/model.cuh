@@ -47,10 +47,10 @@ namespace zero
             void set_learning_rate(float learning_rate);
 
             virtual Tensor *forward(Tensor *x, bool train_flg);
-            float cost(Tensor *pred, Tensor *y);
+            virtual float cost(Tensor *pred, Tensor *y);
             virtual Tensor *backward(Tensor *pred, Tensor *y);
             virtual void step(int batch_size);
-            void check_grad(Tensor *x, Tensor *y, bool print_flg);
+            virtual void check_grad(Tensor *x, Tensor *y, bool print_flg);
 
             Report train(Batch *batch);
             Report test(Batch *batch);
@@ -95,7 +95,7 @@ namespace zero
             int get_beg_x_idx();
             int get_end_x_idx();
 
-            void emb_backward(Tensor *dc);
+            Tensor *emb_backward(Tensor *dc, int adj_x_offset);
         };
 
         class EmbeddableModel : public Model

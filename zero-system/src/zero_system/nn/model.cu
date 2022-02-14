@@ -720,9 +720,22 @@ int Embedding::get_end_x_idx()
     return this->end_x_idx;
 }
 
-void Embedding::emb_backward(Tensor *dc)
+Tensor *Embedding::emb_backward(Tensor *dc, int adj_x_offset)
 {
     int lst_lyr_idx = this->layers.size() - 1;
+
+    // Need to adjust derivatives tensor since embedding only influences a handful of next layer neurons.
+    {
+        Tensor *adj_dc = new Tensor(dc->get_device(), this->get_output_shape());
+
+        for (int i = this->beg_x_idx + adj_x_offset, j = 0; j < adj_dc->get_cnt(); i++, j++)
+        {
+            adj_dc->set_val(j, dc->get_val(i));
+        }
+
+        delete dc;
+        dc = adj_dc;
+    }
 
     for (int i = lst_lyr_idx; i >= 0; i--)
     {
@@ -730,7 +743,7 @@ void Embedding::emb_backward(Tensor *dc)
         dc = lyr->backward(dc);
     }
 
-    delete dc;
+    return dc;
 }
 
 // EmbeddableModel functions:
@@ -804,7 +817,7 @@ Tensor *EmbeddableModel::forward(Tensor *x, bool train_flg)
         int emb_input_shape_cnt = 0;
         int emb_output_shape_cnt = 0;
 
-        int offset = 0;
+        int adj_x_offset = 0;
 
         for (Embedding *emb : this->embeddings)
         {
@@ -823,10 +836,10 @@ Tensor *EmbeddableModel::forward(Tensor *x, bool train_flg)
 
             Tensor *emb_pred = emb->forward(emb_x, train_flg);
 
-            for (int emb_pred_idx = 0, adj_x_idx = beg_x_idx + offset; emb_pred_idx < emb_pred->get_cnt(); emb_pred_idx++, adj_x_idx++)
+            for (int emb_pred_idx = 0, adj_x_idx = beg_x_idx + adj_x_offset; emb_pred_idx < emb_pred->get_cnt(); emb_pred_idx++, adj_x_idx++)
             {
                 // Need to shift remaining x values down.
-                if (adj_x_idx > end_x_idx + offset)
+                if (adj_x_idx > end_x_idx + adj_x_offset)
                 {
                     for (int i = adj_frst_lyr_n_cnt - 2; i >= adj_x_idx; i--)
                     {
@@ -837,7 +850,7 @@ Tensor *EmbeddableModel::forward(Tensor *x, bool train_flg)
                 adj_x->set_val(adj_x_idx, emb_pred->get_val(emb_pred_idx));
             }
 
-            offset += (emb_output_shape_cnt - emb_input_shape_cnt);
+            adj_x_offset += (emb_output_shape_cnt - emb_input_shape_cnt);
 
             delete emb_x;
             delete emb_pred;
@@ -865,10 +878,20 @@ Tensor *EmbeddableModel::backward(Tensor *pred, Tensor *y)
 {
     Tensor *dc = Model::backward(pred, y);
 
+    int emb_input_shape_cnt = 0;
+    int emb_output_shape_cnt = 0;
+    int adj_x_offset = 0;
+
     for (Embedding *emb : this->embeddings)
     {
         Tensor *cpy_dc = new Tensor(*dc);
-        emb->emb_backward(cpy_dc);
+
+        emb_input_shape_cnt = Tensor::get_cnt(emb->get_input_shape());
+        emb_output_shape_cnt = Tensor::get_cnt(emb->get_output_shape());
+
+        delete emb->emb_backward(cpy_dc, adj_x_offset);
+
+        adj_x_offset += (emb_output_shape_cnt - emb_input_shape_cnt);
     }
 
     return dc;
