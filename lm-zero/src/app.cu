@@ -57,17 +57,17 @@ int main(int argc, char **argv)
     EmbeddableModel *m = new EmbeddableModel();
 
     Embedding *actcod_emb = new Embedding(x_actcod_emb_idx);
-    actcod_emb->linear(1, 1);
+    actcod_emb->linear(1, 2);
     actcod_emb->activation(Sigmoid);
     m->embed(actcod_emb);
 
     Embedding *fr_loc_emb = new Embedding(x_fr_loc_beg_idx, x_fr_loc_end_idx);
-    fr_loc_emb->linear(3, 5);
+    fr_loc_emb->linear(3, 1);
     fr_loc_emb->activation(Sigmoid);
     m->embed(fr_loc_emb);
 
     Embedding *to_loc_emb = new Embedding(x_to_loc_beg_idx, x_to_loc_end_idx);
-    to_loc_emb->linear(3, 5);
+    to_loc_emb->linear(3, 1);
     to_loc_emb->activation(Sigmoid);
     m->embed(to_loc_emb);
 

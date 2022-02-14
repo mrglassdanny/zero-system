@@ -857,6 +857,9 @@ Tensor *EmbeddableModel::forward(Tensor *x, bool train_flg)
         }
     }
 
+    x->print();
+    adj_x->print();
+
     frst_lyr->set_neurons(adj_x);
     delete adj_x;
 
