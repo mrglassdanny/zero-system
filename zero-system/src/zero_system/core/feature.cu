@@ -327,12 +327,7 @@ Column *Column::encode_ordinal()
         return NULL;
     }
 
-    char col_name_buf[COLUMN_NAME_MAX_LEN];
-
-    memset(col_name_buf, 0, sizeof(col_name_buf));
-    snprintf(col_name_buf, sizeof(col_name_buf), "ORD_%s", this->name);
-
-    Column *ordinal_col = new Column(col_name_buf, true, this->row_cnt);
+    Column *ordinal_col = new Column(this->name, true, this->row_cnt);
 
     std::map<std::string, int> ordinal_map;
     int ordinal_id = 0;
@@ -365,12 +360,7 @@ std::vector<Column *> Column::encode_onehot()
         return onehot_cols;
     }
 
-    char col_name_buf[COLUMN_NAME_MAX_LEN];
-
-    memset(col_name_buf, 0, sizeof(col_name_buf));
-    snprintf(col_name_buf, sizeof(col_name_buf), "ORD_%s", this->name);
-
-    Column *ordinal_col = new Column(col_name_buf, true, row_cnt);
+    Column *ordinal_col = new Column(this->name, true, row_cnt);
 
     std::map<std::string, int> ordinal_map;
     int ordinal_id = 0;
@@ -393,10 +383,7 @@ std::vector<Column *> Column::encode_onehot()
 
     for (int ordinal_idx = 0; ordinal_idx < ordinal_id; ordinal_idx++)
     {
-        memset(col_name_buf, 0, sizeof(col_name_buf));
-        snprintf(col_name_buf, sizeof(col_name_buf), "OH%d_%s", ordinal_idx, this->name);
-
-        Column *onehot_col = new Column(col_name_buf, true, this->row_cnt);
+        Column *onehot_col = new Column(this->name, true, this->row_cnt);
 
         for (int row_idx = 0; row_idx < row_cnt; row_idx++)
         {
