@@ -40,6 +40,8 @@ int main(int argc, char **argv)
     int x_to_loc_beg_idx = xs_tbl->get_column_idx("to_loc_token_1");
     int x_to_loc_end_idx = xs_tbl->get_column_idx("to_loc_token_3");
 
+    xs_tbl->scale_down();
+
     Tensor *xs = Table::to_tensor(xs_tbl);
     Tensor *ys = Table::to_tensor(ys_tbl);
 
@@ -54,39 +56,39 @@ int main(int argc, char **argv)
 
     // Model setup:
 
-    EmbeddableModel *m = new EmbeddableModel();
+    EmbeddableModel *m = new EmbeddableModel(MSE, 0.0000000000000000001f);
 
     Embedding *actcod_emb = new Embedding(x_actcod_emb_idx);
-    actcod_emb->linear(1, 2);
+    actcod_emb->linear(1, 4);
     actcod_emb->activation(Sigmoid);
-    m->embed(actcod_emb);
+    // m->embed(actcod_emb);
 
     Embedding *fr_loc_emb = new Embedding(x_fr_loc_beg_idx, x_fr_loc_end_idx);
-    fr_loc_emb->linear(3, 1);
+    fr_loc_emb->linear(3, 8);
     fr_loc_emb->activation(Sigmoid);
-    m->embed(fr_loc_emb);
+    // m->embed(fr_loc_emb);
 
     Embedding *to_loc_emb = new Embedding(x_to_loc_beg_idx, x_to_loc_end_idx);
-    to_loc_emb->linear(3, 1);
+    to_loc_emb->linear(3, 8);
     to_loc_emb->activation(Sigmoid);
-    m->embed(to_loc_emb);
+    // m->embed(to_loc_emb);
 
-    m->linear(batch->get_x_shape(), 64);
-    m->activation(Sigmoid);
+    m->linear(batch->get_x_shape(), 256);
+    m->activation(ReLU);
+
+    m->linear(256);
+    m->activation(ReLU);
 
     m->linear(32);
-    m->activation(Sigmoid);
+    m->activation(ReLU);
 
     m->linear(Tensor::get_cnt(batch->get_y_shape()));
 
-    // Grad check:
-
-    Tensor *x = batch->get_x(0);
-    Tensor *y = batch->get_y(0);
-
-    m->check_grad(x, y, true);
-
     // Fit:
+
+    m->fit(batch);
+
+    m->test(batch).print();
 
     delete m;
     delete batch;
