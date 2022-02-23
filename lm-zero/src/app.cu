@@ -59,21 +59,31 @@ int main(int argc, char **argv)
     EmbeddableModel *m = new EmbeddableModel(MSE, 0.01f);
 
     Embedding *actcod_emb = new Embedding(x_actcod_emb_idx);
-    actcod_emb->linear(1, 2);
+    actcod_emb->linear(1, 24);
+    actcod_emb->activation(Sigmoid);
+    actcod_emb->linear(5);
     actcod_emb->activation(Sigmoid);
     m->embed(actcod_emb);
 
     Embedding *fr_loc_emb = new Embedding(x_fr_loc_beg_idx, x_fr_loc_end_idx);
-    fr_loc_emb->linear(3, 5);
+    fr_loc_emb->linear(3, 128);
+    fr_loc_emb->activation(Sigmoid);
+    fr_loc_emb->linear(64);
+    fr_loc_emb->activation(Sigmoid);
+    fr_loc_emb->linear(14);
     fr_loc_emb->activation(Sigmoid);
     m->embed(fr_loc_emb);
 
     Embedding *to_loc_emb = new Embedding(x_to_loc_beg_idx, x_to_loc_end_idx);
-    to_loc_emb->linear(3, 5);
+    to_loc_emb->linear(3, 128);
+    to_loc_emb->activation(Sigmoid);
+    to_loc_emb->linear(64);
+    to_loc_emb->activation(Sigmoid);
+    to_loc_emb->linear(14);
     to_loc_emb->activation(Sigmoid);
     m->embed(to_loc_emb);
 
-    m->linear(batch->get_x_shape(), 128);
+    m->linear(batch->get_x_shape(), 32);
     m->activation(Sigmoid);
 
     m->linear(32);
