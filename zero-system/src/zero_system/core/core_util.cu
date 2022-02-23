@@ -21,3 +21,72 @@ long long FileUtils::get_file_size(const char *name)
     CloseHandle(hFile);
     return size.QuadPart;
 }
+
+StackBuffer::StackBuffer()
+{
+    memset(this->arr, 0, sizeof(this->arr));
+    this->idx = 0;
+}
+
+StackBuffer::~StackBuffer() {}
+
+void StackBuffer::append(char c)
+{
+    this->arr[this->idx++] = c;
+}
+
+char *StackBuffer::get()
+{
+    return this->arr;
+}
+
+int StackBuffer::get_idx()
+{
+    return this->idx;
+}
+
+void StackBuffer::clear()
+{
+    memset(this->arr, 0, sizeof(char) * this->idx);
+    this->idx = 0;
+}
+
+bool StackBuffer::is_empty()
+{
+    return this->idx == 0;
+}
+
+bool StackBuffer::contains(char c)
+{
+    for (int i = 0; i < this->idx; i++)
+    {
+        if (this->arr[i] == c)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool StackBuffer::is_numeric()
+{
+    double val = atof(this->arr);
+
+    if (val == 0.0)
+    {
+        for (int i = 0; i < this->idx; i++)
+        {
+            if (this->arr[i] != '0' && this->arr[i] != '.' && this->arr[i] != '-')
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+    else
+    {
+        return true;
+    }
+}

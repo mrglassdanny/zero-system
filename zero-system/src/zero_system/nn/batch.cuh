@@ -4,7 +4,8 @@
 #include <algorithm>
 #include <random>
 
-#include "../core/tensor.cuh"
+#include "../core/mod.cuh"
+
 #include "nn_util.cuh"
 
 namespace zero

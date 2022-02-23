@@ -101,16 +101,27 @@ __global__ void k_derive_cost(float *n_arr, float *y_arr, float *dc_arr, int n_c
 
 // Model functions:
 
+Model::Model()
+{
+    this->cost_fn = CostFunction::MSE;
+    this->learning_rate = 0.001f;
+}
+
 Model::Model(CostFunction cost_fn, float learning_rate)
 {
     this->cost_fn = cost_fn;
     this->learning_rate = learning_rate;
-
-    cudaMalloc(&this->d_cost_val, sizeof(float));
-    cudaMemset(this->d_cost_val, 0, sizeof(float));
 }
 
-Model::Model(const char *path)
+Model::~Model()
+{
+    for (Layer *lyr : this->layers)
+    {
+        delete lyr;
+    }
+}
+
+void Model::load(const char *path)
 {
     FILE *file_ptr = fopen(path, "rb");
 
@@ -151,20 +162,7 @@ Model::Model(const char *path)
         this->add_layer(lyr);
     }
 
-    cudaMalloc(&this->d_cost_val, sizeof(float));
-    cudaMemset(this->d_cost_val, 0, sizeof(float));
-
     fclose(file_ptr);
-}
-
-Model::~Model()
-{
-    for (Layer *lyr : this->layers)
-    {
-        delete lyr;
-    }
-
-    cudaFree(this->d_cost_val);
 }
 
 void Model::save(const char *path)
@@ -219,26 +217,6 @@ void Model::linear(std::vector<int> n_shape, int nxt_n_cnt, InitializationFuncti
     this->add_layer(new LinearLayer(n_shape, nxt_n_cnt, init_fn));
 }
 
-void Model::convolutional(int fltr_cnt, int w_row_cnt, int w_col_cnt)
-{
-    this->convolutional(this->get_output_shape(), fltr_cnt, w_row_cnt, w_col_cnt, InitializationFunction::Xavier);
-}
-
-void Model::convolutional(int fltr_cnt, int w_row_cnt, int w_col_cnt, InitializationFunction init_fn)
-{
-    this->convolutional(this->get_output_shape(), fltr_cnt, w_row_cnt, w_col_cnt, init_fn);
-}
-
-void Model::convolutional(std::vector<int> n_shape, int fltr_cnt, int w_row_cnt, int w_col_cnt)
-{
-    this->convolutional(n_shape, fltr_cnt, w_row_cnt, w_col_cnt, InitializationFunction::Xavier);
-}
-
-void Model::convolutional(std::vector<int> n_shape, int fltr_cnt, int w_row_cnt, int w_col_cnt, InitializationFunction init_fn)
-{
-    this->add_layer(new ConvolutionalLayer(n_shape, fltr_cnt, w_row_cnt, w_col_cnt, init_fn));
-}
-
 void Model::activation(ActivationFunction activation_fn)
 {
     this->activation(this->get_output_shape(), activation_fn);
@@ -259,16 +237,6 @@ void Model::dropout(std::vector<int> n_shape, float dropout_rate)
     this->add_layer(new DropoutLayer(n_shape, dropout_rate));
 }
 
-void Model::pooling(PoolingFunction pool_fn)
-{
-    this->pooling(this->get_output_shape(), pool_fn);
-}
-
-void Model::pooling(std::vector<int> n_shape, PoolingFunction pool_fn)
-{
-    this->add_layer(new PoolingLayer(n_shape, pool_fn));
-}
-
 std::vector<int> Model::get_input_shape()
 {
     return this->layers[0]->get_input_shape();
@@ -286,7 +254,6 @@ void Model::set_learning_rate(float learning_rate)
 
 Tensor *Model::forward(Tensor *x, bool train_flg)
 {
-    // Convert to Cuda.
     x->to(Device::Cuda);
 
     int lst_lyr_idx = this->layers.size() - 1;
@@ -312,28 +279,29 @@ Tensor *Model::forward(Tensor *x, bool train_flg)
 
 float Model::cost(Tensor *pred, Tensor *y)
 {
-    // Convert to Cuda.
     y->to(Device::Cuda);
 
+    float *d_cost_val;
     float h_cost_val = 0.0f;
+
+    cudaMalloc(&d_cost_val, sizeof(float));
+    cudaMemset(d_cost_val, 0, sizeof(float));
 
     {
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
         int num_blocks = (pred->get_cnt() / threads_per_block) + 1;
         k_cost<<<num_blocks, threads_per_block>>>(pred->get_arr(), y->get_arr(),
-                                                  this->d_cost_val, pred->get_cnt(), this->cost_fn);
+                                                  d_cost_val, pred->get_cnt(), this->cost_fn);
     }
 
-    cudaMemcpy(&h_cost_val, this->d_cost_val, sizeof(float), cudaMemcpyDeviceToHost);
-
-    cudaMemset(this->d_cost_val, 0, sizeof(float));
+    cudaMemcpy(&h_cost_val, d_cost_val, sizeof(float), cudaMemcpyDeviceToHost);
+    cudaFree(d_cost_val);
 
     return h_cost_val;
 }
 
-void Model::backward(Tensor *pred, Tensor *y)
+Tensor *Model::backward(Tensor *pred, Tensor *y)
 {
-    // Convert to Cuda.
     y->to(Device::Cuda);
 
     Tensor *dc = new Tensor(Device::Cuda, pred->get_shape());
@@ -354,7 +322,7 @@ void Model::backward(Tensor *pred, Tensor *y)
         dc = lyr->backward(dc);
     }
 
-    delete dc;
+    return dc;
 }
 
 void Model::step(int batch_size)
@@ -368,7 +336,7 @@ void Model::step(int batch_size)
     }
 }
 
-void Model::gradient_check(Tensor *x, Tensor *y, bool print_flg)
+void Model::check_grad(Tensor *x, Tensor *y, bool print_flg)
 {
     x->to(Device::Cuda);
     y->to(Device::Cuda);
@@ -381,7 +349,7 @@ void Model::gradient_check(Tensor *x, Tensor *y, bool print_flg)
     {
         Tensor *pred = this->forward(x, true);
         this->cost(pred, y);
-        this->backward(pred, y);
+        delete this->backward(pred, y);
         delete pred;
     }
 
@@ -511,7 +479,7 @@ Report Model::train(Batch *batch)
 
         Tensor *pred = this->forward(x, true);
         cost += this->cost(pred, y);
-        this->backward(pred, y);
+        delete this->backward(pred, y);
 
         rpt.update_correct_cnt(pred, y);
 
@@ -660,4 +628,281 @@ void Model::fit(Supervisor *supervisor, int batch_size, int target_epoch, const 
 Tensor *Model::predict(Tensor *x)
 {
     return this->forward(x, false);
+}
+
+// ConvNet functions:
+
+ConvNet::ConvNet()
+    : Model()
+{
+}
+
+ConvNet::ConvNet(CostFunction cost_fn, float learning_rate)
+    : Model(cost_fn, learning_rate)
+{
+}
+
+ConvNet::~ConvNet()
+{
+}
+
+void ConvNet::convolutional(int fltr_cnt, int w_row_cnt, int w_col_cnt)
+{
+    this->convolutional(this->get_output_shape(), fltr_cnt, w_row_cnt, w_col_cnt, InitializationFunction::Xavier);
+}
+
+void ConvNet::convolutional(int fltr_cnt, int w_row_cnt, int w_col_cnt, InitializationFunction init_fn)
+{
+    this->convolutional(this->get_output_shape(), fltr_cnt, w_row_cnt, w_col_cnt, init_fn);
+}
+
+void ConvNet::convolutional(std::vector<int> n_shape, int fltr_cnt, int w_row_cnt, int w_col_cnt)
+{
+    this->convolutional(n_shape, fltr_cnt, w_row_cnt, w_col_cnt, InitializationFunction::Xavier);
+}
+
+void ConvNet::convolutional(std::vector<int> n_shape, int fltr_cnt, int w_row_cnt, int w_col_cnt, InitializationFunction init_fn)
+{
+    this->add_layer(new ConvolutionalLayer(n_shape, fltr_cnt, w_row_cnt, w_col_cnt, init_fn));
+}
+
+void ConvNet::pooling(PoolingFunction pool_fn)
+{
+    this->pooling(this->get_output_shape(), pool_fn);
+}
+
+void ConvNet::pooling(std::vector<int> n_shape, PoolingFunction pool_fn)
+{
+    this->add_layer(new PoolingLayer(n_shape, pool_fn));
+}
+
+// Embedding functions:
+
+Embedding::Embedding()
+    : Model()
+{
+    this->cost_fn = CostFunction::None;
+}
+
+Embedding::Embedding(CostFunction cost_fn, float learning_rate)
+    : Model(cost_fn, learning_rate)
+{
+    this->cost_fn = CostFunction::None;
+}
+
+Embedding::Embedding(int x_idx)
+    : Model()
+{
+    this->cost_fn = CostFunction::None;
+    this->beg_x_idx = x_idx;
+    this->end_x_idx = x_idx;
+}
+
+Embedding::Embedding(int beg_x_idx, int end_x_idx)
+    : Model()
+{
+    this->cost_fn = CostFunction::None;
+    this->beg_x_idx = beg_x_idx;
+    this->end_x_idx = end_x_idx;
+}
+
+Embedding::~Embedding()
+{
+}
+
+int Embedding::get_beg_x_idx()
+{
+    return this->beg_x_idx;
+}
+
+int Embedding::get_end_x_idx()
+{
+    return this->end_x_idx;
+}
+
+Tensor *Embedding::emb_backward(Tensor *dc, int adj_x_offset)
+{
+    int lst_lyr_idx = this->layers.size() - 1;
+
+    // Need to adjust derivatives tensor since embedding only influences a handful of next layer neurons:
+    {
+        Tensor *adj_dc = new Tensor(dc->get_device(), this->get_output_shape());
+
+        for (int adj_dc_idx = 0, dc_idx = this->beg_x_idx + adj_x_offset; adj_dc_idx < adj_dc->get_cnt(); adj_dc_idx++, dc_idx++)
+        {
+            adj_dc->set_val(adj_dc_idx, dc->get_val(dc_idx));
+        }
+
+        delete dc;
+        dc = adj_dc;
+    }
+
+    for (int i = lst_lyr_idx; i >= 0; i--)
+    {
+        Layer *lyr = this->layers[i];
+        dc = lyr->backward(dc);
+    }
+
+    return dc;
+}
+
+// EmbeddableModel functions:
+
+EmbeddableModel::EmbeddableModel()
+    : Model()
+{
+}
+
+EmbeddableModel::EmbeddableModel(CostFunction cost_fn, float learning_rate)
+    : Model(cost_fn, learning_rate)
+{
+}
+
+EmbeddableModel::~EmbeddableModel()
+{
+    for (Embedding *emb : this->embeddings)
+    {
+        delete emb;
+    }
+}
+
+void EmbeddableModel::add_embedding(Embedding *emb)
+{
+    emb->set_learning_rate(this->learning_rate);
+
+    this->embeddings.push_back(emb);
+}
+
+void EmbeddableModel::embed(Embedding *emb)
+{
+    this->add_embedding(emb);
+}
+
+Tensor *EmbeddableModel::forward(Tensor *x, bool train_flg)
+{
+    x->to(Device::Cuda);
+
+    int lst_lyr_idx = this->layers.size() - 1;
+
+    Layer *frst_lyr = this->layers[0];
+    Layer *lst_lyr = this->layers[lst_lyr_idx];
+
+    // Make sure first layer shape is updated since embeddings will alter the shape:
+    int adj_frst_lyr_n_cnt = Tensor::get_cnt(x->get_shape());
+    {
+        for (Embedding *emb : this->embeddings)
+        {
+            adj_frst_lyr_n_cnt += Tensor::get_cnt(emb->get_output_shape());
+
+            // Make sure we subtract old dims.
+            adj_frst_lyr_n_cnt -= Tensor::get_cnt(emb->get_input_shape());
+        }
+
+        if (Tensor::get_cnt(frst_lyr->get_input_shape()) != adj_frst_lyr_n_cnt)
+        {
+            std::vector<int> adj_frst_lyr_shape{adj_frst_lyr_n_cnt};
+            frst_lyr->reshape_neurons(adj_frst_lyr_shape);
+        }
+    }
+
+    // Now we need to create an adjusted x tensor to match our updated shape and values due to embeddings:
+    Tensor *adj_x = new Tensor(x->get_device(), adj_frst_lyr_n_cnt);
+    {
+        // Go ahead and copy old x values over to new adj x.
+        cudaMemcpy(adj_x->get_arr(), x->get_arr(), sizeof(float) * x->get_cnt(), cudaMemcpyDefault);
+
+        int beg_x_idx = 0;
+        int end_x_idx = 0;
+
+        int emb_input_shape_cnt = 0;
+        int emb_output_shape_cnt = 0;
+
+        int adj_x_offset = 0;
+
+        for (Embedding *emb : this->embeddings)
+        {
+            beg_x_idx = emb->get_beg_x_idx();
+            end_x_idx = emb->get_end_x_idx();
+
+            emb_input_shape_cnt = Tensor::get_cnt(emb->get_input_shape());
+            emb_output_shape_cnt = Tensor::get_cnt(emb->get_output_shape());
+
+            Tensor *emb_x = new Tensor(x->get_device(), emb->get_input_shape());
+
+            for (int x_idx = beg_x_idx, emb_x_idx = 0; x_idx <= end_x_idx; x_idx++, emb_x_idx++)
+            {
+                emb_x->set_val(emb_x_idx, x->get_val(x_idx));
+            }
+
+            Tensor *emb_pred = emb->forward(emb_x, train_flg);
+
+            for (int emb_pred_idx = 0, adj_x_idx = beg_x_idx + adj_x_offset; emb_pred_idx < emb_pred->get_cnt(); emb_pred_idx++, adj_x_idx++)
+            {
+                // Need to shift remaining x values down.
+                if (adj_x_idx > end_x_idx + adj_x_offset)
+                {
+                    for (int i = adj_frst_lyr_n_cnt - 2; i >= adj_x_idx; i--)
+                    {
+                        adj_x->set_val(i + 1, adj_x->get_val(i));
+                    }
+                }
+
+                adj_x->set_val(adj_x_idx, emb_pred->get_val(emb_pred_idx));
+            }
+
+            adj_x_offset += (emb_output_shape_cnt - emb_input_shape_cnt);
+
+            delete emb_x;
+            delete emb_pred;
+        }
+    }
+
+    frst_lyr->set_neurons(adj_x);
+    delete adj_x;
+
+    for (int i = 0; i < lst_lyr_idx; i++)
+    {
+        Layer *lyr = this->layers[i];
+        Layer *nxt_lyr = this->layers[i + 1];
+
+        lyr->forward(nxt_lyr->get_neurons(), train_flg);
+    }
+
+    Tensor *pred = new Tensor(Device::Cuda, lst_lyr->get_output_shape());
+    lst_lyr->forward(pred, train_flg);
+
+    return pred;
+}
+
+Tensor *EmbeddableModel::backward(Tensor *pred, Tensor *y)
+{
+    Tensor *dc = Model::backward(pred, y);
+
+    int emb_input_shape_cnt = 0;
+    int emb_output_shape_cnt = 0;
+    int adj_x_offset = 0;
+
+    for (Embedding *emb : this->embeddings)
+    {
+        Tensor *cpy_dc = new Tensor(*dc);
+
+        emb_input_shape_cnt = Tensor::get_cnt(emb->get_input_shape());
+        emb_output_shape_cnt = Tensor::get_cnt(emb->get_output_shape());
+
+        delete emb->emb_backward(cpy_dc, adj_x_offset);
+
+        adj_x_offset += (emb_output_shape_cnt - emb_input_shape_cnt);
+    }
+
+    return dc;
+}
+
+void EmbeddableModel::step(int batch_size)
+{
+    for (Embedding *emb : this->embeddings)
+    {
+        emb->step(batch_size);
+    }
+
+    Model::step(batch_size);
 }

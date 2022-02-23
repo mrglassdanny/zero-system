@@ -9,6 +9,7 @@
 #include <conio.h>
 #include <random>
 #include <vector>
+#include <map>
 #include <windows.h>
 
 #include <cuda_runtime.h>
@@ -25,6 +26,25 @@ namespace zero
         {
         public:
             static long long get_file_size(const char *name);
+        };
+
+        class StackBuffer
+        {
+        private:
+            char arr[1024];
+            int idx;
+
+        public:
+            StackBuffer();
+            ~StackBuffer();
+
+            void append(char c);
+            char *get();
+            int get_idx();
+            void clear();
+            bool is_empty();
+            bool contains(char c);
+            bool is_numeric();
         };
     }
 }

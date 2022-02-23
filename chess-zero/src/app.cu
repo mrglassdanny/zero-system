@@ -2,13 +2,10 @@
 #include <iostream>
 #include <windows.h>
 
-#include <zero_system/nn/model.cuh>
+#include <zero_system/mod.cuh>
 
 #include "chess.cuh"
 #include "pgn.cuh"
-
-using namespace zero::core;
-using namespace zero::nn;
 
 #define CHESS_START_MOVE_IDX 10
 #define CHESS_SELF_PLAY_MAX_MOV_CNT 270
@@ -40,34 +37,35 @@ public:
     }
 };
 
-Model *init_model()
+ConvNet *init_model()
 {
-    Model *model = new Model(CostFunction::MSE, 0.01f);
+    ConvNet *conv = new ConvNet(CostFunction::MSE, 0.01f);
 
     std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
     int y_shape = 1;
 
-    model->convolutional(x_shape, 1, 1, 1);
-    model->activation(ActivationFunction::Tanh);
+    conv->convolutional(x_shape, 1, 1, 1);
+    conv->activation(ActivationFunction::Tanh);
 
-    model->linear(1024);
-    model->activation(ActivationFunction::Tanh);
+    conv->linear(1024);
+    conv->activation(ActivationFunction::Tanh);
 
-    model->linear(1024);
-    model->activation(ActivationFunction::Tanh);
+    conv->linear(1024);
+    conv->activation(ActivationFunction::Tanh);
 
-    model->linear(128);
-    model->activation(ActivationFunction::Tanh);
+    conv->linear(128);
+    conv->activation(ActivationFunction::Tanh);
 
-    model->linear(y_shape);
-    model->activation(ActivationFunction::Tanh);
+    conv->linear(y_shape);
+    conv->activation(ActivationFunction::Tanh);
 
-    return model;
+    return conv;
 }
 
 Model *init_model(const char *model_path)
 {
-    Model *model = new Model(model_path);
+    Model *model = new Model();
+    model->load(model_path);
     return model;
 }
 
@@ -350,7 +348,7 @@ void self_train(Model *model, Game *game)
     {
         Tensor *pred = model->forward(game->board_states[i], true);
         cost += model->cost(pred, y);
-        model->backward(pred, y);
+        delete model->backward(pred, y);
         delete pred;
     }
 
@@ -409,7 +407,7 @@ void bootstrap_learn(Model *model)
 
                 Tensor *pred = model->forward(x, true);
                 cost += model->cost(pred, y);
-                model->backward(pred, y);
+                delete model->backward(pred, y);
                 delete pred;
 
                 // Rotate board:
@@ -420,7 +418,7 @@ void bootstrap_learn(Model *model)
                     x->set_arr(flt_one_hot_board);
                     Tensor *pred2 = model->forward(x, true);
                     cost += model->cost(pred2, y);
-                    model->backward(pred2, y);
+                    delete model->backward(pred2, y);
                     delete pred2;
 
                     rotate_board(board, rot_board, 180);
@@ -428,7 +426,7 @@ void bootstrap_learn(Model *model)
                     x->set_arr(flt_one_hot_board);
                     Tensor *pred3 = model->forward(x, true);
                     cost += model->cost(pred3, y);
-                    model->backward(pred3, y);
+                    delete model->backward(pred3, y);
                     delete pred3;
 
                     rotate_board(board, rot_board, 270);
@@ -436,7 +434,7 @@ void bootstrap_learn(Model *model)
                     x->set_arr(flt_one_hot_board);
                     Tensor *pred4 = model->forward(x, true);
                     cost += model->cost(pred4, y);
-                    model->backward(pred4, y);
+                    delete model->backward(pred4, y);
                     delete pred4;
                 }
 
@@ -608,18 +606,18 @@ void play_model(Model *model, bool model_white_flg)
 
 int main(int argc, char **argv)
 {
-    srand(time(NULL));
+    ZERO();
 
-    //Model *model = init_model();
+    // Model *model = init_model();
     Model *model = init_model("temp\\bootstrapped-chess-zero.nn");
 
-    //bootstrap_learn(model);
+    // bootstrap_learn(model);
 
-    //self_learn(model);
+    // self_learn(model);
 
     play_model(model, false);
 
-    //model->save("temp\\chess-zero.nn");
+    // model->save("temp\\chess-zero.nn");
 
     delete model;
 

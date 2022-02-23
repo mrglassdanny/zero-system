@@ -77,16 +77,6 @@ __device__ float d_derive_cosine(float val)
 
 // Kernel functions:
 
-__global__ void k_add_residual(float *n_arr, float res_sum, int n_cnt)
-{
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (tid < n_cnt)
-    {
-        n_arr[tid] += res_sum;
-    }
-}
-
 __global__ void k_dot(float *n_arr, float *w_arr, float *nxt_n_arr, int n_cnt, int nxt_n_cnt)
 {
     __shared__ float temp[CUDA_THREADS_PER_BLOCK];
@@ -778,6 +768,13 @@ Tensor *Layer::get_neurons()
 void Layer::set_neurons(Tensor *n)
 {
     this->n->set_arr(n->get_arr(Device::Cuda));
+}
+
+void Layer::reshape_neurons(std::vector<int> shape)
+{
+    Device device = this->n->get_device();
+    delete this->n;
+    this->n = new Tensor(device, shape);
 }
 
 void Layer::forward(Tensor *nxt_n, bool train_flg)

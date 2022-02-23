@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
@@ -12,23 +12,31 @@
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="src\zero_system\cluster\kmeans.cu" />
+    <CudaCompile Include="src\zero_system\core\feature.cu" />
     <CudaCompile Include="src\zero_system\core\tensor.cu" />
     <CudaCompile Include="src\zero_system\core\core_util.cu" />
     <CudaCompile Include="src\zero_system\nn\batch.cu" />
     <CudaCompile Include="src\zero_system\nn\layer.cu" />
     <CudaCompile Include="src\zero_system\nn\model.cu" />
     <CudaCompile Include="src\zero_system\nn\nn_util.cu" />
+    <CudaCompile Include="src\zero_system\zero_system.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\zero_system\cluster\kmeans.cuh" />
+    <ClInclude Include="src\zero_system\cluster\mod.cuh" />
     <ClInclude Include="src\zero_system\core\core_constants.cuh" />
+    <ClInclude Include="src\zero_system\core\feature.cuh" />
+    <ClInclude Include="src\zero_system\core\mod.cuh" />
     <ClInclude Include="src\zero_system\core\tensor.cuh" />
     <ClInclude Include="src\zero_system\core\core_util.cuh" />
+    <ClInclude Include="src\zero_system\mod.cuh" />
     <ClInclude Include="src\zero_system\nn\batch.cuh" />
+    <ClInclude Include="src\zero_system\nn\mod.cuh" />
     <ClInclude Include="src\zero_system\nn\nn_constants.cuh" />
     <ClInclude Include="src\zero_system\nn\layer.cuh" />
     <ClInclude Include="src\zero_system\nn\model.cuh" />
     <ClInclude Include="src\zero_system\nn\nn_util.cuh" />
+    <ClInclude Include="src\zero_system\zero_system.cuh" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{D0F85482-BF6A-480C-B267-2F3EBA3807FC}</ProjectGuid>

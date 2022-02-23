@@ -1,6 +1,7 @@
 #pragma once
 
-#include "../core/tensor.cuh"
+#include "../core/mod.cuh"
+
 #include "nn_util.cuh"
 #include "nn_constants.cuh"
 
@@ -34,6 +35,7 @@ namespace zero
             virtual std::vector<int> get_output_shape();
             virtual Tensor *get_neurons();
             virtual void set_neurons(Tensor *n);
+            virtual void reshape_neurons(std::vector<int> shape);
             virtual void forward(Tensor *nxt_n, bool train_flg);
             virtual Tensor *backward(Tensor *dc) = 0;
             virtual void save(FILE *file_ptr);
@@ -137,7 +139,7 @@ namespace zero
             ~PoolingLayer();
 
             virtual LayerType get_type();
-            std::vector<int> get_output_shape();
+            virtual std::vector<int> get_output_shape();
             virtual void forward(Tensor *nxt_n, bool train_flg);
             virtual Tensor *backward(Tensor *dc);
             virtual void save(FILE *file_ptr);
