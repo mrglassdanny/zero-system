@@ -791,8 +791,8 @@ Tensor *EmbeddedModel::forward(Tensor *x, bool train_flg)
 {
     x->to(Device::Cuda);
 
-    // Now we need to create an embedded x tensor to match our updated shape and values due to embeddings:
-    Tensor *embd_x = new Tensor(x->get_device(), Tensor::get_cnt(this->get_input_shape()));
+    // We need to create an embedded x tensor to match our updated shape and values due to embeddings:
+    Tensor *embd_x = new Tensor(x->get_device(), this->get_input_shape());
 
     if (this->embeddings.size() > 0)
     {
