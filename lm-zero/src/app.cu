@@ -45,8 +45,6 @@ int main(int argc, char **argv)
     Tensor *xs = Table::to_tensor(xs_tbl);
     Tensor *ys = Table::to_tensor(ys_tbl);
 
-    xs_tbl->print();
-
     delete xs_tbl;
     delete ys_tbl;
 
@@ -61,33 +59,40 @@ int main(int argc, char **argv)
     EmbeddedModel *m = new EmbeddedModel(MSE, 0.01f);
 
     Embedding *actcod_embg = new Embedding(x_actcod_idx);
-    actcod_embg->linear(1, 5);
+    actcod_embg->linear(1, 64);
+    actcod_embg->activation(Sigmoid);
+    actcod_embg->linear(16);
     actcod_embg->activation(Sigmoid);
     m->embed(actcod_embg);
 
     Embedding *fr_loc_embg = new Embedding(x_fr_loc_beg_idx, x_fr_loc_end_idx);
-    fr_loc_embg->linear(3, 10);
+    fr_loc_embg->linear(3, 128);
+    fr_loc_embg->activation(Sigmoid);
+    fr_loc_embg->linear(32);
     fr_loc_embg->activation(Sigmoid);
     m->embed(fr_loc_embg);
 
     Embedding *to_loc_embg = new Embedding(x_to_loc_beg_idx, x_to_loc_end_idx);
-    to_loc_embg->linear(3, 10);
+    to_loc_embg->linear(3, 128);
+    to_loc_embg->activation(Sigmoid);
+    to_loc_embg->linear(32);
     to_loc_embg->activation(Sigmoid);
     m->embed(to_loc_embg);
 
-    m->linear(m->get_embedded_input_shape(batch->get_x_shape()), 16);
+    m->linear(m->get_embedded_input_shape(batch->get_x_shape()), 256);
     m->activation(Sigmoid);
 
-    m->linear(8);
+    m->linear(128);
+    m->activation(Sigmoid);
+
+    m->linear(32);
     m->activation(Sigmoid);
 
     m->linear(Tensor::get_cnt(batch->get_y_shape()));
 
     // Fit:
 
-    m->check_grad(batch->get_x(0), batch->get_y(0), true);
-
-    // m->fit(batch);
+    m->fit(batch);
 
     // Cleanup:
 
