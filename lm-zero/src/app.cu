@@ -36,7 +36,7 @@ int main(int argc, char **argv)
     xs_tbl->encode_ordinal("actcod");
     xs_tbl->encode_onehot("typ");
 
-    int x_actcod_emb_idx = xs_tbl->get_column_idx("actcod");
+    int x_actcod_idx = xs_tbl->get_column_idx("actcod");
     int x_fr_loc_beg_idx = xs_tbl->get_column_idx("fr_loc_token_1");
     int x_fr_loc_end_idx = xs_tbl->get_column_idx("fr_loc_token_3");
     int x_to_loc_beg_idx = xs_tbl->get_column_idx("to_loc_token_1");
@@ -44,6 +44,8 @@ int main(int argc, char **argv)
 
     Tensor *xs = Table::to_tensor(xs_tbl);
     Tensor *ys = Table::to_tensor(ys_tbl);
+
+    xs_tbl->print();
 
     delete xs_tbl;
     delete ys_tbl;
@@ -56,20 +58,20 @@ int main(int argc, char **argv)
 
     // Model setup:
 
-    EmbeddableModel *m = new EmbeddableModel(MSE, 0.01f);
+    EmbeddedModel *m = new EmbeddedModel(MSE, 0.01f);
 
-    Embedding *actcod_embg = new Embedding(x_actcod_emb_idx);
-    actcod_embg->linear(1, 50);
+    Embedding *actcod_embg = new Embedding(x_actcod_idx);
+    actcod_embg->linear(1, 5);
     actcod_embg->activation(Sigmoid);
     m->embed(actcod_embg);
 
     Embedding *fr_loc_embg = new Embedding(x_fr_loc_beg_idx, x_fr_loc_end_idx);
-    fr_loc_embg->linear(3, 70);
+    fr_loc_embg->linear(3, 10);
     fr_loc_embg->activation(Sigmoid);
     m->embed(fr_loc_embg);
 
     Embedding *to_loc_embg = new Embedding(x_to_loc_beg_idx, x_to_loc_end_idx);
-    to_loc_embg->linear(3, 70);
+    to_loc_embg->linear(3, 10);
     to_loc_embg->activation(Sigmoid);
     m->embed(to_loc_embg);
 
