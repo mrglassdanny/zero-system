@@ -793,6 +793,8 @@ Tensor *EmbeddedModel::forward(Tensor *x, bool train_flg)
 
     // We need to create an embedded x tensor to match our updated shape and values due to embeddings:
     Tensor *embd_x = new Tensor(x->get_device(), this->get_input_shape());
+    cudaMemcpy(embd_x->get_arr(), x->get_arr(), sizeof(float) * x->get_cnt(), cudaMemcpyDefault);
+
     if (this->embeddings.size() > 0)
     {
         // First we need to shift all non-embedding inputs in accordance to new embedded x layout:
