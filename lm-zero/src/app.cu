@@ -45,7 +45,7 @@ int main(int argc, char **argv)
     Tensor *xs = Table::to_tensor(xs_tbl);
     Tensor *ys = Table::to_tensor(ys_tbl);
 
-    // delete xs_tbl;
+    delete xs_tbl;
     delete ys_tbl;
 
     Batch *batch = new Batch();
@@ -59,34 +59,21 @@ int main(int argc, char **argv)
     EmbeddableModel *m = new EmbeddableModel(MSE, 0.01f);
 
     Embedding *actcod_embg = new Embedding(x_actcod_emb_idx);
-    actcod_embg->linear(1, 16);
-    actcod_embg->activation(Sigmoid);
-    actcod_embg->linear(8);
+    actcod_embg->linear(1, 50);
     actcod_embg->activation(Sigmoid);
     m->embed(actcod_embg);
 
     Embedding *fr_loc_embg = new Embedding(x_fr_loc_beg_idx, x_fr_loc_end_idx);
-    fr_loc_embg->linear(3, 64);
-    fr_loc_embg->activation(Sigmoid);
-    fr_loc_embg->linear(32);
-    fr_loc_embg->activation(Sigmoid);
-    fr_loc_embg->linear(19);
+    fr_loc_embg->linear(3, 70);
     fr_loc_embg->activation(Sigmoid);
     m->embed(fr_loc_embg);
 
     Embedding *to_loc_embg = new Embedding(x_to_loc_beg_idx, x_to_loc_end_idx);
-    to_loc_embg->linear(3, 64);
-    to_loc_embg->activation(Sigmoid);
-    to_loc_embg->linear(32);
-    to_loc_embg->activation(Sigmoid);
-    to_loc_embg->linear(9);
+    to_loc_embg->linear(3, 70);
     to_loc_embg->activation(Sigmoid);
     m->embed(to_loc_embg);
 
     m->linear(m->get_embedded_input_shape(batch->get_x_shape()), 16);
-    m->activation(Sigmoid);
-
-    m->linear(16);
     m->activation(Sigmoid);
 
     m->linear(8);
