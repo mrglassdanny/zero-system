@@ -85,8 +85,10 @@ namespace zero
 
             static Tensor *one_hot_encode(Device device, int row_cnt, int col_cnt, float *cpu_arr);
 
-            static Tensor *fr_csv(const char *csv_file_name);
-            void to_csv(const char *csv_file_name);
+            static Tensor *fr_csv(const char *path);
+            void to_csv(const char *path);
+
+            void to_file(const char *path);
         };
     }
 }

@@ -632,12 +632,12 @@ Tensor *Tensor::one_hot_encode(Device device, int row_cnt, int col_cnt, float *c
 }
 
 // Geared toward small csv files (under 0.5 GB).
-Tensor *Tensor::fr_csv(const char *csv_file_name)
+Tensor *Tensor::fr_csv(const char *path)
 {
-    FILE *file_ptr = fopen(csv_file_name, "rb");
+    FILE *file_ptr = fopen(path, "rb");
 
     fseek(file_ptr, 0L, SEEK_END);
-    long long file_size = FileUtils::get_file_size(csv_file_name);
+    long long file_size = FileUtils::get_file_size(path);
     rewind(file_ptr);
 
     char *buf = (char *)malloc(file_size + 1);
@@ -732,7 +732,7 @@ Tensor *Tensor::fr_csv(const char *csv_file_name)
     return tensor;
 }
 
-void Tensor::to_csv(const char *csv_file_name)
+void Tensor::to_csv(const char *path)
 {
     int dim_cnt = this->shape.size();
 
@@ -740,7 +740,7 @@ void Tensor::to_csv(const char *csv_file_name)
     {
         int cnt = this->shape[0];
 
-        FILE *file_ptr = fopen(csv_file_name, "w");
+        FILE *file_ptr = fopen(path, "w");
 
         fprintf(file_ptr, "col\n");
 
@@ -757,7 +757,7 @@ void Tensor::to_csv(const char *csv_file_name)
         int row_cnt = this->shape[0];
         int col_cnt = this->shape[1];
 
-        FILE *file_ptr = fopen(csv_file_name, "w");
+        FILE *file_ptr = fopen(path, "w");
 
         for (int j = 0; j < col_cnt; j++)
         {
@@ -794,4 +794,17 @@ void Tensor::to_csv(const char *csv_file_name)
     {
         return;
     }
+}
+
+void Tensor::to_file(const char *path)
+{
+    FILE *file_ptr = fopen(path, "wb");
+
+    int cnt = this->get_cnt();
+
+    this->to(Device::Cpu);
+
+    fwrite(this->arr, sizeof(float), cnt, file_ptr);
+
+    fclose(file_ptr);
 }
