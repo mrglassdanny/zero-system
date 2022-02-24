@@ -171,7 +171,7 @@ Tensor::~Tensor()
     }
 }
 
-void Tensor::to(Device device)
+void Tensor::to_device(Device device)
 {
     int cnt = this->get_cnt();
 
@@ -265,7 +265,7 @@ void Tensor::print()
 {
     Device orig_device = this->device;
 
-    this->to(Device::Cpu);
+    this->to_device(Device::Cpu);
 
     switch (this->shape.size())
     {
@@ -405,7 +405,7 @@ void Tensor::print()
 
     printf("\n");
 
-    this->to(orig_device);
+    this->to_device(orig_device);
 }
 
 bool Tensor::equals(Tensor *other)
@@ -470,7 +470,7 @@ float *Tensor::get_arr()
 
 float *Tensor::get_arr(Device device)
 {
-    this->to(device);
+    this->to_device(device);
     return this->arr;
 }
 
@@ -545,7 +545,7 @@ void Tensor::set_all_rand(float mean, float stddev)
     }
     else if (this->device == Device::Cuda)
     {
-        this->to(Device::Cpu);
+        this->to_device(Device::Cpu);
 
         std::random_device rd;
         std::mt19937 gen(rd());
@@ -556,7 +556,7 @@ void Tensor::set_all_rand(float mean, float stddev)
             this->arr[i] = d(gen);
         }
 
-        this->to(Device::Cuda);
+        this->to_device(Device::Cuda);
     }
 }
 
@@ -802,7 +802,7 @@ void Tensor::to_file(const char *path)
 
     int cnt = this->get_cnt();
 
-    this->to(Device::Cpu);
+    this->to_device(Device::Cpu);
 
     fwrite(this->arr, sizeof(float), cnt, file_ptr);
 

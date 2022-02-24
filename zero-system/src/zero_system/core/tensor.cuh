@@ -52,7 +52,7 @@ namespace zero
             Tensor(Device device, std::vector<int> shape);
             ~Tensor();
 
-            void to(Device device);
+            void to_device(Device device);
 
             void copy(Tensor *src);
 

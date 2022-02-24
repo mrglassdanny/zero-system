@@ -134,7 +134,7 @@ KMeans::KMeans(const char *path)
     fread(cluster_buf, sizeof(float), tot_cnt, file_ptr);
     this->clusters = new Tensor(Device::Cpu, this->cluster_cnt, this->feature_cnt);
     this->clusters->set_arr(cluster_buf);
-    this->clusters->to(Device::Cuda);
+    this->clusters->to_device(Device::Cuda);
 
     free(cluster_buf);
 
@@ -167,7 +167,7 @@ void KMeans::save(const char *path)
 
 void KMeans::initialize_clusters(Tensor *xs)
 {
-    this->clusters->to(Device::Cpu);
+    this->clusters->to_device(Device::Cpu);
 
     std::vector<int> rand_nums;
     rand_nums.reserve(this->cluster_cnt);
@@ -206,8 +206,8 @@ void KMeans::initialize_clusters(Tensor *xs)
                    &xs->get_arr()[rand_row_idx * x_col_cnt], sizeof(float) * this->feature_cnt, cudaMemcpyDefault);
     }
 
-    this->clusters->to(Device::Cuda);
-    xs->to(Device::Cuda);
+    this->clusters->to_device(Device::Cuda);
+    xs->to_device(Device::Cuda);
 }
 
 void KMeans::reset_clusters()
@@ -310,7 +310,7 @@ Tensor *KMeans::predict(Tensor *xs)
                                                                 this->feature_cnt, this->cluster_cnt, x_row_cnt);
     }
 
-    cluster_assignments->to(Device::Cpu);
+    cluster_assignments->to_device(Device::Cpu);
 
     return cluster_assignments;
 }

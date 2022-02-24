@@ -250,7 +250,7 @@ void Model::set_learning_rate(float learning_rate)
 
 Tensor *Model::forward(Tensor *x, bool train_flg)
 {
-    x->to(Device::Cuda);
+    x->to_device(Device::Cuda);
 
     int lst_lyr_idx = this->layers.size() - 1;
 
@@ -275,7 +275,7 @@ Tensor *Model::forward(Tensor *x, bool train_flg)
 
 float Model::cost(Tensor *pred, Tensor *y)
 {
-    y->to(Device::Cuda);
+    y->to_device(Device::Cuda);
 
     float *d_cost_val;
     float h_cost_val = 0.0f;
@@ -298,7 +298,7 @@ float Model::cost(Tensor *pred, Tensor *y)
 
 Tensor *Model::backward(Tensor *pred, Tensor *y)
 {
-    y->to(Device::Cuda);
+    y->to_device(Device::Cuda);
 
     Tensor *dc = new Tensor(Device::Cuda, pred->get_shape());
     dc->set_all(1.0f);
@@ -334,8 +334,8 @@ void Model::step(int batch_size)
 
 void Model::check_grad(Tensor *x, Tensor *y, bool print_flg)
 {
-    x->to(Device::Cuda);
-    y->to(Device::Cuda);
+    x->to_device(Device::Cuda);
+    y->to_device(Device::Cuda);
 
     float agg_ana_grad = 0.0f;
     float agg_num_grad = 0.0f;
@@ -482,8 +482,8 @@ Report Model::train(Batch *batch)
         delete pred;
 
         // Convert back to CPU as to not overload GPU.
-        x->to(Device::Cpu);
-        y->to(Device::Cpu);
+        x->to_device(Device::Cpu);
+        y->to_device(Device::Cpu);
     }
 
     // Get mean cost.
@@ -520,8 +520,8 @@ Report Model::test(Batch *batch)
         delete pred;
 
         // Convert back to CPU as to not overload GPU.
-        x->to(Device::Cpu);
-        y->to(Device::Cpu);
+        x->to_device(Device::Cpu);
+        y->to_device(Device::Cpu);
     }
 
     // Get mean cost.
@@ -789,7 +789,7 @@ void EmbeddedModel::embed(Embedding *embg)
 
 Tensor *EmbeddedModel::forward(Tensor *x, bool train_flg)
 {
-    x->to(Device::Cuda);
+    x->to_device(Device::Cuda);
 
     // We need to create an embedded x tensor to match our updated shape and values due to embeddings:
     Tensor *embd_x = new Tensor(x->get_device(), this->get_input_shape());

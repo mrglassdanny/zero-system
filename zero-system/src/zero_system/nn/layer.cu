@@ -828,7 +828,7 @@ LearnableLayer::LearnableLayer(FILE *file_ptr)
     float *w_buf = (float *)malloc(sizeof(float) * w_cnt);
     fread(w_buf, sizeof(float), w_cnt, file_ptr);
     this->w->set_arr(w_buf);
-    this->w->to(Device::Cuda);
+    this->w->to_device(Device::Cuda);
     free(w_buf);
 
     int b_dim_cnt;
@@ -851,7 +851,7 @@ LearnableLayer::LearnableLayer(FILE *file_ptr)
     float *b_buf = (float *)malloc(sizeof(float) * b_cnt);
     fread(b_buf, sizeof(float), b_cnt, file_ptr);
     this->b->set_arr(b_buf);
-    this->b->to(Device::Cuda);
+    this->b->to_device(Device::Cuda);
     free(b_buf);
 
     this->dw = new Tensor(Device::Cuda, w_shape);
