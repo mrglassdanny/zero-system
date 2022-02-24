@@ -809,11 +809,6 @@ Tensor *EmbeddableModel::forward(Tensor *x, bool train_flg)
 {
     x->to(Device::Cuda);
 
-    int lst_lyr_idx = this->layers.size() - 1;
-
-    Layer *frst_lyr = this->layers[0];
-    Layer *lst_lyr = this->layers[lst_lyr_idx];
-
     // Now we need to create an embedded x tensor to match our updated shape and values due to embeddings:
     int embd_input_n_cnt = Tensor::get_cnt(this->get_input_shape());
     Tensor *embd_x = new Tensor(x->get_device(), embd_input_n_cnt);
@@ -867,20 +862,8 @@ Tensor *EmbeddableModel::forward(Tensor *x, bool train_flg)
         }
     }
 
-    frst_lyr->set_neurons(embd_x);
+    Tensor *pred = Model::forward(embd_x, train_flg);
     delete embd_x;
-
-    for (int i = 0; i < lst_lyr_idx; i++)
-    {
-        Layer *lyr = this->layers[i];
-        Layer *nxt_lyr = this->layers[i + 1];
-
-        lyr->forward(nxt_lyr->get_neurons(), train_flg);
-    }
-
-    Tensor *pred = new Tensor(Device::Cuda, lst_lyr->get_output_shape());
-    lst_lyr->forward(pred, train_flg);
-
     return pred;
 }
 
