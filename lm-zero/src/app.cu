@@ -56,37 +56,37 @@ int main(int argc, char **argv)
 
     // Model setup:
 
-    EmbeddedModel *m = new EmbeddedModel(MSE, 0.01f);
+    EmbeddedModel *m = new EmbeddedModel(MSE, 0.1f);
 
     Embedding *actcod_embg = new Embedding(x_actcod_idx);
     actcod_embg->linear(1, 64);
-    actcod_embg->activation(Sigmoid);
+    actcod_embg->activation(ReLU);
     actcod_embg->linear(16);
-    actcod_embg->activation(Sigmoid);
+    actcod_embg->activation(ReLU);
     m->embed(actcod_embg);
 
     Embedding *fr_loc_embg = new Embedding(x_fr_loc_beg_idx, x_fr_loc_end_idx);
     fr_loc_embg->linear(3, 128);
-    fr_loc_embg->activation(Sigmoid);
+    fr_loc_embg->activation(ReLU);
     fr_loc_embg->linear(32);
-    fr_loc_embg->activation(Sigmoid);
+    fr_loc_embg->activation(ReLU);
     m->embed(fr_loc_embg);
 
     Embedding *to_loc_embg = new Embedding(x_to_loc_beg_idx, x_to_loc_end_idx);
     to_loc_embg->linear(3, 128);
-    to_loc_embg->activation(Sigmoid);
+    to_loc_embg->activation(ReLU);
     to_loc_embg->linear(32);
-    to_loc_embg->activation(Sigmoid);
+    to_loc_embg->activation(ReLU);
     m->embed(to_loc_embg);
 
     m->linear(m->get_embedded_input_shape(batch->get_x_shape()), 256);
-    m->activation(Sigmoid);
+    m->activation(ReLU);
 
     m->linear(128);
-    m->activation(Sigmoid);
+    m->activation(ReLU);
 
     m->linear(32);
-    m->activation(Sigmoid);
+    m->activation(ReLU);
 
     m->linear(Tensor::get_cnt(batch->get_y_shape()));
 
