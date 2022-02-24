@@ -225,22 +225,12 @@ void Model::linear(std::vector<int> n_shape, int nxt_n_cnt, InitializationFuncti
 
 void Model::activation(ActivationFunction activation_fn)
 {
-    this->activation(this->get_output_shape(), activation_fn);
-}
-
-void Model::activation(std::vector<int> n_shape, ActivationFunction activation_fn)
-{
-    this->add_layer(new ActivationLayer(n_shape, activation_fn));
+    this->add_layer(new ActivationLayer(this->get_output_shape(), activation_fn));
 }
 
 void Model::dropout(float dropout_rate)
 {
-    this->dropout(this->get_output_shape(), dropout_rate);
-}
-
-void Model::dropout(std::vector<int> n_shape, float dropout_rate)
-{
-    this->add_layer(new DropoutLayer(n_shape, dropout_rate));
+    this->add_layer(new DropoutLayer(this->get_output_shape(), dropout_rate));
 }
 
 std::vector<int> Model::get_input_shape()
@@ -674,12 +664,7 @@ void ConvNet::convolutional(std::vector<int> n_shape, int fltr_cnt, int w_row_cn
 
 void ConvNet::pooling(PoolingFunction pool_fn)
 {
-    this->pooling(this->get_output_shape(), pool_fn);
-}
-
-void ConvNet::pooling(std::vector<int> n_shape, PoolingFunction pool_fn)
-{
-    this->add_layer(new PoolingLayer(n_shape, pool_fn));
+    this->add_layer(new PoolingLayer(this->get_output_shape(), pool_fn));
 }
 
 // Embedding functions:
@@ -726,21 +711,21 @@ int Embedding::get_end_x_idx()
     return this->end_x_idx;
 }
 
-Tensor *Embedding::embedding_backward(Tensor *dc, int adj_x_offset)
+Tensor *Embedding::embedding_backward(Tensor *dc, int embd_x_offset)
 {
     int lst_lyr_idx = this->layers.size() - 1;
 
     // Need to adjust derivatives tensor since embedding only influences a handful of next layer neurons:
     {
-        Tensor *adj_dc = new Tensor(dc->get_device(), this->get_output_shape());
+        Tensor *embg_dc = new Tensor(dc->get_device(), this->get_output_shape());
 
-        for (int adj_dc_idx = 0, dc_idx = this->beg_x_idx + adj_x_offset; adj_dc_idx < adj_dc->get_cnt(); adj_dc_idx++, dc_idx++)
+        for (int embg_dc_idx = 0, dc_idx = this->beg_x_idx + embd_x_offset; embg_dc_idx < embg_dc->get_cnt(); embg_dc_idx++, dc_idx++)
         {
-            adj_dc->set_val(adj_dc_idx, dc->get_val(dc_idx));
+            embg_dc->set_val(embg_dc_idx, dc->get_val(dc_idx));
         }
 
         delete dc;
-        dc = adj_dc;
+        dc = embg_dc;
     }
 
     for (int i = lst_lyr_idx; i >= 0; i--)

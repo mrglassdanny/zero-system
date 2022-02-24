@@ -37,10 +37,8 @@ namespace zero
             void linear(std::vector<int> n_shape, int nxt_n_cnt, InitializationFunction init_fn);
 
             void activation(ActivationFunction activation_fn);
-            void activation(std::vector<int> n_shape, ActivationFunction activation_fn);
 
             void dropout(float dropout_rate);
-            void dropout(std::vector<int> n_shape, float dropout_rate);
 
             std::vector<int> get_input_shape();
             std::vector<int> get_output_shape();
@@ -75,7 +73,6 @@ namespace zero
             void convolutional(std::vector<int> n_shape, int fltr_cnt, int w_row_cnt, int w_col_cnt, InitializationFunction init_fn);
 
             void pooling(PoolingFunction pool_fn);
-            void pooling(std::vector<int> n_shape, PoolingFunction pool_fn);
         };
 
         class Embedding : public Model
