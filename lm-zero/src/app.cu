@@ -58,20 +58,30 @@ int main(int argc, char **argv)
 
     EmbeddableModel *m = new EmbeddableModel(MSE, 0.01f);
 
-    Embedding *actcod_emb = new Embedding(x_actcod_emb_idx);
-    actcod_emb->linear(1, 7);
-    actcod_emb->activation(Sigmoid);
-    m->embed(actcod_emb);
+    Embedding *actcod_embg = new Embedding(x_actcod_emb_idx);
+    actcod_embg->linear(1, 16);
+    actcod_embg->activation(Sigmoid);
+    actcod_embg->linear(8);
+    actcod_embg->activation(Sigmoid);
+    m->embed(actcod_embg);
 
-    Embedding *fr_loc_emb = new Embedding(x_fr_loc_beg_idx, x_fr_loc_end_idx);
-    fr_loc_emb->linear(3, 13);
-    fr_loc_emb->activation(Sigmoid);
-    m->embed(fr_loc_emb);
+    Embedding *fr_loc_embg = new Embedding(x_fr_loc_beg_idx, x_fr_loc_end_idx);
+    fr_loc_embg->linear(3, 64);
+    fr_loc_embg->activation(Sigmoid);
+    fr_loc_embg->linear(32);
+    fr_loc_embg->activation(Sigmoid);
+    fr_loc_embg->linear(19);
+    fr_loc_embg->activation(Sigmoid);
+    m->embed(fr_loc_embg);
 
-    Embedding *to_loc_emb = new Embedding(x_to_loc_beg_idx, x_to_loc_end_idx);
-    to_loc_emb->linear(3, 21);
-    to_loc_emb->activation(Sigmoid);
-    m->embed(to_loc_emb);
+    Embedding *to_loc_embg = new Embedding(x_to_loc_beg_idx, x_to_loc_end_idx);
+    to_loc_embg->linear(3, 64);
+    to_loc_embg->activation(Sigmoid);
+    to_loc_embg->linear(32);
+    to_loc_embg->activation(Sigmoid);
+    to_loc_embg->linear(9);
+    to_loc_embg->activation(Sigmoid);
+    m->embed(to_loc_embg);
 
     m->linear(m->get_embedded_input_shape(batch->get_x_shape()), 16);
     m->activation(Sigmoid);
@@ -87,11 +97,6 @@ int main(int argc, char **argv)
     // Fit:
 
     m->check_grad(batch->get_x(0), batch->get_y(0), true);
-
-    xs_tbl->print();
-    batch->get_x(0)->print();
-
-    m->forward(batch->get_x(0), true);
 
     // m->fit(batch);
 
