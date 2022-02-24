@@ -82,7 +82,7 @@ int main(int argc, char **argv)
     to_loc_embg->activation(ReLU);
     embd_m->embed(to_loc_embg);
 
-    embd_m->linear(embd_m->get_embedded_input_shape(batch->get_x_shape()), 256);
+    embd_m->linear(embd_m->get_embedded_input_shape(sup->get_x_shape()), 256);
     embd_m->activation(ReLU);
 
     embd_m->linear(128);
@@ -91,11 +91,11 @@ int main(int argc, char **argv)
     embd_m->linear(32);
     embd_m->activation(ReLU);
 
-    embd_m->linear(Tensor::get_cnt(batch->get_y_shape()));
+    embd_m->linear(Tensor::get_cnt(sup->get_y_shape()));
 
     // Fit:
 
-    embd_m->fit(sup, 64, 5, "temp/train.csv");
+    embd_m->fit(sup, 64, 500, "temp/train.csv");
 
     // Cleanup:
 
