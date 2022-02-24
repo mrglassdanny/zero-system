@@ -726,7 +726,7 @@ int Embedding::get_end_x_idx()
     return this->end_x_idx;
 }
 
-Tensor *Embedding::emb_backward(Tensor *dc, int adj_x_offset)
+Tensor *Embedding::embedding_backward(Tensor *dc, int adj_x_offset)
 {
     int lst_lyr_idx = this->layers.size() - 1;
 
@@ -766,9 +766,9 @@ EmbeddableModel::EmbeddableModel(CostFunction cost_fn, float learning_rate)
 
 EmbeddableModel::~EmbeddableModel()
 {
-    for (Embedding *emb : this->embeddings)
+    for (Embedding *embg : this->embeddings)
     {
-        delete emb;
+        delete embg;
     }
 }
 
@@ -779,30 +779,30 @@ std::vector<int> EmbeddableModel::get_embedded_input_shape(std::vector<int> n_sh
 
 std::vector<int> EmbeddableModel::get_embedded_input_shape(int n_cnt)
 {
-    int embedded_n_cnt = n_cnt;
+    int embd_n_cnt = n_cnt;
 
-    for (Embedding *emb : this->embeddings)
+    for (Embedding *embg : this->embeddings)
     {
-        embedded_n_cnt += Tensor::get_cnt(emb->get_output_shape());
+        embd_n_cnt += Tensor::get_cnt(embg->get_output_shape());
 
         // Make sure we subtract old dims.
-        embedded_n_cnt -= Tensor::get_cnt(emb->get_input_shape());
+        embd_n_cnt -= Tensor::get_cnt(embg->get_input_shape());
     }
 
-    std::vector<int> embedded_n_shape{embedded_n_cnt};
-    return embedded_n_shape;
+    std::vector<int> embd_n_shape{embd_n_cnt};
+    return embd_n_shape;
 }
 
-void EmbeddableModel::add_embedding(Embedding *emb)
+void EmbeddableModel::add_embedding(Embedding *embg)
 {
-    emb->set_learning_rate(this->learning_rate);
+    embg->set_learning_rate(this->learning_rate);
 
-    this->embeddings.push_back(emb);
+    this->embeddings.push_back(embg);
 }
 
-void EmbeddableModel::embed(Embedding *emb)
+void EmbeddableModel::embed(Embedding *embg)
 {
-    this->add_embedding(emb);
+    this->add_embedding(embg);
 }
 
 Tensor *EmbeddableModel::forward(Tensor *x, bool train_flg)
@@ -814,61 +814,61 @@ Tensor *EmbeddableModel::forward(Tensor *x, bool train_flg)
     Layer *frst_lyr = this->layers[0];
     Layer *lst_lyr = this->layers[lst_lyr_idx];
 
-    // Now we need to create an adjusted x tensor to match our updated shape and values due to embeddings:
-    int embedded_input_n_cnt = Tensor::get_cnt(this->get_input_shape());
-    Tensor *adj_x = new Tensor(x->get_device(), embedded_input_n_cnt);
+    // Now we need to create an embedded x tensor to match our updated shape and values due to embeddings:
+    int embd_input_n_cnt = Tensor::get_cnt(this->get_input_shape());
+    Tensor *embd_x = new Tensor(x->get_device(), embd_input_n_cnt);
     {
-        // Go ahead and copy old x values over to new adj x.
-        cudaMemcpy(adj_x->get_arr(), x->get_arr(), sizeof(float) * x->get_cnt(), cudaMemcpyDefault);
+        // Go ahead and copy old x values over to new embedded x.
+        cudaMemcpy(embd_x->get_arr(), x->get_arr(), sizeof(float) * x->get_cnt(), cudaMemcpyDefault);
 
         int beg_x_idx = 0;
         int end_x_idx = 0;
 
-        int emb_input_shape_cnt = 0;
-        int emb_output_shape_cnt = 0;
+        int embg_input_shape_cnt = 0;
+        int embg_output_shape_cnt = 0;
 
-        int adj_x_offset = 0;
+        int embd_x_offset = 0;
 
-        for (Embedding *emb : this->embeddings)
+        for (Embedding *embg : this->embeddings)
         {
-            beg_x_idx = emb->get_beg_x_idx();
-            end_x_idx = emb->get_end_x_idx();
+            beg_x_idx = embg->get_beg_x_idx();
+            end_x_idx = embg->get_end_x_idx();
 
-            emb_input_shape_cnt = Tensor::get_cnt(emb->get_input_shape());
-            emb_output_shape_cnt = Tensor::get_cnt(emb->get_output_shape());
+            embg_input_shape_cnt = Tensor::get_cnt(embg->get_input_shape());
+            embg_output_shape_cnt = Tensor::get_cnt(embg->get_output_shape());
 
-            Tensor *emb_x = new Tensor(x->get_device(), emb->get_input_shape());
+            Tensor *embg_x = new Tensor(x->get_device(), embg->get_input_shape());
 
-            for (int x_idx = beg_x_idx, emb_x_idx = 0; x_idx <= end_x_idx; x_idx++, emb_x_idx++)
+            for (int x_idx = beg_x_idx, embg_x_idx = 0; x_idx <= end_x_idx; x_idx++, embg_x_idx++)
             {
-                emb_x->set_val(emb_x_idx, x->get_val(x_idx));
+                embg_x->set_val(embg_x_idx, x->get_val(x_idx));
             }
 
-            Tensor *emb_pred = emb->forward(emb_x, train_flg);
+            Tensor *embg_pred = embg->forward(embg_x, train_flg);
 
-            for (int emb_pred_idx = 0, adj_x_idx = beg_x_idx + adj_x_offset; emb_pred_idx < emb_pred->get_cnt(); emb_pred_idx++, adj_x_idx++)
+            for (int embg_pred_idx = 0, embd_x_idx = beg_x_idx + embd_x_offset; embg_pred_idx < embg_pred->get_cnt(); embg_pred_idx++, embd_x_idx++)
             {
                 // Need to shift remaining x values down.
-                if (adj_x_idx > end_x_idx + adj_x_offset)
+                if (embd_x_idx > end_x_idx + embd_x_offset)
                 {
-                    for (int i = embedded_input_n_cnt - 2; i >= adj_x_idx; i--)
+                    for (int i = embd_input_n_cnt - 2; i >= embd_x_idx; i--)
                     {
-                        adj_x->set_val(i + 1, adj_x->get_val(i));
+                        embd_x->set_val(i + 1, embd_x->get_val(i));
                     }
                 }
 
-                adj_x->set_val(adj_x_idx, emb_pred->get_val(emb_pred_idx));
+                embd_x->set_val(embd_x_idx, embg_pred->get_val(embg_pred_idx));
             }
 
-            adj_x_offset += (emb_output_shape_cnt - emb_input_shape_cnt);
+            embd_x_offset += (embg_output_shape_cnt - embg_input_shape_cnt);
 
-            delete emb_x;
-            delete emb_pred;
+            delete embg_x;
+            delete embg_pred;
         }
     }
 
-    frst_lyr->set_neurons(adj_x);
-    delete adj_x;
+    frst_lyr->set_neurons(embd_x);
+    delete embd_x;
 
     for (int i = 0; i < lst_lyr_idx; i++)
     {
@@ -888,20 +888,20 @@ Tensor *EmbeddableModel::backward(Tensor *pred, Tensor *y)
 {
     Tensor *dc = Model::backward(pred, y);
 
-    int emb_input_shape_cnt = 0;
-    int emb_output_shape_cnt = 0;
-    int adj_x_offset = 0;
+    int embg_input_shape_cnt = 0;
+    int embg_output_shape_cnt = 0;
+    int embd_x_offset = 0;
 
-    for (Embedding *emb : this->embeddings)
+    for (Embedding *embg : this->embeddings)
     {
         Tensor *cpy_dc = new Tensor(*dc);
 
-        emb_input_shape_cnt = Tensor::get_cnt(emb->get_input_shape());
-        emb_output_shape_cnt = Tensor::get_cnt(emb->get_output_shape());
+        embg_input_shape_cnt = Tensor::get_cnt(embg->get_input_shape());
+        embg_output_shape_cnt = Tensor::get_cnt(embg->get_output_shape());
 
-        delete emb->emb_backward(cpy_dc, adj_x_offset);
+        delete embg->embedding_backward(cpy_dc, embd_x_offset);
 
-        adj_x_offset += (emb_output_shape_cnt - emb_input_shape_cnt);
+        embd_x_offset += (embg_output_shape_cnt - embg_input_shape_cnt);
     }
 
     return dc;
@@ -909,9 +909,9 @@ Tensor *EmbeddableModel::backward(Tensor *pred, Tensor *y)
 
 void EmbeddableModel::step(int batch_size)
 {
-    for (Embedding *emb : this->embeddings)
+    for (Embedding *embg : this->embeddings)
     {
-        emb->step(batch_size);
+        embg->step(batch_size);
     }
 
     Model::step(batch_size);

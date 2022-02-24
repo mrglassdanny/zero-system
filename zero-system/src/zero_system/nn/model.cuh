@@ -96,7 +96,7 @@ namespace zero
             int get_beg_x_idx();
             int get_end_x_idx();
 
-            Tensor *emb_backward(Tensor *dc, int adj_x_offset);
+            Tensor *embedding_backward(Tensor *dc, int adj_x_offset);
         };
 
         class EmbeddableModel : public Model
