@@ -212,6 +212,12 @@ void Model::linear(int n_cnt, int nxt_n_cnt)
     this->linear(n_shape, nxt_n_cnt, InitializationFunction::Xavier);
 }
 
+void Model::linear(int n_cnt, int nxt_n_cnt, InitializationFunction init_fn)
+{
+    std::vector<int> n_shape{n_cnt};
+    this->linear(n_shape, nxt_n_cnt, init_fn);
+}
+
 void Model::linear(std::vector<int> n_shape, int nxt_n_cnt, InitializationFunction init_fn)
 {
     this->add_layer(new LinearLayer(n_shape, nxt_n_cnt, init_fn));
@@ -766,6 +772,27 @@ EmbeddableModel::~EmbeddableModel()
     }
 }
 
+std::vector<int> EmbeddableModel::get_embedded_input_shape(std::vector<int> n_shape)
+{
+    return this->get_embedded_input_shape(Tensor::get_cnt(n_shape));
+}
+
+std::vector<int> EmbeddableModel::get_embedded_input_shape(int n_cnt)
+{
+    int embedded_n_cnt = n_cnt;
+
+    for (Embedding *emb : this->embeddings)
+    {
+        embedded_n_cnt += Tensor::get_cnt(emb->get_output_shape());
+
+        // Make sure we subtract old dims.
+        embedded_n_cnt -= Tensor::get_cnt(emb->get_input_shape());
+    }
+
+    std::vector<int> embedded_n_shape{embedded_n_cnt};
+    return embedded_n_shape;
+}
+
 void EmbeddableModel::add_embedding(Embedding *emb)
 {
     emb->set_learning_rate(this->learning_rate);
@@ -787,26 +814,9 @@ Tensor *EmbeddableModel::forward(Tensor *x, bool train_flg)
     Layer *frst_lyr = this->layers[0];
     Layer *lst_lyr = this->layers[lst_lyr_idx];
 
-    // Make sure first layer shape is updated since embeddings will alter the shape:
-    int adj_frst_lyr_n_cnt = Tensor::get_cnt(x->get_shape());
-    {
-        for (Embedding *emb : this->embeddings)
-        {
-            adj_frst_lyr_n_cnt += Tensor::get_cnt(emb->get_output_shape());
-
-            // Make sure we subtract old dims.
-            adj_frst_lyr_n_cnt -= Tensor::get_cnt(emb->get_input_shape());
-        }
-
-        if (Tensor::get_cnt(frst_lyr->get_input_shape()) != adj_frst_lyr_n_cnt)
-        {
-            std::vector<int> adj_frst_lyr_shape{adj_frst_lyr_n_cnt};
-            frst_lyr->reshape_neurons(adj_frst_lyr_shape);
-        }
-    }
-
     // Now we need to create an adjusted x tensor to match our updated shape and values due to embeddings:
-    Tensor *adj_x = new Tensor(x->get_device(), adj_frst_lyr_n_cnt);
+    int embedded_input_n_cnt = Tensor::get_cnt(this->get_input_shape());
+    Tensor *adj_x = new Tensor(x->get_device(), embedded_input_n_cnt);
     {
         // Go ahead and copy old x values over to new adj x.
         cudaMemcpy(adj_x->get_arr(), x->get_arr(), sizeof(float) * x->get_cnt(), cudaMemcpyDefault);
@@ -841,7 +851,7 @@ Tensor *EmbeddableModel::forward(Tensor *x, bool train_flg)
                 // Need to shift remaining x values down.
                 if (adj_x_idx > end_x_idx + adj_x_offset)
                 {
-                    for (int i = adj_frst_lyr_n_cnt - 2; i >= adj_x_idx; i--)
+                    for (int i = embedded_input_n_cnt - 2; i >= adj_x_idx; i--)
                     {
                         adj_x->set_val(i + 1, adj_x->get_val(i));
                     }

@@ -33,6 +33,7 @@ namespace zero
             void linear(int nxt_n_cnt, InitializationFunction init_fn);
             void linear(std::vector<int> n_shape, int nxt_n_cnt);
             void linear(int n_cnt, int nxt_n_cnt);
+            void linear(int n_cnt, int nxt_n_cnt, InitializationFunction init_fn);
             void linear(std::vector<int> n_shape, int nxt_n_cnt, InitializationFunction init_fn);
 
             void activation(ActivationFunction activation_fn);
@@ -111,6 +112,9 @@ namespace zero
             ~EmbeddableModel();
 
             // TODO: load & save
+
+            std::vector<int> get_embedded_input_shape(std::vector<int> n_shape);
+            std::vector<int> get_embedded_input_shape(int n_cnt);
 
             void embed(Embedding *emb);
 
