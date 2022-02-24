@@ -739,17 +739,17 @@ Tensor *Embedding::embedding_backward(Tensor *dc, int embd_x_offset)
 
 // EmbeddableModel functions:
 
-EmbeddableModel::EmbeddableModel()
+EmbeddedModel::EmbeddedModel()
     : Model()
 {
 }
 
-EmbeddableModel::EmbeddableModel(CostFunction cost_fn, float learning_rate)
+EmbeddedModel::EmbeddedModel(CostFunction cost_fn, float learning_rate)
     : Model(cost_fn, learning_rate)
 {
 }
 
-EmbeddableModel::~EmbeddableModel()
+EmbeddedModel::~EmbeddedModel()
 {
     for (Embedding *embg : this->embeddings)
     {
@@ -757,12 +757,12 @@ EmbeddableModel::~EmbeddableModel()
     }
 }
 
-std::vector<int> EmbeddableModel::get_embedded_input_shape(std::vector<int> n_shape)
+std::vector<int> EmbeddedModel::get_embedded_input_shape(std::vector<int> n_shape)
 {
     return this->get_embedded_input_shape(Tensor::get_cnt(n_shape));
 }
 
-std::vector<int> EmbeddableModel::get_embedded_input_shape(int n_cnt)
+std::vector<int> EmbeddedModel::get_embedded_input_shape(int n_cnt)
 {
     int embd_n_cnt = n_cnt;
 
@@ -778,19 +778,19 @@ std::vector<int> EmbeddableModel::get_embedded_input_shape(int n_cnt)
     return embd_n_shape;
 }
 
-void EmbeddableModel::add_embedding(Embedding *embg)
+void EmbeddedModel::add_embedding(Embedding *embg)
 {
     embg->set_learning_rate(this->learning_rate);
 
     this->embeddings.push_back(embg);
 }
 
-void EmbeddableModel::embed(Embedding *embg)
+void EmbeddedModel::embed(Embedding *embg)
 {
     this->add_embedding(embg);
 }
 
-Tensor *EmbeddableModel::forward(Tensor *x, bool train_flg)
+Tensor *EmbeddedModel::forward(Tensor *x, bool train_flg)
 {
     x->to(Device::Cuda);
 
@@ -852,7 +852,7 @@ Tensor *EmbeddableModel::forward(Tensor *x, bool train_flg)
     return pred;
 }
 
-Tensor *EmbeddableModel::backward(Tensor *pred, Tensor *y)
+Tensor *EmbeddedModel::backward(Tensor *pred, Tensor *y)
 {
     Tensor *dc = Model::backward(pred, y);
 
@@ -875,7 +875,7 @@ Tensor *EmbeddableModel::backward(Tensor *pred, Tensor *y)
     return dc;
 }
 
-void EmbeddableModel::step(int batch_size)
+void EmbeddedModel::step(int batch_size)
 {
     for (Embedding *embg : this->embeddings)
     {

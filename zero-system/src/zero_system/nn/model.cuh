@@ -96,7 +96,7 @@ namespace zero
             Tensor *embedding_backward(Tensor *dc, int adj_x_offset);
         };
 
-        class EmbeddableModel : public Model
+        class EmbeddedModel : public Model
         {
         protected:
             std::vector<Embedding *> embeddings;
@@ -104,9 +104,9 @@ namespace zero
             void add_embedding(Embedding *emb);
 
         public:
-            EmbeddableModel();
-            EmbeddableModel(CostFunction cost_fn, float learning_rate);
-            ~EmbeddableModel();
+            EmbeddedModel();
+            EmbeddedModel(CostFunction cost_fn, float learning_rate);
+            ~EmbeddedModel();
 
             // TODO: load & save
 
