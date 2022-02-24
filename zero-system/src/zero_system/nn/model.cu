@@ -873,8 +873,6 @@ Tensor *EmbeddedModel::forward(Tensor *x, bool train_flg)
             }
         }
     }
-    x->print();
-    embd_x->print();
 
     Tensor *pred = Model::forward(embd_x, train_flg);
     delete embd_x;
