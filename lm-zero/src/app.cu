@@ -48,56 +48,59 @@ int main(int argc, char **argv)
     delete xs_tbl;
     delete ys_tbl;
 
-    Batch *batch = new Batch();
-    batch->add_all(xs, ys);
+    xs->to_file("temp/xs.tr");
+    ys->to_file("temp/ys.tr");
+
+    std::vector<int> x_shape{xs->get_shape()[1]};
+    Supervisor *sup = new Supervisor("temp/xs.tr", "temp/ys.tr", x_shape, 0);
 
     delete xs;
     delete ys;
 
     // Model setup:
 
-    EmbeddedModel *m = new EmbeddedModel(MSE, 0.1f);
+    EmbeddedModel *embd_m = new EmbeddedModel(MSE, 0.1f);
 
     Embedding *actcod_embg = new Embedding(x_actcod_idx);
     actcod_embg->linear(1, 64);
     actcod_embg->activation(ReLU);
     actcod_embg->linear(16);
     actcod_embg->activation(ReLU);
-    m->embed(actcod_embg);
+    embd_m->embed(actcod_embg);
 
     Embedding *fr_loc_embg = new Embedding(x_fr_loc_beg_idx, x_fr_loc_end_idx);
     fr_loc_embg->linear(3, 128);
     fr_loc_embg->activation(ReLU);
     fr_loc_embg->linear(32);
     fr_loc_embg->activation(ReLU);
-    m->embed(fr_loc_embg);
+    embd_m->embed(fr_loc_embg);
 
     Embedding *to_loc_embg = new Embedding(x_to_loc_beg_idx, x_to_loc_end_idx);
     to_loc_embg->linear(3, 128);
     to_loc_embg->activation(ReLU);
     to_loc_embg->linear(32);
     to_loc_embg->activation(ReLU);
-    m->embed(to_loc_embg);
+    embd_m->embed(to_loc_embg);
 
-    m->linear(m->get_embedded_input_shape(batch->get_x_shape()), 256);
-    m->activation(ReLU);
+    embd_m->linear(embd_m->get_embedded_input_shape(batch->get_x_shape()), 256);
+    embd_m->activation(ReLU);
 
-    m->linear(128);
-    m->activation(ReLU);
+    embd_m->linear(128);
+    embd_m->activation(ReLU);
 
-    m->linear(32);
-    m->activation(ReLU);
+    embd_m->linear(32);
+    embd_m->activation(ReLU);
 
-    m->linear(Tensor::get_cnt(batch->get_y_shape()));
+    embd_m->linear(Tensor::get_cnt(batch->get_y_shape()));
 
     // Fit:
 
-    m->fit(batch);
+    embd_m->fit(sup, 64, 5, "temp/train.csv");
 
     // Cleanup:
 
-    delete m;
-    delete batch;
+    delete embd_m;
+    delete sup;
 
     return 0;
 }
