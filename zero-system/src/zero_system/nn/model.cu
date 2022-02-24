@@ -816,12 +816,12 @@ Tensor *EmbeddedModel::forward(Tensor *x, bool train_flg)
 
                 embd_x_offset += embg_output_shape_cnt;
 
-                int embg_diff = ((nxt_beg_x_idx - 1) - end_x_idx);
+                int non_embg_range_len = ((nxt_beg_x_idx - 1) - end_x_idx);
 
-                if (embg_diff > 0)
+                if (non_embg_range_len > 0)
                 {
-                    cudaMemcpy(&embd_x->get_arr()[embd_x_offset], &x->get_arr()[end_x_idx + 1], sizeof(float) * embg_diff, cudaMemcpyDefault);
-                    embd_x_offset += embg_diff;
+                    cudaMemcpy(&embd_x->get_arr()[embd_x_offset], &x->get_arr()[end_x_idx + 1], sizeof(float) * non_embg_range_len, cudaMemcpyDefault);
+                    embd_x_offset += non_embg_range_len;
                 }
             }
 
@@ -832,16 +832,13 @@ Tensor *EmbeddedModel::forward(Tensor *x, bool train_flg)
 
             embd_x_offset += embg_output_shape_cnt;
 
-            int embg_diff = (lst_x_idx - end_x_idx);
+            int non_embg_range_len = (lst_x_idx - end_x_idx);
 
-            if (embg_diff > 0)
+            if (non_embg_range_len > 0)
             {
-                cudaMemcpy(&embd_x->get_arr()[embd_x_offset], &x->get_arr()[end_x_idx + 1], sizeof(float) * embg_diff, cudaMemcpyDefault);
+                cudaMemcpy(&embd_x->get_arr()[embd_x_offset], &x->get_arr()[end_x_idx + 1], sizeof(float) * non_embg_range_len, cudaMemcpyDefault);
             }
         }
-
-        x->print();
-        embd_x->print();
 
         // Now we can evaluate embeddings and stick the predictions in their correct spots:
         {
