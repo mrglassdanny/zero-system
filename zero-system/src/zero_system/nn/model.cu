@@ -131,7 +131,7 @@ void Model::load(const char *path)
     int lyr_cnt = 0;
     fread(&lyr_cnt, sizeof(int), 1, file_ptr);
 
-    for (int i = 0; i < lyr_cnt; i++)
+    for (int lyr_idx = 0; lyr_idx < lyr_cnt; lyr_idx++)
     {
         LayerType lyr_typ;
         fread(&lyr_typ, sizeof(LayerType), 1, file_ptr);
@@ -259,10 +259,10 @@ Tensor *Model::forward(Tensor *x, bool train_flg)
 
     frst_lyr->set_neurons(x);
 
-    for (int i = 0; i < lst_lyr_idx; i++)
+    for (int lyr_idx = 0; lyr_idx < lst_lyr_idx; lyr_idx++)
     {
-        Layer *lyr = this->layers[i];
-        Layer *nxt_lyr = this->layers[i + 1];
+        Layer *lyr = this->layers[lyr_idx];
+        Layer *nxt_lyr = this->layers[lyr_idx + 1];
 
         lyr->forward(nxt_lyr->get_neurons(), train_flg);
     }
@@ -312,9 +312,9 @@ Tensor *Model::backward(Tensor *pred, Tensor *y)
 
     int lst_lyr_idx = this->layers.size() - 1;
 
-    for (int i = lst_lyr_idx; i >= 0; i--)
+    for (int lyr_idx = lst_lyr_idx; lyr_idx >= 0; lyr_idx--)
     {
-        Layer *lyr = this->layers[i];
+        Layer *lyr = this->layers[lyr_idx];
         dc = lyr->backward(dc);
     }
 
@@ -364,26 +364,26 @@ void Model::check_grad(Tensor *x, Tensor *y, bool print_flg)
                 Tensor *b = lrn_lyr->get_biases();
                 Tensor *db = lrn_lyr->get_bias_derivatives();
 
-                for (int i = 0; i < w->get_cnt(); i++)
+                for (int w_idx = 0; w_idx < w->get_cnt(); w_idx++)
                 {
                     float left_cost = 0.0f;
                     float right_cost = 0.0f;
 
-                    float orig_w_val = w->get_val(i);
+                    float orig_w_val = w->get_val(w_idx);
 
                     float left_w_val = orig_w_val - EPSILON;
                     float right_w_val = orig_w_val + EPSILON;
 
-                    float ana_grad = dw->get_val(i);
+                    float ana_grad = dw->get_val(w_idx);
 
-                    w->set_val(i, left_w_val);
+                    w->set_val(w_idx, left_w_val);
                     {
                         Tensor *pred = this->forward(x, true);
                         left_cost = this->cost(pred, y);
                         delete pred;
                     }
 
-                    w->set_val(i, right_w_val);
+                    w->set_val(w_idx, right_w_val);
                     {
                         Tensor *pred = this->forward(x, true);
                         right_cost = this->cost(pred, y);
@@ -394,36 +394,36 @@ void Model::check_grad(Tensor *x, Tensor *y, bool print_flg)
 
                     if (print_flg)
                     {
-                        printf("W: %d  %d\t%f : %f  (%f)\n", lyr_idx, i, ana_grad, num_grad, fabs(ana_grad - num_grad));
+                        printf("W: %d  %d\t%f : %f  (%f)\n", lyr_idx, w_idx, ana_grad, num_grad, fabs(ana_grad - num_grad));
                     }
 
                     agg_ana_grad += (ana_grad * ana_grad);
                     agg_num_grad += (num_grad * num_grad);
                     agg_grad_diff += ((ana_grad - num_grad) * (ana_grad - num_grad));
 
-                    w->set_val(i, orig_w_val);
+                    w->set_val(w_idx, orig_w_val);
                 }
 
-                for (int i = 0; i < b->get_cnt(); i++)
+                for (int b_idx = 0; b_idx < b->get_cnt(); b_idx++)
                 {
                     float left_cost = 0.0f;
                     float right_cost = 0.0f;
 
-                    float orig_b_val = b->get_val(i);
+                    float orig_b_val = b->get_val(b_idx);
 
                     float left_b_val = orig_b_val - EPSILON;
                     float right_b_val = orig_b_val + EPSILON;
 
-                    float ana_grad = db->get_val(i);
+                    float ana_grad = db->get_val(b_idx);
 
-                    b->set_val(i, left_b_val);
+                    b->set_val(b_idx, left_b_val);
                     {
                         Tensor *pred = this->forward(x, true);
                         left_cost = this->cost(pred, y);
                         delete pred;
                     }
 
-                    b->set_val(i, right_b_val);
+                    b->set_val(b_idx, right_b_val);
                     {
                         Tensor *pred = this->forward(x, true);
                         right_cost = this->cost(pred, y);
@@ -434,14 +434,14 @@ void Model::check_grad(Tensor *x, Tensor *y, bool print_flg)
 
                     if (print_flg)
                     {
-                        printf("B: %d  %d\t%f : %f  (%f)\n", lyr_idx, i, ana_grad, num_grad, fabs(ana_grad - num_grad));
+                        printf("B: %d  %d\t%f : %f  (%f)\n", lyr_idx, b_idx, ana_grad, num_grad, fabs(ana_grad - num_grad));
                     }
 
                     agg_ana_grad += (ana_grad * ana_grad);
                     agg_num_grad += (num_grad * num_grad);
                     agg_grad_diff += ((ana_grad - num_grad) * (ana_grad - num_grad));
 
-                    b->set_val(i, orig_b_val);
+                    b->set_val(b_idx, orig_b_val);
                 }
             }
         }
@@ -468,10 +468,10 @@ Report Model::train(Batch *batch)
 
     float cost = 0.0f;
 
-    for (int i = 0; i < batch_size; i++)
+    for (int batch_idx = 0; batch_idx < batch_size; batch_idx++)
     {
-        Tensor *x = batch->get_x(i);
-        Tensor *y = batch->get_y(i);
+        Tensor *x = batch->get_x(batch_idx);
+        Tensor *y = batch->get_y(batch_idx);
 
         Tensor *pred = this->forward(x, true);
         cost += this->cost(pred, y);
@@ -507,10 +507,10 @@ Report Model::test(Batch *batch)
 
     float cost = 0.0f;
 
-    for (int i = 0; i < batch_size; i++)
+    for (int batch_idx = 0; batch_idx < batch_size; batch_idx++)
     {
-        Tensor *x = batch->get_x(i);
-        Tensor *y = batch->get_y(i);
+        Tensor *x = batch->get_x(batch_idx);
+        Tensor *y = batch->get_y(batch_idx);
 
         Tensor *pred = this->forward(x, false);
         cost += this->cost(pred, y);
@@ -725,9 +725,9 @@ Tensor *Embedding::embedding_backward(Tensor *dc, int embd_x_offset)
         dc = embg_dc;
     }
 
-    for (int i = lst_lyr_idx; i >= 0; i--)
+    for (int lyr_idx = lst_lyr_idx; lyr_idx >= 0; lyr_idx--)
     {
-        Layer *lyr = this->layers[i];
+        Layer *lyr = this->layers[lyr_idx];
         dc = lyr->backward(dc);
     }
 
@@ -803,10 +803,10 @@ Tensor *EmbeddedModel::forward(Tensor *x, bool train_flg)
 
             int lst_x_idx = x->get_cnt() - 1;
 
-            for (int i = 0; i < this->embeddings.size() - 1; i++)
+            for (int embg_idx = 0; embg_idx < this->embeddings.size() - 1; embg_idx++)
             {
-                Embedding *embg = this->embeddings[i];
-                Embedding *nxt_embg = this->embeddings[i + 1];
+                Embedding *embg = this->embeddings[embg_idx];
+                Embedding *nxt_embg = this->embeddings[embg_idx + 1];
 
                 int beg_x_idx = embg->get_beg_x_idx();
                 int end_x_idx = embg->get_end_x_idx();
