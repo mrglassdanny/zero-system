@@ -719,10 +719,7 @@ Tensor *Embedding::embedding_backward(Tensor *dc, int embd_x_offset)
     {
         Tensor *embg_dc = new Tensor(dc->get_device(), this->get_output_shape());
 
-        for (int embg_dc_idx = 0, dc_idx = this->beg_x_idx + embd_x_offset; embg_dc_idx < embg_dc->get_cnt(); embg_dc_idx++, dc_idx++)
-        {
-            embg_dc->set_val(embg_dc_idx, dc->get_val(dc_idx));
-        }
+        cudaMemcpy(embg_dc->get_arr(), &dc->get_arr()[this->beg_x_idx + embd_x_offset], sizeof(float) * (embg_dc->get_cnt()), cudaMemcpyDefault);
 
         delete dc;
         dc = embg_dc;
@@ -819,14 +816,11 @@ Tensor *EmbeddedModel::forward(Tensor *x, bool train_flg)
 
             Tensor *embg_x = new Tensor(x->get_device(), embg->get_input_shape());
 
-            for (int x_idx = beg_x_idx, embg_x_idx = 0; x_idx <= end_x_idx; x_idx++, embg_x_idx++)
-            {
-                embg_x->set_val(embg_x_idx, x->get_val(x_idx));
-            }
+            cudaMemcpy(embg_x->get_arr(), &x->get_arr()[beg_x_idx], sizeof(float) * (end_x_idx - beg_x_idx), cudaMemcpyDefault);
 
             Tensor *embg_pred = embg->forward(embg_x, train_flg);
 
-            for (int embg_pred_idx = 0, embd_x_idx = beg_x_idx + embd_x_offset; embg_pred_idx < embg_pred->get_cnt(); embg_pred_idx++, embd_x_idx++)
+            for (int embg_pred_idx = 0, embd_x_idx = beg_x_idx + embd_x_offset; embg_pred_idx < embg_output_shape_cnt; embg_pred_idx++, embd_x_idx++)
             {
                 // Need to shift remaining x values down.
                 if (embd_x_idx > end_x_idx + embd_x_offset)
@@ -836,9 +830,9 @@ Tensor *EmbeddedModel::forward(Tensor *x, bool train_flg)
                         embd_x->set_val(i + 1, embd_x->get_val(i));
                     }
                 }
-
-                embd_x->set_val(embd_x_idx, embg_pred->get_val(embg_pred_idx));
             }
+
+            cudaMemcpy(&embd_x->get_arr()[beg_x_idx + embd_x_offset], embg_pred->get_arr(), sizeof(float) * embg_output_shape_cnt, cudaMemcpyDefault);
 
             embd_x_offset += (embg_output_shape_cnt - embg_input_shape_cnt);
 
