@@ -330,7 +330,7 @@ Column *Column::encode_ordinal()
     Column *ordinal_col = new Column(this->name, true, this->row_cnt);
 
     std::map<std::string, int> ordinal_map;
-    int ordinal_id = 0;
+    int ordinal_id = 1;
 
     for (int row_idx = 0; row_idx < this->row_cnt; row_idx++)
     {
@@ -363,7 +363,7 @@ std::vector<Column *> Column::encode_onehot()
     Column *ordinal_col = new Column(this->name, true, row_cnt);
 
     std::map<std::string, int> ordinal_map;
-    int ordinal_id = 0;
+    int ordinal_id = 1;
 
     for (int row_idx = 0; row_idx < this->row_cnt; row_idx++)
     {
