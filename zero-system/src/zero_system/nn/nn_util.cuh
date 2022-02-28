@@ -36,7 +36,8 @@ namespace zero
         {
             He,
             Xavier,
-            Zeros
+            Zeros,
+            Ones
         };
 
         enum OptimizationFunction

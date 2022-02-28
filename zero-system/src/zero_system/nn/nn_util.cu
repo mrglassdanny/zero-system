@@ -19,6 +19,9 @@ void Initializer::initialize(InitializationFunction init_fn, Tensor *tensor,
     case InitializationFunction::Zeros:
         tensor->reset();
         break;
+    case InitializationFunction::Ones:
+        tensor->set_all(1.0f);
+        break;
     default:
         tensor->set_all_rand(0.0f, 1.0f);
         break;
