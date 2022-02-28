@@ -22,10 +22,10 @@ namespace zero
             KMeans(const KMeans &src);
             ~KMeans();
 
-            void print();
-
             void load(const char *path);
             void save(const char *path);
+
+            void print();
 
             void initialize_clusters(Tensor *xs);
             void reset_clusters();

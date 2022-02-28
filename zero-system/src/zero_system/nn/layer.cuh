@@ -32,6 +32,9 @@ namespace zero
 
             virtual LayerType get_type() = 0;
 
+            virtual void load(FILE *file_ptr);
+            virtual void save(FILE *file_ptr);
+
             virtual std::vector<int> get_input_shape();
             virtual std::vector<int> get_output_shape();
 
@@ -41,9 +44,6 @@ namespace zero
 
             virtual void forward(Tensor *nxt_n, bool train_flg);
             virtual Tensor *backward(Tensor *dc) = 0;
-
-            virtual void load(FILE *file_ptr);
-            virtual void save(FILE *file_ptr);
         };
 
         class LearnableLayer : public Layer
@@ -59,13 +59,13 @@ namespace zero
             LearnableLayer(std::vector<int> n_shape);
             ~LearnableLayer();
 
+            virtual void load(FILE *file_ptr);
+            virtual void save(FILE *file_ptr);
+
             virtual Tensor *get_weights();
             virtual Tensor *get_weight_derivatives();
             virtual Tensor *get_biases();
             virtual Tensor *get_bias_derivatives();
-
-            virtual void load(FILE *file_ptr);
-            virtual void save(FILE *file_ptr);
 
             virtual void step(int batch_size, float learning_rate) = 0;
         };
@@ -79,13 +79,13 @@ namespace zero
 
             virtual LayerType get_type();
 
+            virtual void load(FILE *file_ptr);
+            virtual void save(FILE *file_ptr);
+
             virtual std::vector<int> get_output_shape();
 
             virtual void forward(Tensor *nxt_n, bool train_flg);
             virtual Tensor *backward(Tensor *dc);
-
-            virtual void load(FILE *file_ptr);
-            virtual void save(FILE *file_ptr);
 
             virtual void step(int batch_size, float learning_rate);
         };
@@ -100,13 +100,13 @@ namespace zero
 
             virtual LayerType get_type();
 
+            virtual void load(FILE *file_ptr);
+            virtual void save(FILE *file_ptr);
+
             virtual std::vector<int> get_output_shape();
 
             virtual void forward(Tensor *nxt_n, bool train_flg);
             virtual Tensor *backward(Tensor *dc);
-
-            virtual void load(FILE *file_ptr);
-            virtual void save(FILE *file_ptr);
 
             virtual void step(int batch_size, float learning_rate);
         };
@@ -123,11 +123,11 @@ namespace zero
 
             virtual LayerType get_type();
 
-            virtual void forward(Tensor *nxt_n, bool train_flg);
-            virtual Tensor *backward(Tensor *dc);
-
             virtual void load(FILE *file_ptr);
             virtual void save(FILE *file_ptr);
+
+            virtual void forward(Tensor *nxt_n, bool train_flg);
+            virtual Tensor *backward(Tensor *dc);
         };
 
         class DropoutLayer : public Layer
@@ -143,11 +143,11 @@ namespace zero
 
             virtual LayerType get_type();
 
-            virtual void forward(Tensor *nxt_n, bool train_flg);
-            virtual Tensor *backward(Tensor *dc);
-
             virtual void load(FILE *file_ptr);
             virtual void save(FILE *file_ptr);
+
+            virtual void forward(Tensor *nxt_n, bool train_flg);
+            virtual Tensor *backward(Tensor *dc);
         };
 
         class PoolingLayer : public Layer
@@ -164,13 +164,13 @@ namespace zero
 
             virtual LayerType get_type();
 
+            virtual void load(FILE *file_ptr);
+            virtual void save(FILE *file_ptr);
+
             virtual std::vector<int> get_output_shape();
 
             virtual void forward(Tensor *nxt_n, bool train_flg);
             virtual Tensor *backward(Tensor *dc);
-
-            virtual void load(FILE *file_ptr);
-            virtual void save(FILE *file_ptr);
         };
     }
 }

@@ -719,6 +719,7 @@ __global__ void k_derive_pool(float *dc_arr, float *nxt_dc_arr, float *n_arr, in
 
 Layer::Layer()
 {
+    this->n = nullptr;
 }
 
 Layer::Layer(std::vector<int> n_shape)
@@ -733,36 +734,6 @@ Layer::~Layer()
     {
         delete this->n;
     }
-}
-
-std::vector<int> Layer::get_input_shape()
-{
-    return this->n->get_shape();
-}
-
-std::vector<int> Layer::get_output_shape()
-{
-    return this->n->get_shape();
-}
-
-Tensor *Layer::get_neurons()
-{
-    return this->n;
-}
-
-void Layer::set_neurons(Tensor *n)
-{
-    this->n->set_arr(n->get_arr(Device::Cuda));
-}
-
-void Layer::reshape_neurons(std::vector<int> shape)
-{
-    this->n->reshape(shape);
-}
-
-void Layer::forward(Tensor *nxt_n, bool train_flg)
-{
-    nxt_n->reset();
 }
 
 void Layer::load(FILE *file_ptr)
@@ -796,11 +767,45 @@ void Layer::save(FILE *file_ptr)
     }
 }
 
+std::vector<int> Layer::get_input_shape()
+{
+    return this->n->get_shape();
+}
+
+std::vector<int> Layer::get_output_shape()
+{
+    return this->n->get_shape();
+}
+
+Tensor *Layer::get_neurons()
+{
+    return this->n;
+}
+
+void Layer::set_neurons(Tensor *n)
+{
+    this->n->set_arr(n->get_arr(Device::Cuda));
+}
+
+void Layer::reshape_neurons(std::vector<int> shape)
+{
+    this->n->reshape(shape);
+}
+
+void Layer::forward(Tensor *nxt_n, bool train_flg)
+{
+    nxt_n->reset();
+}
+
 // LearnableLayer functions:
 
 LearnableLayer::LearnableLayer()
     : Layer()
 {
+    this->w = nullptr;
+    this->b = nullptr;
+    this->dw = nullptr;
+    this->db = nullptr;
 }
 
 LearnableLayer::LearnableLayer(std::vector<int> n_shape)
@@ -833,26 +838,6 @@ LearnableLayer::~LearnableLayer()
     {
         delete this->db;
     }
-}
-
-Tensor *LearnableLayer::get_weights()
-{
-    return this->w;
-}
-
-Tensor *LearnableLayer::get_weight_derivatives()
-{
-    return this->dw;
-}
-
-Tensor *LearnableLayer::get_biases()
-{
-    return this->b;
-}
-
-Tensor *LearnableLayer::get_bias_derivatives()
-{
-    return this->db;
 }
 
 void LearnableLayer::load(FILE *file_ptr)
@@ -936,6 +921,26 @@ void LearnableLayer::save(FILE *file_ptr)
     fwrite(this->b->get_arr(Device::Cpu), sizeof(float), this->b->get_cnt(), file_ptr);
 }
 
+Tensor *LearnableLayer::get_weights()
+{
+    return this->w;
+}
+
+Tensor *LearnableLayer::get_weight_derivatives()
+{
+    return this->dw;
+}
+
+Tensor *LearnableLayer::get_biases()
+{
+    return this->b;
+}
+
+Tensor *LearnableLayer::get_bias_derivatives()
+{
+    return this->db;
+}
+
 // LinearLayer functions:
 
 LinearLayer::LinearLayer()
@@ -964,6 +969,16 @@ LinearLayer::~LinearLayer() {}
 LayerType LinearLayer::get_type()
 {
     return LayerType::Linear;
+}
+
+void LinearLayer::load(FILE *file_ptr)
+{
+    LearnableLayer::load(file_ptr);
+}
+
+void LinearLayer::save(FILE *file_ptr)
+{
+    LearnableLayer::save(file_ptr);
 }
 
 std::vector<int> LinearLayer::get_output_shape()
@@ -1045,16 +1060,6 @@ void LinearLayer::step(int batch_size, float learning_rate)
     }
 }
 
-void LinearLayer::load(FILE *file_ptr)
-{
-    LearnableLayer::load(file_ptr);
-}
-
-void LinearLayer::save(FILE *file_ptr)
-{
-    LearnableLayer::save(file_ptr);
-}
-
 // ConvolutionalLayer functions:
 
 ConvolutionalLayer::ConvolutionalLayer()
@@ -1089,6 +1094,16 @@ ConvolutionalLayer::~ConvolutionalLayer()
 LayerType ConvolutionalLayer::get_type()
 {
     return LayerType::Convolutional;
+}
+
+void ConvolutionalLayer::load(FILE *file_ptr)
+{
+    LearnableLayer::load(file_ptr);
+}
+
+void ConvolutionalLayer::save(FILE *file_ptr)
+{
+    LearnableLayer::save(file_ptr);
 }
 
 std::vector<int> ConvolutionalLayer::get_output_shape()
@@ -1213,21 +1228,12 @@ void ConvolutionalLayer::step(int batch_size, float learning_rate)
     }
 }
 
-void ConvolutionalLayer::load(FILE *file_ptr)
-{
-    LearnableLayer::load(file_ptr);
-}
-
-void ConvolutionalLayer::save(FILE *file_ptr)
-{
-    LearnableLayer::save(file_ptr);
-}
-
 // ActivationLayer functions:
 
 ActivationLayer::ActivationLayer()
     : Layer()
 {
+    this->activation_fn = ActivationFunction::Sigmoid;
 }
 
 ActivationLayer::ActivationLayer(std::vector<int> n_shape, ActivationFunction activation_fn)
@@ -1243,6 +1249,20 @@ ActivationLayer::~ActivationLayer()
 LayerType ActivationLayer::get_type()
 {
     return LayerType::Activation;
+}
+
+void ActivationLayer::load(FILE *file_ptr)
+{
+    Layer::load(file_ptr);
+
+    fread(&this->activation_fn, sizeof(ActivationFunction), 1, file_ptr);
+}
+
+void ActivationLayer::save(FILE *file_ptr)
+{
+    Layer::save(file_ptr);
+
+    fwrite(&this->activation_fn, sizeof(ActivationFunction), 1, file_ptr);
 }
 
 void ActivationLayer::forward(Tensor *nxt_n, bool train_flg)
@@ -1267,25 +1287,13 @@ Tensor *ActivationLayer::backward(Tensor *dc)
     return dc;
 }
 
-void ActivationLayer::load(FILE *file_ptr)
-{
-    Layer::load(file_ptr);
-
-    fread(&this->activation_fn, sizeof(ActivationFunction), 1, file_ptr);
-}
-
-void ActivationLayer::save(FILE *file_ptr)
-{
-    Layer::save(file_ptr);
-
-    fwrite(&this->activation_fn, sizeof(ActivationFunction), 1, file_ptr);
-}
-
 // DropoutLayer functions:
 
 DropoutLayer::DropoutLayer()
     : Layer()
 {
+    this->dropout_rate = 0.0f;
+    this->dropout_mask = nullptr;
 }
 
 DropoutLayer::DropoutLayer(std::vector<int> n_shape, float dropout_rate)
@@ -1303,6 +1311,21 @@ DropoutLayer::~DropoutLayer()
 LayerType DropoutLayer::get_type()
 {
     return LayerType::Dropout;
+}
+
+void DropoutLayer::load(FILE *file_ptr)
+{
+    Layer::load(file_ptr);
+
+    fread(&this->dropout_rate, sizeof(float), 1, file_ptr);
+    this->dropout_mask = new Tensor(Device::Cuda, this->n->get_shape());
+}
+
+void DropoutLayer::save(FILE *file_ptr)
+{
+    Layer::save(file_ptr);
+
+    fwrite(&this->dropout_rate, sizeof(float), 1, file_ptr);
 }
 
 void DropoutLayer::forward(Tensor *nxt_n, bool train_flg)
@@ -1348,26 +1371,14 @@ Tensor *DropoutLayer::backward(Tensor *dc)
     return dc;
 }
 
-void DropoutLayer::load(FILE *file_ptr)
-{
-    Layer::load(file_ptr);
-
-    fread(&this->dropout_rate, sizeof(float), 1, file_ptr);
-    this->dropout_mask = new Tensor(Device::Cuda, this->n->get_shape());
-}
-
-void DropoutLayer::save(FILE *file_ptr)
-{
-    Layer::save(file_ptr);
-
-    fwrite(&this->dropout_rate, sizeof(float), 1, file_ptr);
-}
-
 // PoolingLayer functions:
 
 PoolingLayer::PoolingLayer()
     : Layer()
 {
+    this->pool_fn = PoolingFunction::Average;
+    this->pool_row_cnt = 0;
+    this->pool_col_cnt = 0;
 }
 
 PoolingLayer::PoolingLayer(std::vector<int> n_shape, PoolingFunction pool_fn)
@@ -1385,6 +1396,24 @@ PoolingLayer::~PoolingLayer()
 LayerType PoolingLayer::get_type()
 {
     return LayerType::Pooling;
+}
+
+void PoolingLayer::load(FILE *file_ptr)
+{
+    Layer::load(file_ptr);
+
+    fread(&this->pool_fn, sizeof(PoolingFunction), 1, file_ptr);
+    fread(&this->pool_row_cnt, sizeof(int), 1, file_ptr);
+    fread(&this->pool_col_cnt, sizeof(int), 1, file_ptr);
+}
+
+void PoolingLayer::save(FILE *file_ptr)
+{
+    Layer::save(file_ptr);
+
+    fwrite(&this->pool_fn, sizeof(PoolingFunction), 1, file_ptr);
+    fwrite(&this->pool_row_cnt, sizeof(int), 1, file_ptr);
+    fwrite(&this->pool_col_cnt, sizeof(int), 1, file_ptr);
 }
 
 std::vector<int> PoolingLayer::get_output_shape()
@@ -1438,22 +1467,4 @@ Tensor *PoolingLayer::backward(Tensor *dc)
     dc = nxt_dc;
 
     return dc;
-}
-
-void PoolingLayer::load(FILE *file_ptr)
-{
-    Layer::load(file_ptr);
-
-    fread(&this->pool_fn, sizeof(PoolingFunction), 1, file_ptr);
-    fread(&this->pool_row_cnt, sizeof(int), 1, file_ptr);
-    fread(&this->pool_col_cnt, sizeof(int), 1, file_ptr);
-}
-
-void PoolingLayer::save(FILE *file_ptr)
-{
-    Layer::save(file_ptr);
-
-    fwrite(&this->pool_fn, sizeof(PoolingFunction), 1, file_ptr);
-    fwrite(&this->pool_row_cnt, sizeof(int), 1, file_ptr);
-    fwrite(&this->pool_col_cnt, sizeof(int), 1, file_ptr);
 }
