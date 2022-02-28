@@ -141,23 +141,25 @@ void Model::load(const char *path)
         switch (lyr_typ)
         {
         case LayerType::Linear:
-            lyr = new LinearLayer(file_ptr);
+            lyr = new LinearLayer();
             break;
         case LayerType::Convolutional:
-            lyr = new ConvolutionalLayer(file_ptr);
+            lyr = new ConvolutionalLayer();
             break;
         case LayerType::Activation:
-            lyr = new ActivationLayer(file_ptr);
+            lyr = new ActivationLayer();
             break;
         case LayerType::Dropout:
-            lyr = new DropoutLayer(file_ptr);
+            lyr = new DropoutLayer();
             break;
         case LayerType::Pooling:
-            lyr = new PoolingLayer(file_ptr);
+            lyr = new PoolingLayer();
             break;
         default:
             break;
         }
+
+        lyr->load(file_ptr);
 
         this->add_layer(lyr);
     }
