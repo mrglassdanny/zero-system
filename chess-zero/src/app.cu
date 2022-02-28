@@ -361,7 +361,7 @@ void self_train(Model *model, Game *game)
 
 void bootstrap_learn(Model *model)
 {
-    PGNImport *pgn = PGNImport_init("data\\bootstrap.pgn");
+    PGNImport *pgn = PGNImport_init("data/bootstrap.pgn");
 
     int *board = init_board();
     int rot_board[CHESS_BOARD_LEN];
@@ -609,7 +609,7 @@ int main(int argc, char **argv)
     ZERO();
 
     // Model *model = init_model();
-    Model *model = init_model("temp\\bootstrapped-chess-zero.nn");
+    Model *model = init_model("temp/bootstrapped-chess-zero.nn");
 
     // bootstrap_learn(model);
 
@@ -617,7 +617,7 @@ int main(int argc, char **argv)
 
     play_model(model, false);
 
-    // model->save("temp\\chess-zero.nn");
+    // model->save("temp/chess-zero.nn");
 
     delete model;
 

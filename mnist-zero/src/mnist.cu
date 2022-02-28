@@ -133,11 +133,11 @@ int main(int argc, char **argv)
     // conv->linear(Tensor::get_cnt(train_sup->get_y_shape()));
     // conv->activation(ReLU);
 
-    // conv->fit(train_sup, 64, 20, "temp/mnist-train.csv");
+    // conv->fit(train_sup, 64, 20, "temp/mnist-train.csv", NULL);
 
     // Batch *test_batch = test_sup->create_batch();
 
-    // conv->test(test_batch).print();
+    // conv->test(test_batch, NULL).print();
 
     // delete test_batch;
 
@@ -150,7 +150,7 @@ int main(int argc, char **argv)
     ConvNet *conv = new ConvNet();
     conv->load("temp/mnist.nn");
     Batch *test_batch = test_sup->create_batch();
-    conv->test(test_batch).print();
+    conv->test(test_batch, NULL).print();
     delete test_batch;
 
     delete conv;

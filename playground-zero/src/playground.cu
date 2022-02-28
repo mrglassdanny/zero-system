@@ -118,7 +118,7 @@ void nn_approx_test()
 	model->activation(Sigmoid);
 	model->linear(1);
 
-	model->fit(batch);
+	model->fit(batch, NULL);
 
 	Tensor *preds = new Tensor(Device::Cpu, batch->get_size());
 
@@ -129,7 +129,7 @@ void nn_approx_test()
 		delete pred;
 	}
 
-	preds->to_csv("temp/nn-approx-preds.csv");
+	Tensor::to_csv("temp/nn-approx-preds.csv", preds);
 
 	delete preds;
 
@@ -140,11 +140,12 @@ void nn_approx_test()
 
 void kmeans_test()
 {
-	Tensor *xs = Tensor::fr_csv("data\\kmeans-data.csv");
+	Tensor *xs = Tensor::fr_csv("data/kmeans-data.csv");
 
-	KMeans::save_best(xs, 3, 1000, "temp\\model.km");
+	KMeans::save_best(xs, 3, 1000, "temp/model.km");
 
-	KMeans *km = new KMeans("temp\\model.km");
+	KMeans *km = new KMeans();
+	km->load("temp/model.km");
 
 	km->print();
 

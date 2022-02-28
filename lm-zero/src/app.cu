@@ -36,8 +36,8 @@ int main(int argc, char **argv)
     delete xs_tbl;
     delete ys_tbl;
 
-    xs->to_file("temp/xs.tr");
-    ys->to_file("temp/ys.tr");
+    Tensor::to_file("temp/xs.tr", xs);
+    Tensor::to_file("temp/ys.tr", ys);
 
     std::vector<int> x_shape{xs->get_shape()[1]};
     Supervisor *sup = new Supervisor("temp/xs.tr", "temp/ys.tr", x_shape, 0);
@@ -77,10 +77,10 @@ int main(int argc, char **argv)
 
     // Fit:
 
-    embd_m->fit(sup, 100, 10, "temp/train.csv");
+    embd_m->fit(sup, 100, 10, "temp/train.csv", NULL);
 
     Batch *test_batch = sup->create_batch(100);
-    embd_m->test(test_batch).print();
+    embd_m->test(test_batch, NULL).print();
 
     for (int i = 0; i < test_batch->get_size(); i++)
     {
