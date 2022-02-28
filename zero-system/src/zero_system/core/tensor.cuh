@@ -62,6 +62,8 @@ namespace zero
 
             bool equals(Tensor *other);
 
+            void reshape(std::vector<int> shape);
+
             Device get_device();
 
             std::vector<int> get_shape();

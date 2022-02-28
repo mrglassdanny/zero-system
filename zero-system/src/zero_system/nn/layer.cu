@@ -757,9 +757,7 @@ void Layer::set_neurons(Tensor *n)
 
 void Layer::reshape_neurons(std::vector<int> shape)
 {
-    Device device = this->n->get_device();
-    delete this->n;
-    this->n = new Tensor(device, shape);
+    this->n->reshape(shape);
 }
 
 void Layer::forward(Tensor *nxt_n, bool train_flg)
