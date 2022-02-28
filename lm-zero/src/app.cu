@@ -16,7 +16,7 @@ int main(int argc, char **argv)
     // delete xs_tbl->remove_column("cas_hgt");
     // delete xs_tbl->remove_column("cas_wgt");
 
-    // delete xs_tbl->remove_column("pal_qty");
+    delete xs_tbl->remove_column("pal_qty");
 
     xs_tbl->scale_down();
     ys_tbl->scale_down();
@@ -42,16 +42,13 @@ int main(int argc, char **argv)
     std::vector<int> x_shape{xs->get_shape()[1]};
     Supervisor *sup = new Supervisor("temp/xs.tr", "temp/ys.tr", x_shape, 0);
 
-    xs->print();
-    ys->print();
-
     delete xs;
     delete ys;
 
     // Model setup:
 
     // EmbeddedModel *embd_m = new EmbeddedModel(MSE, 0.001f);
-    Model *embd_m = new Model();
+    Model *embd_m = new Model(MSE, 0.1f);
 
     // Embedding *actcod_embg = new Embedding(x_actcod_idx);
     // actcod_embg->linear(1, 16);
@@ -69,10 +66,10 @@ int main(int argc, char **argv)
     // embd_m->embed(to_loc_embg);
 
     // embd_m->linear(embd_m->get_embedded_input_shape(sup->get_x_shape()), 16);
-    embd_m->linear(sup->get_x_shape(), 16);
+    embd_m->linear(sup->get_x_shape(), 32);
     embd_m->activation(Sigmoid);
 
-    embd_m->linear(8);
+    embd_m->linear(16);
     embd_m->activation(Sigmoid);
 
     embd_m->linear(4);

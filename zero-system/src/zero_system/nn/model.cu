@@ -475,10 +475,10 @@ Report Model::train(Batch *batch, upd_rslt_fn fn)
 
     float cost = 0.0f;
 
-    for (int batch_idx = 0; batch_idx < batch_size; batch_idx++)
+    for (int i = 0; i < batch_size; i++)
     {
-        Tensor *x = batch->get_x(batch_idx);
-        Tensor *y = batch->get_y(batch_idx);
+        Tensor *x = batch->get_x(i);
+        Tensor *y = batch->get_y(i);
 
         Tensor *pred = this->forward(x, true);
         cost += this->cost(pred, y);
@@ -514,10 +514,10 @@ Report Model::test(Batch *batch, upd_rslt_fn fn)
 
     float cost = 0.0f;
 
-    for (int batch_idx = 0; batch_idx < batch_size; batch_idx++)
+    for (int i = 0; i < batch_size; i++)
     {
-        Tensor *x = batch->get_x(batch_idx);
-        Tensor *y = batch->get_y(batch_idx);
+        Tensor *x = batch->get_x(i);
+        Tensor *y = batch->get_y(i);
 
         Tensor *pred = this->forward(x, false);
         cost += this->cost(pred, y);
