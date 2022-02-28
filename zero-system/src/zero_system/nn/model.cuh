@@ -43,6 +43,8 @@ namespace zero
             std::vector<int> get_input_shape();
             std::vector<int> get_output_shape();
 
+            std::vector<Layer *> get_layers();
+
             void set_learning_rate(float learning_rate);
 
             virtual Tensor *forward(Tensor *x, bool train_flg);
@@ -118,6 +120,7 @@ namespace zero
             virtual Tensor *forward(Tensor *x, bool train_flg);
             virtual Tensor *backward(Tensor *pred, Tensor *y);
             virtual void step(int batch_size);
+            virtual void check_grad(Tensor *x, Tensor *y, bool print_flg);
         };
     }
 }

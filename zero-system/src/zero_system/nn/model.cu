@@ -245,6 +245,11 @@ std::vector<int> Model::get_output_shape()
     return this->layers[this->layers.size() - 1]->get_output_shape();
 }
 
+std::vector<Layer *> Model::get_layers()
+{
+    return this->layers;
+}
+
 void Model::set_learning_rate(float learning_rate)
 {
     this->learning_rate = learning_rate;
@@ -912,4 +917,236 @@ void EmbeddedModel::step(int batch_size)
     }
 
     Model::step(batch_size);
+}
+
+void EmbeddedModel::check_grad(Tensor *x, Tensor *y, bool print_flg)
+{
+    x->to_device(Device::Cuda);
+    y->to_device(Device::Cuda);
+
+    float agg_ana_grad = 0.0f;
+    float agg_num_grad = 0.0f;
+    float agg_grad_diff = 0.0f;
+
+    // Analytical gradients:
+    {
+        Tensor *pred = this->forward(x, true);
+        this->cost(pred, y);
+        delete this->backward(pred, y);
+        delete pred;
+    }
+
+    // Numerical gradients:
+    {
+
+        // Embeddings:
+        {
+            int embg_idx = 0;
+            for (Embedding *embg : this->embeddings)
+            {
+                embg_idx++;
+
+                int embg_lyr_idx = 0;
+                for (Layer *embg_lyr : embg->get_layers())
+                {
+                    embg_lyr_idx++;
+
+                    if (LearnableLayer *embg_lrn_lyr = dynamic_cast<LearnableLayer *>(embg_lyr))
+                    {
+                        Tensor *w = embg_lrn_lyr->get_weights();
+                        Tensor *dw = embg_lrn_lyr->get_weight_derivatives();
+                        Tensor *b = embg_lrn_lyr->get_biases();
+                        Tensor *db = embg_lrn_lyr->get_bias_derivatives();
+
+                        for (int w_idx = 0; w_idx < w->get_cnt(); w_idx++)
+                        {
+                            float left_cost = 0.0f;
+                            float right_cost = 0.0f;
+
+                            float orig_w_val = w->get_val(w_idx);
+
+                            float left_w_val = orig_w_val - EPSILON;
+                            float right_w_val = orig_w_val + EPSILON;
+
+                            float ana_grad = dw->get_val(w_idx);
+
+                            w->set_val(w_idx, left_w_val);
+                            {
+                                Tensor *pred = this->forward(x, true);
+                                left_cost = this->cost(pred, y);
+                                delete pred;
+                            }
+
+                            w->set_val(w_idx, right_w_val);
+                            {
+                                Tensor *pred = this->forward(x, true);
+                                right_cost = this->cost(pred, y);
+                                delete pred;
+                            }
+
+                            float num_grad = (right_cost - left_cost) / (2.0f * EPSILON);
+
+                            if (print_flg)
+                            {
+                                printf("E: %d W: %d  %d\t%f : %f  (%f)\n", embg_idx, embg_lyr_idx, w_idx, ana_grad, num_grad, fabs(ana_grad - num_grad));
+                            }
+
+                            agg_ana_grad += (ana_grad * ana_grad);
+                            agg_num_grad += (num_grad * num_grad);
+                            agg_grad_diff += ((ana_grad - num_grad) * (ana_grad - num_grad));
+
+                            w->set_val(w_idx, orig_w_val);
+                        }
+
+                        for (int b_idx = 0; b_idx < b->get_cnt(); b_idx++)
+                        {
+                            float left_cost = 0.0f;
+                            float right_cost = 0.0f;
+
+                            float orig_b_val = b->get_val(b_idx);
+
+                            float left_b_val = orig_b_val - EPSILON;
+                            float right_b_val = orig_b_val + EPSILON;
+
+                            float ana_grad = db->get_val(b_idx);
+
+                            b->set_val(b_idx, left_b_val);
+                            {
+                                Tensor *pred = this->forward(x, true);
+                                left_cost = this->cost(pred, y);
+                                delete pred;
+                            }
+
+                            b->set_val(b_idx, right_b_val);
+                            {
+                                Tensor *pred = this->forward(x, true);
+                                right_cost = this->cost(pred, y);
+                                delete pred;
+                            }
+
+                            float num_grad = (right_cost - left_cost) / (2.0f * EPSILON);
+
+                            if (print_flg)
+                            {
+                                printf("E: %d B: %d  %d\t%f : %f  (%f)\n", embg_idx, embg_lyr_idx, b_idx, ana_grad, num_grad, fabs(ana_grad - num_grad));
+                            }
+
+                            agg_ana_grad += (ana_grad * ana_grad);
+                            agg_num_grad += (num_grad * num_grad);
+                            agg_grad_diff += ((ana_grad - num_grad) * (ana_grad - num_grad));
+
+                            b->set_val(b_idx, orig_b_val);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Layers:
+        {
+            int lyr_idx = 0;
+
+            for (Layer *lyr : this->layers)
+            {
+                lyr_idx++;
+
+                if (LearnableLayer *lrn_lyr = dynamic_cast<LearnableLayer *>(lyr))
+                {
+                    Tensor *w = lrn_lyr->get_weights();
+                    Tensor *dw = lrn_lyr->get_weight_derivatives();
+                    Tensor *b = lrn_lyr->get_biases();
+                    Tensor *db = lrn_lyr->get_bias_derivatives();
+
+                    for (int w_idx = 0; w_idx < w->get_cnt(); w_idx++)
+                    {
+                        float left_cost = 0.0f;
+                        float right_cost = 0.0f;
+
+                        float orig_w_val = w->get_val(w_idx);
+
+                        float left_w_val = orig_w_val - EPSILON;
+                        float right_w_val = orig_w_val + EPSILON;
+
+                        float ana_grad = dw->get_val(w_idx);
+
+                        w->set_val(w_idx, left_w_val);
+                        {
+                            Tensor *pred = this->forward(x, true);
+                            left_cost = this->cost(pred, y);
+                            delete pred;
+                        }
+
+                        w->set_val(w_idx, right_w_val);
+                        {
+                            Tensor *pred = this->forward(x, true);
+                            right_cost = this->cost(pred, y);
+                            delete pred;
+                        }
+
+                        float num_grad = (right_cost - left_cost) / (2.0f * EPSILON);
+
+                        if (print_flg)
+                        {
+                            printf("W: %d  %d\t%f : %f  (%f)\n", lyr_idx, w_idx, ana_grad, num_grad, fabs(ana_grad - num_grad));
+                        }
+
+                        agg_ana_grad += (ana_grad * ana_grad);
+                        agg_num_grad += (num_grad * num_grad);
+                        agg_grad_diff += ((ana_grad - num_grad) * (ana_grad - num_grad));
+
+                        w->set_val(w_idx, orig_w_val);
+                    }
+
+                    for (int b_idx = 0; b_idx < b->get_cnt(); b_idx++)
+                    {
+                        float left_cost = 0.0f;
+                        float right_cost = 0.0f;
+
+                        float orig_b_val = b->get_val(b_idx);
+
+                        float left_b_val = orig_b_val - EPSILON;
+                        float right_b_val = orig_b_val + EPSILON;
+
+                        float ana_grad = db->get_val(b_idx);
+
+                        b->set_val(b_idx, left_b_val);
+                        {
+                            Tensor *pred = this->forward(x, true);
+                            left_cost = this->cost(pred, y);
+                            delete pred;
+                        }
+
+                        b->set_val(b_idx, right_b_val);
+                        {
+                            Tensor *pred = this->forward(x, true);
+                            right_cost = this->cost(pred, y);
+                            delete pred;
+                        }
+
+                        float num_grad = (right_cost - left_cost) / (2.0f * EPSILON);
+
+                        if (print_flg)
+                        {
+                            printf("B: %d  %d\t%f : %f  (%f)\n", lyr_idx, b_idx, ana_grad, num_grad, fabs(ana_grad - num_grad));
+                        }
+
+                        agg_ana_grad += (ana_grad * ana_grad);
+                        agg_num_grad += (num_grad * num_grad);
+                        agg_grad_diff += ((ana_grad - num_grad) * (ana_grad - num_grad));
+
+                        b->set_val(b_idx, orig_b_val);
+                    }
+                }
+            }
+        }
+    }
+
+    if ((agg_grad_diff) == 0.0f && (agg_ana_grad + agg_num_grad) == 0.0f)
+    {
+        printf("GRADIENT CHECK RESULT: %f\n", 0.0f);
+    }
+    else
+    {
+        printf("GRADIENT CHECK RESULT: %f\n", (agg_grad_diff) / (agg_ana_grad + agg_num_grad));
+    }
 }
