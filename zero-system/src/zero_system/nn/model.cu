@@ -459,7 +459,7 @@ void Model::check_grad(Tensor *x, Tensor *y, bool print_flg)
     }
 }
 
-Report Model::train(Batch *batch)
+Report Model::train(Batch *batch, upd_rslt_fn fn)
 {
     Report rpt;
 
@@ -479,7 +479,7 @@ Report Model::train(Batch *batch)
         cost += this->cost(pred, y);
         delete this->backward(pred, y);
 
-        rpt.update_correct_cnt(pred, y);
+        rpt.update(pred, y, fn);
 
         delete pred;
 
@@ -498,7 +498,7 @@ Report Model::train(Batch *batch)
     return rpt;
 }
 
-Report Model::test(Batch *batch)
+Report Model::test(Batch *batch, upd_rslt_fn fn)
 {
     Report rpt;
 
@@ -517,7 +517,7 @@ Report Model::test(Batch *batch)
         Tensor *pred = this->forward(x, false);
         cost += this->cost(pred, y);
 
-        rpt.update_correct_cnt(pred, y);
+        rpt.update(pred, y, fn);
 
         delete pred;
 
@@ -534,14 +534,14 @@ Report Model::test(Batch *batch)
     return rpt;
 }
 
-void Model::fit(Batch *batch)
+void Model::fit(Batch *batch, upd_rslt_fn fn)
 {
     unsigned long int epoch = 0;
     int batch_size = batch->get_size();
 
     while (true)
     {
-        Report train_rpt = this->train(batch);
+        Report train_rpt = this->train(batch, fn);
 
         printf("EPOCH: %d\t", epoch);
         train_rpt.print();
@@ -562,7 +562,7 @@ void Model::fit(Batch *batch)
     }
 }
 
-void Model::fit(Supervisor *supervisor, int batch_size, int target_epoch, const char *csv_path)
+void Model::fit(Supervisor *supervisor, int batch_size, int target_epoch, const char *csv_path, upd_rslt_fn fn)
 {
     FILE *csv_file_ptr;
 
@@ -578,7 +578,7 @@ void Model::fit(Supervisor *supervisor, int batch_size, int target_epoch, const 
     while (true)
     {
         Batch *train_batch = supervisor->create_batch(batch_size);
-        Report train_rpt = this->train(train_batch);
+        Report train_rpt = this->train(train_batch, fn);
 
         if (csv_path != nullptr)
         {

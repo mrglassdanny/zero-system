@@ -32,38 +32,47 @@ void Report::print()
     printf("COST: %f\tACCURACY: %f%%\n", this->cost, ((float)this->correct_cnt / (float)this->total_cnt) * 100.0f);
 }
 
-void Report::update_correct_cnt(Tensor *n, Tensor *y)
+void Report::update(Tensor *p, Tensor *y, upd_rslt_fn fn)
 {
-    int lst_lyr_n_cnt = n->get_cnt();
-
-    if (lst_lyr_n_cnt > 1)
+    if (fn != NULL)
     {
-        // One hot encoded:
+        // Specific accuracy metric:
 
-        TensorTuple max_tup = n->get_max();
-        if (y->get_val(max_tup.idx) == 1.0f)
-        {
-            this->correct_cnt++;
-        }
+        fn(p, y, &this->correct_cnt);
     }
     else
     {
-        // Single value:
+        // Generic accuracy metric:
 
-        float y_val = y->get_val(0);
-        float n_val = n->get_val(0);
+        int lst_lyr_n_cnt = p->get_cnt();
 
-        // TODO: think about how we can do this better...
-
-        float lower = y_val < n_val ? y_val : n_val;
-        float upper = y_val < n_val ? n_val : y_val;
-
-        float prcnt = 1.0f - (lower / upper);
-
-        // 10% is our number.
-        if (prcnt <= 0.10f)
+        if (lst_lyr_n_cnt > 1)
         {
-            this->correct_cnt++;
+            // Multi-class classification problem:
+
+            TensorTuple max_tup = p->get_max();
+            if (y->get_val(max_tup.idx) == 1.0f)
+            {
+                this->correct_cnt++;
+            }
+        }
+        else
+        {
+            // Single value -- could be classification or regression:
+
+            float y_val = y->get_val(0);
+            float n_val = p->get_val(0);
+
+            float lower = y_val < n_val ? y_val : n_val;
+            float upper = y_val < n_val ? n_val : y_val;
+
+            float prcnt = 1.0f - (lower / upper);
+
+            // 10% is our number.
+            if (prcnt <= 0.10f)
+            {
+                this->correct_cnt++;
+            }
         }
     }
 }

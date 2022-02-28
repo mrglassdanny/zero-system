@@ -51,11 +51,11 @@ namespace zero
             virtual void step(int batch_size);
             virtual void check_grad(Tensor *x, Tensor *y, bool print_flg);
 
-            Report train(Batch *batch);
-            Report test(Batch *batch);
+            Report train(Batch *batch, upd_rslt_fn fn);
+            Report test(Batch *batch, upd_rslt_fn fn);
 
-            void fit(Batch *batch);
-            void fit(Supervisor *supervisor, int batch_size, int target_epoch, const char *csv_path);
+            void fit(Batch *batch, upd_rslt_fn fn);
+            void fit(Supervisor *supervisor, int batch_size, int target_epoch, const char *csv_path, upd_rslt_fn fn);
 
             Tensor *predict(Tensor *x);
         };
