@@ -26,8 +26,8 @@ namespace zero
             Tensor *n;
 
         public:
+            Layer();
             Layer(std::vector<int> n_shape);
-            Layer(FILE *file_ptr);
             ~Layer();
 
             virtual LayerType get_type() = 0;
@@ -52,8 +52,8 @@ namespace zero
             Tensor *db;
 
         public:
+            LearnableLayer();
             LearnableLayer(std::vector<int> n_shape);
-            LearnableLayer(FILE *file_ptr);
             ~LearnableLayer();
 
             virtual Tensor *get_weights();
@@ -68,8 +68,8 @@ namespace zero
         class LinearLayer : public LearnableLayer
         {
         public:
+            LinearLayer();
             LinearLayer(std::vector<int> n_shape, int nxt_n_cnt, InitializationFunction init_fn);
-            LinearLayer(FILE *file_ptr);
             ~LinearLayer();
 
             virtual LayerType get_type();
@@ -85,8 +85,8 @@ namespace zero
         {
             // NOTE: we only support stride of 1!
         public:
+            ConvolutionalLayer();
             ConvolutionalLayer(std::vector<int> n_shape, int fltr_cnt, int w_row_cnt, int w_col_cnt, InitializationFunction init_fn);
-            ConvolutionalLayer(FILE *file_ptr);
             ~ConvolutionalLayer();
 
             virtual LayerType get_type();
@@ -104,8 +104,8 @@ namespace zero
             ActivationFunction activation_fn;
 
         public:
+            ActivationLayer();
             ActivationLayer(std::vector<int> n_shape, ActivationFunction activation_fn);
-            ActivationLayer(FILE *file_ptr);
             ~ActivationLayer();
 
             virtual LayerType get_type();
@@ -122,8 +122,8 @@ namespace zero
             Tensor *dropout_mask;
 
         public:
+            DropoutLayer();
             DropoutLayer(std::vector<int> n_shape, float dropout_rate);
-            DropoutLayer(FILE *file_ptr);
             ~DropoutLayer();
 
             virtual LayerType get_type();
@@ -141,8 +141,8 @@ namespace zero
             int pool_col_cnt;
 
         public:
+            PoolingLayer();
             PoolingLayer(std::vector<int> n_shape, PoolingFunction pool_fn);
-            PoolingLayer(FILE *file_ptr);
             ~PoolingLayer();
 
             virtual LayerType get_type();
