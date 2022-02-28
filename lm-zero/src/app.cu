@@ -7,21 +7,21 @@ int main(int argc, char **argv)
 
     // Data setup:
 
-    Table *xs_tbl = Table::fr_csv("data/palpck.csv");
+    Table *xs_tbl = Table::fr_csv("data/test.csv");
     Table *ys_tbl = xs_tbl->split("elapsed_secs");
 
-    delete xs_tbl->remove_column("cas_qty");
-    delete xs_tbl->remove_column("cas_len");
-    delete xs_tbl->remove_column("cas_wid");
-    delete xs_tbl->remove_column("cas_hgt");
-    delete xs_tbl->remove_column("cas_wgt");
+    // delete xs_tbl->remove_column("cas_qty");
+    // delete xs_tbl->remove_column("cas_len");
+    // delete xs_tbl->remove_column("cas_wid");
+    // delete xs_tbl->remove_column("cas_hgt");
+    // delete xs_tbl->remove_column("cas_wgt");
 
     // delete xs_tbl->remove_column("pal_qty");
 
     xs_tbl->scale_down();
     ys_tbl->scale_down();
 
-    xs_tbl->encode_onehot("actcod");
+    xs_tbl->encode_ordinal("actcod");
     xs_tbl->encode_onehot("typ");
 
     int x_actcod_idx = xs_tbl->get_column_idx("actcod");
@@ -47,52 +47,58 @@ int main(int argc, char **argv)
 
     // Model setup:
 
-    EmbeddedModel *embd_m = new EmbeddedModel(MSE, 0.1f);
+    // EmbeddedModel *embd_m = new EmbeddedModel(MSE, 0.001f);
+    Model *embd_m = new Model();
 
     // Embedding *actcod_embg = new Embedding(x_actcod_idx);
     // actcod_embg->linear(1, 16);
     // actcod_embg->activation(Sigmoid);
     // embd_m->embed(actcod_embg);
 
-    Embedding *fr_loc_embg = new Embedding(x_fr_loc_beg_idx, x_fr_loc_end_idx);
-    fr_loc_embg->linear(3, 16);
-    fr_loc_embg->activation(ReLU);
-    embd_m->embed(fr_loc_embg);
+    // Embedding *fr_loc_embg = new Embedding(x_fr_loc_beg_idx, x_fr_loc_end_idx);
+    // fr_loc_embg->linear(3, 16);
+    // fr_loc_embg->activation(Sigmoid);
+    // embd_m->embed(fr_loc_embg);
 
-    Embedding *to_loc_embg = new Embedding(x_to_loc_beg_idx, x_to_loc_end_idx);
-    to_loc_embg->linear(3, 16);
-    to_loc_embg->activation(ReLU);
-    embd_m->embed(to_loc_embg);
+    // Embedding *to_loc_embg = new Embedding(x_to_loc_beg_idx, x_to_loc_end_idx);
+    // to_loc_embg->linear(3, 16);
+    // to_loc_embg->activation(Sigmoid);
+    // embd_m->embed(to_loc_embg);
 
-    embd_m->linear(embd_m->get_embedded_input_shape(sup->get_x_shape()), 512);
-    embd_m->activation(ReLU);
+    // embd_m->linear(embd_m->get_embedded_input_shape(sup->get_x_shape()), 16);
+    embd_m->linear(sup->get_x_shape(), 16);
+    embd_m->activation(Sigmoid);
 
-    embd_m->linear(128);
-    embd_m->activation(ReLU);
+    embd_m->linear(8);
+    embd_m->activation(Sigmoid);
 
-    embd_m->linear(16);
-    embd_m->activation(ReLU);
+    embd_m->linear(4);
+    embd_m->activation(Sigmoid);
 
     embd_m->linear(1);
 
     // Fit:
 
-    embd_m->fit(sup, 100, 10, "temp/train.csv", NULL);
+    Batch *grad_batch = sup->create_batch();
 
-    Batch *test_batch = sup->create_batch(100);
-    embd_m->test(test_batch, NULL).print();
+    embd_m->check_grad(grad_batch->get_x(0), grad_batch->get_y(0), true);
 
-    for (int i = 0; i < test_batch->get_size(); i++)
-    {
-        Tensor *pred = embd_m->forward(test_batch->get_x(i), false);
-        test_batch->get_x(i)->print();
-        test_batch->get_y(i)->print();
-        pred->print();
+    // embd_m->fit(sup, 100, 10, "temp/train.csv", NULL);
 
-        delete pred;
-    }
+    // Batch *test_batch = sup->create_batch(100);
+    // embd_m->test(test_batch, NULL).print();
 
-    delete test_batch;
+    // for (int i = 0; i < test_batch->get_size(); i++)
+    // {
+    //     Tensor *pred = embd_m->forward(test_batch->get_x(i), false);
+    //     test_batch->get_x(i)->print();
+    //     test_batch->get_y(i)->print();
+    //     pred->print();
+
+    //     delete pred;
+    // }
+
+    // delete test_batch;
 
     // Cleanup:
 
