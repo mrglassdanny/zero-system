@@ -42,6 +42,9 @@ int main(int argc, char **argv)
     std::vector<int> x_shape{xs->get_shape()[1]};
     Supervisor *sup = new Supervisor("temp/xs.tr", "temp/ys.tr", x_shape, 0);
 
+    xs->print();
+    ys->print();
+
     delete xs;
     delete ys;
 
