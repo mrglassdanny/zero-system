@@ -17,13 +17,14 @@ namespace zero
             Tensor *clusters;
 
         public:
+            KMeans();
             KMeans(int cluster_cnt, int feature_cnt);
             KMeans(const KMeans &src);
-            KMeans(const char *path);
             ~KMeans();
 
             void print();
 
+            void load(const char *path);
             void save(const char *path);
 
             void initialize_clusters(Tensor *xs);

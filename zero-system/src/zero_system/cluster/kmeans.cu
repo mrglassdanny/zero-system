@@ -107,6 +107,10 @@ void __global__ k_update_clusters_part_2(float *cluster_arr, float *cluster_assi
 
 // KMeans member functions:
 
+KMeans::KMeans()
+{
+}
+
 KMeans::KMeans(int cluster_cnt, int feature_cnt)
 {
     this->cluster_cnt = cluster_cnt;
@@ -122,7 +126,17 @@ KMeans::KMeans(const KMeans &src)
     this->clusters = new Tensor(*src.clusters);
 }
 
-KMeans::KMeans(const char *path)
+KMeans::~KMeans()
+{
+    delete this->clusters;
+}
+
+void KMeans::print()
+{
+    this->clusters->print();
+}
+
+void KMeans::load(const char *path)
 {
     FILE *file_ptr = fopen(path, "rb");
 
@@ -139,16 +153,6 @@ KMeans::KMeans(const char *path)
     free(cluster_buf);
 
     fclose(file_ptr);
-}
-
-KMeans::~KMeans()
-{
-    delete this->clusters;
-}
-
-void KMeans::print()
-{
-    this->clusters->print();
 }
 
 void KMeans::save(const char *path)
