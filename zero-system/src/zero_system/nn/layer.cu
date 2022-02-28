@@ -782,6 +782,25 @@ void Layer::forward(Tensor *nxt_n, bool train_flg)
     nxt_n->reset();
 }
 
+void Layer::load(FILE *file_ptr)
+{
+    int dim_cnt;
+
+    fread(&dim_cnt, sizeof(int), 1, file_ptr);
+
+    std::vector<int> n_shape;
+
+    for (int i = 0; i < dim_cnt; i++)
+    {
+        int dim;
+        fread(&dim, sizeof(int), 1, file_ptr);
+        n_shape.push_back(dim);
+    }
+
+    this->n = new Tensor(Device::Cuda, n_shape);
+    this->n->reset();
+}
+
 void Layer::save(FILE *file_ptr)
 {
     int dim_cnt = this->n->get_dim_cnt();
@@ -899,6 +918,60 @@ Tensor *LearnableLayer::get_biases()
 Tensor *LearnableLayer::get_bias_derivatives()
 {
     return this->db;
+}
+
+void LearnableLayer::load(FILE *file_ptr)
+{
+    Layer::load(file_ptr);
+
+    int w_dim_cnt;
+
+    fread(&w_dim_cnt, sizeof(int), 1, file_ptr);
+
+    std::vector<int> w_shape;
+
+    for (int i = 0; i < w_dim_cnt; i++)
+    {
+        int dim;
+        fread(&dim, sizeof(int), 1, file_ptr);
+        w_shape.push_back(dim);
+    }
+
+    int w_cnt = Tensor::get_cnt(w_shape);
+
+    this->w = new Tensor(Device::Cpu, w_shape);
+
+    float *w_buf = (float *)malloc(sizeof(float) * w_cnt);
+    fread(w_buf, sizeof(float), w_cnt, file_ptr);
+    this->w->set_arr(w_buf);
+    this->w->to_device(Device::Cuda);
+    free(w_buf);
+
+    int b_dim_cnt;
+
+    fread(&b_dim_cnt, sizeof(int), 1, file_ptr);
+
+    std::vector<int> b_shape;
+
+    for (int i = 0; i < b_dim_cnt; i++)
+    {
+        int dim;
+        fread(&dim, sizeof(int), 1, file_ptr);
+        b_shape.push_back(dim);
+    }
+
+    int b_cnt = Tensor::get_cnt(b_shape);
+
+    this->b = new Tensor(Device::Cpu, b_shape);
+
+    float *b_buf = (float *)malloc(sizeof(float) * b_cnt);
+    fread(b_buf, sizeof(float), b_cnt, file_ptr);
+    this->b->set_arr(b_buf);
+    this->b->to_device(Device::Cuda);
+    free(b_buf);
+
+    this->dw = new Tensor(Device::Cuda, w_shape);
+    this->db = new Tensor(Device::Cuda, b_shape);
 }
 
 void LearnableLayer::save(FILE *file_ptr)
@@ -1035,6 +1108,11 @@ void LinearLayer::step(int batch_size, float learning_rate)
         int num_blocks = (this->b->get_cnt() / threads_per_block) + 1;
         k_adjust_bias<<<num_blocks, threads_per_block>>>(this->b->get_arr(), this->db->get_arr(), batch_size, learning_rate, this->b->get_cnt());
     }
+}
+
+void LinearLayer::load(FILE *file_ptr)
+{
+    LearnableLayer::load(file_ptr);
 }
 
 void LinearLayer::save(FILE *file_ptr)
@@ -1200,6 +1278,11 @@ void ConvolutionalLayer::step(int batch_size, float learning_rate)
     }
 }
 
+void ConvolutionalLayer::load(FILE *file_ptr)
+{
+    LearnableLayer::load(file_ptr);
+}
+
 void ConvolutionalLayer::save(FILE *file_ptr)
 {
     LearnableLayer::save(file_ptr);
@@ -1248,6 +1331,13 @@ Tensor *ActivationLayer::backward(Tensor *dc)
     }
 
     return dc;
+}
+
+void ActivationLayer::load(FILE *file_ptr)
+{
+    Layer::load(file_ptr);
+
+    fread(&this->activation_fn, sizeof(ActivationFunction), 1, file_ptr);
 }
 
 void ActivationLayer::save(FILE *file_ptr)
@@ -1324,6 +1414,14 @@ Tensor *DropoutLayer::backward(Tensor *dc)
     }
 
     return dc;
+}
+
+void DropoutLayer::load(FILE *file_ptr)
+{
+    Layer::load(file_ptr);
+
+    fread(&this->dropout_rate, sizeof(float), 1, file_ptr);
+    this->dropout_mask = new Tensor(Device::Cuda, this->n->get_shape());
 }
 
 void DropoutLayer::save(FILE *file_ptr)
@@ -1411,6 +1509,15 @@ Tensor *PoolingLayer::backward(Tensor *dc)
     dc = nxt_dc;
 
     return dc;
+}
+
+void PoolingLayer::load(FILE *file_ptr)
+{
+    Layer::load(file_ptr);
+
+    fread(&this->pool_fn, sizeof(PoolingFunction), 1, file_ptr);
+    fread(&this->pool_row_cnt, sizeof(int), 1, file_ptr);
+    fread(&this->pool_col_cnt, sizeof(int), 1, file_ptr);
 }
 
 void PoolingLayer::save(FILE *file_ptr)

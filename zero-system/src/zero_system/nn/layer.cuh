@@ -38,6 +38,8 @@ namespace zero
             virtual void reshape_neurons(std::vector<int> shape);
             virtual void forward(Tensor *nxt_n, bool train_flg);
             virtual Tensor *backward(Tensor *dc) = 0;
+
+            virtual void load(FILE *file_ptr);
             virtual void save(FILE *file_ptr);
         };
 
@@ -58,6 +60,7 @@ namespace zero
             virtual Tensor *get_weight_derivatives();
             virtual Tensor *get_biases();
             virtual Tensor *get_bias_derivatives();
+            virtual void load(FILE *file_ptr);
             virtual void save(FILE *file_ptr);
             virtual void step(int batch_size, float learning_rate) = 0;
         };
@@ -73,6 +76,7 @@ namespace zero
             virtual std::vector<int> get_output_shape();
             virtual void forward(Tensor *nxt_n, bool train_flg);
             virtual Tensor *backward(Tensor *dc);
+            virtual void load(FILE *file_ptr);
             virtual void save(FILE *file_ptr);
             virtual void step(int batch_size, float learning_rate);
         };
@@ -89,6 +93,7 @@ namespace zero
             virtual std::vector<int> get_output_shape();
             virtual void forward(Tensor *nxt_n, bool train_flg);
             virtual Tensor *backward(Tensor *dc);
+            virtual void load(FILE *file_ptr);
             virtual void save(FILE *file_ptr);
             virtual void step(int batch_size, float learning_rate);
         };
@@ -106,6 +111,7 @@ namespace zero
             virtual LayerType get_type();
             virtual void forward(Tensor *nxt_n, bool train_flg);
             virtual Tensor *backward(Tensor *dc);
+            virtual void load(FILE *file_ptr);
             virtual void save(FILE *file_ptr);
         };
 
@@ -123,6 +129,7 @@ namespace zero
             virtual LayerType get_type();
             virtual void forward(Tensor *nxt_n, bool train_flg);
             virtual Tensor *backward(Tensor *dc);
+            virtual void load(FILE *file_ptr);
             virtual void save(FILE *file_ptr);
         };
 
@@ -142,6 +149,7 @@ namespace zero
             virtual std::vector<int> get_output_shape();
             virtual void forward(Tensor *nxt_n, bool train_flg);
             virtual Tensor *backward(Tensor *dc);
+            virtual void load(FILE *file_ptr);
             virtual void save(FILE *file_ptr);
         };
     }
