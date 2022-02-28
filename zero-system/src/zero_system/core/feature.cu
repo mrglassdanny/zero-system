@@ -585,13 +585,13 @@ void Table::encode_onehot(const char *col_name)
     delete col;
 }
 
-Table *Table::fr_csv(const char *csv_file_name)
+Table *Table::fr_csv(const char *path)
 {
     Table *col_set = new Table();
 
-    FILE *csv_file = fopen(csv_file_name, "rb");
+    FILE *csv_file = fopen(path, "rb");
 
-    long file_size = FileUtils::get_file_size(csv_file_name);
+    long file_size = FileUtils::get_file_size(path);
 
     char *csv_buf = (char *)malloc(file_size + sizeof(char));
     int csv_buf_idx = 0;
@@ -809,9 +809,9 @@ Table *Table::fr_csv(const char *csv_file_name)
     return col_set;
 }
 
-void Table::to_csv(const char *csv_file_name, Table *tbl)
+void Table::to_csv(const char *path, Table *tbl)
 {
-    FILE *csv_file = fopen(csv_file_name, "w");
+    FILE *csv_file = fopen(path, "w");
 
     // Headers first:
     for (int col_idx = 0; col_idx < tbl->cols.size(); col_idx++)

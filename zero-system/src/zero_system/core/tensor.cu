@@ -732,13 +732,13 @@ Tensor *Tensor::fr_csv(const char *path)
     return tensor;
 }
 
-void Tensor::to_csv(const char *path)
+void Tensor::to_csv(const char *path, Tensor *tensor)
 {
-    int dim_cnt = this->shape.size();
+    int dim_cnt = tensor->shape.size();
 
     if (dim_cnt == 1)
     {
-        int cnt = this->shape[0];
+        int cnt = tensor->shape[0];
 
         FILE *file_ptr = fopen(path, "w");
 
@@ -746,7 +746,7 @@ void Tensor::to_csv(const char *path)
 
         for (int i = 0; i < cnt; i++)
         {
-            fprintf(file_ptr, "%f\n", this->get_val(i));
+            fprintf(file_ptr, "%f\n", tensor->get_val(i));
         }
 
         fclose(file_ptr);
@@ -754,8 +754,8 @@ void Tensor::to_csv(const char *path)
     else if (dim_cnt == 2)
     {
 
-        int row_cnt = this->shape[0];
-        int col_cnt = this->shape[1];
+        int row_cnt = tensor->shape[0];
+        int col_cnt = tensor->shape[1];
 
         FILE *file_ptr = fopen(path, "w");
 
@@ -779,11 +779,11 @@ void Tensor::to_csv(const char *path)
             {
                 if (j < col_cnt - 1)
                 {
-                    fprintf(file_ptr, "%f,", this->get_val(i * col_cnt + j));
+                    fprintf(file_ptr, "%f,", tensor->get_val(i * col_cnt + j));
                 }
                 else
                 {
-                    fprintf(file_ptr, "%f", this->get_val(i * col_cnt + j));
+                    fprintf(file_ptr, "%f", tensor->get_val(i * col_cnt + j));
                 }
             }
             fprintf(file_ptr, "\n");
@@ -796,15 +796,15 @@ void Tensor::to_csv(const char *path)
     }
 }
 
-void Tensor::to_file(const char *path)
+void Tensor::to_file(const char *path, Tensor *tensor)
 {
     FILE *file_ptr = fopen(path, "wb");
 
-    int cnt = this->get_cnt();
+    int cnt = tensor->get_cnt();
 
-    this->to_device(Device::Cpu);
+    tensor->to_device(Device::Cpu);
 
-    fwrite(this->arr, sizeof(float), cnt, file_ptr);
+    fwrite(tensor->arr, sizeof(float), cnt, file_ptr);
 
     fclose(file_ptr);
 }

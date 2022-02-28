@@ -94,8 +94,8 @@ namespace zero
             void encode_ordinal(const char *col_name);
             void encode_onehot(const char *col_name);
 
-            static Table *fr_csv(const char *csv_file_name);
-            static void to_csv(const char *csv_file_name, Table *tbl);
+            static Table *fr_csv(const char *path);
+            static void to_csv(const char *path, Table *tbl);
 
             static Tensor *to_tensor(Table *tbl);
         };
