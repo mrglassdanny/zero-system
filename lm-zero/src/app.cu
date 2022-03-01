@@ -17,72 +17,43 @@ void upd_rslt_fn(Tensor *p, Tensor *y, int *cnt)
     }
 }
 
-void fit_1(Table *xs_tbl, Table *ys_tbl, Supervisor *sup, const char *path)
+void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup, const char *path)
 {
-    int x_actcod_idx = xs_tbl->get_column_idx("actcod");
+    // int x_actcod_idx = xs_tbl->get_column_idx("actcod");
     int x_fr_loc_beg_idx = xs_tbl->get_column_idx("fr_loc_token_1");
     int x_fr_loc_end_idx = xs_tbl->get_column_idx("fr_loc_token_3");
     int x_to_loc_beg_idx = xs_tbl->get_column_idx("to_loc_token_1");
     int x_to_loc_end_idx = xs_tbl->get_column_idx("to_loc_token_3");
 
-    EmbeddedModel *embd_m = new EmbeddedModel(MSE, 0.01f);
+    EmbeddedModel *embd_m = new EmbeddedModel(MSE, 0.001f);
 
-    Embedding *actcod_embg = new Embedding(x_actcod_idx);
-    actcod_embg->linear(1, 8);
-    actcod_embg->activation(ReLU);
-    embd_m->embed(actcod_embg);
+    // Embedding *actcod_embg = new Embedding(x_actcod_idx);
+    // actcod_embg->linear(1, 8);
+    // actcod_embg->activation(ReLU);
+    // embd_m->embed(actcod_embg);
 
     Embedding *fr_loc_embg = new Embedding(x_fr_loc_beg_idx, x_fr_loc_end_idx);
-    fr_loc_embg->linear(3, 16);
+    fr_loc_embg->linear(3, 24);
     fr_loc_embg->activation(ReLU);
     embd_m->embed(fr_loc_embg);
 
     Embedding *to_loc_embg = new Embedding(x_to_loc_beg_idx, x_to_loc_end_idx);
-    to_loc_embg->linear(3, 16);
+    to_loc_embg->linear(3, 24);
     to_loc_embg->activation(ReLU);
     embd_m->embed(to_loc_embg);
 
-    embd_m->linear(embd_m->get_embedded_input_shape(sup->get_x_shape()), 256);
+    embd_m->linear(embd_m->get_embedded_input_shape(sup->get_x_shape()), 1024);
     embd_m->activation(ReLU);
-    embd_m->linear(64);
+    embd_m->linear(512);
     embd_m->activation(ReLU);
-    embd_m->linear(16);
-    embd_m->activation(ReLU);
-    embd_m->linear(1);
-
-    // Fit:
-
-    embd_m->fit(sup, 100, 10, "temp/train-1.csv", upd_rslt_fn);
-
-    Batch *test_batch = sup->create_batch();
-    embd_m->test(test_batch, upd_rslt_fn).print();
-
-    delete test_batch;
-
-    embd_m->save(path);
-
-    delete embd_m;
-}
-
-void fit_2(Table *xs_tbl, Table *ys_tbl, Supervisor *sup, const char *path)
-{
-    EmbeddedModel *embd_m = new EmbeddedModel(MSE, 0.01f);
-
-    embd_m->linear(embd_m->get_embedded_input_shape(sup->get_x_shape()), 256);
-    embd_m->activation(ReLU);
-    embd_m->linear(64);
-    embd_m->activation(ReLU);
-    embd_m->linear(16);
+    embd_m->linear(128);
     embd_m->activation(ReLU);
     embd_m->linear(1);
 
-    // Fit:
+    embd_m->fit(sup, 32, 15, "temp/train.csv", upd_rslt_fn);
 
-    embd_m->fit(sup, 100, 10, "temp/train-2.csv", upd_rslt_fn);
-
-    Batch *test_batch = sup->create_batch();
+    Batch *test_batch = sup->create_batch(1000);
     embd_m->test(test_batch, upd_rslt_fn).print();
-
     delete test_batch;
 
     embd_m->save(path);
@@ -130,17 +101,6 @@ int main(int argc, char **argv)
     delete xs_tbl->remove_column("cas_per_lyr");
     delete xs_tbl->remove_column("lyr_per_pal");
 
-    Column *fr_loc_token_1_col = xs_tbl->get_column("fr_loc_token_1");
-    Column *fr_loc_token_2_col = xs_tbl->get_column("fr_loc_token_2");
-    Column *fr_loc_token_3_col = xs_tbl->get_column("fr_loc_token_3");
-
-    fr_loc_token_1_col->sub_abs(xs_tbl->get_column("to_loc_token_1"));
-    delete xs_tbl->remove_column("to_loc_token_1");
-    fr_loc_token_2_col->sub_abs(xs_tbl->get_column("to_loc_token_2"));
-    delete xs_tbl->remove_column("to_loc_token_2");
-    fr_loc_token_3_col->sub_abs(xs_tbl->get_column("to_loc_token_3"));
-    delete xs_tbl->remove_column("to_loc_token_3");
-
     xs_tbl->encode_onehot("actcod");
     xs_tbl->encode_onehot("typ");
 
@@ -164,24 +124,60 @@ int main(int argc, char **argv)
 
     // Fit:
     {
-        // fit_1(xs_tbl, ys_tbl, sup, "temp/embd_m_1.em");
-        fit_2(xs_tbl, ys_tbl, sup, "temp/embd_m_2.em");
+        fit(xs_tbl, ys_tbl, sup, "temp/embd_m.em");
     }
 
     // Test:
-    // {
-    //     Column *y_col = ys_tbl->get_column("elapsed_secs");
-    //     Column *pred_col = new Column("pred", true, xs_tbl->get_row_cnt());
+    {
+        // Column *y_col = ys_tbl->get_column("elapsed_secs");
+        // Column *pred_col = new Column("pred", true, xs_tbl->get_row_cnt());
 
-    //     xs_tbl->add_column(fr_loc_col);
-    //     xs_tbl->add_column(to_loc_col);
-    //     xs_tbl->add_column(y_col);
-    //     xs_tbl->add_column(pred_col);
+        // xs_tbl->add_column(fr_loc_col);
+        // xs_tbl->add_column(to_loc_col);
+        // xs_tbl->add_column(y_col);
+        // xs_tbl->add_column(pred_col);
 
-    //     test(sup, pred_col, "temp/embd_m_2.em");
+        // test(sup, pred_col, "temp/embd_m_2.em");
 
-    //     Table::to_csv("temp/preds-2.csv", xs_tbl);
-    // }
+        // Table::to_csv("temp/preds-2.csv", xs_tbl);
+    }
+
+    // Grad Check:
+    {
+        // Batch *grad_chk_batch = sup->create_batch();
+        // Tensor *x = grad_chk_batch->get_x(0);
+        // Tensor *y = grad_chk_batch->get_y(0);
+
+        // EmbeddedModel *em = new EmbeddedModel();
+
+        // int x_fr_loc_beg_idx = xs_tbl->get_column_idx("fr_loc_token_1");
+        // int x_fr_loc_end_idx = xs_tbl->get_column_idx("fr_loc_token_3");
+        // int x_to_loc_beg_idx = xs_tbl->get_column_idx("to_loc_token_1");
+        // int x_to_loc_end_idx = xs_tbl->get_column_idx("to_loc_token_3");
+
+        // Embedding *fr_loc_embg = new Embedding(x_fr_loc_beg_idx, x_fr_loc_end_idx);
+        // fr_loc_embg->linear(3, 24);
+        // fr_loc_embg->activation(Sigmoid);
+        // em->embed(fr_loc_embg);
+
+        // Embedding *to_loc_embg = new Embedding(x_to_loc_beg_idx, x_to_loc_end_idx);
+        // to_loc_embg->linear(3, 24);
+        // to_loc_embg->activation(Sigmoid);
+        // em->embed(to_loc_embg);
+
+        // em->linear(em->get_embedded_input_shape(sup->get_x_shape()), 64);
+        // em->activation(Sigmoid);
+        // em->linear(32);
+        // em->activation(Sigmoid);
+        // em->linear(16);
+        // em->activation(Sigmoid);
+        // em->linear(1);
+
+        // em->check_grad(x, y, true);
+
+        // delete em;
+        // delete grad_chk_batch;
+    }
 
     // Cleanup:
 
