@@ -121,10 +121,8 @@ Model::~Model()
     }
 }
 
-void Model::load(const char *path)
+void Model::load(FILE *file_ptr)
 {
-    FILE *file_ptr = fopen(path, "rb");
-
     fread(&this->cost_fn, sizeof(CostFunction), 1, file_ptr);
     fread(&this->learning_rate, sizeof(float), 1, file_ptr);
 
@@ -163,14 +161,19 @@ void Model::load(const char *path)
 
         this->add_layer(lyr);
     }
+}
+
+void Model::load(const char *path)
+{
+    FILE *file_ptr = fopen(path, "rb");
+
+    Model::load(file_ptr);
 
     fclose(file_ptr);
 }
 
-void Model::save(const char *path)
+void Model::save(FILE *file_ptr)
 {
-    FILE *file_ptr = fopen(path, "wb");
-
     fwrite(&this->cost_fn, sizeof(CostFunction), 1, file_ptr);
     fwrite(&this->learning_rate, sizeof(float), 1, file_ptr);
 
@@ -184,6 +187,13 @@ void Model::save(const char *path)
 
         lyr->save(file_ptr);
     }
+}
+
+void Model::save(const char *path)
+{
+    FILE *file_ptr = fopen(path, "wb");
+
+    Model::save(file_ptr);
 
     fclose(file_ptr);
 }
@@ -708,6 +718,32 @@ Embedding::~Embedding()
 {
 }
 
+void Embedding::load(FILE *file_ptr)
+{
+    fread(&this->beg_x_idx, sizeof(this->beg_x_idx), 1, file_ptr);
+    fread(&this->end_x_idx, sizeof(this->end_x_idx), 1, file_ptr);
+
+    Model::load(file_ptr);
+}
+
+void Embedding::load(const char *path)
+{
+    // Do nothing -- this function is not meant to be called for Embedding.
+}
+
+void Embedding::save(FILE *file_ptr)
+{
+    fwrite(&this->beg_x_idx, sizeof(this->beg_x_idx), 1, file_ptr);
+    fwrite(&this->end_x_idx, sizeof(this->end_x_idx), 1, file_ptr);
+
+    Model::save(file_ptr);
+}
+
+void Embedding::save(const char *path)
+{
+    // Do nothing -- this function is not meant to be called for Embedding.
+}
+
 int Embedding::get_beg_x_idx()
 {
     return this->beg_x_idx;
@@ -759,6 +795,54 @@ EmbeddedModel::~EmbeddedModel()
     {
         delete embg;
     }
+}
+
+void EmbeddedModel::load(FILE *file_ptr)
+{
+    Model::load(file_ptr);
+
+    int embg_cnt = 0;
+
+    fread(&embg_cnt, sizeof(int), 1, file_ptr);
+
+    for (int i = 0; i < embg_cnt; i++)
+    {
+        Embedding *embg = new Embedding();
+        embg->load(file_ptr);
+        this->embed(embg);
+    }
+}
+
+void EmbeddedModel::load(const char *path)
+{
+    FILE *file_ptr = fopen(path, "rb");
+
+    EmbeddedModel::load(file_ptr);
+
+    fclose(file_ptr);
+}
+
+void EmbeddedModel::save(FILE *file_ptr)
+{
+    Model::save(file_ptr);
+
+    int embg_cnt = this->embeddings.size();
+
+    fwrite(&embg_cnt, sizeof(int), 1, file_ptr);
+
+    for (Embedding *embg : this->embeddings)
+    {
+        embg->save(file_ptr);
+    }
+}
+
+void EmbeddedModel::save(const char *path)
+{
+    FILE *file_ptr = fopen(path, "wb");
+
+    EmbeddedModel::save(file_ptr);
+
+    fclose(file_ptr);
 }
 
 std::vector<int> EmbeddedModel::get_embedded_input_shape(std::vector<int> n_shape)

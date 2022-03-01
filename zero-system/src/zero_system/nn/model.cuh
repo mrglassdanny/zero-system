@@ -26,7 +26,9 @@ namespace zero
             Model(CostFunction cost_fn, float learning_rate);
             ~Model();
 
+            virtual void load(FILE *file_ptr);
             virtual void load(const char *path);
+            virtual void save(FILE *file_ptr);
             virtual void save(const char *path);
 
             void linear(int nxt_n_cnt);
@@ -90,7 +92,10 @@ namespace zero
             Embedding(int beg_x_idx, int end_x_idx);
             ~Embedding();
 
-            // TODO: load & save
+            virtual void load(FILE *file_ptr);
+            virtual void load(const char *path);
+            virtual void save(FILE *file_ptr);
+            virtual void save(const char *path);
 
             int get_beg_x_idx();
             int get_end_x_idx();
@@ -110,7 +115,10 @@ namespace zero
             EmbeddedModel(CostFunction cost_fn, float learning_rate);
             ~EmbeddedModel();
 
-            // TODO: load & save
+            virtual void load(FILE *file_ptr);
+            virtual void load(const char *path);
+            virtual void save(FILE *file_ptr);
+            virtual void save(const char *path);
 
             std::vector<int> get_embedded_input_shape(std::vector<int> n_shape);
             std::vector<int> get_embedded_input_shape(int n_cnt);
