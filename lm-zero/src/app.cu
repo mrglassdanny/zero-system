@@ -10,12 +10,11 @@ int main(int argc, char **argv)
     Table *xs_tbl = Table::fr_csv("data/test.csv");
     Table *ys_tbl = xs_tbl->split("elapsed_secs");
 
-    // delete xs_tbl->remove_column("cas_qty");
-    // delete xs_tbl->remove_column("cas_len");
-    // delete xs_tbl->remove_column("cas_wid");
-    // delete xs_tbl->remove_column("cas_hgt");
-    // delete xs_tbl->remove_column("cas_wgt");
-
+    delete xs_tbl->remove_column("cas_qty");
+    delete xs_tbl->remove_column("cas_len");
+    delete xs_tbl->remove_column("cas_wid");
+    delete xs_tbl->remove_column("cas_hgt");
+    delete xs_tbl->remove_column("cas_wgt");
     delete xs_tbl->remove_column("pal_qty");
 
     xs_tbl->scale_down();
@@ -66,15 +65,9 @@ int main(int argc, char **argv)
     // embd_m->embed(to_loc_embg);
 
     // embd_m->linear(embd_m->get_embedded_input_shape(sup->get_x_shape()), 16);
-    embd_m->linear(sup->get_x_shape(), 32);
-    embd_m->activation(Sigmoid);
 
-    embd_m->linear(16);
-    embd_m->activation(Sigmoid);
-
-    embd_m->linear(4);
-    embd_m->activation(Sigmoid);
-
+    embd_m->linear(sup->get_x_shape(), 4);
+    embd_m->linear(2);
     embd_m->linear(1);
 
     // Fit:
