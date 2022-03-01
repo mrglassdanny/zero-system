@@ -65,6 +65,10 @@ int main(int argc, char **argv)
 
     embd_m->linear(embd_m->get_embedded_input_shape(sup->get_x_shape()), 16);
     embd_m->activation(Sigmoid);
+    embd_m->linear(16);
+    embd_m->activation(Sigmoid);
+    embd_m->linear(8);
+    embd_m->activation(Sigmoid);
     embd_m->linear(1);
 
     // Fit:
