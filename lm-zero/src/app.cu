@@ -127,25 +127,40 @@ int main(int argc, char **argv)
     delete xs_tbl->remove_column("cas_wid");
     delete xs_tbl->remove_column("cas_hgt");
     delete xs_tbl->remove_column("cas_wgt");
+    delete xs_tbl->remove_column("cas_per_lyr");
+    delete xs_tbl->remove_column("lyr_per_pal");
+
+    Column *fr_loc_token_1_col = xs_tbl->get_column("fr_loc_token_1");
+    Column *fr_loc_token_2_col = xs_tbl->get_column("fr_loc_token_2");
+    Column *fr_loc_token_3_col = xs_tbl->get_column("fr_loc_token_3");
+
+    fr_loc_token_1_col->sub_abs(xs_tbl->get_column("to_loc_token_1"));
+    delete xs_tbl->remove_column("to_loc_token_1");
+    fr_loc_token_2_col->sub_abs(xs_tbl->get_column("to_loc_token_2"));
+    delete xs_tbl->remove_column("to_loc_token_2");
+    fr_loc_token_3_col->sub_abs(xs_tbl->get_column("to_loc_token_3"));
+    delete xs_tbl->remove_column("to_loc_token_3");
+
+    xs_tbl->encode_onehot("actcod");
+    xs_tbl->encode_onehot("typ");
 
     xs_tbl->scale_down();
     ys_tbl->scale_down();
 
-    // xs_tbl->encode_ordinal("actcod");
-    xs_tbl->encode_onehot("actcod");
-    xs_tbl->encode_onehot("typ");
+    Supervisor *sup;
+    {
+        Tensor *xs = Table::to_tensor(xs_tbl);
+        Tensor *ys = Table::to_tensor(ys_tbl);
 
-    Tensor *xs = Table::to_tensor(xs_tbl);
-    Tensor *ys = Table::to_tensor(ys_tbl);
+        Tensor::to_file("temp/xs.tr", xs);
+        Tensor::to_file("temp/ys.tr", ys);
 
-    Tensor::to_file("temp/xs.tr", xs);
-    Tensor::to_file("temp/ys.tr", ys);
+        std::vector<int> x_shape{xs->get_shape()[1]};
+        sup = new Supervisor("temp/xs.tr", "temp/ys.tr", x_shape, 0);
 
-    std::vector<int> x_shape{xs->get_shape()[1]};
-    Supervisor *sup = new Supervisor("temp/xs.tr", "temp/ys.tr", x_shape, 0);
-
-    delete xs;
-    delete ys;
+        delete xs;
+        delete ys;
+    }
 
     // Fit:
     {
