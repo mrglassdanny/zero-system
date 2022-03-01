@@ -12,7 +12,6 @@ namespace zero
 {
     namespace core
     {
-
         class Column
         {
         private:
