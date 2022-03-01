@@ -155,6 +155,8 @@ Tensor::Tensor(Device device, std::vector<int> shape)
     {
         cudaMalloc(&this->arr, sizeof(float) * cnt);
     }
+
+    this->reset();
 }
 
 Tensor::~Tensor()
@@ -424,25 +426,26 @@ bool Tensor::equals(Tensor *other)
 
 void Tensor::reshape(std::vector<int> shape)
 {
+    int orig_cnt = this->get_cnt();
     int cnt = Tensor::get_cnt(shape);
 
-    if (this->get_cnt() != cnt)
+    this->shape = shape;
+
+    if (orig_cnt != cnt)
     {
         if (this->device == Device::Cpu)
         {
             free(this->arr);
             this->arr = (float *)malloc(sizeof(float) * cnt);
-            memset(this->arr, 0, sizeof(float) * cnt);
         }
         else if (this->device == Device::Cuda)
         {
             cudaFree(this->arr);
             cudaMalloc(&this->arr, sizeof(float) * cnt);
-            cudaMemset(this->arr, 0, sizeof(float) * cnt);
         }
-    }
 
-    this->shape = shape;
+        this->reset();
+    }
 }
 
 Device Tensor::get_device()
