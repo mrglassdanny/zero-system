@@ -10,12 +10,12 @@ int main(int argc, char **argv)
     Table *xs_tbl = Table::fr_csv("data/test.csv");
     Table *ys_tbl = xs_tbl->split("elapsed_secs");
 
-    delete xs_tbl->remove_column("cas_qty");
-    delete xs_tbl->remove_column("cas_len");
-    delete xs_tbl->remove_column("cas_wid");
-    delete xs_tbl->remove_column("cas_hgt");
-    delete xs_tbl->remove_column("cas_wgt");
-    delete xs_tbl->remove_column("pal_qty");
+    // delete xs_tbl->remove_column("cas_qty");
+    // delete xs_tbl->remove_column("cas_len");
+    // delete xs_tbl->remove_column("cas_wid");
+    // delete xs_tbl->remove_column("cas_hgt");
+    // delete xs_tbl->remove_column("cas_wgt");
+    // delete xs_tbl->remove_column("pal_qty");
 
     xs_tbl->scale_down();
     ys_tbl->scale_down();
@@ -46,28 +46,25 @@ int main(int argc, char **argv)
 
     // Model setup:
 
-    // EmbeddedModel *embd_m = new EmbeddedModel(MSE, 0.001f);
-    Model *embd_m = new Model(MSE, 0.1f);
+    EmbeddedModel *embd_m = new EmbeddedModel(MSE, 0.001f);
 
-    // Embedding *actcod_embg = new Embedding(x_actcod_idx);
-    // actcod_embg->linear(1, 16);
-    // actcod_embg->activation(Sigmoid);
-    // embd_m->embed(actcod_embg);
+    Embedding *actcod_embg = new Embedding(x_actcod_idx);
+    actcod_embg->linear(1, 16);
+    actcod_embg->activation(Sigmoid);
+    embd_m->embed(actcod_embg);
 
-    // Embedding *fr_loc_embg = new Embedding(x_fr_loc_beg_idx, x_fr_loc_end_idx);
-    // fr_loc_embg->linear(3, 16);
-    // fr_loc_embg->activation(Sigmoid);
-    // embd_m->embed(fr_loc_embg);
+    Embedding *fr_loc_embg = new Embedding(x_fr_loc_beg_idx, x_fr_loc_end_idx);
+    fr_loc_embg->linear(3, 16);
+    fr_loc_embg->activation(Sigmoid);
+    embd_m->embed(fr_loc_embg);
 
-    // Embedding *to_loc_embg = new Embedding(x_to_loc_beg_idx, x_to_loc_end_idx);
-    // to_loc_embg->linear(3, 16);
-    // to_loc_embg->activation(Sigmoid);
-    // embd_m->embed(to_loc_embg);
+    Embedding *to_loc_embg = new Embedding(x_to_loc_beg_idx, x_to_loc_end_idx);
+    to_loc_embg->linear(3, 16);
+    to_loc_embg->activation(Sigmoid);
+    embd_m->embed(to_loc_embg);
 
-    // embd_m->linear(embd_m->get_embedded_input_shape(sup->get_x_shape()), 16);
-
-    embd_m->linear(sup->get_x_shape(), 4);
-    embd_m->linear(2);
+    embd_m->linear(embd_m->get_embedded_input_shape(sup->get_x_shape()), 16);
+    embd_m->activation(Sigmoid);
     embd_m->linear(1);
 
     // Fit:
