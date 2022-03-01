@@ -474,7 +474,7 @@ void Model::check_grad(Tensor *x, Tensor *y, bool print_flg)
     }
 }
 
-Report Model::train(Batch *batch, upd_rslt_fn fn)
+Report Model::train(Batch *batch, UpdateResultFn fn)
 {
     Report rpt;
 
@@ -513,7 +513,7 @@ Report Model::train(Batch *batch, upd_rslt_fn fn)
     return rpt;
 }
 
-Report Model::test(Batch *batch, upd_rslt_fn fn)
+Report Model::test(Batch *batch, UpdateResultFn fn)
 {
     Report rpt;
 
@@ -549,7 +549,7 @@ Report Model::test(Batch *batch, upd_rslt_fn fn)
     return rpt;
 }
 
-void Model::fit(Batch *batch, upd_rslt_fn fn)
+void Model::fit(Batch *batch, UpdateResultFn fn)
 {
     unsigned long int epoch = 0;
     int batch_size = batch->get_size();
@@ -577,7 +577,7 @@ void Model::fit(Batch *batch, upd_rslt_fn fn)
     }
 }
 
-void Model::fit(Supervisor *supervisor, int batch_size, int target_epoch, const char *csv_path, upd_rslt_fn fn)
+void Model::fit(Supervisor *supervisor, int batch_size, int target_epoch, const char *csv_path, UpdateResultFn fn)
 {
     FILE *csv_file_ptr;
 

@@ -35,7 +35,7 @@ void Report::print()
     printf("COST: %f\tACCURACY: %f%%\n", this->cost, ((float)this->correct_cnt / (float)this->total_cnt) * 100.0f);
 }
 
-void Report::update(Tensor *p, Tensor *y, upd_rslt_fn fn)
+void Report::update(Tensor *p, Tensor *y, UpdateResultFn fn)
 {
     if (fn != NULL)
     {
@@ -61,13 +61,13 @@ void Report::update(Tensor *p, Tensor *y, upd_rslt_fn fn)
         }
         else
         {
-            // Single value -- could be classification or regression:
+            // Single value -- let's just assume regression:
 
             float y_val = y->get_val(0);
-            float n_val = p->get_val(0);
+            float p_val = p->get_val(0);
 
-            float lower = y_val < n_val ? y_val : n_val;
-            float upper = y_val < n_val ? n_val : y_val;
+            float lower = y_val < p_val ? y_val : p_val;
+            float upper = y_val < p_val ? p_val : y_val;
 
             float prcnt = 1.0f - (lower / upper);
 

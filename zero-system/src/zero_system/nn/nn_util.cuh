@@ -54,7 +54,7 @@ namespace zero
             static void initialize(InitializationFunction init_fn, Tensor *tensor, int fan_in, int fan_out);
         };
 
-        typedef void (*upd_rslt_fn)(Tensor *, Tensor *, int *);
+        typedef void (*UpdateResultFn)(Tensor *, Tensor *, int *);
 
         class Report
         {
@@ -64,7 +64,7 @@ namespace zero
             int total_cnt;
 
             void print();
-            void update(Tensor *n, Tensor *y, upd_rslt_fn fn);
+            void update(Tensor *n, Tensor *y, UpdateResultFn fn);
         };
 
         class CSVUtils
