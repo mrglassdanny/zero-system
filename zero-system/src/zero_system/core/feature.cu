@@ -297,9 +297,24 @@ void Column::scale_down()
     {
         float max = this->get_abs_max();
 
+        int factor = 1;
+        while (true)
+        {
+            if ((max / (factor * 1.0f)) <= 1.0f)
+            {
+                break;
+            }
+            else
+            {
+                factor *= 10;
+            }
+        }
+
+        float flt_factor = factor * 1.0f;
+
         for (int i = 0; i < this->row_cnt; i++)
         {
-            this->set_val(i, this->get_numeric_val(i) / max);
+            this->set_val(i, this->get_numeric_val(i) / flt_factor);
         }
     }
 }
@@ -510,24 +525,21 @@ Column *Table::remove_column(const char *col_name)
 
 Table *Table::split(int split_idx)
 {
-    Table *col_set = new Table();
+    Table *tbl = new Table();
 
     int split_cnt = this->cols.size() - split_idx;
 
     for (int i = 0; i < split_cnt; i++)
     {
-        col_set->add_column(this->remove_column(split_idx));
+        tbl->add_column(this->remove_column(split_idx));
     }
 
-    return col_set;
+    return tbl;
 }
 
 Table *Table::split(const char *split_name)
 {
-    Table *col_set = new Table();
-
     int split_idx = this->get_column_idx(split_name);
-
     return this->split(split_idx);
 }
 
@@ -587,7 +599,7 @@ void Table::encode_onehot(const char *col_name)
 
 Table *Table::fr_csv(const char *path)
 {
-    Table *col_set = new Table();
+    Table *tbl = new Table();
 
     FILE *csv_file = fopen(path, "rb");
 
@@ -616,7 +628,7 @@ Table *Table::fr_csv(const char *path)
         {
             if (csv_buf[csv_buf_idx] == ',')
             {
-                col_set->cols.push_back(new Column(buf.get()));
+                tbl->cols.push_back(new Column(buf.get()));
 
                 col_cnt++;
 
@@ -634,7 +646,7 @@ Table *Table::fr_csv(const char *path)
         }
 
         // Make sure to process last col.
-        col_set->cols.push_back(new Column(buf.get()));
+        tbl->cols.push_back(new Column(buf.get()));
 
         col_cnt++;
 
@@ -685,11 +697,11 @@ Table *Table::fr_csv(const char *path)
 
                 if (csv_buf[csv_buf_idx] == ',')
                 {
-                    if (col_set->cols[col_idx]->numeric)
+                    if (tbl->cols[col_idx]->numeric)
                     {
                         if (!buf.is_numeric())
                         {
-                            col_set->cols[col_idx]->numeric = false;
+                            tbl->cols[col_idx]->numeric = false;
                         }
                     }
 
@@ -698,11 +710,11 @@ Table *Table::fr_csv(const char *path)
                 }
                 else if (csv_buf[csv_buf_idx] == '\n')
                 {
-                    if (col_set->cols[col_idx]->numeric)
+                    if (tbl->cols[col_idx]->numeric)
                     {
                         if (!buf.is_numeric())
                         {
-                            col_set->cols[col_idx]->numeric = false;
+                            tbl->cols[col_idx]->numeric = false;
                         }
                     }
 
@@ -715,20 +727,20 @@ Table *Table::fr_csv(const char *path)
             // Make sure to grab the last bit before we finish up!
             if (!buf.is_empty())
             {
-                if (col_set->cols[col_idx]->numeric)
+                if (tbl->cols[col_idx]->numeric)
                 {
                     if (!buf.is_numeric())
                     {
-                        col_set->cols[col_idx]->numeric = false;
+                        tbl->cols[col_idx]->numeric = false;
                     }
                 }
             }
         }
 
         // Allocate memory for col data:
-        for (int col_idx = 0; col_idx < col_set->cols.size(); col_idx++)
+        for (int col_idx = 0; col_idx < tbl->cols.size(); col_idx++)
         {
-            Column *col = col_set->cols[col_idx];
+            Column *col = tbl->cols[col_idx];
             col->alloc_data(row_cnt);
         }
 
@@ -754,7 +766,7 @@ Table *Table::fr_csv(const char *path)
 
                 if (csv_buf[csv_buf_idx] == ',')
                 {
-                    Column *col = col_set->cols[col_idx];
+                    Column *col = tbl->cols[col_idx];
 
                     if (col->numeric)
                     {
@@ -770,7 +782,7 @@ Table *Table::fr_csv(const char *path)
                 }
                 else if (csv_buf[csv_buf_idx] == '\n')
                 {
-                    Column *col = col_set->cols[col_idx];
+                    Column *col = tbl->cols[col_idx];
 
                     if (col->numeric)
                     {
@@ -790,7 +802,7 @@ Table *Table::fr_csv(const char *path)
             // Make sure to grab the last bit before we finish up!
             if (!buf.is_empty())
             {
-                Column *col = col_set->cols[col_idx];
+                Column *col = tbl->cols[col_idx];
 
                 if (col->numeric)
                 {
@@ -806,7 +818,7 @@ Table *Table::fr_csv(const char *path)
 
     free(csv_buf);
 
-    return col_set;
+    return tbl;
 }
 
 void Table::to_csv(const char *path, Table *tbl)
