@@ -335,6 +335,45 @@ void Column::scale_gaussian(float factor)
     }
 }
 
+void Column::add(Column *col)
+{
+    if (!this->numeric || !col->numeric)
+    {
+        return;
+    }
+
+    for (int i = 0; i < this->row_cnt; i++)
+    {
+        this->set_val(i, this->get_numeric_val(i) + col->get_numeric_val(i));
+    }
+}
+
+void Column::sub(Column *col)
+{
+    if (!this->numeric || !col->numeric)
+    {
+        return;
+    }
+
+    for (int i = 0; i < this->row_cnt; i++)
+    {
+        this->set_val(i, this->get_numeric_val(i) - col->get_numeric_val(i));
+    }
+}
+
+void Column::sub_abs(Column *col)
+{
+    if (!this->numeric || !col->numeric)
+    {
+        return;
+    }
+
+    for (int i = 0; i < this->row_cnt; i++)
+    {
+        this->set_val(i, abs(this->get_numeric_val(i) - col->get_numeric_val(i)));
+    }
+}
+
 Column *Column::encode_ordinal()
 {
     if (this->numeric)

@@ -57,6 +57,10 @@ namespace zero
             void scale_down();
             void scale_gaussian(float factor);
 
+            void add(Column *col);
+            void sub(Column *col);
+            void sub_abs(Column *col);
+
             Column *encode_ordinal();
             std::vector<Column *> encode_onehot();
 
