@@ -79,11 +79,18 @@ namespace zero
             void pooling(PoolingFunction pool_fn);
         };
 
+        struct EmbeddingRange
+        {
+            int beg_idx;
+            int end_idx;
+        };
+
         class Embedding : public Model
         {
         protected:
             int beg_x_idx;
             int end_x_idx;
+            std::vector<EmbeddingRange> embg_rngs;
 
         public:
             Embedding();
@@ -99,6 +106,8 @@ namespace zero
 
             int get_beg_x_idx();
             int get_end_x_idx();
+
+            void add_embedding_idx(int beg_idx, int end_idx);
 
             Tensor *embedding_backward(Tensor *dc, int adj_x_offset);
         };
