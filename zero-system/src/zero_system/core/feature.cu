@@ -526,14 +526,33 @@ void Table::add_column(Column *col)
 
 int Table::get_column_idx(const char *col_name)
 {
+    return this->get_column_idx(col_name, true);
+}
+
+int Table::get_column_idx(const char *col_name, bool fr_beg_flg)
+{
     int col_idx = COLUMN_INVALID_IDX;
 
-    for (int _col_idx = 0; _col_idx < this->cols.size(); _col_idx++)
+    if (fr_beg_flg)
     {
-        if (strcmp(this->cols[_col_idx]->name, col_name) == 0)
+        for (int _col_idx = 0; _col_idx < this->cols.size(); _col_idx++)
         {
-            col_idx = _col_idx;
-            break;
+            if (strcmp(this->cols[_col_idx]->name, col_name) == 0)
+            {
+                col_idx = _col_idx;
+                break;
+            }
+        }
+    }
+    else
+    {
+        for (int _col_idx = this->cols.size() - 1; _col_idx >= 0; _col_idx--)
+        {
+            if (strcmp(this->cols[_col_idx]->name, col_name) == 0)
+            {
+                col_idx = _col_idx;
+                break;
+            }
         }
     }
 
