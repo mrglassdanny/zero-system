@@ -87,13 +87,12 @@ int main(int argc, char **argv)
 
     // Data setup:
 
-    Table *xs_tbl = Table::fr_csv("data/palpck-w-locs.csv");
+    Table *xs_tbl = Table::fr_csv("data/palpck-w-locs-test.csv");
     Table *ys_tbl = xs_tbl->split("elapsed_secs");
 
     Column *fr_loc_col = xs_tbl->remove_column("fr_loc");
     Column *to_loc_col = xs_tbl->remove_column("to_loc");
 
-    delete xs_tbl->remove_column("actcod");
     delete xs_tbl->remove_column("cas_qty");
     delete xs_tbl->remove_column("cas_len");
     delete xs_tbl->remove_column("cas_wid");
@@ -102,7 +101,7 @@ int main(int argc, char **argv)
     delete xs_tbl->remove_column("cas_per_lyr");
     delete xs_tbl->remove_column("lyr_per_pal");
 
-    // xs_tbl->encode_onehot("actcod");
+    xs_tbl->encode_onehot("actcod");
     xs_tbl->encode_onehot("typ");
 
     xs_tbl->scale_down();
@@ -130,54 +129,54 @@ int main(int argc, char **argv)
 
     // Test:
     {
-        Column *y_col = ys_tbl->get_column("elapsed_secs");
-        Column *pred_col = new Column("pred", true, xs_tbl->get_row_cnt());
+        // Column *y_col = ys_tbl->get_column("elapsed_secs");
+        // Column *pred_col = new Column("pred", true, xs_tbl->get_row_cnt());
 
-        xs_tbl->add_column(fr_loc_col);
-        xs_tbl->add_column(to_loc_col);
-        xs_tbl->add_column(y_col);
-        xs_tbl->add_column(pred_col);
+        // xs_tbl->add_column(fr_loc_col);
+        // xs_tbl->add_column(to_loc_col);
+        // xs_tbl->add_column(y_col);
+        // xs_tbl->add_column(pred_col);
 
-        test(sup, pred_col, "temp/embd_m.em");
+        // test(sup, pred_col, "temp/embd_m.em");
 
-        Table::to_csv("temp/preds.csv", xs_tbl);
+        // Table::to_csv("temp/preds.csv", xs_tbl);
     }
 
     // Grad Check:
     {
-        // Batch *grad_chk_batch = sup->create_batch();
-        // Tensor *x = grad_chk_batch->get_x(0);
-        // Tensor *y = grad_chk_batch->get_y(0);
+        Batch *grad_chk_batch = sup->create_batch();
+        Tensor *x = grad_chk_batch->get_x(0);
+        Tensor *y = grad_chk_batch->get_y(0);
 
-        // EmbeddedModel *em = new EmbeddedModel();
+        EmbeddedModel *em = new EmbeddedModel();
 
-        // int x_fr_loc_beg_idx = xs_tbl->get_column_idx("fr_loc_token_1");
-        // int x_fr_loc_end_idx = xs_tbl->get_column_idx("fr_loc_token_3");
-        // int x_to_loc_beg_idx = xs_tbl->get_column_idx("to_loc_token_1");
-        // int x_to_loc_end_idx = xs_tbl->get_column_idx("to_loc_token_3");
+        int x_fr_loc_beg_idx = xs_tbl->get_column_idx("fr_loc_token_1");
+        int x_fr_loc_end_idx = xs_tbl->get_column_idx("fr_loc_token_3");
+        int x_to_loc_beg_idx = xs_tbl->get_column_idx("to_loc_token_1");
+        int x_to_loc_end_idx = xs_tbl->get_column_idx("to_loc_token_3");
 
-        // Embedding *fr_loc_embg = new Embedding(x_fr_loc_beg_idx, x_fr_loc_end_idx);
-        // fr_loc_embg->linear(3, 24);
-        // fr_loc_embg->activation(Sigmoid);
-        // em->embed(fr_loc_embg);
+        Embedding *fr_loc_embg = new Embedding(x_fr_loc_beg_idx, x_fr_loc_end_idx);
+        fr_loc_embg->linear(3, 24);
+        fr_loc_embg->activation(Sigmoid);
+        em->embed(fr_loc_embg);
 
-        // Embedding *to_loc_embg = new Embedding(x_to_loc_beg_idx, x_to_loc_end_idx);
-        // to_loc_embg->linear(3, 24);
-        // to_loc_embg->activation(Sigmoid);
-        // em->embed(to_loc_embg);
+        Embedding *to_loc_embg = new Embedding(x_to_loc_beg_idx, x_to_loc_end_idx);
+        to_loc_embg->linear(3, 24);
+        to_loc_embg->activation(Sigmoid);
+        em->embed(to_loc_embg);
 
-        // em->linear(em->get_embedded_input_shape(sup->get_x_shape()), 64);
-        // em->activation(Sigmoid);
-        // em->linear(32);
-        // em->activation(Sigmoid);
-        // em->linear(16);
-        // em->activation(Sigmoid);
-        // em->linear(1);
+        em->linear(em->get_embedded_input_shape(sup->get_x_shape()), 64);
+        em->activation(Sigmoid);
+        em->linear(32);
+        em->activation(Sigmoid);
+        em->linear(16);
+        em->activation(Sigmoid);
+        em->linear(1);
 
-        // em->check_grad(x, y, true);
+        em->check_grad(x, y, true);
 
-        // delete em;
-        // delete grad_chk_batch;
+        delete em;
+        delete grad_chk_batch;
     }
 
     // Cleanup:
