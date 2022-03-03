@@ -4,4 +4,4 @@ The ZERO system analyzes a given situation based on the massive amounts of data 
 ![ZERO-System-Logo](logo.jpg)
 
 
-In reality, this ZERO System is a machine learning (ML) framework that I have built in order to understand ML better and to try out different ideas that I have. This is not meant to be used in any production setting -- or any setting really. It is just my fun little project.
+In reality, this ZERO System is a machine learning (ML) framework that I have built in order to understand ML better and to try out different ideas that I have. This is not meant to be used in any production setting -- or any setting really. It is just my fun little project. If you can guess what ^^^ is in refence to, then kudos!
