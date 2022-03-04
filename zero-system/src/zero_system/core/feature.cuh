@@ -83,7 +83,9 @@ namespace zero
             void add_column(Column *col);
 
             int get_column_idx(const char *col_name);
-            int get_column_idx(const char *col_name, bool fr_beg_flg);
+            int get_last_column_idx(const char *col_name);
+
+            Range get_column_range(const char *col_name);
 
             Column *get_column(int col_idx);
             Column *get_column(const char *col_name);

@@ -526,37 +526,44 @@ void Table::add_column(Column *col)
 
 int Table::get_column_idx(const char *col_name)
 {
-    return this->get_column_idx(col_name, true);
-}
-
-int Table::get_column_idx(const char *col_name, bool fr_beg_flg)
-{
     int col_idx = COLUMN_INVALID_IDX;
 
-    if (fr_beg_flg)
+    for (int _col_idx = 0; _col_idx < this->cols.size(); _col_idx++)
     {
-        for (int _col_idx = 0; _col_idx < this->cols.size(); _col_idx++)
+        if (strcmp(this->cols[_col_idx]->name, col_name) == 0)
         {
-            if (strcmp(this->cols[_col_idx]->name, col_name) == 0)
-            {
-                col_idx = _col_idx;
-                break;
-            }
-        }
-    }
-    else
-    {
-        for (int _col_idx = this->cols.size() - 1; _col_idx >= 0; _col_idx--)
-        {
-            if (strcmp(this->cols[_col_idx]->name, col_name) == 0)
-            {
-                col_idx = _col_idx;
-                break;
-            }
+            col_idx = _col_idx;
+            break;
         }
     }
 
     return col_idx;
+}
+
+int Table::get_last_column_idx(const char *col_name)
+{
+    int col_idx = COLUMN_INVALID_IDX;
+
+    for (int _col_idx = this->cols.size() - 1; _col_idx >= 0; _col_idx--)
+    {
+        if (strcmp(this->cols[_col_idx]->name, col_name) == 0)
+        {
+            col_idx = _col_idx;
+            break;
+        }
+    }
+
+    return col_idx;
+}
+
+Range Table::get_column_range(const char *col_name)
+{
+    Range range;
+
+    range.beg_idx = this->get_column_idx(col_name);
+    range.end_idx = this->get_last_column_idx(col_name);
+
+    return range;
 }
 
 Column *Table::get_column(int col_idx)

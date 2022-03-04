@@ -46,5 +46,11 @@ namespace zero
             bool contains(char c);
             bool is_numeric();
         };
+
+        struct Range
+        {
+            int beg_idx;
+            int end_idx;
+        };
     }
 }
