@@ -17,20 +17,17 @@ void upd_rslt_fn(Tensor *p, Tensor *y, int *cnt)
     }
 }
 
-void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup, const char *path)
+void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup, const char *embd_m_path, const char *loc_embg_path)
 {
 
     EmbeddedModel *embd_m = new EmbeddedModel(MSE, 0.01f);
 
-    Embedding *fr_loc_embg = new Embedding();
-    fr_loc_embg->linear(3, 50);
-    fr_loc_embg->activation(ReLU);
-    embd_m->embed(fr_loc_embg, Range{xs_tbl->get_column_idx("fr_loc_token_1"), xs_tbl->get_column_idx("fr_loc_token_3")});
+    Embedding *loc_embg = new Embedding();
+    loc_embg->linear(3, 24);
+    loc_embg->activation(Sigmoid);
 
-    Embedding *to_loc_embg = new Embedding();
-    to_loc_embg->linear(3, 50);
-    to_loc_embg->activation(ReLU);
-    embd_m->embed(to_loc_embg, Range{xs_tbl->get_column_idx("to_loc_token_1"), xs_tbl->get_column_idx("to_loc_token_3")});
+    embd_m->embed(loc_embg, Range{xs_tbl->get_column_idx("fr_loc_token_1"), xs_tbl->get_column_idx("fr_loc_token_3")});
+    embd_m->embed(loc_embg, Range{xs_tbl->get_column_idx("to_loc_token_1"), xs_tbl->get_column_idx("to_loc_token_3")});
 
     embd_m->linear(embd_m->calc_embedded_input_shape(sup->get_x_shape()), 512);
     embd_m->activation(ReLU);
@@ -46,15 +43,22 @@ void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup, const char *path)
     embd_m->test(test_batch, upd_rslt_fn).print();
     delete test_batch;
 
-    embd_m->save(path);
+    embd_m->save(embd_m_path);
+    loc_embg->save(loc_embg_path);
 
     delete embd_m;
+    delete loc_embg;
 }
 
-void test(Supervisor *sup, Column *pred_col, const char *path)
+void test(Supervisor *sup, Column *pred_col, const char *embd_m_path, const char *loc_embg_path)
 {
     EmbeddedModel *embd_m = new EmbeddedModel();
-    embd_m->load(path);
+    embd_m->load(embd_m_path);
+
+    Embedding *loc_embg = new Embedding();
+    loc_embg->load(loc_embg_path);
+
+    embd_m->embed(loc_embg);
 
     Batch *test_batch = sup->create_batch();
     embd_m->test(test_batch, upd_rslt_fn).print();
@@ -134,31 +138,33 @@ int main(int argc, char **argv)
 
     // Grad Check:
     {
-        Batch *grad_chk_batch = sup->create_batch();
-        Tensor *x = grad_chk_batch->get_x(0);
-        Tensor *y = grad_chk_batch->get_y(0);
+        // Batch *grad_chk_batch = sup->create_batch();
+        // Tensor *x = grad_chk_batch->get_x(0);
+        // Tensor *y = grad_chk_batch->get_y(0);
 
-        EmbeddedModel *em = new EmbeddedModel();
+        // EmbeddedModel *em = new EmbeddedModel();
 
-        Embedding *loc_embg = new Embedding();
-        loc_embg->linear(3, 24);
-        loc_embg->activation(Sigmoid);
+        // Embedding *loc_embg = new Embedding();
+        // loc_embg->linear(3, 24);
+        // loc_embg->activation(Sigmoid);
 
-        em->embed(loc_embg, Range{xs_tbl->get_column_idx("fr_loc_token_1"), xs_tbl->get_column_idx("fr_loc_token_3")});
-        em->embed(loc_embg, Range{xs_tbl->get_column_idx("to_loc_token_1"), xs_tbl->get_column_idx("to_loc_token_3")});
+        // em->embed(loc_embg, Range{xs_tbl->get_column_idx("fr_loc_token_1"), xs_tbl->get_column_idx("fr_loc_token_3")});
+        // em->embed(loc_embg, Range{xs_tbl->get_column_idx("to_loc_token_1"), xs_tbl->get_column_idx("to_loc_token_3")});
 
-        em->linear(em->calc_embedded_input_shape(sup->get_x_shape()), 64);
-        em->activation(Sigmoid);
-        em->linear(32);
-        em->activation(Sigmoid);
-        em->linear(16);
-        em->activation(Sigmoid);
-        em->linear(1);
+        // em->linear(em->calc_embedded_input_shape(sup->get_x_shape()), 64);
+        // em->activation(Sigmoid);
+        // em->linear(32);
+        // em->activation(Sigmoid);
+        // em->linear(16);
+        // em->activation(Sigmoid);
+        // em->linear(1);
 
-        em->check_grad(x, y, true);
+        // em->check_grad(x, y, true);
 
-        delete em;
-        delete grad_chk_batch;
+        // delete em;
+        // delete grad_chk_batch;
+
+        // delete loc_embg;
     }
 
     // Cleanup:
