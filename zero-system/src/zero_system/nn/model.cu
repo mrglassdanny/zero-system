@@ -739,10 +739,7 @@ EmbeddedModel::EmbeddedModel(CostFunction cost_fn, float learning_rate)
 
 EmbeddedModel::~EmbeddedModel()
 {
-    for (Embedding *embg : this->embgs)
-    {
-        delete embg;
-    }
+    // Let caller handle Embedding cleanup!
 }
 
 void EmbeddedModel::load(FILE *file_ptr)
