@@ -19,30 +19,20 @@ void upd_rslt_fn(Tensor *p, Tensor *y, int *cnt)
 
 void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup, const char *path)
 {
-    // int x_actcod_idx = xs_tbl->get_column_idx("actcod");
-    int x_fr_loc_beg_idx = xs_tbl->get_column_idx("fr_loc_token_1");
-    int x_fr_loc_end_idx = xs_tbl->get_column_idx("fr_loc_token_3");
-    int x_to_loc_beg_idx = xs_tbl->get_column_idx("to_loc_token_1");
-    int x_to_loc_end_idx = xs_tbl->get_column_idx("to_loc_token_3");
 
     EmbeddedModel *embd_m = new EmbeddedModel(MSE, 0.01f);
 
-    // Embedding *actcod_embg = new Embedding(x_actcod_idx);
-    // actcod_embg->linear(1, 8);
-    // actcod_embg->activation(ReLU);
-    // embd_m->embed(actcod_embg);
-
-    Embedding *fr_loc_embg = new Embedding(x_fr_loc_beg_idx, x_fr_loc_end_idx);
+    Embedding *fr_loc_embg = new Embedding();
     fr_loc_embg->linear(3, 50);
     fr_loc_embg->activation(ReLU);
-    embd_m->embed(fr_loc_embg);
+    embd_m->embed(fr_loc_embg, Range{xs_tbl->get_column_idx("fr_loc_token_1"), xs_tbl->get_column_idx("fr_loc_token_3")});
 
-    Embedding *to_loc_embg = new Embedding(x_to_loc_beg_idx, x_to_loc_end_idx);
+    Embedding *to_loc_embg = new Embedding();
     to_loc_embg->linear(3, 50);
     to_loc_embg->activation(ReLU);
-    embd_m->embed(to_loc_embg);
+    embd_m->embed(to_loc_embg, Range{xs_tbl->get_column_idx("to_loc_token_1"), xs_tbl->get_column_idx("to_loc_token_3")});
 
-    embd_m->linear(embd_m->get_embedded_input_shape(sup->get_x_shape()), 512);
+    embd_m->linear(embd_m->calc_embedded_input_shape(sup->get_x_shape()), 512);
     embd_m->activation(ReLU);
     embd_m->linear(512);
     embd_m->activation(ReLU);
@@ -150,22 +140,17 @@ int main(int argc, char **argv)
 
         EmbeddedModel *em = new EmbeddedModel();
 
-        int x_fr_loc_beg_idx = xs_tbl->get_column_idx("fr_loc_token_1");
-        int x_fr_loc_end_idx = xs_tbl->get_column_idx("fr_loc_token_3");
-        int x_to_loc_beg_idx = xs_tbl->get_column_idx("to_loc_token_1");
-        int x_to_loc_end_idx = xs_tbl->get_column_idx("to_loc_token_3");
-
-        Embedding *fr_loc_embg = new Embedding(x_fr_loc_beg_idx, x_fr_loc_end_idx);
+        Embedding *fr_loc_embg = new Embedding();
         fr_loc_embg->linear(3, 24);
         fr_loc_embg->activation(Sigmoid);
-        em->embed(fr_loc_embg);
+        em->embed(fr_loc_embg, Range{xs_tbl->get_column_idx("fr_loc_token_1"), xs_tbl->get_column_idx("fr_loc_token_3")});
 
-        Embedding *to_loc_embg = new Embedding(x_to_loc_beg_idx, x_to_loc_end_idx);
+        Embedding *to_loc_embg = new Embedding();
         to_loc_embg->linear(3, 24);
         to_loc_embg->activation(Sigmoid);
-        em->embed(to_loc_embg);
+        em->embed(to_loc_embg, Range{xs_tbl->get_column_idx("to_loc_token_1"), xs_tbl->get_column_idx("to_loc_token_3")});
 
-        em->linear(em->get_embedded_input_shape(sup->get_x_shape()), 64);
+        em->linear(em->calc_embedded_input_shape(sup->get_x_shape()), 64);
         em->activation(Sigmoid);
         em->linear(32);
         em->activation(Sigmoid);

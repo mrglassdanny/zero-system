@@ -79,45 +79,23 @@ namespace zero
             void pooling(PoolingFunction pool_fn);
         };
 
-        struct EmbeddingRange
-        {
-            int beg_idx;
-            int end_idx;
-        };
-
         class Embedding : public Model
         {
-        protected:
-            int beg_x_idx;
-            int end_x_idx;
-            std::vector<EmbeddingRange> embg_rngs;
-
         public:
             Embedding();
             Embedding(CostFunction cost_fn, float learning_rate);
-            Embedding(int x_idx);
-            Embedding(int beg_x_idx, int end_x_idx);
             ~Embedding();
 
-            virtual void load(FILE *file_ptr);
-            virtual void load(const char *path);
-            virtual void save(FILE *file_ptr);
-            virtual void save(const char *path);
-
-            int get_beg_x_idx();
-            int get_end_x_idx();
-
-            void add_embedding_idx(int beg_idx, int end_idx);
-
-            Tensor *embedding_backward(Tensor *dc, int adj_x_offset);
+            Tensor *embedding_backward(Tensor *dc, int offset_idx);
         };
 
         class EmbeddedModel : public Model
         {
         protected:
-            std::vector<Embedding *> embeddings;
+            std::vector<Embedding *> embgs;
+            std::vector<Range> embg_ranges;
 
-            void add_embedding(Embedding *emb);
+            void add_embedding(Embedding *embg, Range embg_range);
 
         public:
             EmbeddedModel();
@@ -129,10 +107,10 @@ namespace zero
             virtual void save(FILE *file_ptr);
             virtual void save(const char *path);
 
-            std::vector<int> get_embedded_input_shape(std::vector<int> n_shape);
-            std::vector<int> get_embedded_input_shape(int n_cnt);
+            std::vector<int> calc_embedded_input_shape(std::vector<int> n_shape);
+            std::vector<int> calc_embedded_input_shape(int n_cnt);
 
-            void embed(Embedding *emb);
+            void embed(Embedding *embg, Range embg_range);
 
             virtual Tensor *forward(Tensor *x, bool train_flg);
             virtual Tensor *backward(Tensor *pred, Tensor *y);
