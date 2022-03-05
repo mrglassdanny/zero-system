@@ -19,34 +19,33 @@ void upd_rslt_fn(Tensor *p, Tensor *y, int *cnt)
 
 void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup, const char *embd_m_path, const char *loc_embg_path)
 {
-
     EmbeddedModel *embd_m = new EmbeddedModel(MSE, 0.01f);
 
     Embedding *loc_embg = new Embedding();
-    loc_embg->linear(3, 128);
+    loc_embg->linear(3, 32);
     loc_embg->activation(ReLU);
-    loc_embg->linear(48);
+    loc_embg->linear(12);
     loc_embg->activation(ReLU);
 
-    embd_m->embed(loc_embg, Range{xs_tbl->get_column_idx("fr_loc_token_1"), xs_tbl->get_column_idx("fr_loc_token_3")});
-    embd_m->embed(loc_embg, Range{xs_tbl->get_column_idx("to_loc_token_1"), xs_tbl->get_column_idx("to_loc_token_3")});
+    // embd_m->embed(loc_embg, Range{xs_tbl->get_column_idx("fr_loc_token_1"), xs_tbl->get_column_idx("fr_loc_token_3")});
+    // embd_m->embed(loc_embg, Range{xs_tbl->get_column_idx("to_loc_token_1"), xs_tbl->get_column_idx("to_loc_token_3")});
 
-    embd_m->linear(embd_m->calc_embedded_input_shape(sup->get_x_shape()), 512);
+    embd_m->linear(embd_m->calc_embedded_input_shape(sup->get_x_shape()), 24);
     embd_m->activation(ReLU);
-    embd_m->linear(512);
+    embd_m->linear(24);
     embd_m->activation(ReLU);
-    embd_m->linear(64);
+    embd_m->linear(8);
     embd_m->activation(ReLU);
     embd_m->linear(1);
 
-    embd_m->fit(sup, 128, 15, "temp/train.csv", upd_rslt_fn);
+    embd_m->fit(sup, 12, 15, "temp/train.csv", upd_rslt_fn);
 
-    Batch *test_batch = sup->create_batch(1000);
+    Batch *test_batch = sup->create_batch();
     embd_m->test(test_batch, upd_rslt_fn).print();
     delete test_batch;
 
     embd_m->save(embd_m_path);
-    loc_embg->save(loc_embg_path);
+    // loc_embg->save(loc_embg_path);
 
     delete embd_m;
     delete loc_embg;
@@ -58,9 +57,10 @@ void test(Supervisor *sup, Column *pred_col, const char *embd_m_path, const char
     embd_m->load(embd_m_path);
 
     Embedding *loc_embg = new Embedding();
-    loc_embg->load(loc_embg_path);
+    // loc_embg->load(loc_embg_path);
 
-    embd_m->embed(loc_embg);
+    // embd_m->embed(loc_embg);
+    // embd_m->embed(loc_embg);
 
     Batch *test_batch = sup->create_batch();
     embd_m->test(test_batch, upd_rslt_fn).print();
@@ -120,7 +120,7 @@ int main(int argc, char **argv)
 
     // Fit:
     {
-        fit(xs_tbl, ys_tbl, sup, "temp/lmzero.embd", "temp/loc.emdg");
+        // fit(xs_tbl, ys_tbl, sup, "temp/lmzero.embd", "temp/loc.emdg");
     }
 
     // Test:
