@@ -22,30 +22,30 @@ void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup, const char *embd_m_path,
     EmbeddedModel *embd_m = new EmbeddedModel(MSE, 0.01f);
 
     Embedding *loc_embg = new Embedding();
-    loc_embg->linear(3, 32);
+    loc_embg->linear(3, 128);
     loc_embg->activation(ReLU);
-    loc_embg->linear(12);
+    loc_embg->linear(56);
     loc_embg->activation(ReLU);
 
-    // embd_m->embed(loc_embg, Range{xs_tbl->get_column_idx("fr_loc_token_1"), xs_tbl->get_column_idx("fr_loc_token_3")});
-    // embd_m->embed(loc_embg, Range{xs_tbl->get_column_idx("to_loc_token_1"), xs_tbl->get_column_idx("to_loc_token_3")});
+    embd_m->embed(loc_embg, Range{xs_tbl->get_column_idx("fr_loc_token_1"), xs_tbl->get_column_idx("fr_loc_token_3")});
+    embd_m->embed(loc_embg, Range{xs_tbl->get_column_idx("to_loc_token_1"), xs_tbl->get_column_idx("to_loc_token_3")});
 
-    embd_m->linear(embd_m->calc_embedded_input_shape(sup->get_x_shape()), 24);
+    embd_m->linear(embd_m->calc_embedded_input_shape(sup->get_x_shape()), 2048);
     embd_m->activation(ReLU);
-    embd_m->linear(24);
+    embd_m->linear(512);
     embd_m->activation(ReLU);
-    embd_m->linear(8);
+    embd_m->linear(128);
     embd_m->activation(ReLU);
     embd_m->linear(1);
 
-    embd_m->fit(sup, 12, 15, "temp/train.csv", upd_rslt_fn);
+    embd_m->fit(sup, 50, 15, "temp/train.csv", upd_rslt_fn);
 
-    Batch *test_batch = sup->create_batch();
+    Batch *test_batch = sup->create_batch(1000);
     embd_m->test(test_batch, upd_rslt_fn).print();
     delete test_batch;
 
     embd_m->save(embd_m_path);
-    // loc_embg->save(loc_embg_path);
+    loc_embg->save(loc_embg_path);
 
     delete embd_m;
     delete loc_embg;
@@ -57,10 +57,10 @@ void test(Supervisor *sup, Column *pred_col, const char *embd_m_path, const char
     embd_m->load(embd_m_path);
 
     Embedding *loc_embg = new Embedding();
-    // loc_embg->load(loc_embg_path);
+    loc_embg->load(loc_embg_path);
 
-    // embd_m->embed(loc_embg);
-    // embd_m->embed(loc_embg);
+    embd_m->embed(loc_embg);
+    embd_m->embed(loc_embg);
 
     Batch *test_batch = sup->create_batch();
     embd_m->test(test_batch, upd_rslt_fn).print();
@@ -83,7 +83,7 @@ int main(int argc, char **argv)
 
     // Data setup:
 
-    Table *xs_tbl = Table::fr_csv("data/palpck-w-locs-test.csv");
+    Table *xs_tbl = Table::fr_csv("data/palpck-w-locs.csv");
     Table *ys_tbl = xs_tbl->split("elapsed_secs");
 
     Column *fr_loc_col = xs_tbl->remove_column("fr_loc");
@@ -120,22 +120,22 @@ int main(int argc, char **argv)
 
     // Fit:
     {
-        // fit(xs_tbl, ys_tbl, sup, "temp/lmzero.embd", "temp/loc.emdg");
+        fit(xs_tbl, ys_tbl, sup, "temp/lmzero.embd", "temp/loc.emdg");
     }
 
     // Test:
     {
-        Column *y_col = ys_tbl->get_column("elapsed_secs");
-        Column *pred_col = new Column("pred", true, xs_tbl->get_row_cnt());
+        // Column *y_col = ys_tbl->get_column("elapsed_secs");
+        // Column *pred_col = new Column("pred", true, xs_tbl->get_row_cnt());
 
-        xs_tbl->add_column(fr_loc_col);
-        xs_tbl->add_column(to_loc_col);
-        xs_tbl->add_column(y_col);
-        xs_tbl->add_column(pred_col);
+        // xs_tbl->add_column(fr_loc_col);
+        // xs_tbl->add_column(to_loc_col);
+        // xs_tbl->add_column(y_col);
+        // xs_tbl->add_column(pred_col);
 
-        test(sup, pred_col, "temp/lmzero.embd", "temp/loc.emdg");
+        // test(sup, pred_col, "temp/lmzero.embd", "temp/loc.emdg");
 
-        Table::to_csv("temp/preds.csv", xs_tbl);
+        // Table::to_csv("temp/preds.csv", xs_tbl);
     }
 
     // Grad Check:
