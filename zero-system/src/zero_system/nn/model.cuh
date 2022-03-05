@@ -86,7 +86,7 @@ namespace zero
             Embedding(CostFunction cost_fn, float learning_rate);
             ~Embedding();
 
-            Tensor *embedding_backward(Tensor *dc, int offset_idx);
+            Tensor *embedding_backward(Tensor *dc, int embd_x_offset);
         };
 
         class EmbeddedModel : public Model
