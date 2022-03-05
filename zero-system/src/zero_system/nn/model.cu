@@ -758,8 +758,8 @@ void EmbeddedModel::load(FILE *file_ptr)
         Range embg_range;
         fread(&embg_range, sizeof(Range), 1, file_ptr);
 
-        // Since Embeddings are saved to their own files, we will let the caller worry about loading them to the placeholder Embedding object we are initializing.
-        this->embed(new Embedding(), embg_range);
+        // Since Embeddings are saved to their own files, we will let the caller worry about loading them in accordance with ranges.
+        this->embed(nullptr, embg_range);
     }
 }
 
