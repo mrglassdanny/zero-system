@@ -824,6 +824,12 @@ void EmbeddedModel::add_embedding(Embedding *embg, Range embg_range)
     this->embg_ranges.push_back(embg_range);
 }
 
+void EmbeddedModel::embed(Embedding *embg)
+{
+    // We are assuming that caller is pushing Embedding into the right spot given range positions.
+    this->embgs.push_back(embg);
+}
+
 void EmbeddedModel::embed(Embedding *embg, Range embg_range)
 {
     this->add_embedding(embg, embg_range);

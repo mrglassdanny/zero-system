@@ -110,6 +110,7 @@ namespace zero
             std::vector<int> calc_embedded_input_shape(std::vector<int> n_shape);
             std::vector<int> calc_embedded_input_shape(int n_cnt);
 
+            void embed(Embedding *embg);
             void embed(Embedding *embg, Range embg_range);
 
             virtual Tensor *forward(Tensor *x, bool train_flg);
