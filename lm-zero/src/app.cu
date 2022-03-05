@@ -140,15 +140,12 @@ int main(int argc, char **argv)
 
         EmbeddedModel *em = new EmbeddedModel();
 
-        Embedding *fr_loc_embg = new Embedding();
-        fr_loc_embg->linear(3, 24);
-        fr_loc_embg->activation(Sigmoid);
-        em->embed(fr_loc_embg, Range{xs_tbl->get_column_idx("fr_loc_token_1"), xs_tbl->get_column_idx("fr_loc_token_3")});
+        Embedding *loc_embg = new Embedding();
+        loc_embg->linear(3, 24);
+        loc_embg->activation(Sigmoid);
 
-        Embedding *to_loc_embg = new Embedding();
-        to_loc_embg->linear(3, 24);
-        to_loc_embg->activation(Sigmoid);
-        em->embed(to_loc_embg, Range{xs_tbl->get_column_idx("to_loc_token_1"), xs_tbl->get_column_idx("to_loc_token_3")});
+        em->embed(loc_embg, Range{xs_tbl->get_column_idx("fr_loc_token_1"), xs_tbl->get_column_idx("fr_loc_token_3")});
+        em->embed(loc_embg, Range{xs_tbl->get_column_idx("to_loc_token_1"), xs_tbl->get_column_idx("to_loc_token_3")});
 
         em->linear(em->calc_embedded_input_shape(sup->get_x_shape()), 64);
         em->activation(Sigmoid);
