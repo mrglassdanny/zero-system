@@ -818,9 +818,12 @@ std::vector<int> EmbeddedModel::calc_embedded_input_shape(int n_cnt)
 
 void EmbeddedModel::add_embedding(Embedding *embg, Range embg_range)
 {
-    embg->set_learning_rate(this->learning_rate);
+    if (embg != nullptr)
+    {
+        embg->set_learning_rate(this->learning_rate);
+        this->embgs.push_back(embg);
+    }
 
-    this->embgs.push_back(embg);
     this->embg_ranges.push_back(embg_range);
 }
 

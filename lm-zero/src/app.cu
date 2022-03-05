@@ -23,8 +23,10 @@ void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup, const char *embd_m_path,
     EmbeddedModel *embd_m = new EmbeddedModel(MSE, 0.01f);
 
     Embedding *loc_embg = new Embedding();
-    loc_embg->linear(3, 24);
-    loc_embg->activation(Sigmoid);
+    loc_embg->linear(3, 128);
+    loc_embg->activation(ReLU);
+    loc_embg->linear(48);
+    loc_embg->activation(ReLU);
 
     embd_m->embed(loc_embg, Range{xs_tbl->get_column_idx("fr_loc_token_1"), xs_tbl->get_column_idx("fr_loc_token_3")});
     embd_m->embed(loc_embg, Range{xs_tbl->get_column_idx("to_loc_token_1"), xs_tbl->get_column_idx("to_loc_token_3")});
@@ -118,22 +120,22 @@ int main(int argc, char **argv)
 
     // Fit:
     {
-        // fit(xs_tbl, ys_tbl, sup, "temp/embd_m.em");
+        fit(xs_tbl, ys_tbl, sup, "temp/lmzero.embd", "temp/loc.emdg");
     }
 
     // Test:
     {
-        // Column *y_col = ys_tbl->get_column("elapsed_secs");
-        // Column *pred_col = new Column("pred", true, xs_tbl->get_row_cnt());
+        Column *y_col = ys_tbl->get_column("elapsed_secs");
+        Column *pred_col = new Column("pred", true, xs_tbl->get_row_cnt());
 
-        // xs_tbl->add_column(fr_loc_col);
-        // xs_tbl->add_column(to_loc_col);
-        // xs_tbl->add_column(y_col);
-        // xs_tbl->add_column(pred_col);
+        xs_tbl->add_column(fr_loc_col);
+        xs_tbl->add_column(to_loc_col);
+        xs_tbl->add_column(y_col);
+        xs_tbl->add_column(pred_col);
 
-        // test(sup, pred_col, "temp/embd_m.em");
+        test(sup, pred_col, "temp/lmzero.embd", "temp/loc.emdg");
 
-        // Table::to_csv("temp/preds.csv", xs_tbl);
+        Table::to_csv("temp/preds.csv", xs_tbl);
     }
 
     // Grad Check:
