@@ -28,6 +28,26 @@ __global__ void k_set_arr_rand(float *arr, int cnt, float mean, float stddev)
     }
 }
 
+__global__ void k_add(float *arr_a, float *arr_b, int cnt)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < cnt)
+    {
+        arr_a[tid] += arr_b[tid];
+    }
+}
+
+__global__ void k_sub(float *arr_a, float *arr_b, int cnt)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < cnt)
+    {
+        arr_a[tid] -= arr_b[tid];
+    }
+}
+
 // Tensor functions:
 
 Tensor::Tensor(Tensor &src)
@@ -634,6 +654,54 @@ float Tensor::get_sum()
     }
 
     return sum;
+}
+
+void Tensor::add(Tensor *tensor)
+{
+    int cnt = this->get_cnt();
+
+    if (this->device != tensor->device || cnt != tensor->get_cnt())
+    {
+        return;
+    }
+
+    if (this->device == Device::Cpu)
+    {
+        for (int i = 0; i < cnt; i++)
+        {
+            this->arr[i] += tensor->arr[i];
+        }
+    }
+    else if (this->device == Device::Cuda)
+    {
+        int threads_per_block = CUDA_THREADS_PER_BLOCK;
+        int num_blocks = (cnt / CUDA_THREADS_PER_BLOCK) + 1;
+        k_add<<<num_blocks, threads_per_block>>>(this->arr, tensor->arr, cnt);
+    }
+}
+
+void Tensor::sub(Tensor *tensor)
+{
+    int cnt = this->get_cnt();
+
+    if (this->device != tensor->device || cnt != tensor->get_cnt())
+    {
+        return;
+    }
+
+    if (this->device == Device::Cpu)
+    {
+        for (int i = 0; i < cnt; i++)
+        {
+            this->arr[i] -= tensor->arr[i];
+        }
+    }
+    else if (this->device == Device::Cuda)
+    {
+        int threads_per_block = CUDA_THREADS_PER_BLOCK;
+        int num_blocks = (cnt / CUDA_THREADS_PER_BLOCK) + 1;
+        k_sub<<<num_blocks, threads_per_block>>>(this->arr, tensor->arr, cnt);
+    }
 }
 
 Tensor *Tensor::one_hot_encode(Device device, int row_cnt, int col_cnt, float *cpu_arr)
