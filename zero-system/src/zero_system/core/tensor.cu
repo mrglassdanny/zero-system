@@ -48,6 +48,16 @@ __global__ void k_sub(float *arr_a, float *arr_b, int cnt)
     }
 }
 
+__global__ void k_sub_abs(float *arr_a, float *arr_b, int cnt)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < cnt)
+    {
+        arr_a[tid] = abs(arr_a[tid] - arr_b[tid]);
+    }
+}
+
 // Tensor functions:
 
 Tensor::Tensor(Tensor &src)
@@ -701,6 +711,30 @@ void Tensor::sub(Tensor *tensor)
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
         int num_blocks = (cnt / CUDA_THREADS_PER_BLOCK) + 1;
         k_sub<<<num_blocks, threads_per_block>>>(this->arr, tensor->arr, cnt);
+    }
+}
+
+void Tensor::sub_abs(Tensor *tensor)
+{
+    int cnt = this->get_cnt();
+
+    if (this->device != tensor->device || cnt != tensor->get_cnt())
+    {
+        return;
+    }
+
+    if (this->device == Device::Cpu)
+    {
+        for (int i = 0; i < cnt; i++)
+        {
+            this->arr[i] = abs(this->arr[i] - tensor->arr[i]);
+        }
+    }
+    else if (this->device == Device::Cuda)
+    {
+        int threads_per_block = CUDA_THREADS_PER_BLOCK;
+        int num_blocks = (cnt / CUDA_THREADS_PER_BLOCK) + 1;
+        k_sub_abs<<<num_blocks, threads_per_block>>>(this->arr, tensor->arr, cnt);
     }
 }
 

@@ -87,6 +87,7 @@ namespace zero
 
             void add(Tensor *tensor);
             void sub(Tensor *tensor);
+            void sub_abs(Tensor *tensor);
 
             static Tensor *one_hot_encode(Device device, int row_cnt, int col_cnt, float *cpu_arr);
 
