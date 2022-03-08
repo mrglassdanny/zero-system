@@ -17,7 +17,7 @@ void upd_rslt_fn(Tensor *p, Tensor *y, int *cnt)
     }
 }
 
-void loc_encode_fn(const char *loc_name, int row_idx, int desired_dim_cnt, std::vector<Column *> *cols)
+void loc_encode_fn(const char *loc_name, int row_idx, int dim_cnt, std::vector<Column *> *cols)
 {
     char delims[] = {'-'};
     char numerics[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
@@ -118,9 +118,9 @@ void loc_encode_fn(const char *loc_name, int row_idx, int desired_dim_cnt, std::
         parsed_loc.push_back(atof(buf.get()));
     }
 
-    if (parsed_loc.size() < desired_dim_cnt)
+    if (parsed_loc.size() < dim_cnt)
     {
-        for (int i = parsed_loc.size(); i < desired_dim_cnt; i++)
+        for (int i = parsed_loc.size(); i < dim_cnt; i++)
         {
             parsed_loc.push_back(0.0f);
         }
@@ -195,9 +195,6 @@ int main(int argc, char **argv)
     Table *xs_tbl = Table::fr_csv("data/palmov-test.csv");
     Table *ys_tbl = xs_tbl->split("elapsed_secs");
 
-    Column *fr_loc_col = xs_tbl->remove_column("fr_loc");
-    Column *to_loc_col = xs_tbl->remove_column("to_loc");
-
     delete xs_tbl->remove_column("cas_qty");
     delete xs_tbl->remove_column("cas_len");
     delete xs_tbl->remove_column("cas_wid");
@@ -206,10 +203,14 @@ int main(int argc, char **argv)
     delete xs_tbl->remove_column("cas_per_lyr");
     delete xs_tbl->remove_column("lyr_per_pal");
 
-    Column *actcod_cpy = xs_tbl->get_column("actcod")->copy();
+    Column *actcod_col = xs_tbl->get_column("actcod")->copy();
+    Column *fr_loc_col = xs_tbl->get_column("fr_loc")->copy();
+    Column *to_loc_col = xs_tbl->get_column("to_loc")->copy();
 
     xs_tbl->encode_onehot("actcod");
     xs_tbl->encode_onehot("typ");
+    xs_tbl->encode_custom("fr_loc", 3, loc_encode_fn);
+    xs_tbl->encode_custom("to_loc", 3, loc_encode_fn);
 
     xs_tbl->scale_down();
     ys_tbl->scale_down();
@@ -252,23 +253,10 @@ int main(int argc, char **argv)
 
     // Location embedding test:
     {
-        Embedding *loc_embg = new Embedding();
-        loc_embg->load("temp/loc.emdg");
+        // Embedding *loc_embg = new Embedding();
+        // loc_embg->load("temp/loc.emdg");
 
-        // Tensor* lp = loc_embg->forward()
-
-        std::vector<Column *> cols;
-        cols.push_back(new Column("1", true, 1));
-        cols.push_back(new Column("2", true, 1));
-        cols.push_back(new Column("3", true, 1));
-
-        loc_encode_fn("DONATE", 0, 3, &cols);
-
-        cols[0]->print();
-        cols[1]->print();
-        cols[2]->print();
-
-        delete loc_embg;
+        // delete loc_embg;
     }
 
     // Grad Check:

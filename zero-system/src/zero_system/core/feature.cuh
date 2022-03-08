@@ -102,6 +102,8 @@ namespace zero
 
             void encode_ordinal(const char *col_name);
             void encode_onehot(const char *col_name);
+            void encode_custom(const char *col_name, int col_cnt,
+                               void (*encode_fn)(const char *val, int row_idx, int col_cnt, std::vector<Column *> *cols));
 
             static Table *fr_csv(const char *path);
             static void to_csv(const char *path, Table *tbl);

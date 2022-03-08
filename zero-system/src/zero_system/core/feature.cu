@@ -457,6 +457,10 @@ std::vector<Column *> Column::encode_onehot()
 std::vector<Column *> Column::encode_custom(int col_cnt, void (*encode_fn)(const char *val, int row_idx, int col_cnt, std::vector<Column *> *cols))
 {
     std::vector<Column *> cols;
+    for (int col_idx = 0; col_idx < col_cnt; col_idx++)
+    {
+        cols.push_back(new Column(this->name, true, this->row_cnt));
+    }
 
     for (int row_idx = 0; row_idx < row_cnt; row_idx++)
     {
@@ -666,6 +670,30 @@ void Table::encode_onehot(const char *col_name)
     }
 
     this->cols.insert(this->cols.begin() + col_idx + 1, onehot_cols.begin(), onehot_cols.end());
+    this->cols.erase(this->cols.begin() + col_idx);
+
+    delete col;
+}
+
+void Table::encode_custom(const char *col_name, int col_cnt,
+                          void (*encode_fn)(const char *val, int row_idx, int col_cnt, std::vector<Column *> *cols))
+{
+    int col_idx = this->get_column_idx(col_name);
+    Column *col = this->get_column(col_idx);
+
+    if (col == NULL)
+    {
+        return;
+    }
+
+    std::vector<Column *> cols = col->encode_custom(col_cnt, encode_fn);
+
+    if (cols.size() == 0)
+    {
+        return;
+    }
+
+    this->cols.insert(this->cols.begin() + col_idx + 1, cols.begin(), cols.end());
     this->cols.erase(this->cols.begin() + col_idx);
 
     delete col;
