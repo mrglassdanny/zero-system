@@ -63,6 +63,7 @@ namespace zero
 
             Column *encode_ordinal();
             std::vector<Column *> encode_onehot();
+            std::vector<Column *> encode_custom(int col_cnt, void (*encode_fn)(const char *val, int row_idx, int col_cnt, std::vector<Column *> *cols));
 
             static Tensor *to_tensor(Column *col);
         };

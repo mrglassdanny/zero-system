@@ -35,12 +35,30 @@ void StackBuffer::append(char c)
     this->arr[this->idx++] = c;
 }
 
+void StackBuffer::append(char *s)
+{
+    sprintf(this->arr, "%s%s", this->arr, s);
+    this->idx = strlen(this->arr);
+}
+
+void StackBuffer::append(int i)
+{
+    sprintf(this->arr, "%s%d", this->arr, i);
+    this->idx = strlen(this->arr);
+}
+
+void StackBuffer::append(float f)
+{
+    sprintf(this->arr, "%s%f", this->arr, f);
+    this->idx = strlen(this->arr);
+}
+
 char *StackBuffer::get()
 {
     return this->arr;
 }
 
-int StackBuffer::get_idx()
+int StackBuffer::get_size()
 {
     return this->idx;
 }

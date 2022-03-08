@@ -381,11 +381,6 @@ void Column::sub_abs(Column *col)
 
 Column *Column::encode_ordinal()
 {
-    if (this->numeric)
-    {
-        return NULL;
-    }
-
     Column *ordinal_col = new Column(this->name, true, this->row_cnt);
 
     std::map<std::string, int> ordinal_map;
@@ -413,11 +408,6 @@ Column *Column::encode_ordinal()
 std::vector<Column *> Column::encode_onehot()
 {
     std::vector<Column *> onehot_cols;
-
-    if (this->numeric)
-    {
-        return onehot_cols;
-    }
 
     Column *ordinal_col = new Column(this->name, true, row_cnt);
 
@@ -462,6 +452,18 @@ std::vector<Column *> Column::encode_onehot()
     delete ordinal_col;
 
     return onehot_cols;
+}
+
+std::vector<Column *> Column::encode_custom(int col_cnt, void (*encode_fn)(const char *val, int row_idx, int col_cnt, std::vector<Column *> *cols))
+{
+    std::vector<Column *> cols;
+
+    for (int row_idx = 0; row_idx < row_cnt; row_idx++)
+    {
+        encode_fn(this->get_non_numeric_val(row_idx), row_idx, col_cnt, &cols);
+    }
+
+    return cols;
 }
 
 Tensor *Column::to_tensor(Column *col)

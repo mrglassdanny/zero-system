@@ -39,8 +39,11 @@ namespace zero
             ~StackBuffer();
 
             void append(char c);
+            void append(char *s);
+            void append(int i);
+            void append(float f);
             char *get();
-            int get_idx();
+            int get_size();
             void clear();
             bool is_empty();
             bool contains(char c);
