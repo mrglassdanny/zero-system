@@ -486,6 +486,8 @@ Table::~Table()
     {
         delete this->cols[col_idx];
     }
+
+    this->cols.clear();
 }
 
 void Table::print()
