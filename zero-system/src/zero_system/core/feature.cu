@@ -43,6 +43,11 @@ Column::~Column()
     }
 }
 
+Column *Column::copy()
+{
+    return this->copy(this->name);
+}
+
 Column *Column::copy(const char *dst_name)
 {
     Column *dst = new Column(dst_name, this->numeric, this->row_cnt);

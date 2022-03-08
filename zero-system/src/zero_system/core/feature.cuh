@@ -28,7 +28,8 @@ namespace zero
             Column(const char *name, bool numeric, int row_cnt);
             ~Column();
 
-            Column *copy(const char *name);
+            Column *copy();
+            Column *copy(const char *dst_name);
 
             void print();
 
