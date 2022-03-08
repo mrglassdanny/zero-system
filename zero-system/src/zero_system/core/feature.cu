@@ -454,25 +454,25 @@ std::vector<Column *> Column::encode_onehot()
     return onehot_cols;
 }
 
-std::vector<Column *> Column::encode_custom(int col_cnt, CustomEncodeFn encode_fn)
+std::vector<Column *> Column::encode_custom(int encoded_col_cnt, CustomEncodeFn encode_fn)
 {
-    std::vector<Column *> cols;
-    for (int col_idx = 0; col_idx < col_cnt; col_idx++)
+    std::vector<Column *> encoded_cols;
+    for (int col_idx = 0; col_idx < encoded_col_cnt; col_idx++)
     {
-        cols.push_back(new Column(this->name, true, this->row_cnt));
+        encoded_cols.push_back(new Column(this->name, true, this->row_cnt));
     }
 
     for (int row_idx = 0; row_idx < row_cnt; row_idx++)
     {
-        std::vector<float> vals = encode_fn(this->get_non_numeric_val(row_idx), row_idx, col_cnt);
+        std::vector<float> vals = encode_fn(this->get_non_numeric_val(row_idx), encoded_col_cnt);
 
-        for (int col_idx = 0; col_idx < col_cnt; col_idx++)
+        for (int col_idx = 0; col_idx < encoded_col_cnt; col_idx++)
         {
-            cols[col_idx]->set_val(row_idx, vals[col_idx]);
+            encoded_cols[col_idx]->set_val(row_idx, vals[col_idx]);
         }
     }
 
-    return cols;
+    return encoded_cols;
 }
 
 Tensor *Column::to_tensor(Column *col)
@@ -680,7 +680,7 @@ void Table::encode_onehot(const char *col_name)
     delete col;
 }
 
-void Table::encode_custom(const char *col_name, int col_cnt, CustomEncodeFn encode_fn)
+void Table::encode_custom(const char *col_name, int encoded_col_cnt, CustomEncodeFn encode_fn)
 {
     int col_idx = this->get_column_idx(col_name);
     Column *col = this->get_column(col_idx);
@@ -690,14 +690,14 @@ void Table::encode_custom(const char *col_name, int col_cnt, CustomEncodeFn enco
         return;
     }
 
-    std::vector<Column *> cols = col->encode_custom(col_cnt, encode_fn);
+    std::vector<Column *> encoded_cols = col->encode_custom(encoded_col_cnt, encode_fn);
 
-    if (cols.size() == 0)
+    if (encoded_cols.size() == 0)
     {
         return;
     }
 
-    this->cols.insert(this->cols.begin() + col_idx + 1, cols.begin(), cols.end());
+    this->cols.insert(this->cols.begin() + col_idx + 1, encoded_cols.begin(), encoded_cols.end());
     this->cols.erase(this->cols.begin() + col_idx);
 
     delete col;

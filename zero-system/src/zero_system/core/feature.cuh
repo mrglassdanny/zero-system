@@ -13,7 +13,7 @@ namespace zero
     namespace core
     {
 
-        typedef std::vector<float> (*CustomEncodeFn)(const char *val, int row_idx, int col_cnt);
+        typedef std::vector<float> (*CustomEncodeFn)(const char *val, int encoded_col_cnt);
 
         class Column
         {
@@ -66,7 +66,7 @@ namespace zero
 
             Column *encode_ordinal();
             std::vector<Column *> encode_onehot();
-            std::vector<Column *> encode_custom(int col_cnt, CustomEncodeFn encode_fn);
+            std::vector<Column *> encode_custom(int encoded_col_cnt, CustomEncodeFn encode_fn);
 
             static Tensor *to_tensor(Column *col);
         };
@@ -105,7 +105,7 @@ namespace zero
 
             void encode_ordinal(const char *col_name);
             void encode_onehot(const char *col_name);
-            void encode_custom(const char *col_name, int col_cnt, CustomEncodeFn encode_fn);
+            void encode_custom(const char *col_name, int encoded_col_cnt, CustomEncodeFn encode_fn);
 
             static Table *fr_csv(const char *path);
             static void to_csv(const char *path, Table *tbl);
