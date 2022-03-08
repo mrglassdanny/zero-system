@@ -19,18 +19,16 @@ void upd_rslt_fn(Tensor *p, Tensor *y, int *cnt)
 
 void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup, const char *embd_m_path, const char *loc_embg_path)
 {
-    EmbeddedModel *embd_m = new EmbeddedModel(MSE, 0.01f);
+    EmbeddedModel *embd_m = new EmbeddedModel(MSE, 0.001f);
 
     Embedding *loc_embg = new Embedding();
-    loc_embg->linear(3, 128);
-    loc_embg->activation(ReLU);
-    loc_embg->linear(56);
+    loc_embg->linear(3, 56);
     loc_embg->activation(ReLU);
 
     embd_m->embed(loc_embg, Range{xs_tbl->get_column_idx("fr_loc_token_1"), xs_tbl->get_column_idx("fr_loc_token_3")});
     embd_m->embed(loc_embg, Range{xs_tbl->get_column_idx("to_loc_token_1"), xs_tbl->get_column_idx("to_loc_token_3")});
 
-    embd_m->linear(embd_m->calc_embedded_input_shape(sup->get_x_shape()), 2048);
+    embd_m->linear(embd_m->calc_embedded_input_shape(sup->get_x_shape()), 512);
     embd_m->activation(ReLU);
     embd_m->linear(512);
     embd_m->activation(ReLU);
@@ -83,7 +81,7 @@ int main(int argc, char **argv)
 
     // Data setup:
 
-    Table *xs_tbl = Table::fr_csv("data/palpck-w-locs.csv");
+    Table *xs_tbl = Table::fr_csv("data/palmov.csv");
     Table *ys_tbl = xs_tbl->split("elapsed_secs");
 
     Column *fr_loc_col = xs_tbl->remove_column("fr_loc");
