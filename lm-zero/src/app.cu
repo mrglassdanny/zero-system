@@ -17,7 +17,7 @@ void upd_rslt_fn(Tensor *p, Tensor *y, int *cnt)
     }
 }
 
-void loc_encode_fn(const char *loc_name, int row_idx, int dim_cnt, std::vector<Column *> *cols)
+std::vector<float> loc_encode_fn(const char *loc_name, int row_idx, int dim_cnt)
 {
     char delims[] = {'-'};
     char numerics[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
@@ -126,10 +126,7 @@ void loc_encode_fn(const char *loc_name, int row_idx, int dim_cnt, std::vector<C
         }
     }
 
-    for (int i = 0; i < parsed_loc.size(); i++)
-    {
-        cols->at(i)->set_val(row_idx, parsed_loc[i]);
-    }
+    return parsed_loc;
 }
 
 void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup, const char *embd_m_path, const char *loc_embg_path)

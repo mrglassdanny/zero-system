@@ -454,7 +454,7 @@ std::vector<Column *> Column::encode_onehot()
     return onehot_cols;
 }
 
-std::vector<Column *> Column::encode_custom(int col_cnt, void (*encode_fn)(const char *val, int row_idx, int col_cnt, std::vector<Column *> *cols))
+std::vector<Column *> Column::encode_custom(int col_cnt, CustomEncodeFn encode_fn)
 {
     std::vector<Column *> cols;
     for (int col_idx = 0; col_idx < col_cnt; col_idx++)
@@ -464,7 +464,12 @@ std::vector<Column *> Column::encode_custom(int col_cnt, void (*encode_fn)(const
 
     for (int row_idx = 0; row_idx < row_cnt; row_idx++)
     {
-        encode_fn(this->get_non_numeric_val(row_idx), row_idx, col_cnt, &cols);
+        std::vector<float> vals = encode_fn(this->get_non_numeric_val(row_idx), row_idx, col_cnt);
+
+        for (int col_idx = 0; col_idx < col_cnt; col_idx++)
+        {
+            cols[col_idx]->set_val(row_idx, vals[col_idx]);
+        }
     }
 
     return cols;
@@ -675,8 +680,7 @@ void Table::encode_onehot(const char *col_name)
     delete col;
 }
 
-void Table::encode_custom(const char *col_name, int col_cnt,
-                          void (*encode_fn)(const char *val, int row_idx, int col_cnt, std::vector<Column *> *cols))
+void Table::encode_custom(const char *col_name, int col_cnt, CustomEncodeFn encode_fn)
 {
     int col_idx = this->get_column_idx(col_name);
     Column *col = this->get_column(col_idx);
