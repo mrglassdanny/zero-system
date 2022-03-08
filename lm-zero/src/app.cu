@@ -17,7 +17,7 @@ void upd_rslt_fn(Tensor *p, Tensor *y, int *cnt)
     }
 }
 
-std::vector<float> loc_encode_fn(const char *loc_name, int row_idx, int dim_cnt)
+std::vector<float> loc_encode_fn(const char *loc_name, int dim_cnt)
 {
     char delims[] = {'-'};
     char numerics[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
@@ -48,6 +48,7 @@ std::vector<float> loc_encode_fn(const char *loc_name, int row_idx, int dim_cnt)
                 buf.clear();
 
                 delim_flg = true;
+                numeric_flg = false;
                 alpha_flg = false;
 
                 break;
@@ -56,10 +57,14 @@ std::vector<float> loc_encode_fn(const char *loc_name, int row_idx, int dim_cnt)
 
         if (!delim_flg)
         {
+            numeric_flg = false;
+
             for (int j = 0; j < sizeof(numerics); j++)
             {
                 if (c == numerics[j])
                 {
+                    numeric_flg = true;
+
                     if (alpha_flg)
                     {
                         if (buf.get_size() > 0)
@@ -75,7 +80,6 @@ std::vector<float> loc_encode_fn(const char *loc_name, int row_idx, int dim_cnt)
                         buf.append(c);
                     }
 
-                    numeric_flg = true;
                     alpha_flg = false;
 
                     break;
@@ -137,8 +141,8 @@ void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup, const char *embd_m_path,
     loc_embg->linear(3, 12);
     loc_embg->activation(ReLU);
 
-    embd_m->embed(loc_embg, Range{xs_tbl->get_column_idx("fr_loc_token_1"), xs_tbl->get_column_idx("fr_loc_token_3")});
-    embd_m->embed(loc_embg, Range{xs_tbl->get_column_idx("to_loc_token_1"), xs_tbl->get_column_idx("to_loc_token_3")});
+    embd_m->embed(loc_embg, xs_tbl->get_column_range("fr_loc"));
+    embd_m->embed(loc_embg, xs_tbl->get_column_range("to_loc"));
 
     embd_m->linear(embd_m->calc_embedded_input_shape(sup->get_x_shape()), 1024);
     embd_m->activation(ReLU);
@@ -229,7 +233,7 @@ int main(int argc, char **argv)
 
     // Fit:
     {
-        // fit(xs_tbl, ys_tbl, sup, "temp/lmzero.embd", "temp/loc.emdg");
+        fit(xs_tbl, ys_tbl, sup, "temp/lmzero.embd", "temp/loc.emdg");
     }
 
     // Test:
@@ -252,6 +256,65 @@ int main(int argc, char **argv)
     {
         // Embedding *loc_embg = new Embedding();
         // loc_embg->load("temp/loc.emdg");
+
+        // {
+        //     // From loc:
+        //     Table *fr_loc_tbl = new Table();
+        //     Range fr_loc_range = xs_tbl->get_column_range("fr_loc");
+        //     for (int i = fr_loc_range.beg_idx; i <= fr_loc_range.end_idx; i++)
+        //     {
+        //         fr_loc_tbl->add_column(xs_tbl->get_column(i)->copy());
+        //     }
+
+        //     Tensor *fr_loc_tensor = Table::to_tensor(fr_loc_tbl);
+
+        //     Batch *fr_loc_batch = new Batch();
+        //     fr_loc_batch->add_all(fr_loc_tensor, fr_loc_tensor);
+
+        //     // To loc:
+        //     Table *to_loc_tbl = new Table();
+        //     Range to_loc_range = xs_tbl->get_column_range("to_loc");
+        //     for (int i = to_loc_range.beg_idx; i <= to_loc_range.end_idx; i++)
+        //     {
+        //         to_loc_tbl->add_column(xs_tbl->get_column(i)->copy());
+        //     }
+
+        //     Tensor *to_loc_tensor = Table::to_tensor(to_loc_tbl);
+
+        //     Batch *to_loc_batch = new Batch();
+        //     to_loc_batch->add_all(to_loc_tensor, to_loc_tensor);
+
+        //     // Test embedding predictions:
+        //     for (int i = 0; i < fr_loc_batch->get_size(); i++)
+        //     {
+        //         Tensor *_fx = fr_loc_batch->get_x(i);
+        //         Tensor *_fp = loc_embg->forward(_fx, false);
+        //         _fx->print();
+        //         _fp->print();
+
+        //         Tensor *_tx = to_loc_batch->get_x(i);
+        //         Tensor *_tp = loc_embg->forward(_tx, false);
+        //         _tx->print();
+        //         _tp->print();
+
+        //         _fp->sub_abs(_tp);
+        //         _fp->print();
+
+        //         printf("\n=====================================================\n\n");
+
+        //         delete _fp;
+        //         delete _tp;
+        //     }
+
+        //     // Cleanup:
+        //     delete fr_loc_batch;
+        //     delete fr_loc_tensor;
+        //     delete fr_loc_tbl;
+
+        //     delete to_loc_batch;
+        //     delete to_loc_tensor;
+        //     delete to_loc_tbl;
+        // }
 
         // delete loc_embg;
     }
