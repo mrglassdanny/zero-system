@@ -705,13 +705,11 @@ void ConvNet::pooling(PoolingFunction pool_fn)
 Embedding::Embedding()
     : Model()
 {
-    this->cost_fn = CostFunction::None;
 }
 
 Embedding::Embedding(CostFunction cost_fn, float learning_rate)
     : Model(cost_fn, learning_rate)
 {
-    this->cost_fn = CostFunction::None;
 }
 
 Embedding::~Embedding()
@@ -736,6 +734,27 @@ Tensor *Embedding::embedding_backward(Tensor *dc, int embd_x_offset)
     {
         Layer *lyr = this->layers[lyr_idx];
         dc = lyr->backward(dc);
+    }
+
+    // Check to see if we are actually an Embedded Model with Embeddings.
+    if (EmbeddedModel *embd_model = dynamic_cast<EmbeddedModel *>(this))
+    {
+        int embd_x_offset = 0;
+
+        std::vector<Embedding *> embgs = embd_model->get_embeddings();
+        std::vector<Range> embg_ranges = embd_model->get_embedding_ranges();
+
+        for (int embg_idx = 0; embg_idx < embgs.size(); embg_idx++)
+        {
+            Embedding *embg = embgs[embg_idx];
+            Range embg_range = embg_ranges[embg_idx];
+
+            Tensor *cpy_dc = new Tensor(*dc);
+
+            delete embg->embedding_backward(cpy_dc, embg_range.beg_idx + embd_x_offset);
+
+            embd_x_offset += (Tensor::get_cnt(embg->get_output_shape()) - Tensor::get_cnt(embg->get_input_shape()));
+        }
     }
 
     return dc;
@@ -816,10 +835,8 @@ std::vector<int> EmbeddedModel::calc_embedded_input_shape(std::vector<int> n_sha
     return this->calc_embedded_input_shape(Tensor::get_cnt(n_shape));
 }
 
-// TODO
 std::vector<int> EmbeddedModel::calc_embedded_input_shape(int n_cnt)
 {
-
     int embd_n_cnt;
 
     if (n_cnt > -1)
@@ -862,6 +879,16 @@ std::vector<int> EmbeddedModel::calc_embedded_input_shape(int n_cnt)
 
     std::vector<int> embd_n_shape{embd_n_cnt};
     return embd_n_shape;
+}
+
+std::vector<Embedding *> EmbeddedModel::get_embeddings()
+{
+    return this->embgs;
+}
+
+std::vector<Range> EmbeddedModel::get_embedding_ranges()
+{
+    return this->embg_ranges;
 }
 
 void EmbeddedModel::add_embedding(Embedding *embg, Range embg_range)
@@ -928,7 +955,7 @@ Tensor *EmbeddedModel::forward(Tensor *x, bool train_flg)
 
             int non_embg_range_len = (lst_x_idx - lst_embg_range.end_idx);
 
-            if (non_embg_range_len > 0)
+            if (non_embg_range_len > 0 && embd_x_offset + non_embg_range_len <= embd_x->get_cnt())
             {
                 cudaMemcpy(&embd_x->get_arr()[embd_x_offset], &x->get_arr()[lst_embg_range.end_idx + 1], sizeof(float) * non_embg_range_len, cudaMemcpyDefault);
             }
