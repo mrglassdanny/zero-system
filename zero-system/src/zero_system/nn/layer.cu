@@ -721,12 +721,14 @@ __global__ void k_aggregate(float *n_arr, float *nxt_n_arr, int n_cnt, int nxt_n
 
     if (tid < nxt_n_cnt)
     {
+        nxt_n_arr[tid] = n_arr[0 * nxt_n_cnt + tid];
+
         switch (agg_fn)
         {
         case AggregationFunction::Add:
 
 #pragma unroll
-            for (int grp_idx = 0; grp_idx < grp_cnt; grp_idx++)
+            for (int grp_idx = 1; grp_idx < grp_cnt; grp_idx++)
             {
                 nxt_n_arr[tid] += n_arr[grp_idx * nxt_n_cnt + tid];
             }
@@ -735,7 +737,7 @@ __global__ void k_aggregate(float *n_arr, float *nxt_n_arr, int n_cnt, int nxt_n
         case AggregationFunction::Subtract:
 
 #pragma unroll
-            for (int grp_idx = 0; grp_idx < grp_cnt; grp_idx++)
+            for (int grp_idx = 1; grp_idx < grp_cnt; grp_idx++)
             {
                 nxt_n_arr[tid] -= n_arr[grp_idx * nxt_n_cnt + tid];
             }
