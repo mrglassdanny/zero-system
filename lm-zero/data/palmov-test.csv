@@ -1,5 +1,4 @@
 actcod,typ,fr_loc,to_loc,cas_qty,pal_qty,cas_per_lyr,lyr_per_pal,cas_len,cas_wid,cas_hgt,cas_wgt,elapsed_secs
-PALPCK,PICKUP,K128,K128,56,1,8,7,18,12,4.5,25.073,3
 PALPCK,DEPOSIT,K128,STG371,112,2,8,7,18,12,4.5,25.073,118
 PALPCK,DEPOSIT,K118,STG008,200,1,20,10,10.937,8.125,4.125,9.288,146
 FL_XFR_PTWY,DEPOSIT,RPLPND2,P267A,56,1,8,7,17,12.875,7.063,42.308,130
