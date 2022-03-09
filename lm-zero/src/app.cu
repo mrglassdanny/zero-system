@@ -335,13 +335,15 @@ int main(int argc, char **argv)
 
         Embedding *loc_embg = new Embedding();
         loc_embg->linear(3, 12);
-        loc_embg->activation(Sigmoid);
+        // loc_embg->activation(Sigmoid);
+
+        Embedding *loc_embg2 = new Embedding();
+        loc_embg2->linear(3, 12);
 
         EmbeddedModel *ttt = new EmbeddedModel();
         ttt->embed(loc_embg, Range{0, 2});
-        ttt->embed(loc_embg, Range{3, 5});
+        ttt->embed(loc_embg2, Range{3, 5});
         ttt->aggregation(24, Subtract, 2);
-        // ttt->activation(AbsoluteValue);
 
         embd_m->embed(ttt, Range{xs_tbl->get_column_idx("fr_loc"), xs_tbl->get_last_column_idx("to_loc")});
         // embd_m->embed(loc_embg, xs_tbl->get_column_range("fr_loc"));
