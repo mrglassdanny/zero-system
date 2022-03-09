@@ -822,10 +822,26 @@ std::vector<int> EmbeddedModel::calc_embedded_input_shape(int n_cnt)
 
     for (Embedding *embg : this->embgs)
     {
-        embd_n_cnt += Tensor::get_cnt(embg->get_output_shape());
 
         // Make sure we subtract old dims.
-        embd_n_cnt -= Tensor::get_cnt(embg->get_input_shape());
+        if (EmbeddedModel *embd_m = dynamic_cast<EmbeddedModel *>(embg))
+        {
+            embd_n_cnt += Tensor::get_cnt(embd_m->calc_embedded_input_shape(embg->get_output_shape()));
+        }
+        else
+        {
+            embd_n_cnt += Tensor::get_cnt(embg->get_output_shape());
+        }
+
+        // Make sure we subtract old dims.
+        if (EmbeddedModel *embd_m = dynamic_cast<EmbeddedModel *>(embg))
+        {
+            embd_n_cnt -= Tensor::get_cnt(embd_m->calc_embedded_input_shape(embg->get_input_shape()));
+        }
+        else
+        {
+            embd_n_cnt -= Tensor::get_cnt(embg->get_input_shape());
+        }
     }
 
     std::vector<int> embd_n_shape{embd_n_cnt};
