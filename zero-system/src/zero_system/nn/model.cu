@@ -760,7 +760,7 @@ Tensor *Embedding::embedding_backward(Tensor *dc, int embd_x_offset)
     return dc;
 }
 
-void Embedding::embedding_grad_check(EmbeddedModel *parent_embd_model, Tensor *x, Tensor *y,
+void Embedding::embedding_grad_check(Model *parent_embd_model, Tensor *x, Tensor *y,
                                      float *agg_ana_grad, float *agg_num_grad, float *agg_grad_diff,
                                      int embg_idx, bool print_flg)
 {
