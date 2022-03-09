@@ -19,6 +19,12 @@ namespace zero
             Cosine
         };
 
+        enum AggregationFunction
+        {
+            Add,
+            Sub
+        };
+
         enum CostFunction
         {
             None,

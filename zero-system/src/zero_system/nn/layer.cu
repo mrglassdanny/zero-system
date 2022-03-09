@@ -715,6 +715,62 @@ __global__ void k_derive_pool(float *dc_arr, float *nxt_dc_arr, float *n_arr, in
     }
 }
 
+__global__ void k_aggregate(float *n_arr, float *nxt_n_arr, int n_cnt, int nxt_n_cnt, AggregationFunction agg_fn, int grp_cnt)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < nxt_n_cnt)
+    {
+        switch (agg_fn)
+        {
+        case AggregationFunction::Add:
+
+#pragma unroll
+            for (int grp_idx = 0; grp_idx < grp_cnt; grp_idx++)
+            {
+                nxt_n_arr[tid] += n_arr[grp_idx * nxt_n_cnt + tid];
+            }
+
+            break;
+        case AggregationFunction::Sub:
+
+#pragma unroll
+            for (int grp_idx = 0; grp_idx < grp_cnt; grp_idx++)
+            {
+                nxt_n_arr[tid] -= n_arr[grp_idx * nxt_n_cnt + tid];
+            }
+
+            break;
+        default:
+            break;
+        }
+    }
+}
+
+__global__ void k_derive_aggregation(float *n_arr, float *dc_arr, float *nxt_dc_arr, int dc_cnt, int nxt_dc_cnt, AggregationFunction agg_fn, int grp_cnt)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < dc_cnt)
+    {
+        switch (agg_fn)
+        {
+        case AggregationFunction::Add:
+        case AggregationFunction::Sub:
+
+#pragma unroll
+            for (int grp_idx = 0; grp_idx < grp_cnt; grp_idx++)
+            {
+                nxt_dc_arr[grp_idx * nxt_dc_cnt + tid] = dc_arr[tid] * n_arr[grp_idx * nxt_dc_cnt + tid];
+            }
+
+            break;
+        default:
+            break;
+        }
+    }
+}
+
 // Layer functions:
 
 Layer::Layer()
@@ -1461,6 +1517,87 @@ Tensor *PoolingLayer::backward(Tensor *dc)
         int num_blocks = (dc_cnt / threads_per_block) + 1;
         k_derive_pool<<<num_blocks, threads_per_block>>>(dc->get_arr(), nxt_dc->get_arr(), this->n->get_arr(), dc_cnt, dc_row_cnt, dc_col_cnt, n_cnt, n_row_cnt, n_col_cnt,
                                                          this->pool_fn, this->pool_row_cnt, this->pool_col_cnt);
+    }
+
+    delete dc;
+    dc = nxt_dc;
+
+    return dc;
+}
+
+// AggregationLayer functions:
+
+AggregationLayer::AggregationLayer()
+    : Layer()
+{
+    this->agg_fn = AggregationFunction::Add;
+    this->grp_cnt = 1;
+}
+
+AggregationLayer::AggregationLayer(std::vector<int> n_shape, AggregationFunction agg_fn, int grp_cnt)
+    : Layer(n_shape)
+{
+    this->agg_fn = agg_fn;
+    this->grp_cnt = grp_cnt;
+}
+
+AggregationLayer::~AggregationLayer()
+{
+}
+
+LayerType AggregationLayer::get_type()
+{
+    return LayerType::Aggregation;
+}
+
+void AggregationLayer::load(FILE *file_ptr)
+{
+    Layer::load(file_ptr);
+
+    fread(&this->agg_fn, sizeof(AggregationFunction), 1, file_ptr);
+    fread(&this->grp_cnt, sizeof(int), 1, file_ptr);
+}
+
+void AggregationLayer::save(FILE *file_ptr)
+{
+    Layer::save(file_ptr);
+
+    fwrite(&this->agg_fn, sizeof(AggregationFunction), 1, file_ptr);
+    fwrite(&this->grp_cnt, sizeof(int), 1, file_ptr);
+}
+
+std::vector<int> AggregationLayer::get_output_shape()
+{
+    std::vector<int> output_shape{this->n->get_cnt() / this->grp_cnt};
+    return output_shape;
+}
+
+void AggregationLayer::forward(Tensor *nxt_n, bool train_flg)
+{
+    Layer::forward(nxt_n, train_flg);
+
+    int n_cnt = this->n->get_cnt();
+    int nxt_n_cnt = nxt_n->get_cnt();
+
+    {
+        int threads_per_block = CUDA_THREADS_PER_BLOCK;
+        int num_blocks = (nxt_n_cnt / threads_per_block) + 1;
+        k_aggregate<<<num_blocks, threads_per_block>>>(this->n->get_arr(), nxt_n->get_arr(), n_cnt, nxt_n_cnt, this->agg_fn, this->grp_cnt);
+    }
+}
+
+Tensor *AggregationLayer::backward(Tensor *dc)
+{
+    int n_cnt = this->n->get_cnt();
+    int dc_cnt = dc->get_cnt();
+
+    Tensor *nxt_dc = new Tensor(Device::Cuda, this->n->get_shape());
+
+    {
+        int threads_per_block = CUDA_THREADS_PER_BLOCK;
+        int num_blocks = (dc_cnt / threads_per_block) + 1;
+        k_derive_aggregation<<<num_blocks, threads_per_block>>>(this->n->get_arr(), dc->get_arr(), nxt_dc->get_arr(), dc_cnt, n_cnt,
+                                                                this->agg_fn, this->grp_cnt);
     }
 
     delete dc;

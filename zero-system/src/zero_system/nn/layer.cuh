@@ -17,7 +17,8 @@ namespace zero
             Convolutional,
             Activation,
             Dropout,
-            Pooling
+            Pooling,
+            Aggregation
         };
 
         class Layer
@@ -161,6 +162,28 @@ namespace zero
             PoolingLayer();
             PoolingLayer(std::vector<int> n_shape, PoolingFunction pool_fn);
             ~PoolingLayer();
+
+            virtual LayerType get_type();
+
+            virtual void load(FILE *file_ptr);
+            virtual void save(FILE *file_ptr);
+
+            virtual std::vector<int> get_output_shape();
+
+            virtual void forward(Tensor *nxt_n, bool train_flg);
+            virtual Tensor *backward(Tensor *dc);
+        };
+
+        class AggregationLayer : public Layer
+        {
+        private:
+            AggregationFunction agg_fn;
+            int grp_cnt; // NOTE: Input neuron count needs to be divisible by group count!
+
+        public:
+            AggregationLayer();
+            AggregationLayer(std::vector<int> n_shape, AggregationFunction agg_fn, int grp_cnt);
+            ~AggregationLayer();
 
             virtual LayerType get_type();
 
