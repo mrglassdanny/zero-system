@@ -816,31 +816,47 @@ std::vector<int> EmbeddedModel::calc_embedded_input_shape(std::vector<int> n_sha
     return this->calc_embedded_input_shape(Tensor::get_cnt(n_shape));
 }
 
+// TODO
 std::vector<int> EmbeddedModel::calc_embedded_input_shape(int n_cnt)
 {
-    int embd_n_cnt = n_cnt;
 
-    for (Embedding *embg : this->embgs)
+    int embd_n_cnt;
+
+    if (n_cnt > -1)
     {
+        embd_n_cnt = n_cnt;
 
-        // Make sure we subtract old dims.
-        if (EmbeddedModel *embd_m = dynamic_cast<EmbeddedModel *>(embg))
-        {
-            embd_n_cnt += Tensor::get_cnt(embd_m->calc_embedded_input_shape(embg->get_output_shape()));
-        }
-        else
+        for (Embedding *embg : this->embgs)
         {
             embd_n_cnt += Tensor::get_cnt(embg->get_output_shape());
         }
 
-        // Make sure we subtract old dims.
-        if (EmbeddedModel *embd_m = dynamic_cast<EmbeddedModel *>(embg))
+        for (Embedding *embg : this->embgs)
         {
-            embd_n_cnt -= Tensor::get_cnt(embd_m->calc_embedded_input_shape(embg->get_input_shape()));
+            if (EmbeddedModel *embd_model = dynamic_cast<EmbeddedModel *>(embg))
+            {
+                embd_n_cnt -= Tensor::get_cnt(embd_model->calc_embedded_input_shape(-1));
+            }
+            else
+            {
+                embd_n_cnt -= Tensor::get_cnt(embg->get_input_shape());
+            }
         }
-        else
+    }
+    else
+    {
+        embd_n_cnt = 0;
+
+        for (Embedding *embg : this->embgs)
         {
-            embd_n_cnt -= Tensor::get_cnt(embg->get_input_shape());
+            if (EmbeddedModel *embd_model = dynamic_cast<EmbeddedModel *>(embg))
+            {
+                embd_n_cnt += Tensor::get_cnt(embd_model->calc_embedded_input_shape(-1));
+            }
+            else
+            {
+                embd_n_cnt += Tensor::get_cnt(embg->get_input_shape());
+            }
         }
     }
 
