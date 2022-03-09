@@ -22,7 +22,7 @@ namespace zero
         enum AggregationFunction
         {
             Add,
-            Sub
+            Subtract
         };
 
         enum CostFunction

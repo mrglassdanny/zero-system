@@ -144,7 +144,7 @@ void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup, const char *embd_m_path,
     EmbeddedModel *ttt = new EmbeddedModel();
     ttt->embed(loc_embg, Range{0, 2});
     ttt->embed(loc_embg, Range{3, 5});
-    ttt->aggregation(24, Sub, 2);
+    ttt->aggregation(24, Subtract, 2);
     ttt->activation(AbsoluteValue);
 
     embd_m->embed(ttt, Range{xs_tbl->get_column_idx("fr_loc"), xs_tbl->get_last_column_idx("to_loc")});
@@ -340,12 +340,14 @@ int main(int argc, char **argv)
         EmbeddedModel *ttt = new EmbeddedModel();
         ttt->embed(loc_embg, Range{0, 2});
         ttt->embed(loc_embg, Range{3, 5});
-        ttt->aggregation(24, Sub, 2);
+        ttt->aggregation(24, Subtract, 2);
         ttt->activation(AbsoluteValue);
 
         embd_m->embed(ttt, Range{xs_tbl->get_column_idx("fr_loc"), xs_tbl->get_last_column_idx("to_loc")});
 
         embd_m->linear(embd_m->calc_embedded_input_shape(sup->get_x_shape()), 64);
+        embd_m->activation(Sigmoid);
+        embd_m->linear(12);
         embd_m->activation(Sigmoid);
         embd_m->linear(1);
 

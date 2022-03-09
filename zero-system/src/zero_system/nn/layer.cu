@@ -732,7 +732,7 @@ __global__ void k_aggregate(float *n_arr, float *nxt_n_arr, int n_cnt, int nxt_n
             }
 
             break;
-        case AggregationFunction::Sub:
+        case AggregationFunction::Subtract:
 
 #pragma unroll
             for (int grp_idx = 0; grp_idx < grp_cnt; grp_idx++)
@@ -756,7 +756,7 @@ __global__ void k_derive_aggregation(float *n_arr, float *dc_arr, float *nxt_dc_
         switch (agg_fn)
         {
         case AggregationFunction::Add:
-        case AggregationFunction::Sub:
+        case AggregationFunction::Subtract:
 
 #pragma unroll
             for (int grp_idx = 0; grp_idx < grp_cnt; grp_idx++)
