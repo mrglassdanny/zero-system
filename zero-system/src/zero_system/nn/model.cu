@@ -245,6 +245,11 @@ void Model::dropout(float dropout_rate)
     this->add_layer(new DropoutLayer(this->get_output_shape(), dropout_rate));
 }
 
+void Model::aggregation(AggregationFunction agg_fn, int grp_cnt)
+{
+    this->add_layer(new AggregationLayer(this->get_output_shape(), agg_fn, grp_cnt));
+}
+
 std::vector<int> Model::get_input_shape()
 {
     return this->layers[0]->get_input_shape();

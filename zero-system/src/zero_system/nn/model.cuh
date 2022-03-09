@@ -42,6 +42,8 @@ namespace zero
 
             void dropout(float dropout_rate);
 
+            void aggregation(AggregationFunction agg_fn, int grp_cnt);
+
             std::vector<int> get_input_shape();
             std::vector<int> get_output_shape();
 
