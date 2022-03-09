@@ -337,13 +337,15 @@ int main(int argc, char **argv)
         loc_embg->linear(3, 12);
         loc_embg->activation(Sigmoid);
 
-        EmbeddedModel *ttt = new EmbeddedModel();
-        ttt->embed(loc_embg, Range{0, 2});
-        ttt->embed(loc_embg, Range{3, 5});
-        ttt->aggregation(24, Subtract, 2);
-        ttt->activation(AbsoluteValue);
+        // EmbeddedModel *ttt = new EmbeddedModel();
+        // ttt->embed(loc_embg, Range{0, 2});
+        // ttt->embed(loc_embg, Range{3, 5});
+        // ttt->aggregation(24, Subtract, 2);
+        // ttt->activation(AbsoluteValue);
 
-        embd_m->embed(ttt, Range{xs_tbl->get_column_idx("fr_loc"), xs_tbl->get_last_column_idx("to_loc")});
+        // embd_m->embed(ttt, Range{xs_tbl->get_column_idx("fr_loc"), xs_tbl->get_last_column_idx("to_loc")});
+        embd_m->embed(loc_embg, xs_tbl->get_column_range("fr_loc"));
+        embd_m->embed(loc_embg, xs_tbl->get_column_range("to_loc"));
 
         embd_m->linear(embd_m->calc_embedded_input_shape(sup->get_x_shape()), 64);
         embd_m->activation(Sigmoid);
@@ -351,11 +353,11 @@ int main(int argc, char **argv)
         embd_m->activation(Sigmoid);
         embd_m->linear(1);
 
-        embd_m->check_grad(x, y, true);
+        embd_m->grad_check(x, y, true);
 
         delete embd_m;
         delete grad_chk_batch;
-        delete ttt;
+        // delete ttt;
         delete loc_embg;
     }
 

@@ -31,7 +31,7 @@ void nn_gradient_test()
 	conv->linear(Tensor::get_cnt(y->get_shape()));
 	conv->activation(ActivationFunction::Tanh);
 
-	conv->check_grad(x, y, true);
+	conv->grad_check(x, y, true);
 
 	delete x;
 	delete y;

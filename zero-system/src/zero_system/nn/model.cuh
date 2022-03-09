@@ -57,7 +57,7 @@ namespace zero
             virtual float cost(Tensor *pred, Tensor *y);
             virtual Tensor *backward(Tensor *pred, Tensor *y);
             virtual void step(int batch_size);
-            virtual void check_grad(Tensor *x, Tensor *y, bool print_flg);
+            virtual void grad_check(Tensor *x, Tensor *y, bool print_flg);
 
             Report train(Batch *batch, UpdateResultFn fn);
             Report test(Batch *batch, UpdateResultFn fn);
@@ -91,6 +91,9 @@ namespace zero
             ~Embedding();
 
             Tensor *embedding_backward(Tensor *dc, int embd_x_offset);
+            void embedding_grad_check(EmbeddedModel *parent_embd_model, Tensor *x, Tensor *y,
+                                      float *agg_ana_grad, float *agg_num_grad, float *agg_grad_diff,
+                                      int embg_idx, bool print_flg);
         };
 
         class EmbeddedModel : public Embedding
@@ -123,7 +126,7 @@ namespace zero
             virtual Tensor *forward(Tensor *x, bool train_flg);
             virtual Tensor *backward(Tensor *pred, Tensor *y);
             virtual void step(int batch_size);
-            virtual void check_grad(Tensor *x, Tensor *y, bool print_flg);
+            virtual void grad_check(Tensor *x, Tensor *y, bool print_flg);
         };
     }
 }
