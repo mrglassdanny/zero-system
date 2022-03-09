@@ -744,12 +744,12 @@ Tensor *Embedding::embedding_backward(Tensor *dc, int embd_x_offset)
 // EmbeddableModel functions:
 
 EmbeddedModel::EmbeddedModel()
-    : Model()
+    : Embedding()
 {
 }
 
 EmbeddedModel::EmbeddedModel(CostFunction cost_fn, float learning_rate)
-    : Model(cost_fn, learning_rate)
+    : Embedding(cost_fn, learning_rate)
 {
 }
 
@@ -760,7 +760,7 @@ EmbeddedModel::~EmbeddedModel()
 
 void EmbeddedModel::load(FILE *file_ptr)
 {
-    Model::load(file_ptr);
+    Embedding::load(file_ptr);
 
     int embg_cnt = 0;
 
@@ -787,7 +787,7 @@ void EmbeddedModel::load(const char *path)
 
 void EmbeddedModel::save(FILE *file_ptr)
 {
-    Model::save(file_ptr);
+    Embedding::save(file_ptr);
 
     int embg_cnt = this->embgs.size();
 
@@ -931,14 +931,14 @@ Tensor *EmbeddedModel::forward(Tensor *x, bool train_flg)
         }
     }
 
-    Tensor *pred = Model::forward(embd_x, train_flg);
+    Tensor *pred = Embedding::forward(embd_x, train_flg);
     delete embd_x;
     return pred;
 }
 
 Tensor *EmbeddedModel::backward(Tensor *pred, Tensor *y)
 {
-    Tensor *dc = Model::backward(pred, y);
+    Tensor *dc = Embedding::backward(pred, y);
 
     int embd_x_offset = 0;
 
@@ -964,7 +964,7 @@ void EmbeddedModel::step(int batch_size)
         embg->step(batch_size);
     }
 
-    Model::step(batch_size);
+    Embedding::step(batch_size);
 }
 
 void EmbeddedModel::check_grad(Tensor *x, Tensor *y, bool print_flg)

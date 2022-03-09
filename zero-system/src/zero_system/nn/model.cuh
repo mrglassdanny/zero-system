@@ -93,7 +93,7 @@ namespace zero
             Tensor *embedding_backward(Tensor *dc, int embd_x_offset);
         };
 
-        class EmbeddedModel : public Model
+        class EmbeddedModel : public Embedding
         {
         protected:
             std::vector<Embedding *> embgs;
