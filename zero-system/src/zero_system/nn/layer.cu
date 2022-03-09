@@ -721,7 +721,7 @@ __global__ void k_aggregate(float *n_arr, float *nxt_n_arr, int n_cnt, int nxt_n
 
     if (tid < nxt_n_cnt)
     {
-        nxt_n_arr[tid] = n_arr[0 * nxt_n_cnt + tid];
+        nxt_n_arr[tid] = n_arr[tid];
 
         switch (agg_fn)
         {
@@ -763,7 +763,7 @@ __global__ void k_derive_aggregation(float *n_arr, float *dc_arr, float *nxt_dc_
 #pragma unroll
             for (int grp_idx = 0; grp_idx < grp_cnt; grp_idx++)
             {
-                nxt_dc_arr[grp_idx * nxt_dc_cnt + tid] = dc_arr[tid] * n_arr[grp_idx * nxt_dc_cnt + tid];
+                nxt_dc_arr[grp_idx * dc_cnt + tid] = dc_arr[tid];
             }
 
             break;
