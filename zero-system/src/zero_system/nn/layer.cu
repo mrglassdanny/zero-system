@@ -755,15 +755,37 @@ __global__ void k_derive_aggregation(float *n_arr, float *dc_arr, float *nxt_dc_
 
     if (tid < dc_cnt)
     {
+        nxt_dc_arr[tid] = n_arr[tid];
+
         switch (agg_fn)
         {
         case AggregationFunction::Add:
-        case AggregationFunction::Subtract:
+
+#pragma unroll
+            for (int grp_idx = 1; grp_idx < grp_cnt; grp_idx++)
+            {
+                nxt_dc_arr[grp_idx * dc_cnt + tid] += n_arr[grp_idx * dc_cnt + tid];
+            }
 
 #pragma unroll
             for (int grp_idx = 0; grp_idx < grp_cnt; grp_idx++)
             {
-                nxt_dc_arr[grp_idx * dc_cnt + tid] = dc_arr[tid];
+                nxt_dc_arr[grp_idx * dc_cnt + tid] *= dc_arr[tid];
+            }
+
+            break;
+        case AggregationFunction::Subtract:
+
+#pragma unroll
+            for (int grp_idx = 1; grp_idx < grp_cnt; grp_idx++)
+            {
+                nxt_dc_arr[grp_idx * dc_cnt + tid] -= n_arr[grp_idx * dc_cnt + tid];
+            }
+
+#pragma unroll
+            for (int grp_idx = 0; grp_idx < grp_cnt; grp_idx++)
+            {
+                nxt_dc_arr[grp_idx * dc_cnt + tid] *= dc_arr[tid];
             }
 
             break;
