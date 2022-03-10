@@ -270,13 +270,13 @@ int main(int argc, char **argv)
     Table *ys_tbl = xs_tbl->split("elapsed_secs");
 
     delete xs_tbl->remove_column("cas_qty");
+    delete xs_tbl->remove_column("pal_qty");
     delete xs_tbl->remove_column("cas_len");
     delete xs_tbl->remove_column("cas_wid");
     delete xs_tbl->remove_column("cas_hgt");
     delete xs_tbl->remove_column("cas_wgt");
     delete xs_tbl->remove_column("cas_per_lyr");
     delete xs_tbl->remove_column("lyr_per_pal");
-    delete xs_tbl->remove_column("pal_qty");
 
     Column *actcod_col = xs_tbl->get_column("actcod")->copy();
     Column *fr_loc_col = xs_tbl->get_column("fr_loc")->copy();
@@ -341,22 +341,24 @@ int main(int argc, char **argv)
         // EmbeddedModel *embd_model = new EmbeddedModel(MSE, 0.001f);
 
         // Embedding *loc_embg = new Embedding();
-        // loc_embg->linear(3, 12);
+        // loc_embg->linear(3, 15);
 
         // Embedding *_loc_embg = new Embedding();
-        // _loc_embg->linear(3, 12);
+        // _loc_embg->linear(3, 15);
         // _loc_embg->use_parameters(loc_embg);
 
         // EmbeddedModel *agg_embd_model = new EmbeddedModel();
-        // agg_embd_model->aggregation(24, Subtract);
+        // agg_embd_model->aggregation(30, Subtract);
 
         // agg_embd_model->embed(loc_embg, Range{0, 2});
         // agg_embd_model->embed(_loc_embg, Range{3, 5});
         // embd_model->embed(agg_embd_model, Range{xs_tbl->get_column_idx("fr_loc"), xs_tbl->get_last_column_idx("to_loc")});
 
-        // embd_model->linear(embd_model->calc_embedded_input_shape(sup->get_x_shape()), 32);
+        // embd_model->linear(embd_model->calc_embedded_input_shape(sup->get_x_shape()), 63);
         // embd_model->activation(Sigmoid);
-        // embd_model->linear(12);
+        // embd_model->linear(32);
+        // embd_model->activation(Sigmoid);
+        // embd_model->linear(8);
         // embd_model->activation(Sigmoid);
         // embd_model->linear(1);
 
