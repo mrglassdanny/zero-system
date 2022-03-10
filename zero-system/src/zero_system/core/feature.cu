@@ -353,7 +353,7 @@ void Column::add(Column *col)
     }
 }
 
-void Column::sub(Column *col)
+void Column::subtract(Column *col)
 {
     if (!this->numeric || !col->numeric)
     {
@@ -366,7 +366,7 @@ void Column::sub(Column *col)
     }
 }
 
-void Column::sub_abs(Column *col)
+void Column::subtract_abs(Column *col)
 {
     if (!this->numeric || !col->numeric)
     {

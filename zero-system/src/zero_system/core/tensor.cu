@@ -614,6 +614,18 @@ void Tensor::set_all_rand(float mean, float stddev)
     }
 }
 
+float Tensor::get_sum()
+{
+    float sum = 0.0f;
+
+    for (int i = 0; i < this->get_cnt(); i++)
+    {
+        sum += this->get_val(i);
+    }
+
+    return sum;
+}
+
 TensorTuple Tensor::get_min()
 {
     TensorTuple tup;
@@ -624,6 +636,26 @@ TensorTuple Tensor::get_min()
     for (int i = 0; i < this->get_cnt(); i++)
     {
         float cur_val = this->get_val(i);
+        if (cur_val < tup.val)
+        {
+            tup.idx = i;
+            tup.val = cur_val;
+        }
+    }
+
+    return tup;
+}
+
+TensorTuple Tensor::get_abs_min()
+{
+    TensorTuple tup;
+
+    tup.idx = 0;
+    tup.val = FLT_MAX;
+
+    for (int i = 0; i < this->get_cnt(); i++)
+    {
+        float cur_val = abs(this->get_val(i));
         if (cur_val < tup.val)
         {
             tup.idx = i;
@@ -654,16 +686,49 @@ TensorTuple Tensor::get_max()
     return tup;
 }
 
-float Tensor::get_sum()
+TensorTuple Tensor::get_abs_max()
 {
-    float sum = 0.0f;
+    TensorTuple tup;
+
+    tup.idx = 0;
+    tup.val = -FLT_MAX;
 
     for (int i = 0; i < this->get_cnt(); i++)
     {
-        sum += this->get_val(i);
+        float cur_val = abs(this->get_val(i));
+        if (cur_val > tup.val)
+        {
+            tup.idx = i;
+            tup.val = cur_val;
+        }
     }
 
-    return sum;
+    return tup;
+}
+
+void Tensor::scale_down()
+{
+    TensorTuple tup = this->get_abs_max();
+
+    int factor = 1;
+    while (true)
+    {
+        if ((tup.val / (factor * 1.0f)) <= 1.0f)
+        {
+            break;
+        }
+        else
+        {
+            factor *= 10;
+        }
+    }
+
+    float flt_factor = factor * 1.0f;
+
+    for (int i = 0; i < this->get_cnt(); i++)
+    {
+        this->set_val(i, this->get_val(i) / flt_factor);
+    }
 }
 
 void Tensor::add(Tensor *tensor)
@@ -690,7 +755,7 @@ void Tensor::add(Tensor *tensor)
     }
 }
 
-void Tensor::sub(Tensor *tensor)
+void Tensor::subtract(Tensor *tensor)
 {
     int cnt = this->get_cnt();
 
@@ -714,7 +779,7 @@ void Tensor::sub(Tensor *tensor)
     }
 }
 
-void Tensor::sub_abs(Tensor *tensor)
+void Tensor::subtract_abs(Tensor *tensor)
 {
     int cnt = this->get_cnt();
 

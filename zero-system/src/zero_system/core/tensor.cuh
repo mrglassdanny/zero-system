@@ -81,13 +81,18 @@ namespace zero
             void set_all(float val);
             void set_all_rand(float mean, float stddev);
 
-            TensorTuple get_min();
-            TensorTuple get_max();
             float get_sum();
 
+            TensorTuple get_min();
+            TensorTuple get_abs_min();
+            TensorTuple get_max();
+            TensorTuple get_abs_max();
+
+            void scale_down();
+
             void add(Tensor *tensor);
-            void sub(Tensor *tensor);
-            void sub_abs(Tensor *tensor);
+            void subtract(Tensor *tensor);
+            void subtract_abs(Tensor *tensor);
 
             static Tensor *one_hot_encode(Device device, int row_cnt, int col_cnt, float *cpu_arr);
 

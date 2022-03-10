@@ -133,33 +133,82 @@ std::vector<float> loc_encode_fn(const char *loc_name, int dim_cnt)
     return parsed_loc;
 }
 
+void test_loc_embedding(const char *src_loc_name, const char *dst_loc_name)
+{
+    std::vector<float> src_loc_tokens = loc_encode_fn(src_loc_name, 3);
+    std::vector<float> dst_loc_tokens = loc_encode_fn(dst_loc_name, 3);
+
+    Tensor *src_loc = new Tensor(Device::Cpu, 3);
+    for (int i = 0; i < src_loc_tokens.size(); i++)
+    {
+        src_loc->set_val(i, src_loc_tokens[i]);
+    }
+    Tensor *dst_loc = new Tensor(Device::Cpu, 3);
+    for (int i = 0; i < src_loc_tokens.size(); i++)
+    {
+        dst_loc->set_val(i, dst_loc_tokens[i]);
+    }
+
+    Embedding *loc_embg = new Embedding();
+    loc_embg->load("temp/loc_embg.em");
+
+    src_loc->scale_down();
+    dst_loc->scale_down();
+
+    printf("SRCLOC: ");
+    src_loc->print();
+    printf("DSTLOC: ");
+    dst_loc->print();
+
+    Tensor *src_loc_p = loc_embg->forward(src_loc, false);
+    Tensor *dst_loc_p = loc_embg->forward(dst_loc, false);
+
+    printf("SRCLOC: ");
+    src_loc_p->print();
+    printf("DSTLOC: ");
+    dst_loc_p->print();
+
+    printf("DIFF:   ");
+    src_loc_p->subtract(dst_loc_p);
+    src_loc_p->print();
+
+    delete src_loc_p;
+    delete dst_loc_p;
+
+    delete src_loc;
+    delete dst_loc;
+
+    delete loc_embg;
+}
+
 void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
 {
     EmbeddedModel *embd_model = new EmbeddedModel(MSE, 0.001f);
 
     Embedding *loc_embg = new Embedding();
-    loc_embg->linear(3, 12);
+    loc_embg->linear(3, 24);
     loc_embg->activation(ReLU);
 
     Embedding *_loc_embg = new Embedding();
-    _loc_embg->linear(3, 12);
+    _loc_embg->linear(3, 24);
     _loc_embg->activation(ReLU);
     _loc_embg->use_parameters(loc_embg);
 
     EmbeddedModel *agg_embd_model = new EmbeddedModel();
-    agg_embd_model->aggregation(24, Subtract);
+    agg_embd_model->aggregation(48, Subtract);
 
     agg_embd_model->embed(loc_embg, Range{0, 2});
     agg_embd_model->embed(_loc_embg, Range{3, 5});
     embd_model->embed(agg_embd_model, Range{xs_tbl->get_column_idx("fr_loc"), xs_tbl->get_last_column_idx("to_loc")});
 
-    embd_model->linear(embd_model->calc_embedded_input_shape(sup->get_x_shape()), 256);
+    embd_model->linear(embd_model->calc_embedded_input_shape(sup->get_x_shape()), 1024);
     embd_model->activation(ReLU);
-    embd_model->linear(64);
+    embd_model->linear(256);
     embd_model->activation(ReLU);
     embd_model->linear(1);
+    embd_model->activation(ReLU);
 
-    embd_model->fit(sup, 50, 200, "temp/train.csv", upd_rslt_fn);
+    embd_model->fit(sup, 50, 50, "temp/train.csv", upd_rslt_fn);
 
     Batch *test_batch = sup->create_batch();
     embd_model->test(test_batch, upd_rslt_fn).print();
@@ -259,90 +308,28 @@ int main(int argc, char **argv)
 
     // Fit:
     {
-        fit(xs_tbl, ys_tbl, sup);
+        // fit(xs_tbl, ys_tbl, sup);
     }
 
     // Test:
     {
-        Column *y_col = ys_tbl->get_column("elapsed_secs");
-        Column *pred_col = new Column("pred", true, xs_tbl->get_row_cnt());
+        //     Column *y_col = ys_tbl->get_column("elapsed_secs");
+        //     Column *pred_col = new Column("pred", true, xs_tbl->get_row_cnt());
 
-        xs_tbl->add_column(actcod_col);
-        xs_tbl->add_column(fr_loc_col);
-        xs_tbl->add_column(to_loc_col);
-        xs_tbl->add_column(y_col);
-        xs_tbl->add_column(pred_col);
+        //     xs_tbl->add_column(actcod_col);
+        //     xs_tbl->add_column(fr_loc_col);
+        //     xs_tbl->add_column(to_loc_col);
+        //     xs_tbl->add_column(y_col);
+        //     xs_tbl->add_column(pred_col);
 
-        test(sup, pred_col);
+        //     test(sup, pred_col);
 
-        Table::to_csv("temp/preds.csv", xs_tbl);
+        //     Table::to_csv("temp/preds.csv", xs_tbl);
     }
 
     // Location embedding test:
     {
-        // Embedding *loc_embg = new Embedding();
-        // loc_embg->load("temp/loc.emdg");
-
-        // {
-        //     // From loc:
-        //     Table *fr_loc_tbl = new Table();
-        //     Range fr_loc_range = xs_tbl->get_column_range("fr_loc");
-        //     for (int i = fr_loc_range.beg_idx; i <= fr_loc_range.end_idx; i++)
-        //     {
-        //         fr_loc_tbl->add_column(xs_tbl->get_column(i)->copy());
-        //     }
-
-        //     Tensor *fr_loc_tensor = Table::to_tensor(fr_loc_tbl);
-
-        //     Batch *fr_loc_batch = new Batch();
-        //     fr_loc_batch->add_all(fr_loc_tensor, fr_loc_tensor);
-
-        //     // To loc:
-        //     Table *to_loc_tbl = new Table();
-        //     Range to_loc_range = xs_tbl->get_column_range("to_loc");
-        //     for (int i = to_loc_range.beg_idx; i <= to_loc_range.end_idx; i++)
-        //     {
-        //         to_loc_tbl->add_column(xs_tbl->get_column(i)->copy());
-        //     }
-
-        //     Tensor *to_loc_tensor = Table::to_tensor(to_loc_tbl);
-
-        //     Batch *to_loc_batch = new Batch();
-        //     to_loc_batch->add_all(to_loc_tensor, to_loc_tensor);
-
-        //     // Test embedding predictions:
-        //     for (int i = 0; i < fr_loc_batch->get_size(); i++)
-        //     {
-        //         Tensor *_fx = fr_loc_batch->get_x(i);
-        //         Tensor *_fp = loc_embg->forward(_fx, false);
-        //         _fx->print();
-        //         _fp->print();
-
-        //         Tensor *_tx = to_loc_batch->get_x(i);
-        //         Tensor *_tp = loc_embg->forward(_tx, false);
-        //         _tx->print();
-        //         _tp->print();
-
-        //         _fp->sub_abs(_tp);
-        //         _fp->print();
-
-        //         printf("\n=====================================================\n\n");
-
-        //         delete _fp;
-        //         delete _tp;
-        //     }
-
-        //     // Cleanup:
-        //     delete fr_loc_batch;
-        //     delete fr_loc_tensor;
-        //     delete fr_loc_tbl;
-
-        //     delete to_loc_batch;
-        //     delete to_loc_tensor;
-        //     delete to_loc_tbl;
-        // }
-
-        // delete loc_embg;
+        test_loc_embedding("U278A", "U278A");
     }
 
     // Grad Check:
