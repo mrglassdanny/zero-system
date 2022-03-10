@@ -186,14 +186,14 @@ void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
     EmbeddedModel *embd_model = new EmbeddedModel(MSE, 0.001f);
 
     Embedding *loc_embg = new Embedding();
-    loc_embg->linear(3, 15);
+    loc_embg->linear(3, 32);
 
     Embedding *_loc_embg = new Embedding();
-    _loc_embg->linear(3, 15);
+    _loc_embg->linear(3, 32);
     _loc_embg->use_parameters(loc_embg);
 
     EmbeddedModel *agg_embd_model = new EmbeddedModel();
-    agg_embd_model->aggregation(15 * 2, Subtract);
+    agg_embd_model->aggregation(32 * 2, Subtract);
 
     agg_embd_model->embed(loc_embg, Range{0, 2});
     agg_embd_model->embed(_loc_embg, Range{3, 5});
@@ -203,13 +203,13 @@ void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
     embd_model->activation(ReLU);
     embd_model->linear(128);
     embd_model->activation(ReLU);
-    embd_model->linear(16);
+    embd_model->linear(32);
     embd_model->activation(ReLU);
     embd_model->linear(1);
 
     embd_model->fit(sup, 50, 25, "temp/train.csv", upd_rslt_fn);
 
-    Batch *test_batch = sup->create_batch();
+    Batch *test_batch = sup->create_batch(1000);
     embd_model->test(test_batch, upd_rslt_fn).print();
     delete test_batch;
 
