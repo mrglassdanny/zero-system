@@ -42,9 +42,9 @@ namespace zero
 
             void dropout(float dropout_rate);
 
-            void aggregation(AggregationFunction agg_fn, int grp_cnt);
-            void aggregation(int n_cnt, AggregationFunction agg_fn, int grp_cnt);
-            void aggregation(std::vector<int> n_shape, AggregationFunction agg_fn, int grp_cnt);
+            void aggregation(AggregationFunction agg_fn);
+            void aggregation(int n_cnt, AggregationFunction agg_fn);
+            void aggregation(std::vector<int> n_shape, AggregationFunction agg_fn);
 
             std::vector<int> get_input_shape();
             std::vector<int> get_output_shape();
