@@ -183,11 +183,10 @@ namespace zero
         {
         private:
             AggregationFunction agg_fn;
-            int grp_cnt; // NOTE: Input neuron count needs to be divisible by group count!
 
         public:
             AggregationLayer();
-            AggregationLayer(std::vector<int> n_shape, AggregationFunction agg_fn, int grp_cnt);
+            AggregationLayer(std::vector<int> n_shape, AggregationFunction agg_fn);
             ~AggregationLayer();
 
             virtual LayerType get_type();
