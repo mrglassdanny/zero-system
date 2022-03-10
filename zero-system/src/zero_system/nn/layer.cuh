@@ -68,6 +68,11 @@ namespace zero
             virtual Tensor *get_biases();
             virtual Tensor *get_bias_derivatives();
 
+            virtual Tensor *set_weights(Tensor *w);
+            virtual Tensor *set_weight_derivatives(Tensor *dw);
+            virtual Tensor *set_biases(Tensor *b);
+            virtual Tensor *set_bias_derivatives(Tensor *db);
+
             virtual void step(int batch_size, float learning_rate) = 0;
         };
 
