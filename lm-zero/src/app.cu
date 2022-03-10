@@ -144,7 +144,7 @@ void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup, const char *embd_m_path,
     EmbeddedModel *ttt = new EmbeddedModel();
     ttt->embed(loc_embg, Range{0, 2});
     ttt->embed(loc_embg, Range{3, 5});
-    ttt->aggregation(24, Subtract, 2);
+    ttt->aggregation(24, Subtract);
     ttt->activation(AbsoluteValue);
 
     embd_m->embed(ttt, Range{xs_tbl->get_column_idx("fr_loc"), xs_tbl->get_last_column_idx("to_loc")});
@@ -335,21 +335,21 @@ int main(int argc, char **argv)
 
         Embedding *loc_embg = new Embedding();
         loc_embg->linear(3, 12);
-        // loc_embg->activation(Sigmoid);
 
         Embedding *loc_embg2 = new Embedding();
         loc_embg2->linear(3, 12);
+        loc_embg2->use_parameters(loc_embg);
 
-        EmbeddedModel *ttt = new EmbeddedModel();
-        ttt->embed(loc_embg, Range{0, 2});
-        ttt->embed(loc_embg2, Range{3, 5});
-        ttt->aggregation(24, Subtract, 2);
+        EmbeddedModel *agg_embg = new EmbeddedModel();
+        agg_embg->embed(loc_embg, Range{0, 2});
+        agg_embg->embed(loc_embg2, Range{3, 5});
+        agg_embg->aggregation(24, Subtract);
 
-        embd_m->embed(ttt, Range{xs_tbl->get_column_idx("fr_loc"), xs_tbl->get_last_column_idx("to_loc")});
+        embd_m->embed(agg_embg, Range{xs_tbl->get_column_idx("fr_loc"), xs_tbl->get_last_column_idx("to_loc")});
         // embd_m->embed(loc_embg, xs_tbl->get_column_range("fr_loc"));
         // embd_m->embed(loc_embg, xs_tbl->get_column_range("to_loc"));
 
-        embd_m->linear(embd_m->calc_embedded_input_shape(sup->get_x_shape()), 64);
+        embd_m->linear(embd_m->calc_embedded_input_shape(sup->get_x_shape()), 32);
         embd_m->activation(Sigmoid);
         embd_m->linear(12);
         embd_m->activation(Sigmoid);
@@ -359,7 +359,7 @@ int main(int argc, char **argv)
 
         delete embd_m;
         delete grad_chk_batch;
-        delete ttt;
+        delete agg_embg;
         delete loc_embg;
     }
 
