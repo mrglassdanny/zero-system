@@ -90,6 +90,8 @@ namespace zero
             Embedding(CostFunction cost_fn, float learning_rate);
             ~Embedding();
 
+            void use_parameters(Embedding *embg);
+
             Tensor *embedding_backward(Tensor *dc, int embd_x_offset);
             void embedding_grad_check(Model *parent_embd_model, Tensor *x, Tensor *y,
                                       float *agg_ana_grad, float *agg_num_grad, float *agg_grad_diff,

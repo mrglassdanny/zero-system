@@ -716,6 +716,24 @@ Embedding::~Embedding()
 {
 }
 
+void Embedding::use_parameters(Embedding *other_embg)
+{
+    for (int lyr_idx = 0; lyr_idx < this->get_layers().size(); lyr_idx++)
+    {
+        Layer *lyr = this->get_layers()[lyr_idx];
+
+        if (LearnableLayer *lrn_lyr = dynamic_cast<LearnableLayer *>(lyr))
+        {
+            LearnableLayer *other_lrn_lyr = dynamic_cast<LearnableLayer *>(other_embg->get_layers()[lyr_idx]);
+
+            lrn_lyr->set_weights(other_lrn_lyr->get_weights());
+            lrn_lyr->set_weight_derivatives(other_lrn_lyr->get_weight_derivatives());
+            lrn_lyr->set_biases(other_lrn_lyr->get_biases());
+            lrn_lyr->set_bias_derivatives(other_lrn_lyr->get_bias_derivatives());
+        }
+    }
+}
+
 Tensor *Embedding::embedding_backward(Tensor *dc, int embd_x_offset)
 {
     int lst_lyr_idx = this->layers.size() - 1;
