@@ -153,6 +153,9 @@ void Model::load(FILE *file_ptr)
         case LayerType::Pooling:
             lyr = new PoolingLayer();
             break;
+        case LayerType::Aggregation:
+            lyr = new AggregationLayer();
+            break;
         default:
             break;
         }
