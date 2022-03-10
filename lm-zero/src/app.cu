@@ -307,29 +307,29 @@ int main(int argc, char **argv)
 
     // Fit:
     {
-        fit(xs_tbl, ys_tbl, sup);
+        // fit(xs_tbl, ys_tbl, sup);
     }
 
     // Test:
     {
-        Column *y_col = ys_tbl->get_column("elapsed_secs");
-        Column *pred_col = new Column("pred", true, xs_tbl->get_row_cnt());
+        // Column *y_col = ys_tbl->get_column("elapsed_secs");
+        // Column *pred_col = new Column("pred", true, xs_tbl->get_row_cnt());
 
-        xs_tbl->add_column(actcod_col);
-        xs_tbl->add_column(fr_loc_col);
-        xs_tbl->add_column(to_loc_col);
-        xs_tbl->add_column(y_col);
-        xs_tbl->add_column(pred_col);
+        // xs_tbl->add_column(actcod_col);
+        // xs_tbl->add_column(fr_loc_col);
+        // xs_tbl->add_column(to_loc_col);
+        // xs_tbl->add_column(y_col);
+        // xs_tbl->add_column(pred_col);
 
-        test(sup, pred_col);
+        // test(sup, pred_col);
 
-        Table::to_csv("temp/preds.csv", xs_tbl);
+        // Table::to_csv("temp/preds.csv", xs_tbl);
     }
 
     // Location embedding test:
     {
-        // test_loc_embedding("STG383", "U278A");
-        // test_loc_embedding("STG383", "STG383");
+        test_loc_embedding("STG383", "U278A");
+        test_loc_embedding("STG383", "STG383");
     }
 
     // Grad Check:
