@@ -984,7 +984,7 @@ Tensor *LearnableLayer::get_bias_derivatives()
     return this->db;
 }
 
-Tensor *LearnableLayer::set_weights(Tensor *w)
+void LearnableLayer::set_weights(Tensor *w)
 {
     if (this->w != nullptr)
     {
@@ -994,7 +994,7 @@ Tensor *LearnableLayer::set_weights(Tensor *w)
     this->w = w;
 }
 
-Tensor *LearnableLayer::set_weight_derivatives(Tensor *dw)
+void LearnableLayer::set_weight_derivatives(Tensor *dw)
 {
     if (this->dw != nullptr)
     {
@@ -1004,7 +1004,7 @@ Tensor *LearnableLayer::set_weight_derivatives(Tensor *dw)
     this->dw = dw;
 }
 
-Tensor *LearnableLayer::set_biases(Tensor *b)
+void LearnableLayer::set_biases(Tensor *b)
 {
     if (this->b != nullptr)
     {
@@ -1014,7 +1014,7 @@ Tensor *LearnableLayer::set_biases(Tensor *b)
     this->b = b;
 }
 
-Tensor *LearnableLayer::set_bias_derivatives(Tensor *db)
+void LearnableLayer::set_bias_derivatives(Tensor *db)
 {
     if (this->db != nullptr)
     {
