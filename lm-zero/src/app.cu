@@ -348,7 +348,7 @@ int main(int argc, char **argv)
         // _loc_embg->use_parameters(loc_embg);
 
         // EmbeddedModel *agg_embd_model = new EmbeddedModel();
-        // agg_embd_model->aggregation(30, Subtract);
+        // agg_embd_model->aggregation(15 * 2, Subtract);
 
         // agg_embd_model->embed(loc_embg, Range{0, 2});
         // agg_embd_model->embed(_loc_embg, Range{3, 5});
