@@ -737,7 +737,7 @@ void Embedding::share_parameters(Embedding *other_embg)
     }
 }
 
-Tensor *Embedding::embedding_backward(Tensor *dc, int embd_x_offset)
+Tensor *Embedding::embedding_backward(Tensor *dc, int embl_x_offset)
 {
     int lst_lyr_idx = this->layers.size() - 1;
 
@@ -745,7 +745,7 @@ Tensor *Embedding::embedding_backward(Tensor *dc, int embd_x_offset)
     {
         Tensor *embg_dc = new Tensor(dc->get_device(), this->get_output_shape());
 
-        cudaMemcpy(embg_dc->get_arr(), &dc->get_arr()[embd_x_offset], sizeof(float) * (embg_dc->get_cnt()), cudaMemcpyDefault);
+        cudaMemcpy(embg_dc->get_arr(), &dc->get_arr()[embl_x_offset], sizeof(float) * (embg_dc->get_cnt()), cudaMemcpyDefault);
 
         delete dc;
         dc = embg_dc;
@@ -758,12 +758,12 @@ Tensor *Embedding::embedding_backward(Tensor *dc, int embd_x_offset)
     }
 
     // Check to see if we are actually an Embedded Model with Embeddings.
-    if (EmbeddedModel *embd_model = dynamic_cast<EmbeddedModel *>(this))
+    if (EmbeddableModel *embl_model = dynamic_cast<EmbeddableModel *>(this))
     {
-        int embd_x_offset = 0;
+        int embl_x_offset = 0;
 
-        std::vector<Embedding *> embgs = embd_model->get_embeddings();
-        std::vector<Range> embg_ranges = embd_model->get_embedding_ranges();
+        std::vector<Embedding *> embgs = embl_model->get_embeddings();
+        std::vector<Range> embg_ranges = embl_model->get_embedding_ranges();
 
         for (int embg_idx = 0; embg_idx < embgs.size(); embg_idx++)
         {
@@ -772,29 +772,29 @@ Tensor *Embedding::embedding_backward(Tensor *dc, int embd_x_offset)
 
             Tensor *cpy_dc = new Tensor(*dc);
 
-            delete embg->embedding_backward(cpy_dc, embg_range.beg_idx + embd_x_offset);
+            delete embg->embedding_backward(cpy_dc, embg_range.beg_idx + embl_x_offset);
 
-            embd_x_offset += (Tensor::get_cnt(embg->get_output_shape()) - Tensor::get_cnt(embg->get_input_shape()));
+            embl_x_offset += (Tensor::get_cnt(embg->get_output_shape()) - Tensor::get_cnt(embg->get_input_shape()));
         }
     }
 
     return dc;
 }
 
-void Embedding::embedding_grad_check(Model *parent_embd_model, Tensor *x, Tensor *y,
+void Embedding::embedding_grad_check(Model *parent_embl_model, Tensor *x, Tensor *y,
                                      float *agg_ana_grad, float *agg_num_grad, float *agg_grad_diff,
                                      int embg_idx, bool print_flg)
 {
 
     // Check to see if we are actually an Embedded Model with Embeddings.
-    if (EmbeddedModel *embd_model = dynamic_cast<EmbeddedModel *>(this))
+    if (EmbeddableModel *embl_model = dynamic_cast<EmbeddableModel *>(this))
     {
-        int embd_embg_idx = 0;
-        for (Embedding *embg : embd_model->get_embeddings())
+        int embl_embg_idx = 0;
+        for (Embedding *embg : embl_model->get_embeddings())
         {
-            embd_embg_idx++;
-            embg->embedding_grad_check(parent_embd_model, x, y, agg_ana_grad, agg_num_grad, agg_grad_diff,
-                                       embd_embg_idx, print_flg);
+            embl_embg_idx++;
+            embg->embedding_grad_check(parent_embl_model, x, y, agg_ana_grad, agg_num_grad, agg_grad_diff,
+                                       embl_embg_idx, print_flg);
         }
     }
 
@@ -824,15 +824,15 @@ void Embedding::embedding_grad_check(Model *parent_embd_model, Tensor *x, Tensor
 
                 w->set_val(w_idx, left_w_val);
                 {
-                    Tensor *pred = parent_embd_model->forward(x, true);
-                    left_cost = parent_embd_model->cost(pred, y);
+                    Tensor *pred = parent_embl_model->forward(x, true);
+                    left_cost = parent_embl_model->cost(pred, y);
                     delete pred;
                 }
 
                 w->set_val(w_idx, right_w_val);
                 {
-                    Tensor *pred = parent_embd_model->forward(x, true);
-                    right_cost = parent_embd_model->cost(pred, y);
+                    Tensor *pred = parent_embl_model->forward(x, true);
+                    right_cost = parent_embl_model->cost(pred, y);
                     delete pred;
                 }
 
@@ -864,15 +864,15 @@ void Embedding::embedding_grad_check(Model *parent_embd_model, Tensor *x, Tensor
 
                 b->set_val(b_idx, left_b_val);
                 {
-                    Tensor *pred = parent_embd_model->forward(x, true);
-                    left_cost = parent_embd_model->cost(pred, y);
+                    Tensor *pred = parent_embl_model->forward(x, true);
+                    left_cost = parent_embl_model->cost(pred, y);
                     delete pred;
                 }
 
                 b->set_val(b_idx, right_b_val);
                 {
-                    Tensor *pred = parent_embd_model->forward(x, true);
-                    right_cost = parent_embd_model->cost(pred, y);
+                    Tensor *pred = parent_embl_model->forward(x, true);
+                    right_cost = parent_embl_model->cost(pred, y);
                     delete pred;
                 }
 
@@ -895,22 +895,22 @@ void Embedding::embedding_grad_check(Model *parent_embd_model, Tensor *x, Tensor
 
 // EmbeddableModel functions:
 
-EmbeddedModel::EmbeddedModel()
+EmbeddableModel::EmbeddableModel()
     : Embedding()
 {
 }
 
-EmbeddedModel::EmbeddedModel(CostFunction cost_fn, float learning_rate)
+EmbeddableModel::EmbeddableModel(CostFunction cost_fn, float learning_rate)
     : Embedding(cost_fn, learning_rate)
 {
 }
 
-EmbeddedModel::~EmbeddedModel()
+EmbeddableModel::~EmbeddableModel()
 {
     // Let caller handle Embedding cleanup!
 }
 
-void EmbeddedModel::load(FILE *file_ptr)
+void EmbeddableModel::load(FILE *file_ptr)
 {
     Embedding::load(file_ptr);
 
@@ -928,16 +928,16 @@ void EmbeddedModel::load(FILE *file_ptr)
     }
 }
 
-void EmbeddedModel::load(const char *path)
+void EmbeddableModel::load(const char *path)
 {
     FILE *file_ptr = fopen(path, "rb");
 
-    EmbeddedModel::load(file_ptr);
+    EmbeddableModel::load(file_ptr);
 
     fclose(file_ptr);
 }
 
-void EmbeddedModel::save(FILE *file_ptr)
+void EmbeddableModel::save(FILE *file_ptr)
 {
     Embedding::save(file_ptr);
 
@@ -954,77 +954,77 @@ void EmbeddedModel::save(FILE *file_ptr)
     }
 }
 
-void EmbeddedModel::save(const char *path)
+void EmbeddableModel::save(const char *path)
 {
     FILE *file_ptr = fopen(path, "wb");
 
-    EmbeddedModel::save(file_ptr);
+    EmbeddableModel::save(file_ptr);
 
     fclose(file_ptr);
 }
 
-std::vector<int> EmbeddedModel::calc_embedded_input_shape(std::vector<int> n_shape)
+std::vector<int> EmbeddableModel::calc_embedded_input_shape(std::vector<int> n_shape)
 {
     return this->calc_embedded_input_shape(Tensor::get_cnt(n_shape));
 }
 
-std::vector<int> EmbeddedModel::calc_embedded_input_shape(int n_cnt)
+std::vector<int> EmbeddableModel::calc_embedded_input_shape(int n_cnt)
 {
-    int embd_n_cnt;
+    int embl_n_cnt;
 
     if (n_cnt > -1)
     {
-        embd_n_cnt = n_cnt;
+        embl_n_cnt = n_cnt;
 
         for (Embedding *embg : this->embgs)
         {
-            embd_n_cnt += Tensor::get_cnt(embg->get_output_shape());
+            embl_n_cnt += Tensor::get_cnt(embg->get_output_shape());
         }
 
         for (Embedding *embg : this->embgs)
         {
-            if (EmbeddedModel *embd_model = dynamic_cast<EmbeddedModel *>(embg))
+            if (EmbeddableModel *embl_model = dynamic_cast<EmbeddableModel *>(embg))
             {
-                embd_n_cnt -= Tensor::get_cnt(embd_model->calc_embedded_input_shape(-1));
+                embl_n_cnt -= Tensor::get_cnt(embl_model->calc_embedded_input_shape(-1));
             }
             else
             {
-                embd_n_cnt -= Tensor::get_cnt(embg->get_input_shape());
+                embl_n_cnt -= Tensor::get_cnt(embg->get_input_shape());
             }
         }
     }
     else
     {
-        embd_n_cnt = 0;
+        embl_n_cnt = 0;
 
         for (Embedding *embg : this->embgs)
         {
-            if (EmbeddedModel *embd_model = dynamic_cast<EmbeddedModel *>(embg))
+            if (EmbeddableModel *embl_model = dynamic_cast<EmbeddableModel *>(embg))
             {
-                embd_n_cnt += Tensor::get_cnt(embd_model->calc_embedded_input_shape(-1));
+                embl_n_cnt += Tensor::get_cnt(embl_model->calc_embedded_input_shape(-1));
             }
             else
             {
-                embd_n_cnt += Tensor::get_cnt(embg->get_input_shape());
+                embl_n_cnt += Tensor::get_cnt(embg->get_input_shape());
             }
         }
     }
 
-    std::vector<int> embd_n_shape{embd_n_cnt};
-    return embd_n_shape;
+    std::vector<int> embl_n_shape{embl_n_cnt};
+    return embl_n_shape;
 }
 
-std::vector<Embedding *> EmbeddedModel::get_embeddings()
+std::vector<Embedding *> EmbeddableModel::get_embeddings()
 {
     return this->embgs;
 }
 
-std::vector<Range> EmbeddedModel::get_embedding_ranges()
+std::vector<Range> EmbeddableModel::get_embedding_ranges()
 {
     return this->embg_ranges;
 }
 
-void EmbeddedModel::add_embedding(Embedding *embg, Range embg_range)
+void EmbeddableModel::add_embedding(Embedding *embg, Range embg_range)
 {
     if (embg != nullptr)
     {
@@ -1035,30 +1035,30 @@ void EmbeddedModel::add_embedding(Embedding *embg, Range embg_range)
     this->embg_ranges.push_back(embg_range);
 }
 
-void EmbeddedModel::embed(Embedding *embg)
+void EmbeddableModel::embed(Embedding *embg)
 {
     // We are assuming that caller is pushing Embedding into the right spot given range positions.
     this->embgs.push_back(embg);
 }
 
-void EmbeddedModel::embed(Embedding *embg, Range embg_range)
+void EmbeddableModel::embed(Embedding *embg, Range embg_range)
 {
     this->add_embedding(embg, embg_range);
 }
 
-Tensor *EmbeddedModel::forward(Tensor *x, bool train_flg)
+Tensor *EmbeddableModel::forward(Tensor *x, bool train_flg)
 {
     x->to_device(Device::Cuda);
 
     // We need to create an embedded x tensor to match our updated shape and values due to embeddings:
-    Tensor *embd_x = new Tensor(x->get_device(), this->get_input_shape());
-    cudaMemcpy(embd_x->get_arr(), x->get_arr(), sizeof(float) * x->get_cnt(), cudaMemcpyDefault);
+    Tensor *embl_x = new Tensor(x->get_device(), this->get_input_shape());
+    cudaMemcpy(embl_x->get_arr(), x->get_arr(), sizeof(float) * x->get_cnt(), cudaMemcpyDefault);
 
     if (this->embgs.size() > 0)
     {
         // First we need to shift all non-embedding inputs in accordance to new embedded x layout:
         {
-            int embd_x_offset = this->embg_ranges[0].beg_idx;
+            int embl_x_offset = this->embg_ranges[0].beg_idx;
 
             int lst_x_idx = x->get_cnt() - 1;
 
@@ -1070,27 +1070,27 @@ Tensor *EmbeddedModel::forward(Tensor *x, bool train_flg)
                 Range embg_range = this->embg_ranges[embg_idx];
                 Range nxt_embg_range = this->embg_ranges[embg_idx + 1];
 
-                embd_x_offset += Tensor::get_cnt(embg->get_output_shape());
+                embl_x_offset += Tensor::get_cnt(embg->get_output_shape());
 
                 int non_embg_range_len = ((nxt_embg_range.beg_idx - 1) - embg_range.end_idx);
 
                 if (non_embg_range_len > 0)
                 {
-                    cudaMemcpy(&embd_x->get_arr()[embd_x_offset], &x->get_arr()[embg_range.beg_idx + 1], sizeof(float) * non_embg_range_len, cudaMemcpyDefault);
-                    embd_x_offset += non_embg_range_len;
+                    cudaMemcpy(&embl_x->get_arr()[embl_x_offset], &x->get_arr()[embg_range.beg_idx + 1], sizeof(float) * non_embg_range_len, cudaMemcpyDefault);
+                    embl_x_offset += non_embg_range_len;
                 }
             }
 
             Embedding *lst_embg = this->embgs[this->embgs.size() - 1];
             Range lst_embg_range = this->embg_ranges[this->embgs.size() - 1];
 
-            embd_x_offset += Tensor::get_cnt(lst_embg->get_output_shape());
+            embl_x_offset += Tensor::get_cnt(lst_embg->get_output_shape());
 
             int non_embg_range_len = (lst_x_idx - lst_embg_range.end_idx);
 
-            if (non_embg_range_len > 0 && embd_x_offset + non_embg_range_len <= embd_x->get_cnt())
+            if (non_embg_range_len > 0 && embl_x_offset + non_embg_range_len <= embl_x->get_cnt())
             {
-                cudaMemcpy(&embd_x->get_arr()[embd_x_offset], &x->get_arr()[lst_embg_range.end_idx + 1], sizeof(float) * non_embg_range_len, cudaMemcpyDefault);
+                cudaMemcpy(&embl_x->get_arr()[embl_x_offset], &x->get_arr()[lst_embg_range.end_idx + 1], sizeof(float) * non_embg_range_len, cudaMemcpyDefault);
             }
         }
 
@@ -1098,7 +1098,7 @@ Tensor *EmbeddedModel::forward(Tensor *x, bool train_flg)
         {
             int embg_output_shape_cnt = 0;
 
-            int embd_x_offset = 0;
+            int embl_x_offset = 0;
 
             for (int embg_idx = 0; embg_idx < this->embgs.size(); embg_idx++)
             {
@@ -1113,9 +1113,9 @@ Tensor *EmbeddedModel::forward(Tensor *x, bool train_flg)
 
                 Tensor *embg_pred = embg->forward(embg_x, train_flg);
 
-                cudaMemcpy(&embd_x->get_arr()[embg_range.beg_idx + embd_x_offset], embg_pred->get_arr(), sizeof(float) * embg_output_shape_cnt, cudaMemcpyDefault);
+                cudaMemcpy(&embl_x->get_arr()[embg_range.beg_idx + embl_x_offset], embg_pred->get_arr(), sizeof(float) * embg_output_shape_cnt, cudaMemcpyDefault);
 
-                embd_x_offset += (embg_output_shape_cnt - Tensor::get_cnt(embg->get_input_shape()));
+                embl_x_offset += (embg_output_shape_cnt - Tensor::get_cnt(embg->get_input_shape()));
 
                 delete embg_x;
                 delete embg_pred;
@@ -1123,16 +1123,16 @@ Tensor *EmbeddedModel::forward(Tensor *x, bool train_flg)
         }
     }
 
-    Tensor *pred = Embedding::forward(embd_x, train_flg);
-    delete embd_x;
+    Tensor *pred = Embedding::forward(embl_x, train_flg);
+    delete embl_x;
     return pred;
 }
 
-Tensor *EmbeddedModel::backward(Tensor *pred, Tensor *y)
+Tensor *EmbeddableModel::backward(Tensor *pred, Tensor *y)
 {
     Tensor *dc = Embedding::backward(pred, y);
 
-    int embd_x_offset = 0;
+    int embl_x_offset = 0;
 
     for (int embg_idx = 0; embg_idx < this->embgs.size(); embg_idx++)
     {
@@ -1141,15 +1141,15 @@ Tensor *EmbeddedModel::backward(Tensor *pred, Tensor *y)
 
         Tensor *cpy_dc = new Tensor(*dc);
 
-        delete embg->embedding_backward(cpy_dc, embg_range.beg_idx + embd_x_offset);
+        delete embg->embedding_backward(cpy_dc, embg_range.beg_idx + embl_x_offset);
 
-        embd_x_offset += (Tensor::get_cnt(embg->get_output_shape()) - Tensor::get_cnt(embg->get_input_shape()));
+        embl_x_offset += (Tensor::get_cnt(embg->get_output_shape()) - Tensor::get_cnt(embg->get_input_shape()));
     }
 
     return dc;
 }
 
-void EmbeddedModel::step(int batch_size)
+void EmbeddableModel::step(int batch_size)
 {
     for (Embedding *embg : this->embgs)
     {
@@ -1159,7 +1159,7 @@ void EmbeddedModel::step(int batch_size)
     Embedding::step(batch_size);
 }
 
-void EmbeddedModel::grad_check(Tensor *x, Tensor *y, bool print_flg)
+void EmbeddableModel::grad_check(Tensor *x, Tensor *y, bool print_flg)
 {
     x->to_device(Device::Cuda);
     y->to_device(Device::Cuda);

@@ -155,9 +155,9 @@ void test_loc_embedding(const char *src_loc_name, const char *dst_loc_name)
     src_loc->scale_down();
     dst_loc->scale_down();
 
-    printf("SRCLOC: ");
+    printf("SRCLOC (%s): ", src_loc_name);
     src_loc->print();
-    printf("DSTLOC: ");
+    printf("DSTLOC (%s): ", dst_loc_name);
     dst_loc->print();
 
     Tensor *src_loc_p = loc_embg->forward(src_loc, false);
@@ -172,6 +172,8 @@ void test_loc_embedding(const char *src_loc_name, const char *dst_loc_name)
     src_loc_p->subtract(dst_loc_p);
     src_loc_p->print();
 
+    printf("\n\n");
+
     delete src_loc_p;
     delete dst_loc_p;
 
@@ -183,53 +185,59 @@ void test_loc_embedding(const char *src_loc_name, const char *dst_loc_name)
 
 void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
 {
-    EmbeddedModel *embd_model = new EmbeddedModel(MSE, 0.001f);
+    EmbeddableModel *embl_model = new EmbeddableModel(MSE, 0.001f);
 
     Embedding *loc_embg = new Embedding();
     loc_embg->linear(3, 32);
+    loc_embg->activation(Tanh);
+    loc_embg->linear(12);
+    loc_embg->activation(Tanh);
 
     Embedding *_loc_embg = new Embedding();
     _loc_embg->linear(3, 32);
+    _loc_embg->activation(Tanh);
+    _loc_embg->linear(12);
+    _loc_embg->activation(Tanh);
     _loc_embg->share_parameters(loc_embg);
 
-    EmbeddedModel *agg_embd_model = new EmbeddedModel();
-    agg_embd_model->aggregation(32 * 2, Subtract);
+    EmbeddableModel *agg_embl_model = new EmbeddableModel();
+    agg_embl_model->aggregation(12 * 2, Subtract);
 
-    agg_embd_model->embed(loc_embg, Range{0, 2});
-    agg_embd_model->embed(_loc_embg, Range{3, 5});
-    embd_model->embed(agg_embd_model, Range{xs_tbl->get_column_idx("fr_loc"), xs_tbl->get_last_column_idx("to_loc")});
+    agg_embl_model->embed(loc_embg, Range{0, 2});
+    agg_embl_model->embed(_loc_embg, Range{3, 5});
+    embl_model->embed(agg_embl_model, Range{xs_tbl->get_column_idx("fr_loc"), xs_tbl->get_last_column_idx("to_loc")});
 
-    embd_model->linear(embd_model->calc_embedded_input_shape(sup->get_x_shape()), 512);
-    embd_model->activation(ReLU);
-    embd_model->linear(128);
-    embd_model->activation(ReLU);
-    embd_model->linear(32);
-    embd_model->activation(ReLU);
-    embd_model->linear(1);
+    embl_model->linear(embl_model->calc_embedded_input_shape(sup->get_x_shape()), 512);
+    embl_model->activation(ReLU);
+    embl_model->linear(128);
+    embl_model->activation(ReLU);
+    embl_model->linear(32);
+    embl_model->activation(ReLU);
+    embl_model->linear(1);
 
-    embd_model->fit(sup, 50, 25, "temp/train.csv", upd_rslt_fn);
+    embl_model->fit(sup, 50, 25, "temp/train.csv", upd_rslt_fn);
 
     Batch *test_batch = sup->create_batch(1000);
-    embd_model->test(test_batch, upd_rslt_fn).print();
+    embl_model->test(test_batch, upd_rslt_fn).print();
     delete test_batch;
 
-    embd_model->save("temp/embd.em");
-    agg_embd_model->save("temp/agg_embd.em");
+    embl_model->save("temp/embl.em");
+    agg_embl_model->save("temp/agg_embl.em");
     loc_embg->save("temp/loc_embg.em");
 
-    delete embd_model;
-    delete agg_embd_model;
+    delete embl_model;
+    delete agg_embl_model;
     delete loc_embg;
     delete _loc_embg;
 }
 
 void test(Supervisor *sup, Column *pred_col)
 {
-    EmbeddedModel *embd_model = new EmbeddedModel();
-    embd_model->load("temp/embd.em");
+    EmbeddableModel *embl_model = new EmbeddableModel();
+    embl_model->load("temp/embl.em");
 
-    EmbeddedModel *agg_embd_model = new EmbeddedModel();
-    agg_embd_model->load("temp/agg_embd.em");
+    EmbeddableModel *agg_embl_model = new EmbeddableModel();
+    agg_embl_model->load("temp/agg_embl.em");
 
     Embedding *loc_embg = new Embedding();
     loc_embg->load("temp/loc_embg.em");
@@ -238,24 +246,24 @@ void test(Supervisor *sup, Column *pred_col)
     _loc_embg->load("temp/loc_embg.em");
     _loc_embg->share_parameters(loc_embg);
 
-    agg_embd_model->embed(loc_embg);
-    agg_embd_model->embed(_loc_embg);
-    embd_model->embed(agg_embd_model);
+    agg_embl_model->embed(loc_embg);
+    agg_embl_model->embed(_loc_embg);
+    embl_model->embed(agg_embl_model);
 
     Batch *test_batch = sup->create_batch(1000);
-    embd_model->test(test_batch, upd_rslt_fn).print();
+    embl_model->test(test_batch, upd_rslt_fn).print();
 
     for (int i = 0; i < test_batch->get_size(); i++)
     {
-        Tensor *pred = embd_model->forward(test_batch->get_x(i), false);
+        Tensor *pred = embl_model->forward(test_batch->get_x(i), false);
         pred_col->set_val(i, pred->get_val(0));
         delete pred;
     }
 
     delete test_batch;
 
-    delete embd_model;
-    delete agg_embd_model;
+    delete embl_model;
+    delete agg_embl_model;
     delete loc_embg;
     delete _loc_embg;
 }
@@ -307,7 +315,7 @@ int main(int argc, char **argv)
 
     // Fit:
     {
-        // fit(xs_tbl, ys_tbl, sup);
+        fit(xs_tbl, ys_tbl, sup);
     }
 
     // Test:
@@ -328,8 +336,8 @@ int main(int argc, char **argv)
 
     // Location embedding test:
     {
-        test_loc_embedding("STG383", "U278A");
-        test_loc_embedding("STG383", "STG383");
+        // test_loc_embedding("STG383", "U278A");
+        // test_loc_embedding("STG383", "STG383");
     }
 
     // Grad Check:
@@ -338,7 +346,7 @@ int main(int argc, char **argv)
         // Tensor *x = grad_chk_batch->get_x(0);
         // Tensor *y = grad_chk_batch->get_y(0);
 
-        // EmbeddedModel *embd_model = new EmbeddedModel(MSE, 0.001f);
+        // EmbeddedModel *embl_model = new EmbeddedModel(MSE, 0.001f);
 
         // Embedding *loc_embg = new Embedding();
         // loc_embg->linear(3, 15);
@@ -347,26 +355,26 @@ int main(int argc, char **argv)
         // _loc_embg->linear(3, 15);
         // _loc_embg->use_parameters(loc_embg);
 
-        // EmbeddedModel *agg_embd_model = new EmbeddedModel();
-        // agg_embd_model->aggregation(15 * 2, Subtract);
+        // EmbeddedModel *agg_embl_model = new EmbeddedModel();
+        // agg_embl_model->aggregation(15 * 2, Subtract);
 
-        // agg_embd_model->embed(loc_embg, Range{0, 2});
-        // agg_embd_model->embed(_loc_embg, Range{3, 5});
-        // embd_model->embed(agg_embd_model, Range{xs_tbl->get_column_idx("fr_loc"), xs_tbl->get_last_column_idx("to_loc")});
+        // agg_embl_model->embed(loc_embg, Range{0, 2});
+        // agg_embl_model->embed(_loc_embg, Range{3, 5});
+        // embl_model->embed(agg_embl_model, Range{xs_tbl->get_column_idx("fr_loc"), xs_tbl->get_last_column_idx("to_loc")});
 
-        // embd_model->linear(embd_model->calc_embedded_input_shape(sup->get_x_shape()), 63);
-        // embd_model->activation(Sigmoid);
-        // embd_model->linear(32);
-        // embd_model->activation(Sigmoid);
-        // embd_model->linear(8);
-        // embd_model->activation(Sigmoid);
-        // embd_model->linear(1);
+        // embl_model->linear(embl_model->calc_embedded_input_shape(sup->get_x_shape()), 63);
+        // embl_model->activation(Sigmoid);
+        // embl_model->linear(32);
+        // embl_model->activation(Sigmoid);
+        // embl_model->linear(8);
+        // embl_model->activation(Sigmoid);
+        // embl_model->linear(1);
 
-        // embd_model->grad_check(x, y, true);
+        // embl_model->grad_check(x, y, true);
 
-        // delete embd_model;
+        // delete embl_model;
         // delete grad_chk_batch;
-        // delete agg_embd_model;
+        // delete agg_embl_model;
         // delete loc_embg;
     }
 

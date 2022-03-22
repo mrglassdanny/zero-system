@@ -98,7 +98,7 @@ namespace zero
                                       int embg_idx, bool print_flg);
         };
 
-        class EmbeddedModel : public Embedding
+        class EmbeddableModel : public Embedding
         {
         protected:
             std::vector<Embedding *> embgs;
@@ -107,9 +107,9 @@ namespace zero
             void add_embedding(Embedding *embg, Range embg_range);
 
         public:
-            EmbeddedModel();
-            EmbeddedModel(CostFunction cost_fn, float learning_rate);
-            ~EmbeddedModel();
+            EmbeddableModel();
+            EmbeddableModel(CostFunction cost_fn, float learning_rate);
+            ~EmbeddableModel();
 
             virtual void load(FILE *file_ptr);
             virtual void load(const char *path);
