@@ -190,7 +190,7 @@ void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
 
     Embedding *_loc_embg = new Embedding();
     _loc_embg->linear(3, 32);
-    _loc_embg->use_parameters(loc_embg);
+    _loc_embg->share_parameters(loc_embg);
 
     EmbeddedModel *agg_embd_model = new EmbeddedModel();
     agg_embd_model->aggregation(32 * 2, Subtract);
@@ -236,7 +236,7 @@ void test(Supervisor *sup, Column *pred_col)
 
     Embedding *_loc_embg = new Embedding();
     _loc_embg->load("temp/loc_embg.em");
-    _loc_embg->use_parameters(loc_embg);
+    _loc_embg->share_parameters(loc_embg);
 
     agg_embd_model->embed(loc_embg);
     agg_embd_model->embed(_loc_embg);

@@ -719,7 +719,7 @@ Embedding::~Embedding()
 {
 }
 
-void Embedding::use_parameters(Embedding *other_embg)
+void Embedding::share_parameters(Embedding *other_embg)
 {
     for (int lyr_idx = 0; lyr_idx < this->get_layers().size(); lyr_idx++)
     {
