@@ -114,7 +114,7 @@ int main(int argc, char **argv)
     Supervisor *train_sup = get_mnist_train_supervisor();
     Supervisor *test_sup = get_mnist_test_supervisor();
 
-    // ConvNet *conv = new ConvNet(CrossEntropy, 0.1f);
+    // Model *conv = new Model(CrossEntropy, 0.1f);
 
     // conv->convolutional(train_sup->get_x_shape(), 16, 3, 3);
     // conv->activation(ReLU);
@@ -147,7 +147,7 @@ int main(int argc, char **argv)
 
     // ============
 
-    ConvNet *conv = new ConvNet();
+    Model *conv = new Model();
     conv->load("temp/mnist.nn");
     Batch *test_batch = test_sup->create_batch();
     conv->test(test_batch, NULL).print();

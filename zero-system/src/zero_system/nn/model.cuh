@@ -12,6 +12,8 @@ namespace zero
 
     namespace nn
     {
+        class Embedding;
+
         class Model
         {
         protected:
