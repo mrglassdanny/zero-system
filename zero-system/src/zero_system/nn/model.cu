@@ -925,27 +925,6 @@ Tensor *Embedding::embedding_backward(Tensor *dc, int embl_x_offset)
         dc = lyr->backward(dc);
     }
 
-    // Check to see if we are actually an Embedded Model with Embeddings.
-    if (EmbeddableModel *embl_model = dynamic_cast<EmbeddableModel *>(this))
-    {
-        int embl_x_offset = 0;
-
-        std::vector<Embedding *> embgs = embl_model->get_embeddings();
-        std::vector<Range> embg_ranges = embl_model->get_embedding_ranges();
-
-        for (int embg_idx = 0; embg_idx < embgs.size(); embg_idx++)
-        {
-            Embedding *embg = embgs[embg_idx];
-            Range embg_range = embg_ranges[embg_idx];
-
-            Tensor *cpy_dc = new Tensor(*dc);
-
-            delete embg->embedding_backward(cpy_dc, embg_range.beg_idx + embl_x_offset);
-
-            embl_x_offset += (Tensor::get_cnt(embg->get_output_shape()) - Tensor::get_cnt(embg->get_input_shape()));
-        }
-    }
-
     return dc;
 }
 
@@ -953,19 +932,6 @@ void Embedding::embedding_grad_check(Model *parent_embl_model, Tensor *x, Tensor
                                      float *agg_ana_grad, float *agg_num_grad, float *agg_grad_diff,
                                      int embg_idx, bool print_flg)
 {
-
-    // Check to see if we are actually an Embedded Model with Embeddings.
-    if (EmbeddableModel *embl_model = dynamic_cast<EmbeddableModel *>(this))
-    {
-        int embl_embg_idx = 0;
-        for (Embedding *embg : embl_model->get_embeddings())
-        {
-            embl_embg_idx++;
-            embg->embedding_grad_check(parent_embl_model, x, y, agg_ana_grad, agg_num_grad, agg_grad_diff,
-                                       embl_embg_idx, print_flg);
-        }
-    }
-
     int embg_lyr_idx = 0;
     for (Layer *embg_lyr : this->get_layers())
     {
