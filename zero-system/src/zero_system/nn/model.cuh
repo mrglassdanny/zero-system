@@ -60,6 +60,8 @@ namespace zero
 
             std::vector<Layer *> get_layers();
 
+            std::vector<int> get_embedded_input_shape();
+
             std::vector<Embedding *> get_embeddings();
             std::vector<Range> get_embedding_ranges();
 

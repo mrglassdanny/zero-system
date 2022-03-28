@@ -356,6 +356,11 @@ std::vector<Layer *> Model::get_layers()
     return this->layers;
 }
 
+std::vector<int> Model::get_embedded_input_shape()
+{
+    return this->layers[0]->get_input_shape();
+}
+
 std::vector<Embedding *> Model::get_embeddings()
 {
     return this->embgs;
