@@ -39,7 +39,7 @@ public:
 
 ConvNet *init_model()
 {
-    ConvNet *conv = new ConvNet(CostFunction::MSE, 0.01f);
+    Model *conv = new Model(CostFunction::MSE, 0.01f);
 
     std::vector<int> x_shape{CHESS_ONE_HOT_ENCODE_COMBINATION_CNT, CHESS_BOARD_ROW_CNT, CHESS_BOARD_COL_CNT};
     int y_shape = 1;
