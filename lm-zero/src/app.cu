@@ -185,14 +185,48 @@ void test_loc_embedding(const char *src_loc_name, const char *dst_loc_name)
 
 void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
 {
+    Model *lm = new Model(MSE, 0.001f);
+
+    Embedding *actcod_embg = new Embedding();
+    actcod_embg->linear(xs_tbl->get_last_column_idx("actcod") - xs_tbl->get_column_idx("actcod") + 1, 3);
+    actcod_embg->activation(Sigmoid);
+    lm->embed(actcod_embg, xs_tbl->get_column_range("actcod"));
+
+    lm->linear(Model::calc_embedded_input_shape(lm, xs_tbl->get_column_cnt()), 32);
+    lm->activation(Sigmoid);
+    lm->linear(1);
+
+    lm->fit(sup, 128, 25, "temp/train.csv", upd_rslt_fn);
+
+    delete actcod_embg;
+    delete lm;
 }
 
 void test(Supervisor *sup, Column *pred_col)
 {
 }
 
-void grad_check(Supervisor *sup)
+void grad_check(Table* xs_tbl, Table* ys_tbl, Supervisor* sup)
 {
+    Model *lm = new Model(MSE, 0.001f);
+
+    Embedding *actcod_embg = new Embedding();
+    actcod_embg->linear(xs_tbl->get_last_column_idx("actcod") - xs_tbl->get_column_idx("actcod") + 1, 10);
+    actcod_embg->activation(Sigmoid);
+    lm->embed(actcod_embg, xs_tbl->get_column_range("actcod"));
+
+    lm->linear(Model::calc_embedded_input_shape(lm, xs_tbl->get_column_cnt()), 32);
+    lm->activation(Sigmoid);
+    lm->linear(1);
+
+    Batch *b = sup->create_batch();
+
+    lm->grad_check(b->get_x(0), b->get_y(0), true);
+
+    delete b;
+
+    delete actcod_embg;
+    delete lm;
 }
 
 int main(int argc, char **argv)
@@ -242,23 +276,23 @@ int main(int argc, char **argv)
 
     // Fit:
     {
-        fit(xs_tbl, ys_tbl, sup);
+        // fit(xs_tbl, ys_tbl, sup);
     }
 
     // Test:
     {
-        Column *y_col = ys_tbl->get_column("elapsed_secs");
-        Column *pred_col = new Column("pred", true, xs_tbl->get_row_cnt());
+        // Column *y_col = ys_tbl->get_column("elapsed_secs");
+        // Column *pred_col = new Column("pred", true, xs_tbl->get_row_cnt());
 
-        xs_tbl->add_column(actcod_col);
-        xs_tbl->add_column(fr_loc_col);
-        xs_tbl->add_column(to_loc_col);
-        xs_tbl->add_column(y_col);
-        xs_tbl->add_column(pred_col);
+        // xs_tbl->add_column(actcod_col);
+        // xs_tbl->add_column(fr_loc_col);
+        // xs_tbl->add_column(to_loc_col);
+        // xs_tbl->add_column(y_col);
+        // xs_tbl->add_column(pred_col);
 
-        test(sup, pred_col);
+        // test(sup, pred_col);
 
-        Table::to_csv("temp/preds.csv", xs_tbl);
+        // Table::to_csv("temp/preds.csv", xs_tbl);
     }
 
     // Location embedding test:
@@ -269,7 +303,7 @@ int main(int argc, char **argv)
 
     // Grad Check:
     {
-        // grad_check(sup);
+        grad_check(xs_tbl, ys_tbl, sup);
     }
 
     // Cleanup:
