@@ -185,126 +185,14 @@ void test_loc_embedding(const char *src_loc_name, const char *dst_loc_name)
 
 void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
 {
-    EmbeddableModel *embl_model = new EmbeddableModel(MSE, 0.01f);
-
-    int loc_embg_output_n_cnt = 9;
-
-    Embedding *loc_embg = new Embedding();
-    loc_embg->linear(3, 128);
-    loc_embg->activation(LeakyReLU);
-    loc_embg->linear(16);
-    loc_embg->activation(LeakyReLU);
-    loc_embg->linear(loc_embg_output_n_cnt);
-    loc_embg->activation(LeakyReLU);
-
-    Embedding *_loc_embg = new Embedding();
-    _loc_embg->linear(3, 128);
-    _loc_embg->activation(LeakyReLU);
-    _loc_embg->linear(16);
-    _loc_embg->activation(LeakyReLU);
-    _loc_embg->linear(loc_embg_output_n_cnt);
-    _loc_embg->activation(LeakyReLU);
-    _loc_embg->share_parameters(loc_embg);
-
-    EmbeddableModel *agg_embl_model = new EmbeddableModel();
-    agg_embl_model->aggregation(loc_embg_output_n_cnt * 2, Subtract);
-
-    agg_embl_model->embed(loc_embg, Range{0, 2});
-    agg_embl_model->embed(_loc_embg, Range{3, 5});
-    embl_model->embed(agg_embl_model, Range{xs_tbl->get_column_idx("fr_loc"), xs_tbl->get_last_column_idx("to_loc")});
-
-    embl_model->linear(embl_model->calc_embedded_input_shape(sup->get_x_shape()), 256);
-    embl_model->activation(LeakyReLU);
-    embl_model->linear(256);
-    embl_model->activation(LeakyReLU);
-    embl_model->linear(16);
-    embl_model->activation(LeakyReLU);
-    embl_model->linear(1);
-
-    embl_model->fit(sup, 256, 25, "temp/train.csv", upd_rslt_fn);
-
-    Batch *test_batch = sup->create_batch();
-    embl_model->test(test_batch, upd_rslt_fn).print();
-    delete test_batch;
-
-    embl_model->save("temp/embl.em");
-    agg_embl_model->save("temp/agg_embl.em");
-    loc_embg->save("temp/loc_embg.em");
-
-    delete embl_model;
-    delete agg_embl_model;
-    delete loc_embg;
-    delete _loc_embg;
 }
 
 void test(Supervisor *sup, Column *pred_col)
 {
-    EmbeddableModel *embl_model = new EmbeddableModel();
-    embl_model->load("temp/embl.em");
-
-    EmbeddableModel *agg_embl_model = new EmbeddableModel();
-    agg_embl_model->load("temp/agg_embl.em");
-
-    Embedding *loc_embg = new Embedding();
-    loc_embg->load("temp/loc_embg.em");
-
-    Embedding *_loc_embg = new Embedding();
-    _loc_embg->load("temp/loc_embg.em");
-    _loc_embg->share_parameters(loc_embg);
-
-    agg_embl_model->embed(loc_embg);
-    agg_embl_model->embed(_loc_embg);
-    embl_model->embed(agg_embl_model);
-
-    Batch *test_batch = sup->create_batch();
-    embl_model->test(test_batch, upd_rslt_fn).print();
-
-    for (int i = 0; i < test_batch->get_size(); i++)
-    {
-        Tensor *pred = embl_model->forward(test_batch->get_x(i), false);
-        pred_col->set_val(i, pred->get_val(0));
-        delete pred;
-    }
-
-    delete test_batch;
-
-    delete embl_model;
-    delete agg_embl_model;
-    delete loc_embg;
-    delete _loc_embg;
 }
 
 void grad_check(Supervisor *sup)
 {
-    EmbeddableModel *embl_model = new EmbeddableModel();
-    embl_model->load("temp/embl.em");
-
-    EmbeddableModel *agg_embl_model = new EmbeddableModel();
-    agg_embl_model->load("temp/agg_embl.em");
-
-    Embedding *loc_embg = new Embedding();
-    loc_embg->load("temp/loc_embg.em");
-
-    Embedding *_loc_embg = new Embedding();
-    _loc_embg->load("temp/loc_embg.em");
-    _loc_embg->share_parameters(loc_embg);
-
-    agg_embl_model->embed(loc_embg);
-    agg_embl_model->embed(_loc_embg);
-    embl_model->embed(agg_embl_model);
-
-    Batch *grad_chk_batch = sup->create_batch();
-    Tensor *x = grad_chk_batch->get_x(0);
-    Tensor *y = grad_chk_batch->get_y(0);
-
-    embl_model->grad_check(x, y, true);
-
-    delete grad_chk_batch;
-
-    delete embl_model;
-    delete agg_embl_model;
-    delete loc_embg;
-    delete _loc_embg;
 }
 
 int main(int argc, char **argv)
