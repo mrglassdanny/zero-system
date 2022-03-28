@@ -392,8 +392,8 @@ Tensor *Model::forward(Tensor *x, bool train_flg)
     x->to_device(Device::Cuda);
 
     // We need to create an embedded x tensor to match our updated shape and values due to embeddings:
-    Tensor *embd_x = new Tensor(x->get_device(), this->get_input_shape());
-    cudaMemcpy(embd_x->get_arr(), x->get_arr(), sizeof(float) * x->get_cnt(), cudaMemcpyDefault);
+    Tensor *embd_x = new Tensor(x->get_device(), this->get_embedded_input_shape());
+    cudaMemcpy(embd_x->get_arr(), x->get_arr(), sizeof(float) * (x->get_cnt() < embd_x->get_cnt() ? x->get_cnt() : embd_x->get_cnt()), cudaMemcpyDefault);
 
     if (this->embgs.size() > 0)
     {
