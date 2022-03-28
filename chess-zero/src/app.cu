@@ -37,7 +37,7 @@ public:
     }
 };
 
-ConvNet *init_model()
+Model *init_model()
 {
     Model *conv = new Model(CostFunction::MSE, 0.01f);
 
