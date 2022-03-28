@@ -52,20 +52,16 @@ namespace zero
             void convolutional(std::vector<int> n_shape, int fltr_cnt, int w_row_cnt, int w_col_cnt);
             void convolutional(std::vector<int> n_shape, int fltr_cnt, int w_row_cnt, int w_col_cnt, InitializationFunction init_fn);
             void pooling(PoolingFunction pool_fn);
+            void embed(Embedding *embg);
+            void embed(Embedding *embg, Range embg_range);
 
             std::vector<int> get_input_shape();
             std::vector<int> get_output_shape();
 
             std::vector<Layer *> get_layers();
 
-            std::vector<int> calc_embedded_input_shape(std::vector<int> n_shape);
-            std::vector<int> calc_embedded_input_shape(int n_cnt);
-
             std::vector<Embedding *> get_embeddings();
             std::vector<Range> get_embedding_ranges();
-
-            void embed(Embedding *embg);
-            void embed(Embedding *embg, Range embg_range);
 
             void set_learning_rate(float learning_rate);
 
@@ -82,6 +78,9 @@ namespace zero
             void fit(Supervisor *supervisor, int batch_size, int target_epoch, const char *csv_path, UpdateResultFn fn);
 
             Tensor *predict(Tensor *x);
+
+            static std::vector<int> calc_embedded_input_shape(Model *model, std::vector<int> n_shape);
+            static std::vector<int> calc_embedded_input_shape(Model *model, int n_cnt);
         };
 
         class Embedding : public Model
