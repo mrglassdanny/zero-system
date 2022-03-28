@@ -16,10 +16,15 @@ namespace zero
         {
         protected:
             std::vector<Layer *> layers;
+
+            std::vector<Embedding *> embgs;
+            std::vector<Range> embg_ranges;
+
             CostFunction cost_fn;
             float learning_rate;
 
             void add_layer(Layer *lyr);
+            void add_embedding(Embedding *embg, Range embg_range);
 
         public:
             Model();
@@ -53,6 +58,15 @@ namespace zero
 
             std::vector<Layer *> get_layers();
 
+            std::vector<int> calc_embedded_input_shape(std::vector<int> n_shape);
+            std::vector<int> calc_embedded_input_shape(int n_cnt);
+
+            std::vector<Embedding *> get_embeddings();
+            std::vector<Range> get_embedding_ranges();
+
+            void embed(Embedding *embg);
+            void embed(Embedding *embg, Range embg_range);
+
             void set_learning_rate(float learning_rate);
 
             virtual Tensor *forward(Tensor *x, bool train_flg);
@@ -85,37 +99,5 @@ namespace zero
                                       int embg_idx, bool print_flg);
         };
 
-        class EmbeddableModel : public Embedding
-        {
-        protected:
-            std::vector<Embedding *> embgs;
-            std::vector<Range> embg_ranges;
-
-            void add_embedding(Embedding *embg, Range embg_range);
-
-        public:
-            EmbeddableModel();
-            EmbeddableModel(CostFunction cost_fn, float learning_rate);
-            ~EmbeddableModel();
-
-            virtual void load(FILE *file_ptr);
-            virtual void load(const char *path);
-            virtual void save(FILE *file_ptr);
-            virtual void save(const char *path);
-
-            std::vector<int> calc_embedded_input_shape(std::vector<int> n_shape);
-            std::vector<int> calc_embedded_input_shape(int n_cnt);
-
-            std::vector<Embedding *> get_embeddings();
-            std::vector<Range> get_embedding_ranges();
-
-            void embed(Embedding *embg);
-            void embed(Embedding *embg, Range embg_range);
-
-            virtual Tensor *forward(Tensor *x, bool train_flg);
-            virtual Tensor *backward(Tensor *pred, Tensor *y);
-            virtual void step(int batch_size);
-            virtual void grad_check(Tensor *x, Tensor *y, bool print_flg);
-        };
     }
 }
