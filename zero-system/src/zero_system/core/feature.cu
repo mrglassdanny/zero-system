@@ -475,6 +475,8 @@ std::vector<Column *> Column::encode_custom(int encoded_col_cnt, CustomEncodeFn 
     return encoded_cols;
 }
 
+// Column static functions:
+
 Tensor *Column::to_tensor(Column *col)
 {
     int row_cnt = col->row_cnt;
@@ -702,6 +704,8 @@ void Table::encode_custom(const char *col_name, int encoded_col_cnt, CustomEncod
 
     delete col;
 }
+
+// Table static functions:
 
 Table *Table::fr_csv(const char *path)
 {

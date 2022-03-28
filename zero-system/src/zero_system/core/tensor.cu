@@ -500,18 +500,6 @@ int Tensor::get_cnt()
     return cnt;
 }
 
-int Tensor::get_cnt(std::vector<int> shape)
-{
-    int cnt = 1;
-
-    for (int i = 0; i < shape.size(); i++)
-    {
-        cnt *= shape[i];
-    }
-
-    return cnt;
-}
-
 int Tensor::get_dim_cnt()
 {
     return this->shape.size();
@@ -801,6 +789,20 @@ void Tensor::subtract_abs(Tensor *tensor)
         int num_blocks = (cnt / CUDA_THREADS_PER_BLOCK) + 1;
         k_sub_abs<<<num_blocks, threads_per_block>>>(this->arr, tensor->arr, cnt);
     }
+}
+
+// Tensor static functions:
+
+int Tensor::get_cnt(std::vector<int> shape)
+{
+    int cnt = 1;
+
+    for (int i = 0; i < shape.size(); i++)
+    {
+        cnt *= shape[i];
+    }
+
+    return cnt;
 }
 
 Tensor *Tensor::one_hot_encode(Device device, int row_cnt, int col_cnt, float *cpu_arr)
