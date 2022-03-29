@@ -10,6 +10,7 @@ namespace zero
     {
         enum ActivationFunction
         {
+            None,
             ReLU,
             LeakyReLU,
             AbsoluteValue,

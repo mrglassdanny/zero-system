@@ -459,6 +459,7 @@ __global__ void k_activate(float *n_arr, float *nxt_n_arr, int n_cnt, Activation
             nxt_n_arr[tid] = d_cosine(n_arr[tid]);
             break;
         default:
+            nxt_n_arr[tid] = n_arr[tid];
             break;
         }
     }
@@ -494,6 +495,7 @@ __global__ void k_derive_activation(float *n_arr, float *dc_arr, int n_cnt, Acti
             dc_arr[tid] *= d_derive_cosine(n_arr[tid]);
             break;
         default:
+            dc_arr[tid] *= 1.0f;
             break;
         }
     }
