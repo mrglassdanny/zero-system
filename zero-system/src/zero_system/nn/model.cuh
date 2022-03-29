@@ -18,10 +18,8 @@ namespace zero
         {
         protected:
             std::vector<Layer *> layers;
-
             std::vector<Embedding *> embgs;
             std::vector<Range> embg_ranges;
-
             CostFunction cost_fn;
             float learning_rate;
 
@@ -59,11 +57,9 @@ namespace zero
 
             std::vector<int> get_input_shape();
             std::vector<int> get_output_shape();
-
-            std::vector<Layer *> get_layers();
-
             std::vector<int> get_embedded_input_shape();
 
+            std::vector<Layer *> get_layers();
             std::vector<Embedding *> get_embeddings();
             std::vector<Range> get_embedding_ranges();
 

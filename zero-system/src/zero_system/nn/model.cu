@@ -325,6 +325,17 @@ void Model::pooling(PoolingFunction pool_fn)
     this->add_layer(new PoolingLayer(this->get_output_shape(), pool_fn));
 }
 
+void Model::embed(Embedding *embg)
+{
+    // We are assuming that caller is pushing Embedding into the right spot given range positions.
+    this->embgs.push_back(embg);
+}
+
+void Model::embed(Embedding *embg, Range embg_range)
+{
+    this->add_embedding(embg, embg_range);
+}
+
 std::vector<int> Model::get_input_shape()
 {
     if (this->embgs.size() == 0)
@@ -351,14 +362,14 @@ std::vector<int> Model::get_output_shape()
     return this->layers[this->layers.size() - 1]->get_output_shape();
 }
 
-std::vector<Layer *> Model::get_layers()
-{
-    return this->layers;
-}
-
 std::vector<int> Model::get_embedded_input_shape()
 {
     return this->layers[0]->get_input_shape();
+}
+
+std::vector<Layer *> Model::get_layers()
+{
+    return this->layers;
 }
 
 std::vector<Embedding *> Model::get_embeddings()
@@ -369,17 +380,6 @@ std::vector<Embedding *> Model::get_embeddings()
 std::vector<Range> Model::get_embedding_ranges()
 {
     return this->embg_ranges;
-}
-
-void Model::embed(Embedding *embg)
-{
-    // We are assuming that caller is pushing Embedding into the right spot given range positions.
-    this->embgs.push_back(embg);
-}
-
-void Model::embed(Embedding *embg, Range embg_range)
-{
-    this->add_embedding(embg, embg_range);
 }
 
 void Model::set_learning_rate(float learning_rate)

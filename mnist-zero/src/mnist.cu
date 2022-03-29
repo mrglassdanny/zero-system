@@ -60,7 +60,7 @@ Supervisor *get_mnist_test_supervisor()
 {
     int img_area = IMAGE_ROW_CNT * IMAGE_COL_CNT;
 
-    int img_cnt = 1;
+    int img_cnt = 10000;
 
     FILE *img_file = fopen("data/t10k-images.idx3-ubyte", "rb");
     FILE *lbl_file = fopen("data/t10k-labels.idx1-ubyte", "rb");
@@ -124,10 +124,13 @@ int main(int argc, char **argv)
     // conv->activation(ReLU);
     // conv->pooling(Max);
 
-    // conv->linear(64);
+    // conv->linear(128);
     // conv->activation(ReLU);
 
-    // conv->linear(16);
+    // conv->linear(128);
+    // conv->activation(ReLU);
+
+    // conv->linear(32);
     // conv->activation(ReLU);
 
     // conv->linear(Tensor::get_cnt(train_sup->get_y_shape()));

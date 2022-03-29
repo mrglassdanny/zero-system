@@ -206,12 +206,12 @@ void test(Supervisor *sup, Column *pred_col)
 {
 }
 
-void grad_check(Table* xs_tbl, Table* ys_tbl, Supervisor* sup)
+void grad_check(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
 {
     Model *lm = new Model(MSE, 0.001f);
 
     Embedding *actcod_embg = new Embedding();
-    actcod_embg->linear(xs_tbl->get_last_column_idx("actcod") - xs_tbl->get_column_idx("actcod") + 1, 10);
+    actcod_embg->linear(xs_tbl->get_last_column_idx("actcod") - xs_tbl->get_column_idx("actcod") + 1, 3);
     actcod_embg->activation(Sigmoid);
     lm->embed(actcod_embg, xs_tbl->get_column_range("actcod"));
 
