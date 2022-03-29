@@ -308,7 +308,18 @@ void Model::convolutional(std::vector<int> n_shape, int fltr_cnt, int w_row_cnt,
 
 void Model::activation(ActivationFunction activation_fn)
 {
-    this->add_layer(new ActivationLayer(this->get_output_shape(), activation_fn));
+    this->activation(this->get_output_shape(), activation_fn);
+}
+
+void Model::activation(int n_cnt, ActivationFunction activation_fn)
+{
+    std::vector<int> n_shape{n_cnt};
+    this->activation(n_shape, activation_fn);
+}
+
+void Model::activation(std::vector<int> n_shape, ActivationFunction activation_fn)
+{
+    this->add_layer(new ActivationLayer(n_shape, activation_fn));
 }
 
 void Model::dropout(float dropout_rate)

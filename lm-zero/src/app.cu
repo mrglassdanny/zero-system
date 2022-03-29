@@ -5,7 +5,7 @@ class LMModel : public Model
 {
 private:
     /*
-        t = v/s + aq + C
+        t = v/s + aq + c
 
         t: task time
         v: travel distance
@@ -32,11 +32,39 @@ public:
 
     virtual Tensor *forward(Tensor *x, bool train_flg)
     {
-        // Location embeddings:
+        Tensor *pred = Model::forward(x, train_flg);
+
+        /*
+            a: 0
+            c: ----
+            srcloc: 1
+            dstloc: 2
+            q: 3
+            s: ----
+
+        */
+
+        float a = pred->get_val(0);
+        float v = abs(pred->get_val(1) - pred->get_val(2));
+        float q = pred->get_val(3);
+
+        printf("\n===================================================\n");
+        printf("t = %f * %f + %f", a, q, v);
+        printf("\n===================================================\n");
+
+        delete pred;
+
+        pred = new Tensor(Device::Cuda, 1);
+        pred->set_val(0, a * q + v);
+        return pred;
     }
 
     virtual Tensor *backward(Tensor *pred, Tensor *y)
     {
+
+        // Do stuff...
+
+        return Model::backward(pred, y);
     }
 };
 
@@ -222,58 +250,48 @@ void test_loc_embedding(const char *src_loc_name, const char *dst_loc_name)
     delete loc_embg;
 }
 
-void hmmmm(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
-{
-    /*
-            t = v/s + aq + C
-
-            t: task time (sec)
-            v: travel distance (?)
-            s: speed (?)
-            a: variable activity time (sec)
-            q: quantity (units)
-            C: constant activity time (sec)
-    */
-
-    Embedding *loc_embg = new Embedding();
-    loc_embg->linear(3, 32);
-    loc_embg->activation(Sigmoid);
-    loc_embg->linear(8);
-    loc_embg->activation(Sigmoid);
-    loc_embg->aggregation();
-
-    Embedding *_loc_embg = new Embedding();
-    _loc_embg->linear(3, 32);
-    _loc_embg->activation(Sigmoid);
-    _loc_embg->linear(8);
-    _loc_embg->activation(Sigmoid);
-    _loc_embg->aggregation();
-    _loc_embg->share_parameters(loc_embg);
-
-    float v = 0.0f;
-
-    Batch *b = sup->create_batch();
-
-    delete loc_embg;
-    delete _loc_embg;
-}
-
 void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
 {
     LMModel *lm = new LMModel(MSE, 0.001f);
 
-    Embedding *actcod_embg = new Embedding();
-    actcod_embg->linear(xs_tbl->get_last_column_idx("actcod") - xs_tbl->get_column_idx("actcod") + 1, 3);
-    actcod_embg->activation(Sigmoid);
-    lm->embed(actcod_embg, xs_tbl->get_column_range("actcod"));
+    Embedding *variable_actcod_embg = new Embedding();
+    variable_actcod_embg->linear(xs_tbl->get_column_idx("cas_wgt") - xs_tbl->get_column_idx("actcod") + 1, 64);
+    variable_actcod_embg->activation(Sigmoid);
+    variable_actcod_embg->linear(64);
+    variable_actcod_embg->activation(Sigmoid);
+    variable_actcod_embg->linear(1);
+    variable_actcod_embg->activation(Sigmoid);
 
-    lm->linear(Model::calc_embedded_input_shape(lm, xs_tbl->get_column_cnt()), 32);
-    lm->activation(Sigmoid);
-    lm->linear(1);
+    int qty_idx = xs_tbl->get_column_idx("pal_qty");
+
+    Embedding *src_loc_embg = new Embedding();
+    src_loc_embg->linear(xs_tbl->get_last_column_idx("fr_loc") - xs_tbl->get_column_idx("fr_loc") + 1, 32);
+    src_loc_embg->activation(Sigmoid);
+    src_loc_embg->linear(16);
+    src_loc_embg->activation(Sigmoid);
+    src_loc_embg->linear(8);
+    src_loc_embg->activation(Sigmoid);
+    src_loc_embg->aggregation();
+
+    Embedding *dst_loc_embg = new Embedding();
+    dst_loc_embg->linear(xs_tbl->get_last_column_idx("to_loc") - xs_tbl->get_column_idx("to_loc") + 1, 32);
+    dst_loc_embg->activation(Sigmoid);
+    dst_loc_embg->linear(16);
+    dst_loc_embg->activation(Sigmoid);
+    dst_loc_embg->linear(8);
+    dst_loc_embg->activation(Sigmoid);
+    dst_loc_embg->aggregation();
+    dst_loc_embg->share_parameters(src_loc_embg);
+
+    lm->embed(variable_actcod_embg, Range{xs_tbl->get_column_idx("actcod"), xs_tbl->get_column_idx("cas_wgt")});
+    lm->embed(src_loc_embg, xs_tbl->get_column_range("fr_loc"));
+    lm->embed(dst_loc_embg, xs_tbl->get_column_range("to_loc"));
+
+    xs_tbl->print();
 
     lm->fit(sup, 128, 25, "temp/train.csv", upd_rslt_fn);
 
-    delete actcod_embg;
+    delete variable_actcod_embg;
     delete lm;
 }
 
@@ -314,13 +332,6 @@ int main(int argc, char **argv)
     Table *ys_tbl = xs_tbl->split("elapsed_secs");
 
     delete xs_tbl->remove_column("cas_qty");
-    delete xs_tbl->remove_column("pal_qty");
-    delete xs_tbl->remove_column("cas_len");
-    delete xs_tbl->remove_column("cas_wid");
-    delete xs_tbl->remove_column("cas_hgt");
-    delete xs_tbl->remove_column("cas_wgt");
-    delete xs_tbl->remove_column("cas_per_lyr");
-    delete xs_tbl->remove_column("lyr_per_pal");
 
     Column *actcod_col = xs_tbl->get_column("actcod")->copy();
     Column *fr_loc_col = xs_tbl->get_column("fr_loc")->copy();
@@ -351,7 +362,7 @@ int main(int argc, char **argv)
 
     // Fit:
     {
-        // fit(xs_tbl, ys_tbl, sup);
+        fit(xs_tbl, ys_tbl, sup);
     }
 
     // Test:
@@ -378,7 +389,7 @@ int main(int argc, char **argv)
 
     // Grad Check:
     {
-        grad_check(xs_tbl, ys_tbl, sup);
+        // grad_check(xs_tbl, ys_tbl, sup);
     }
 
     // Cleanup:

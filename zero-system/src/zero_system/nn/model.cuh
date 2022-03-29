@@ -49,6 +49,8 @@ namespace zero
             void convolutional(std::vector<int> n_shape, int fltr_cnt, int w_row_cnt, int w_col_cnt);
             void convolutional(std::vector<int> n_shape, int fltr_cnt, int w_row_cnt, int w_col_cnt, InitializationFunction init_fn);
             void activation(ActivationFunction activation_fn);
+            void activation(int n_cnt, ActivationFunction activation_fn);
+            void activation(std::vector<int> n_shape, ActivationFunction activation_fn);
             void dropout(float dropout_rate);
             void pooling(PoolingFunction pool_fn);
             void aggregation();
