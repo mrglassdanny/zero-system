@@ -274,32 +274,6 @@ void Model::linear(std::vector<int> n_shape, int nxt_n_cnt, InitializationFuncti
     this->add_layer(new LinearLayer(n_shape, nxt_n_cnt, init_fn));
 }
 
-void Model::activation(ActivationFunction activation_fn)
-{
-    this->add_layer(new ActivationLayer(this->get_output_shape(), activation_fn));
-}
-
-void Model::dropout(float dropout_rate)
-{
-    this->add_layer(new DropoutLayer(this->get_output_shape(), dropout_rate));
-}
-
-void Model::aggregation(AggregationFunction agg_fn)
-{
-    this->aggregation(this->get_output_shape(), agg_fn);
-}
-
-void Model::aggregation(int n_cnt, AggregationFunction agg_fn)
-{
-    std::vector<int> n_shape{n_cnt};
-    this->aggregation(n_shape, agg_fn);
-}
-
-void Model::aggregation(std::vector<int> n_shape, AggregationFunction agg_fn)
-{
-    this->add_layer(new AggregationLayer(n_shape, agg_fn));
-}
-
 void Model::convolutional(int fltr_cnt, int w_row_cnt, int w_col_cnt)
 {
     this->convolutional(this->get_output_shape(), fltr_cnt, w_row_cnt, w_col_cnt, InitializationFunction::Xavier);
@@ -320,9 +294,35 @@ void Model::convolutional(std::vector<int> n_shape, int fltr_cnt, int w_row_cnt,
     this->add_layer(new ConvolutionalLayer(n_shape, fltr_cnt, w_row_cnt, w_col_cnt, init_fn));
 }
 
+void Model::activation(ActivationFunction activation_fn)
+{
+    this->add_layer(new ActivationLayer(this->get_output_shape(), activation_fn));
+}
+
+void Model::dropout(float dropout_rate)
+{
+    this->add_layer(new DropoutLayer(this->get_output_shape(), dropout_rate));
+}
+
 void Model::pooling(PoolingFunction pool_fn)
 {
     this->add_layer(new PoolingLayer(this->get_output_shape(), pool_fn));
+}
+
+void Model::aggregation(AggregationFunction agg_fn)
+{
+    this->aggregation(this->get_output_shape(), agg_fn);
+}
+
+void Model::aggregation(int n_cnt, AggregationFunction agg_fn)
+{
+    std::vector<int> n_shape{n_cnt};
+    this->aggregation(n_shape, agg_fn);
+}
+
+void Model::aggregation(std::vector<int> n_shape, AggregationFunction agg_fn)
+{
+    this->add_layer(new AggregationLayer(n_shape, agg_fn));
 }
 
 void Model::embed(Embedding *embg)

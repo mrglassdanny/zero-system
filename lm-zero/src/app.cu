@@ -1,6 +1,45 @@
 
 #include <zero_system/mod.cuh>
 
+class LMModel : public Model
+{
+private:
+    /*
+        t = v/s + aq + C
+
+        t: task time
+        v: travel distance
+        s: speed
+        a: variable activity time
+        q: quantity
+        C: constant activity time
+    */
+
+public:
+    LMModel()
+        : Model()
+    {
+    }
+
+    LMModel(CostFunction cost_fn, float learning_rate)
+        : Model(cost_fn, learning_rate)
+    {
+    }
+
+    ~LMModel()
+    {
+    }
+
+    virtual Tensor *forward(Tensor *x, bool train_flg)
+    {
+        // Location embeddings:
+    }
+
+    virtual Tensor *backward(Tensor *pred, Tensor *y)
+    {
+    }
+};
+
 void upd_rslt_fn(Tensor *p, Tensor *y, int *cnt)
 {
     float y_val = y->get_val(0);
@@ -183,9 +222,43 @@ void test_loc_embedding(const char *src_loc_name, const char *dst_loc_name)
     delete loc_embg;
 }
 
+void hmmmm(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
+{
+    /*
+            t = v/s + aq + C
+
+            t: task time (sec)
+            v: travel distance (?)
+            s: speed (?)
+            a: variable activity time (sec)
+            q: quantity (units)
+            C: constant activity time (sec)
+    */
+
+    Embedding *loc_embg = new Embedding();
+    loc_embg->linear(3, 32);
+    loc_embg->activation(Sigmoid);
+    loc_embg->linear(8);
+    loc_embg->activation(Sigmoid);
+
+    Embedding *_loc_embg = new Embedding();
+    _loc_embg->linear(3, 32);
+    _loc_embg->activation(Sigmoid);
+    _loc_embg->linear(8);
+    _loc_embg->activation(Sigmoid);
+    _loc_embg->share_parameters(loc_embg);
+
+    float v = 0.0f;
+
+    Batch *b = sup->create_batch();
+
+    delete loc_embg;
+    delete _loc_embg;
+}
+
 void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
 {
-    Model *lm = new Model(MSE, 0.001f);
+    LMModel *lm = new LMModel(MSE, 0.001f);
 
     Embedding *actcod_embg = new Embedding();
     actcod_embg->linear(xs_tbl->get_last_column_idx("actcod") - xs_tbl->get_column_idx("actcod") + 1, 3);
@@ -208,7 +281,7 @@ void test(Supervisor *sup, Column *pred_col)
 
 void grad_check(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
 {
-    Model *lm = new Model(MSE, 0.001f);
+    LMModel *lm = new LMModel(MSE, 0.001f);
 
     Embedding *actcod_embg = new Embedding();
     actcod_embg->linear(xs_tbl->get_last_column_idx("actcod") - xs_tbl->get_column_idx("actcod") + 1, 3);
