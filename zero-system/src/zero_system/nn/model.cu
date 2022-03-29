@@ -323,18 +323,7 @@ void Model::pooling(PoolingFunction pool_fn)
 
 void Model::aggregation()
 {
-    this->aggregation(this->get_output_shape());
-}
-
-void Model::aggregation(int n_cnt)
-{
-    std::vector<int> n_shape{n_cnt};
-    this->aggregation(n_shape);
-}
-
-void Model::aggregation(std::vector<int> n_shape)
-{
-    this->add_layer(new AggregationLayer(n_shape));
+    this->add_layer(new AggregationLayer(this->get_output_shape()));
 }
 
 void Model::embed(Embedding *embg)
