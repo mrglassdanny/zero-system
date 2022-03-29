@@ -447,7 +447,7 @@ Tensor *Model::forward(Tensor *x, bool train_flg)
 
                 if (non_embg_range_len > 0)
                 {
-                    cudaMemcpy(&embd_x->get_arr()[embd_x_offset], &x->get_arr()[embg_range.beg_idx + 1], sizeof(float) * non_embg_range_len, cudaMemcpyDefault);
+                    cudaMemcpy(&embd_x->get_arr()[embd_x_offset], &x->get_arr()[embg_range.end_idx + 1], sizeof(float) * non_embg_range_len, cudaMemcpyDefault);
                     embd_x_offset += non_embg_range_len;
                 }
             }
