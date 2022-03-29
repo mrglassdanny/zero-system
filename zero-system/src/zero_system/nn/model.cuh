@@ -12,8 +12,6 @@ namespace zero
 
     namespace nn
     {
-        class Embedding;
-
         class Model
         {
         protected:
@@ -33,10 +31,10 @@ namespace zero
             Model(CostFunction cost_fn, float learning_rate);
             ~Model();
 
-            virtual void load(FILE *file_ptr);
-            virtual void load(const char *path);
-            virtual void save(FILE *file_ptr);
-            virtual void save(const char *path);
+            void load(FILE *file_ptr);
+            void load(const char *path);
+            void save(FILE *file_ptr);
+            void save(const char *path);
 
             void linear(int nxt_n_cnt);
             void linear(int nxt_n_cnt, InitializationFunction init_fn);
@@ -70,13 +68,13 @@ namespace zero
 
             void share_parameters(Model *other_model);
 
-            virtual Tensor *forward(Tensor *x, bool train_flg);
-            virtual float cost(Tensor *pred, Tensor *y);
-            virtual Tensor *backward(Tensor *pred, Tensor *y);
+            Tensor *forward(Tensor *x, bool train_flg);
+            float cost(Tensor *pred, Tensor *y);
+            Tensor *backward(Tensor *pred, Tensor *y);
             Tensor *embedding_backward(Tensor *dc, int embd_x_offset);
-            virtual void step(int batch_size);
+            void step(int batch_size);
 
-            virtual void grad_check(Tensor *x, Tensor *y, bool print_flg);
+            void grad_check(Tensor *x, Tensor *y, bool print_flg);
             void embedding_grad_check(Model *parent_embd_model, Tensor *x, Tensor *y,
                                       float *agg_ana_grad, float *agg_num_grad, float *agg_grad_diff,
                                       int embg_idx, bool print_flg);
