@@ -221,7 +221,7 @@ void test_loc_embedding(const char *src_loc_name, const char *dst_loc_name)
 
 void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
 {
-    Model *lm = new Model(MSE, 0.01f);
+    Model *lm = new Model(MSE, 0.001f);
 
     Model *variable_actcod_embg = new Model();
     variable_actcod_embg->linear(xs_tbl->get_column_idx("cas_wgt") - xs_tbl->get_column_idx("actcod") + 1, 64);
@@ -273,7 +273,7 @@ void test(Supervisor *sup, Column *pred_col)
 
 void grad_check(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
 {
-    Model *lm = new Model(MSE, 0.01f);
+    Model *lm = new Model();
 
     Model *variable_actcod_embg = new Model();
     variable_actcod_embg->linear(xs_tbl->get_column_idx("cas_wgt") - xs_tbl->get_column_idx("actcod") + 1, 64);
