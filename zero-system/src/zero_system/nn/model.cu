@@ -115,7 +115,7 @@ Model::Model(CostFunction cost_fn)
 
 Model::Model(float learning_rate)
 {
-    this->cost_fn = MSE;
+    this->cost_fn = CostFunction::MSE;
     this->learning_rate = learning_rate;
 }
 
@@ -170,12 +170,14 @@ void Model::load(FILE *file_ptr)
         case LayerType::Aggregation:
             lyr = new AggregationLayer();
             break;
+        case LayerType::Custom:
+            lyr = new CustomLayer();
+            break;
         default:
             break;
         }
 
         lyr->load(file_ptr);
-
         this->add_layer(lyr);
     }
 
