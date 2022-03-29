@@ -202,16 +202,16 @@ namespace zero
         {
         private:
             std::vector<int> (*get_output_shape_fn)();
-            void (*forward_fn)(Tensor *nxt_n, bool train_flg);
-            Tensor *(*backward_fn)(Tensor *dc);
+            void (*forward_fn)(Tensor *n, Tensor *nxt_n, bool train_flg);
+            Tensor *(*backward_fn)(Tensor *n, Tensor *dc);
 
         public:
             CustomLayer();
             CustomLayer(std::vector<int> n_shape);
             CustomLayer(std::vector<int> n_shape,
                         std::vector<int> (*get_output_shape_fn)(),
-                        void (*forward_fn)(Tensor *nxt_n, bool train_flg),
-                        Tensor *(*backward_fn)(Tensor *dc));
+                        void (*forward_fn)(Tensor *n, Tensor *nxt_n, bool train_flg),
+                        Tensor *(*backward_fn)(Tensor* n, Tensor *dc));
             ~CustomLayer();
 
             virtual LayerType get_type();
@@ -225,8 +225,8 @@ namespace zero
             virtual Tensor *backward(Tensor *dc);
 
             void set_callbacks(std::vector<int> (*get_output_shape_fn)(),
-                               void (*forward_fn)(Tensor *nxt_n, bool train_flg),
-                               Tensor *(*backward_fn)(Tensor *dc));
+                               void (*forward_fn)(Tensor *n, Tensor *nxt_n, bool train_flg),
+                               Tensor *(*backward_fn)(Tensor *n, Tensor *dc));
         };
     }
 }

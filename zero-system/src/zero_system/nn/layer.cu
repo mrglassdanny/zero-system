@@ -1621,8 +1621,8 @@ CustomLayer::CustomLayer(std::vector<int> n_shape)
 
 CustomLayer::CustomLayer(std::vector<int> n_shape,
                          std::vector<int> (*get_output_shape_fn)(),
-                         void (*forward_fn)(Tensor *nxt_n, bool train_flg),
-                         Tensor *(*backward_fn)(Tensor *dc))
+                         void (*forward_fn)(Tensor *n, Tensor *nxt_n, bool train_flg),
+                         Tensor *(*backward_fn)(Tensor *n, Tensor *dc))
     : Layer(n_shape)
 {
     this->get_output_shape_fn = get_output_shape_fn;
@@ -1658,12 +1658,12 @@ void CustomLayer::forward(Tensor *nxt_n, bool train_flg)
 {
     Layer::forward(nxt_n, train_flg);
 
-    this->forward_fn(nxt_n, train_flg);
+    this->forward_fn(this->n, nxt_n, train_flg);
 }
 
 Tensor *CustomLayer::backward(Tensor *dc)
 {
-    Tensor *nxt_dc = this->backward_fn(dc);
+    Tensor *nxt_dc = this->backward_fn(this->n, dc);
 
     delete dc;
     dc = nxt_dc;
@@ -1672,8 +1672,8 @@ Tensor *CustomLayer::backward(Tensor *dc)
 }
 
 void CustomLayer::set_callbacks(std::vector<int> (*get_output_shape_fn)(),
-                                void (*forward_fn)(Tensor *nxt_n, bool train_flg),
-                                Tensor *(*backward_fn)(Tensor *dc))
+                                void (*forward_fn)(Tensor *n, Tensor *nxt_n, bool train_flg),
+                                Tensor *(*backward_fn)(Tensor *n, Tensor *dc))
 {
     this->get_output_shape_fn = get_output_shape_fn;
     this->forward_fn = forward_fn;
