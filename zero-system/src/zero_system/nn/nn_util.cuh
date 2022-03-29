@@ -19,22 +19,16 @@ namespace zero
             Cosine
         };
 
-        enum AggregationFunction
+        enum PoolingFunction
         {
-            Add,
-            Subtract
+            Average,
+            Max
         };
 
         enum CostFunction
         {
             MSE,
             CrossEntropy
-        };
-
-        enum PoolingFunction
-        {
-            Average,
-            Max
         };
 
         enum InitializationFunction

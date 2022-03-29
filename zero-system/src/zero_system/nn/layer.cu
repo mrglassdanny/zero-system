@@ -715,45 +715,23 @@ __global__ void k_derive_pool(float *dc_arr, float *nxt_dc_arr, float *n_arr, in
     }
 }
 
-__global__ void k_aggregate(float *n_arr, float *nxt_n_arr, int n_cnt, int nxt_n_cnt, AggregationFunction agg_fn)
+__global__ void k_aggregate(float *n_arr, float *nxt_n_arr, int n_cnt, int nxt_n_cnt)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (tid < nxt_n_cnt)
+    if (tid < n_cnt)
     {
-        switch (agg_fn)
-        {
-        case AggregationFunction::Add:
-            nxt_n_arr[tid] = (n_arr[tid] + n_arr[tid + nxt_n_cnt]);
-            break;
-        case AggregationFunction::Subtract:
-            nxt_n_arr[tid] = (n_arr[tid] - n_arr[tid + nxt_n_cnt]);
-            break;
-        default:
-            break;
-        }
+        atomicAdd(&nxt_n_arr[0], n_arr[tid]);
     }
 }
 
-__global__ void k_derive_aggregation(float *n_arr, float *dc_arr, float *nxt_dc_arr, int dc_cnt, int nxt_dc_cnt, AggregationFunction agg_fn)
+__global__ void k_derive_aggregation(float *n_arr, float *dc_arr, float *nxt_dc_arr, int dc_cnt, int nxt_dc_cnt)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (tid < dc_cnt)
     {
-        switch (agg_fn)
-        {
-        case AggregationFunction::Add:
-            nxt_dc_arr[tid] = dc_arr[tid];
-            nxt_dc_arr[tid + dc_cnt] = dc_arr[tid];
-            break;
-        case AggregationFunction::Subtract:
-            nxt_dc_arr[tid] = dc_arr[tid];
-            nxt_dc_arr[tid + dc_cnt] = dc_arr[tid] * -1.0f;
-            break;
-        default:
-            break;
-        }
+        nxt_dc_arr[tid] *= 1.0f;
     }
 }
 
@@ -1556,13 +1534,11 @@ Tensor *PoolingLayer::backward(Tensor *dc)
 AggregationLayer::AggregationLayer()
     : Layer()
 {
-    this->agg_fn = AggregationFunction::Add;
 }
 
-AggregationLayer::AggregationLayer(std::vector<int> n_shape, AggregationFunction agg_fn)
+AggregationLayer::AggregationLayer(std::vector<int> n_shape)
     : Layer(n_shape)
 {
-    this->agg_fn = agg_fn;
 }
 
 AggregationLayer::~AggregationLayer()
@@ -1577,20 +1553,16 @@ LayerType AggregationLayer::get_type()
 void AggregationLayer::load(FILE *file_ptr)
 {
     Layer::load(file_ptr);
-
-    fread(&this->agg_fn, sizeof(AggregationFunction), 1, file_ptr);
 }
 
 void AggregationLayer::save(FILE *file_ptr)
 {
     Layer::save(file_ptr);
-
-    fwrite(&this->agg_fn, sizeof(AggregationFunction), 1, file_ptr);
 }
 
 std::vector<int> AggregationLayer::get_output_shape()
 {
-    std::vector<int> output_shape{this->n->get_cnt() / 2};
+    std::vector<int> output_shape{1};
     return output_shape;
 }
 
@@ -1603,8 +1575,8 @@ void AggregationLayer::forward(Tensor *nxt_n, bool train_flg)
 
     {
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
-        int num_blocks = (nxt_n_cnt / threads_per_block) + 1;
-        k_aggregate<<<num_blocks, threads_per_block>>>(this->n->get_arr(), nxt_n->get_arr(), n_cnt, nxt_n_cnt, this->agg_fn);
+        int num_blocks = (n_cnt / threads_per_block) + 1;
+        k_aggregate<<<num_blocks, threads_per_block>>>(this->n->get_arr(), nxt_n->get_arr(), n_cnt, nxt_n_cnt);
     }
 }
 
@@ -1618,8 +1590,7 @@ Tensor *AggregationLayer::backward(Tensor *dc)
     {
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
         int num_blocks = (dc_cnt / threads_per_block) + 1;
-        k_derive_aggregation<<<num_blocks, threads_per_block>>>(this->n->get_arr(), dc->get_arr(), nxt_dc->get_arr(), dc_cnt, n_cnt,
-                                                                this->agg_fn);
+        k_derive_aggregation<<<num_blocks, threads_per_block>>>(this->n->get_arr(), dc->get_arr(), nxt_dc->get_arr(), dc_cnt, n_cnt);
     }
 
     delete dc;

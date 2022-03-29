@@ -181,12 +181,9 @@ namespace zero
 
         class AggregationLayer : public Layer
         {
-        private:
-            AggregationFunction agg_fn;
-
         public:
             AggregationLayer();
-            AggregationLayer(std::vector<int> n_shape, AggregationFunction agg_fn);
+            AggregationLayer(std::vector<int> n_shape);
             ~AggregationLayer();
 
             virtual LayerType get_type();
