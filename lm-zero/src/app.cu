@@ -221,7 +221,7 @@ void test_loc_embedding(const char *src_loc_name, const char *dst_loc_name)
 
 void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
 {
-    Model *lm = new Model(MSE, 0.001f);
+    Model *lm = new Model(MSE, 0.01f);
 
     Model *variable_actcod_embg = new Model();
     variable_actcod_embg->linear(xs_tbl->get_column_idx("cas_wgt") - xs_tbl->get_column_idx("actcod") + 1, 64);
@@ -259,8 +259,6 @@ void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
     lm->activation(Model::calc_embedded_input_shape(lm, xs_tbl->get_column_cnt()), None);
     lm->custom(get_output_shape, forward, backward);
 
-    xs_tbl->print();
-
     lm->fit(sup, 128, 25, "temp/train.csv", upd_rslt_fn);
 
     delete variable_actcod_embg;
@@ -275,7 +273,7 @@ void test(Supervisor *sup, Column *pred_col)
 
 void grad_check(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
 {
-    Model *lm = new Model(MSE, 0.001f);
+    Model *lm = new Model(MSE, 0.01f);
 
     Model *variable_actcod_embg = new Model();
     variable_actcod_embg->linear(xs_tbl->get_column_idx("cas_wgt") - xs_tbl->get_column_idx("actcod") + 1, 64);
@@ -327,7 +325,7 @@ int main(int argc, char **argv)
 
     // Data setup:
 
-    Table *xs_tbl = Table::fr_csv("data/palmov-test.csv");
+    Table *xs_tbl = Table::fr_csv("data/palmov.csv");
     Table *ys_tbl = xs_tbl->split("elapsed_secs");
 
     delete xs_tbl->remove_column("cas_qty");
