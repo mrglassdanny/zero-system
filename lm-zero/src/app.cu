@@ -240,12 +240,14 @@ void hmmmm(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
     loc_embg->activation(Sigmoid);
     loc_embg->linear(8);
     loc_embg->activation(Sigmoid);
+    loc_embg->aggregation();
 
     Embedding *_loc_embg = new Embedding();
     _loc_embg->linear(3, 32);
     _loc_embg->activation(Sigmoid);
     _loc_embg->linear(8);
     _loc_embg->activation(Sigmoid);
+    _loc_embg->aggregation();
     _loc_embg->share_parameters(loc_embg);
 
     float v = 0.0f;

@@ -49,9 +49,9 @@ namespace zero
             void activation(ActivationFunction activation_fn);
             void dropout(float dropout_rate);
             void pooling(PoolingFunction pool_fn);
-            void aggregation(AggregationFunction agg_fn);
-            void aggregation(int n_cnt, AggregationFunction agg_fn);
-            void aggregation(std::vector<int> n_shape, AggregationFunction agg_fn);
+            void aggregation();
+            void aggregation(int n_cnt);
+            void aggregation(std::vector<int> n_shape);
 
             void embed(Embedding *embg);
             void embed(Embedding *embg, Range embg_range);
