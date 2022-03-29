@@ -107,6 +107,18 @@ Model::Model()
     this->learning_rate = 0.001f;
 }
 
+Model::Model(CostFunction cost_fn)
+{
+    this->cost_fn = cost_fn;
+    this->learning_rate = 0.001f;
+}
+
+Model::Model(float learning_rate)
+{
+    this->cost_fn = MSE;
+    this->learning_rate = learning_rate;
+}
+
 Model::Model(CostFunction cost_fn, float learning_rate)
 {
     this->cost_fn = cost_fn;
@@ -898,6 +910,16 @@ std::vector<int> Model::calc_embedded_input_shape(Model *model, int n_cnt)
 
 Embedding::Embedding()
     : Model()
+{
+}
+
+Embedding::Embedding(CostFunction cost_fn)
+    : Model(cost_fn)
+{
+}
+
+Embedding::Embedding(float learning_rate)
+    : Model(learning_rate)
 {
 }
 

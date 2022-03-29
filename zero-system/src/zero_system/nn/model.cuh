@@ -28,6 +28,8 @@ namespace zero
 
         public:
             Model();
+            Model(CostFunction cost_fn);
+            Model(float learning_rate);
             Model(CostFunction cost_fn, float learning_rate);
             ~Model();
 
@@ -88,6 +90,8 @@ namespace zero
         {
         public:
             Embedding();
+            Embedding(CostFunction cost_fn);
+            Embedding(float learning_rate);
             Embedding(CostFunction cost_fn, float learning_rate);
             ~Embedding();
 
