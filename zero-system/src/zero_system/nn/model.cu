@@ -399,6 +399,24 @@ void Model::set_learning_rate(float learning_rate)
     this->learning_rate = learning_rate;
 }
 
+void Model::share_parameters(Model *other_model)
+{
+    for (int lyr_idx = 0; lyr_idx < this->get_layers().size(); lyr_idx++)
+    {
+        Layer *lyr = this->get_layers()[lyr_idx];
+
+        if (LearnableLayer *lrn_lyr = dynamic_cast<LearnableLayer *>(lyr))
+        {
+            LearnableLayer *other_lrn_lyr = dynamic_cast<LearnableLayer *>(other_model->get_layers()[lyr_idx]);
+
+            lrn_lyr->set_weights(other_lrn_lyr->get_weights());
+            lrn_lyr->set_weight_derivatives(other_lrn_lyr->get_weight_derivatives());
+            lrn_lyr->set_biases(other_lrn_lyr->get_biases());
+            lrn_lyr->set_bias_derivatives(other_lrn_lyr->get_bias_derivatives());
+        }
+    }
+}
+
 Tensor *Model::forward(Tensor *x, bool train_flg)
 {
     x->to_device(Device::Cuda);
@@ -560,6 +578,29 @@ Tensor *Model::backward(Tensor *pred, Tensor *y)
     return dc;
 }
 
+Tensor *Model::embedding_backward(Tensor *dc, int embd_x_offset)
+{
+    int lst_lyr_idx = this->layers.size() - 1;
+
+    // Need to adjust derivatives tensor since embedding only influences a handful of next layer neurons:
+    {
+        Tensor *embg_dc = new Tensor(dc->get_device(), this->get_output_shape());
+
+        cudaMemcpy(embg_dc->get_arr(), &dc->get_arr()[embd_x_offset], sizeof(float) * (embg_dc->get_cnt()), cudaMemcpyDefault);
+
+        delete dc;
+        dc = embg_dc;
+    }
+
+    for (int lyr_idx = lst_lyr_idx; lyr_idx >= 0; lyr_idx--)
+    {
+        Layer *lyr = this->layers[lyr_idx];
+        dc = lyr->backward(dc);
+    }
+
+    return dc;
+}
+
 void Model::step(int batch_size)
 {
     for (Layer *lyr : this->layers)
@@ -714,47 +755,6 @@ void Model::grad_check(Tensor *x, Tensor *y, bool print_flg)
     {
         printf("GRADIENT CHECK RESULT: %f\n", (agg_grad_diff) / (agg_ana_grad + agg_num_grad));
     }
-}
-
-void Model::share_parameters(Model *other_embg)
-{
-    for (int lyr_idx = 0; lyr_idx < this->get_layers().size(); lyr_idx++)
-    {
-        Layer *lyr = this->get_layers()[lyr_idx];
-
-        if (LearnableLayer *lrn_lyr = dynamic_cast<LearnableLayer *>(lyr))
-        {
-            LearnableLayer *other_lrn_lyr = dynamic_cast<LearnableLayer *>(other_embg->get_layers()[lyr_idx]);
-
-            lrn_lyr->set_weights(other_lrn_lyr->get_weights());
-            lrn_lyr->set_weight_derivatives(other_lrn_lyr->get_weight_derivatives());
-            lrn_lyr->set_biases(other_lrn_lyr->get_biases());
-            lrn_lyr->set_bias_derivatives(other_lrn_lyr->get_bias_derivatives());
-        }
-    }
-}
-
-Tensor *Model::embedding_backward(Tensor *dc, int embd_x_offset)
-{
-    int lst_lyr_idx = this->layers.size() - 1;
-
-    // Need to adjust derivatives tensor since embedding only influences a handful of next layer neurons:
-    {
-        Tensor *embg_dc = new Tensor(dc->get_device(), this->get_output_shape());
-
-        cudaMemcpy(embg_dc->get_arr(), &dc->get_arr()[embd_x_offset], sizeof(float) * (embg_dc->get_cnt()), cudaMemcpyDefault);
-
-        delete dc;
-        dc = embg_dc;
-    }
-
-    for (int lyr_idx = lst_lyr_idx; lyr_idx >= 0; lyr_idx--)
-    {
-        Layer *lyr = this->layers[lyr_idx];
-        dc = lyr->backward(dc);
-    }
-
-    return dc;
 }
 
 void Model::embedding_grad_check(Model *parent_embd_model, Tensor *x, Tensor *y,

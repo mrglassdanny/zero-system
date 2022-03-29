@@ -68,15 +68,15 @@ namespace zero
 
             void set_learning_rate(float learning_rate);
 
+            void share_parameters(Model *other_model);
+
             virtual Tensor *forward(Tensor *x, bool train_flg);
             virtual float cost(Tensor *pred, Tensor *y);
             virtual Tensor *backward(Tensor *pred, Tensor *y);
-            virtual void step(int batch_size);
-            virtual void grad_check(Tensor *x, Tensor *y, bool print_flg);
-
-            void share_parameters(Model *embg);
-
             Tensor *embedding_backward(Tensor *dc, int embd_x_offset);
+            virtual void step(int batch_size);
+
+            virtual void grad_check(Tensor *x, Tensor *y, bool print_flg);
             void embedding_grad_check(Model *parent_embd_model, Tensor *x, Tensor *y,
                                       float *agg_ana_grad, float *agg_num_grad, float *agg_grad_diff,
                                       int embg_idx, bool print_flg);
