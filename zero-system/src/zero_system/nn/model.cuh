@@ -42,16 +42,17 @@ namespace zero
             void linear(int n_cnt, int nxt_n_cnt);
             void linear(int n_cnt, int nxt_n_cnt, InitializationFunction init_fn);
             void linear(std::vector<int> n_shape, int nxt_n_cnt, InitializationFunction init_fn);
-            void activation(ActivationFunction activation_fn);
-            void dropout(float dropout_rate);
-            void aggregation(AggregationFunction agg_fn);
-            void aggregation(int n_cnt, AggregationFunction agg_fn);
-            void aggregation(std::vector<int> n_shape, AggregationFunction agg_fn);
             void convolutional(int fltr_cnt, int w_row_cnt, int w_col_cnt);
             void convolutional(int fltr_cnt, int w_row_cnt, int w_col_cnt, InitializationFunction init_fn);
             void convolutional(std::vector<int> n_shape, int fltr_cnt, int w_row_cnt, int w_col_cnt);
             void convolutional(std::vector<int> n_shape, int fltr_cnt, int w_row_cnt, int w_col_cnt, InitializationFunction init_fn);
+            void activation(ActivationFunction activation_fn);
+            void dropout(float dropout_rate);
             void pooling(PoolingFunction pool_fn);
+            void aggregation(AggregationFunction agg_fn);
+            void aggregation(int n_cnt, AggregationFunction agg_fn);
+            void aggregation(std::vector<int> n_shape, AggregationFunction agg_fn);
+
             void embed(Embedding *embg);
             void embed(Embedding *embg, Range embg_range);
 
