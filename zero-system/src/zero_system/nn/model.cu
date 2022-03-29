@@ -339,6 +339,30 @@ void Model::aggregation()
     this->add_layer(new AggregationLayer(this->get_output_shape()));
 }
 
+void Model::custom(std::vector<int> (*get_output_shape_fn)(),
+                   void (*forward_fn)(Tensor *n, Tensor *nxt_n, bool train_flg),
+                   Tensor *(*backward_fn)(Tensor *n, Tensor *dc))
+{
+    this->custom(this->get_output_shape(), get_output_shape_fn, forward_fn, backward_fn);
+}
+
+void Model::custom(int n_cnt,
+                   std::vector<int> (*get_output_shape_fn)(),
+                   void (*forward_fn)(Tensor *n, Tensor *nxt_n, bool train_flg),
+                   Tensor *(*backward_fn)(Tensor *n, Tensor *dc))
+{
+    std::vector<int> n_shape{n_cnt};
+    this->custom(n_cnt, get_output_shape_fn, forward_fn, backward_fn);
+}
+
+void Model::custom(std::vector<int> n_shape,
+                   std::vector<int> (*get_output_shape_fn)(),
+                   void (*forward_fn)(Tensor *n, Tensor *nxt_n, bool train_flg),
+                   Tensor *(*backward_fn)(Tensor *n, Tensor *dc))
+{
+    this->add_layer(new CustomLayer(n_shape, get_output_shape_fn, forward_fn, backward_fn));
+}
+
 void Model::embed(Model *embg)
 {
     // We are assuming that caller is pushing embedding into the right spot given range positions.
