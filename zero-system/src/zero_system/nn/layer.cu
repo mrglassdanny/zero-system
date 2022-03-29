@@ -1600,3 +1600,82 @@ Tensor *AggregationLayer::backward(Tensor *dc)
 
     return dc;
 }
+
+// CustomLayer functions:
+
+CustomLayer::CustomLayer()
+    : Layer()
+{
+    this->get_output_shape_fn = nullptr;
+    this->forward_fn = nullptr;
+    this->backward_fn = nullptr;
+}
+
+CustomLayer::CustomLayer(std::vector<int> n_shape)
+    : Layer(n_shape)
+{
+    this->get_output_shape_fn = nullptr;
+    this->forward_fn = nullptr;
+    this->backward_fn = nullptr;
+}
+
+CustomLayer::CustomLayer(std::vector<int> n_shape,
+                         std::vector<int> (*get_output_shape_fn)(),
+                         void (*forward_fn)(Tensor *nxt_n, bool train_flg),
+                         Tensor *(*backward_fn)(Tensor *dc))
+    : Layer(n_shape)
+{
+    this->get_output_shape_fn = get_output_shape_fn;
+    this->forward_fn = forward_fn;
+    this->backward_fn = backward_fn;
+}
+
+CustomLayer::~CustomLayer()
+{
+}
+
+LayerType CustomLayer::get_type()
+{
+    return LayerType::Custom;
+}
+
+void CustomLayer::load(FILE *file_ptr)
+{
+    Layer::load(file_ptr);
+}
+
+void CustomLayer::save(FILE *file_ptr)
+{
+    Layer::save(file_ptr);
+}
+
+std::vector<int> CustomLayer::get_output_shape()
+{
+    return this->get_output_shape_fn();
+}
+
+void CustomLayer::forward(Tensor *nxt_n, bool train_flg)
+{
+    Layer::forward(nxt_n, train_flg);
+
+    this->forward_fn(nxt_n, train_flg);
+}
+
+Tensor *CustomLayer::backward(Tensor *dc)
+{
+    Tensor *nxt_dc = this->backward_fn(dc);
+
+    delete dc;
+    dc = nxt_dc;
+
+    return dc;
+}
+
+void CustomLayer::set_callbacks(std::vector<int> (*get_output_shape_fn)(),
+                                void (*forward_fn)(Tensor *nxt_n, bool train_flg),
+                                Tensor *(*backward_fn)(Tensor *dc))
+{
+    this->get_output_shape_fn = get_output_shape_fn;
+    this->forward_fn = forward_fn;
+    this->backward_fn = backward_fn;
+}
