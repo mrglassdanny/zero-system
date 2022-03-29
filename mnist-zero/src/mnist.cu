@@ -114,47 +114,47 @@ int main(int argc, char **argv)
     Supervisor *train_sup = get_mnist_train_supervisor();
     Supervisor *test_sup = get_mnist_test_supervisor();
 
-    // Model *conv = new Model(CrossEntropy, 0.1f);
+    Model *conv = new Model(CrossEntropy, 0.1f);
 
-    // conv->convolutional(train_sup->get_x_shape(), 16, 3, 3);
-    // conv->activation(ReLU);
-    // conv->pooling(Max);
+    conv->convolutional(train_sup->get_x_shape(), 16, 3, 3);
+    conv->activation(ReLU);
+    conv->pooling(Max);
 
-    // conv->convolutional(train_sup->get_x_shape(), 16, 3, 3);
-    // conv->activation(ReLU);
-    // conv->pooling(Max);
+    conv->convolutional(train_sup->get_x_shape(), 16, 3, 3);
+    conv->activation(ReLU);
+    conv->pooling(Max);
 
-    // conv->linear(128);
-    // conv->activation(ReLU);
+    conv->linear(128);
+    conv->activation(ReLU);
 
-    // conv->linear(128);
-    // conv->activation(ReLU);
+    conv->linear(128);
+    conv->activation(ReLU);
 
-    // conv->linear(32);
-    // conv->activation(ReLU);
+    conv->linear(32);
+    conv->activation(ReLU);
 
-    // conv->linear(Tensor::get_cnt(train_sup->get_y_shape()));
-    // conv->activation(ReLU);
+    conv->linear(Tensor::get_cnt(train_sup->get_y_shape()));
+    conv->activation(ReLU);
 
-    // conv->fit(train_sup, 64, 20, "temp/mnist-train.csv", NULL);
+    conv->fit(train_sup, 64, 20, "temp/mnist-train.csv", NULL);
 
-    // Batch *test_batch = test_sup->create_batch();
+    Batch *test_batch = test_sup->create_batch();
 
-    // conv->test(test_batch, NULL).print();
+    conv->test(test_batch, NULL).print();
 
-    // delete test_batch;
+    delete test_batch;
 
-    // conv->save("temp/mnist.nn");
+    conv->save("temp/mnist.nn");
 
-    // delete conv;
+    delete conv;
 
     // ============
 
-    Model *conv = new Model();
-    conv->load("temp/mnist.nn");
-    Batch *test_batch = test_sup->create_batch();
-    conv->test(test_batch, NULL).print();
-    delete test_batch;
+    // Model *conv = new Model();
+    // conv->load("temp/mnist.nn");
+    // Batch *test_batch = test_sup->create_batch();
+    // conv->test(test_batch, NULL).print();
+    // delete test_batch;
 
     delete conv;
 
