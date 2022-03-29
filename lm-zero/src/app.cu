@@ -1,6 +1,42 @@
 
 #include <zero_system/mod.cuh>
 
+std::vector<int> get_output_shape()
+{
+    std::vector<int> n_shape{1};
+    return n_shape;
+}
+
+void forward(Tensor *n, Tensor *nxt_n, bool train_flg)
+{
+    // t = aq + v
+    // a: 0
+    // q: 1
+    // v: 2 - 3
+
+    float a = n->get_val(0);
+    float q = n->get_val(1);
+    float v = n->get_val(2) - n->get_val(3);
+
+    float t = a * q + v;
+
+    nxt_n->set_val(0, t);
+}
+
+Tensor *backward(Tensor *n, Tensor *dc)
+{
+    // t = aq + v
+
+    Tensor *nxt_dc = new Tensor(n->get_device(), n->get_shape());
+
+    nxt_dc->set_val(0, dc->get_val(0) * n->get_val(1));
+    nxt_dc->set_val(1, dc->get_val(0) * n->get_val(0));
+    nxt_dc->set_val(2, dc->get_val(0) * 1.0f);
+    nxt_dc->set_val(3, dc->get_val(0) * -1.0f);
+
+    return nxt_dc;
+}
+
 void upd_rslt_fn(Tensor *p, Tensor *y, int *cnt)
 {
     float y_val = y->get_val(0);
@@ -221,12 +257,15 @@ void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
     lm->embed(dst_loc_embg, xs_tbl->get_column_range("to_loc"));
 
     lm->activation(Model::calc_embedded_input_shape(lm, xs_tbl->get_column_cnt()), None);
+    lm->custom(get_output_shape, forward, backward);
 
     xs_tbl->print();
 
     lm->fit(sup, 128, 25, "temp/train.csv", upd_rslt_fn);
 
     delete variable_actcod_embg;
+    delete src_loc_embg;
+    delete dst_loc_embg;
     delete lm;
 }
 
@@ -238,33 +277,47 @@ void grad_check(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
 {
     Model *lm = new Model(MSE, 0.001f);
 
-    Model *actcod_embg = new Model();
-    actcod_embg->linear(xs_tbl->get_last_column_idx("actcod") - xs_tbl->get_column_idx("actcod") + 1, 2);
-    actcod_embg->activation(Sigmoid);
+    Model *variable_actcod_embg = new Model();
+    variable_actcod_embg->linear(xs_tbl->get_column_idx("cas_wgt") - xs_tbl->get_column_idx("actcod") + 1, 64);
+    variable_actcod_embg->activation(Sigmoid);
+    variable_actcod_embg->linear(64);
+    variable_actcod_embg->activation(Sigmoid);
+    variable_actcod_embg->linear(1);
+    variable_actcod_embg->activation(Sigmoid);
 
-    Model *loc_embg = new Model();
-    loc_embg->linear(xs_tbl->get_last_column_idx("fr_loc") - xs_tbl->get_column_idx("fr_loc") + 1, 12);
-    loc_embg->activation(Sigmoid);
+    int qty_idx = xs_tbl->get_column_idx("pal_qty");
 
-    Model *_loc_embg = new Model();
-    _loc_embg->linear(xs_tbl->get_last_column_idx("to_loc") - xs_tbl->get_column_idx("to_loc") + 1, 12);
-    _loc_embg->activation(Sigmoid);
+    Model *src_loc_embg = new Model();
+    src_loc_embg->linear(xs_tbl->get_last_column_idx("fr_loc") - xs_tbl->get_column_idx("fr_loc") + 1, 32);
+    src_loc_embg->activation(Sigmoid);
+    src_loc_embg->linear(16);
+    src_loc_embg->activation(Sigmoid);
+    src_loc_embg->linear(8);
+    src_loc_embg->activation(Sigmoid);
+    src_loc_embg->aggregation();
 
-    lm->embed(actcod_embg, xs_tbl->get_column_range("actcod"));
-    lm->embed(loc_embg, xs_tbl->get_column_range("fr_loc"));
-    lm->embed(_loc_embg, xs_tbl->get_column_range("to_loc"));
+    Model *dst_loc_embg = new Model();
+    dst_loc_embg->linear(xs_tbl->get_last_column_idx("to_loc") - xs_tbl->get_column_idx("to_loc") + 1, 32);
+    dst_loc_embg->activation(Sigmoid);
+    dst_loc_embg->linear(16);
+    dst_loc_embg->activation(Sigmoid);
+    dst_loc_embg->linear(8);
+    dst_loc_embg->activation(Sigmoid);
+    dst_loc_embg->aggregation();
+    dst_loc_embg->share_parameters(src_loc_embg);
 
-    lm->linear(Model::calc_embedded_input_shape(lm, xs_tbl->get_column_cnt()), 32);
-    lm->activation(Sigmoid);
-    lm->linear(1);
+    lm->embed(variable_actcod_embg, Range{xs_tbl->get_column_idx("actcod"), xs_tbl->get_column_idx("cas_wgt")});
+    lm->embed(src_loc_embg, xs_tbl->get_column_range("fr_loc"));
+    lm->embed(dst_loc_embg, xs_tbl->get_column_range("to_loc"));
+
+    lm->activation(Model::calc_embedded_input_shape(lm, xs_tbl->get_column_cnt()), None);
+    lm->custom(get_output_shape, forward, backward);
 
     Batch *b = sup->create_batch();
 
     lm->grad_check(b->get_x(0), b->get_y(0), true);
 
     delete b;
-
-    delete actcod_embg;
     delete lm;
 }
 
@@ -308,7 +361,7 @@ int main(int argc, char **argv)
 
     // Fit:
     {
-        // fit(xs_tbl, ys_tbl, sup);
+        fit(xs_tbl, ys_tbl, sup);
     }
 
     // Test:
@@ -335,7 +388,7 @@ int main(int argc, char **argv)
 
     // Grad Check:
     {
-        grad_check(xs_tbl, ys_tbl, sup);
+        // grad_check(xs_tbl, ys_tbl, sup);
     }
 
     // Cleanup:
