@@ -68,7 +68,7 @@ namespace zero
 
             std::vector<int> get_shape();
             int get_cnt();
-            static int get_cnt(std::vector<int> shape);
+
             int get_dim_cnt();
 
             float *get_arr();
@@ -93,6 +93,8 @@ namespace zero
             void add(Tensor *tensor);
             void subtract(Tensor *tensor);
             void subtract_abs(Tensor *tensor);
+
+            static int get_cnt(std::vector<int> shape);
 
             static Tensor *one_hot_encode(Device device, int row_cnt, int col_cnt, float *cpu_arr);
 

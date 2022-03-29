@@ -4,7 +4,7 @@
 
 void nn_gradient_test()
 {
-	ConvNet *conv = new ConvNet(CostFunction::CrossEntropy, 0.001f);
+	Model *conv = new Model(CostFunction::CrossEntropy, 0.001f);
 
 	Tensor *x = new Tensor(Device::Cuda, 3, 16, 16);
 	x->set_all_rand(0.0f, 1.0f);
