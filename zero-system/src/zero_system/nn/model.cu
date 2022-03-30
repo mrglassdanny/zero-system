@@ -447,12 +447,16 @@ Tensor *Model::forward(Tensor *x, bool train_flg)
 {
     x->to_device(Device::Cuda);
 
-    // We need to create an embedded x tensor to match our updated shape and values due to embeddings:
-    Tensor *embd_x = new Tensor(x->get_device(), this->get_embedded_input_shape());
-    cudaMemcpy(embd_x->get_arr(), x->get_arr(), sizeof(float) * (x->get_cnt() < embd_x->get_cnt() ? x->get_cnt() : embd_x->get_cnt()), cudaMemcpyDefault);
+    int lst_lyr_idx = this->layers.size() - 1;
+
+    Layer *frst_lyr = this->layers[0];
+    Layer *lst_lyr = this->layers[lst_lyr_idx];
 
     if (this->embgs.size() > 0)
     {
+        // We need to create an embedded x tensor to match our updated shape and values due to embeddings:
+        Tensor *embd_x = new Tensor(x->get_device(), this->get_embedded_input_shape());
+
         // First we need to shift all non-embedding inputs in accordance to new embedded x layout:
         {
             int embd_x_offset = this->embg_ranges[0].beg_idx;
@@ -508,7 +512,7 @@ Tensor *Model::forward(Tensor *x, bool train_flg)
 
                 Tensor *embg_x = new Tensor(x->get_device(), embg->get_input_shape());
 
-                cudaMemcpy(embg_x->get_arr(), &x->get_arr()[embg_range.beg_idx], sizeof(float) * (embg_range.end_idx - embg_range.beg_idx), cudaMemcpyDefault);
+                cudaMemcpy(embg_x->get_arr(), &x->get_arr()[embg_range.beg_idx], sizeof(float) * (embg_range.end_idx - embg_range.beg_idx + 1), cudaMemcpyDefault);
 
                 Tensor *embg_pred = embg->forward(embg_x, train_flg);
 
@@ -520,15 +524,14 @@ Tensor *Model::forward(Tensor *x, bool train_flg)
                 delete embg_pred;
             }
         }
+
+        frst_lyr->set_neurons(embd_x);
+        delete embd_x;
     }
-
-    int lst_lyr_idx = this->layers.size() - 1;
-
-    Layer *frst_lyr = this->layers[0];
-    Layer *lst_lyr = this->layers[lst_lyr_idx];
-
-    frst_lyr->set_neurons(embd_x);
-    delete embd_x;
+    else
+    {
+        frst_lyr->set_neurons(x);
+    }
 
     for (int lyr_idx = 0; lyr_idx < lst_lyr_idx; lyr_idx++)
     {
