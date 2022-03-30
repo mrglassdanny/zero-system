@@ -190,9 +190,9 @@ void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
     src_loc_embg->activation(ReLU);
     src_loc_embg->linear(8);
     src_loc_embg->activation(ReLU);
-    // src_loc_embg->aggregation();
-    src_loc_embg->linear(1);
-    src_loc_embg->activation(ReLU);
+    src_loc_embg->aggregation();
+    // src_loc_embg->linear(1);
+    // src_loc_embg->activation(ReLU);
 
     Model *dst_loc_embg = new Model();
     dst_loc_embg->linear(xs_tbl->get_last_column_idx("to_loc") - xs_tbl->get_column_idx("to_loc") + 1, 128);
@@ -201,9 +201,9 @@ void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
     dst_loc_embg->activation(ReLU);
     dst_loc_embg->linear(8);
     dst_loc_embg->activation(ReLU);
-    // dst_loc_embg->aggregation();
-    dst_loc_embg->linear(1);
-    dst_loc_embg->activation(ReLU);
+    dst_loc_embg->aggregation();
+    // dst_loc_embg->linear(1);
+    // dst_loc_embg->activation(ReLU);
     dst_loc_embg->share_parameters(src_loc_embg);
 
     lm->embed(variable_actcod_embg, Range{xs_tbl->get_column_idx("actcod"), xs_tbl->get_last_column_idx("typ")});
@@ -212,10 +212,11 @@ void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
 
     lm->custom(Model::calc_embedded_input_shape(lm, xs_tbl->get_column_cnt()),
                get_output_shape, forward, backward);
+    lm->activation(ReLU);
 
-    lm->fit(sup, 32, 75, "temp/train.csv", upd_rslt_fn);
+    lm->fit(sup, 32, 15, "temp/train.csv", upd_rslt_fn);
 
-    Batch *test_batch = sup->create_batch();
+    Batch *test_batch = sup->create_batch(1000);
     lm->test(test_batch, upd_rslt_fn).print();
     delete test_batch;
 
@@ -250,7 +251,7 @@ void test(Supervisor *sup, Column *pred_col)
 
     ((CustomLayer *)lm->get_layers()[0])->set_callbacks(get_output_shape, forward, backward);
 
-    Batch *test_batch = sup->create_batch();
+    Batch *test_batch = sup->create_batch(1000);
     lm->test(test_batch, upd_rslt_fn).print();
 
     for (int i = 0; i < test_batch->get_size(); i++)
@@ -307,7 +308,7 @@ int main(int argc, char **argv)
 
     // Data setup:
 
-    Table *xs_tbl = Table::fr_csv("data/palmov-test.csv");
+    Table *xs_tbl = Table::fr_csv("data/palmov.csv");
     Table *ys_tbl = xs_tbl->split("elapsed_secs");
 
     delete xs_tbl->remove_column("cas_per_lyr");
@@ -347,7 +348,7 @@ int main(int argc, char **argv)
 
     // Fit:
     {
-        // fit(xs_tbl, ys_tbl, sup);
+        fit(xs_tbl, ys_tbl, sup);
     }
 
     // Test:
