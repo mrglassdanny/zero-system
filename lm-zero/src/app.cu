@@ -1,6 +1,8 @@
 
 #include <zero_system/mod.cuh>
 
+#define LOC_EMBG_OUTPUT_N_CNT 8
+
 std::vector<int> get_output_shape()
 {
     std::vector<int> n_shape{1};
@@ -10,15 +12,22 @@ std::vector<int> get_output_shape()
 void forward(Tensor *n, Tensor *nxt_n, bool train_flg)
 {
     // t = aq + c + v
-    // a: 0
-    // c: 1
-    // q: 2
-    // v: 3 - 4
 
     float a = n->get_val(0);
     float c = n->get_val(1);
     float q = n->get_val(2);
-    float v = n->get_val(3) - n->get_val(4);
+    float v = 0.0f;
+
+    int src_loc_beg_idx = 3;
+    int dst_loc_beg_idx = src_loc_beg_idx + LOC_EMBG_OUTPUT_N_CNT;
+
+    for (int i = 0; i < LOC_EMBG_OUTPUT_N_CNT; i++)
+    {
+        float loc_diff = n->get_val(src_loc_beg_idx + i) - n->get_val(dst_loc_beg_idx + i);
+        v += (loc_diff * loc_diff);
+    }
+
+    v = sqrt(v);
 
     float t = a * q + c + v;
 
@@ -28,18 +37,43 @@ void forward(Tensor *n, Tensor *nxt_n, bool train_flg)
 Tensor *backward(Tensor *n, Tensor *dc)
 {
     // t = aq + c + v
-    // a: 0
-    // c: 1
-    // q: 2
-    // v: 3 - 4
 
     Tensor *nxt_dc = new Tensor(n->get_device(), n->get_shape());
 
-    nxt_dc->set_val(0, dc->get_val(0) * n->get_val(2));
-    nxt_dc->set_val(1, dc->get_val(0) * 1.0f);
-    nxt_dc->set_val(2, dc->get_val(0) * n->get_val(0));
-    nxt_dc->set_val(3, dc->get_val(0) * 1.0f);
-    nxt_dc->set_val(4, dc->get_val(0) * -1.0f);
+    float dc_val = dc->get_val(0);
+
+    nxt_dc->set_val(0, dc_val * n->get_val(2));
+    nxt_dc->set_val(1, dc_val * 1.0f);
+    nxt_dc->set_val(2, dc_val * n->get_val(0));
+
+    int src_loc_beg_idx = 3;
+    int dst_loc_beg_idx = src_loc_beg_idx + LOC_EMBG_OUTPUT_N_CNT;
+
+    float v = 0.0f;
+
+    for (int i = 0; i < LOC_EMBG_OUTPUT_N_CNT; i++)
+    {
+        float loc_diff = n->get_val(src_loc_beg_idx + i) - n->get_val(dst_loc_beg_idx + i);
+        v += (loc_diff * loc_diff);
+    }
+
+    v = sqrt(v);
+
+    float dv = 1.0f / (2.0f * v);
+
+    for (int i = 0; i < LOC_EMBG_OUTPUT_N_CNT; i++)
+    {
+        if (v == 0.0f)
+        {
+            nxt_dc->set_val(src_loc_beg_idx + i, 0.0f);
+            nxt_dc->set_val(dst_loc_beg_idx + i, 0.0f);
+        }
+        else
+        {
+            nxt_dc->set_val(src_loc_beg_idx + i, dc_val * dv * (2.0f * ((n->get_val(src_loc_beg_idx + i) - n->get_val(dst_loc_beg_idx + i)))));
+            nxt_dc->set_val(dst_loc_beg_idx + i, dc_val * dv * (-2.0f * (-(n->get_val(dst_loc_beg_idx + i)) + (n->get_val(src_loc_beg_idx + i)))));
+        }
+    }
 
     return nxt_dc;
 }
@@ -199,13 +233,13 @@ void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
     Model *src_loc_embg = new Model();
     src_loc_embg->linear(xs_tbl->get_last_column_idx("fr_loc") - xs_tbl->get_column_idx("fr_loc") + 1, 32);
     src_loc_embg->activation(Sigmoid);
-    src_loc_embg->linear(8);
+    src_loc_embg->linear(LOC_EMBG_OUTPUT_N_CNT);
     src_loc_embg->activation(Sigmoid);
 
     Model *dst_loc_embg = new Model();
     dst_loc_embg->linear(xs_tbl->get_last_column_idx("to_loc") - xs_tbl->get_column_idx("to_loc") + 1, 32);
     dst_loc_embg->activation(Sigmoid);
-    dst_loc_embg->linear(8);
+    dst_loc_embg->linear(LOC_EMBG_OUTPUT_N_CNT);
     dst_loc_embg->activation(Sigmoid);
     dst_loc_embg->share_parameters(src_loc_embg);
 
@@ -214,11 +248,8 @@ void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
     lm->embed(src_loc_embg, xs_tbl->get_column_range("fr_loc"));
     lm->embed(dst_loc_embg, xs_tbl->get_column_range("to_loc"));
 
-    // lm->custom(Model::calc_embedded_input_shape(lm, xs_tbl->get_column_cnt()),
-    //            get_output_shape, forward, backward);
-    lm->linear(Model::calc_embedded_input_shape(lm, xs_tbl->get_column_cnt()), 32);
-    lm->activation(Sigmoid);
-    lm->linear(1);
+    lm->custom(Model::calc_embedded_input_shape(lm, xs_tbl->get_column_cnt()),
+               get_output_shape, forward, backward);
     lm->activation(Sigmoid);
 
     lm->fit(sup, 100, 15, "temp/train.csv", upd_rslt_fn);
@@ -262,7 +293,7 @@ Model *load_lm()
     lm->embed(src_loc_embg);
     lm->embed(dst_loc_embg);
 
-    //((CustomLayer *)lm->get_layers()[0])->set_callbacks(get_output_shape, forward, backward);
+    ((CustomLayer *)lm->get_layers()[0])->set_callbacks(get_output_shape, forward, backward);
 
     return lm;
 }
