@@ -478,16 +478,18 @@ Tensor *Model::forward(Tensor *x, bool train_flg)
                 }
             }
 
-            Model *lst_embg = this->embgs[this->embgs.size() - 1];
-            Range lst_embg_range = this->embg_ranges[this->embgs.size() - 1];
-
-            embd_x_offset += Tensor::get_cnt(lst_embg->get_output_shape());
-
-            int non_embg_range_len = (lst_x_idx - lst_embg_range.end_idx);
-
-            if (non_embg_range_len > 0 && embd_x_offset + non_embg_range_len <= embd_x->get_cnt())
             {
-                cudaMemcpy(&embd_x->get_arr()[embd_x_offset], &x->get_arr()[lst_embg_range.end_idx + 1], sizeof(float) * non_embg_range_len, cudaMemcpyDefault);
+                Model *lst_embg = this->embgs[this->embgs.size() - 1];
+                Range lst_embg_range = this->embg_ranges[this->embgs.size() - 1];
+
+                embd_x_offset += Tensor::get_cnt(lst_embg->get_output_shape());
+
+                int non_embg_range_len = (lst_x_idx - lst_embg_range.end_idx);
+
+                if (non_embg_range_len > 0 && embd_x_offset + non_embg_range_len <= embd_x->get_cnt())
+                {
+                    cudaMemcpy(&embd_x->get_arr()[embd_x_offset], &x->get_arr()[lst_embg_range.end_idx + 1], sizeof(float) * non_embg_range_len, cudaMemcpyDefault);
+                }
             }
         }
 
@@ -587,18 +589,31 @@ Tensor *Model::backward(Tensor *pred, Tensor *y)
         dc = lyr->backward(dc);
     }
 
-    int embd_x_offset = 0;
+    int embd_x_offset = this->embg_ranges[0].beg_idx;
 
-    for (int embg_idx = 0; embg_idx < this->embgs.size(); embg_idx++)
+    for (int embg_idx = 0; embg_idx < this->embgs.size() - 1; embg_idx++)
     {
         Model *embg = this->embgs[embg_idx];
+        Model *nxt_embg = this->embgs[embg_idx + 1];
+
         Range embg_range = this->embg_ranges[embg_idx];
+        Range nxt_embg_range = this->embg_ranges[embg_idx + 1];
 
         Tensor *cpy_dc = new Tensor(*dc);
 
-        delete embg->embedding_backward(cpy_dc, embg_range.beg_idx + embd_x_offset);
+        delete embg->embedding_backward(cpy_dc, embd_x_offset);
 
-        embd_x_offset += (Tensor::get_cnt(embg->get_output_shape()) - Tensor::get_cnt(embg->get_input_shape()));
+        int non_embg_range_len = ((nxt_embg_range.beg_idx - 1) - embg_range.end_idx);
+        embd_x_offset += (Tensor::get_cnt(embg->get_output_shape()) + non_embg_range_len);
+    }
+
+    {
+        Model *lst_embg = this->embgs[this->embgs.size() - 1];
+        Range lst_embg_range = this->embg_ranges[this->embgs.size() - 1];
+
+        Tensor *cpy_dc = new Tensor(*dc);
+
+        delete lst_embg->embedding_backward(cpy_dc, embd_x_offset);
     }
 
     return dc;
