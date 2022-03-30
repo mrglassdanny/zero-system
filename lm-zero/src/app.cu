@@ -259,7 +259,7 @@ void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
     lm->custom(Model::calc_embedded_input_shape(lm, xs_tbl->get_column_cnt()),
                get_output_shape, forward, backward);
 
-    lm->fit(sup, 128, 25, "temp/train.csv", upd_rslt_fn);
+    lm->fit(sup, 128, 50, "temp/train.csv", upd_rslt_fn);
 
     delete variable_actcod_embg;
     delete src_loc_embg;
