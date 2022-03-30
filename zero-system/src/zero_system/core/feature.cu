@@ -495,12 +495,7 @@ Table::Table() {}
 
 Table::~Table()
 {
-    for (int col_idx = 0; col_idx < this->cols.size(); col_idx++)
-    {
-        delete this->cols[col_idx];
-    }
-
-    this->cols.clear();
+    this->clear();
 }
 
 void Table::print()
@@ -610,6 +605,16 @@ Column *Table::remove_column(int col_idx)
 Column *Table::remove_column(const char *col_name)
 {
     return this->remove_column(this->get_column_idx(col_name));
+}
+
+void Table::clear()
+{
+    for (int col_idx = 0; col_idx < this->cols.size(); col_idx++)
+    {
+        delete this->cols[col_idx];
+    }
+
+    this->cols.clear();
 }
 
 Table *Table::split(int split_idx)

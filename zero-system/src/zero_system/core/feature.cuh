@@ -100,6 +100,8 @@ namespace zero
             Column *remove_column(int col_idx);
             Column *remove_column(const char *col_name);
 
+            void clear();
+
             Table *split(int col_idx);
             Table *split(const char *col_name);
 
