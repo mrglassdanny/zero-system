@@ -592,31 +592,34 @@ Tensor *Model::backward(Tensor *pred, Tensor *y)
         dc = lyr->backward(dc);
     }
 
-    int embd_x_offset = this->embg_ranges[0].beg_idx;
-
-    for (int embg_idx = 0; embg_idx < this->embgs.size() - 1; embg_idx++)
+    if (this->embgs.size() > 0)
     {
-        Model *embg = this->embgs[embg_idx];
-        Model *nxt_embg = this->embgs[embg_idx + 1];
+        int embd_x_offset = this->embg_ranges[0].beg_idx;
 
-        Range embg_range = this->embg_ranges[embg_idx];
-        Range nxt_embg_range = this->embg_ranges[embg_idx + 1];
+        for (int embg_idx = 0; embg_idx < this->embgs.size() - 1; embg_idx++)
+        {
+            Model *embg = this->embgs[embg_idx];
+            Model *nxt_embg = this->embgs[embg_idx + 1];
 
-        Tensor *cpy_dc = new Tensor(*dc);
+            Range embg_range = this->embg_ranges[embg_idx];
+            Range nxt_embg_range = this->embg_ranges[embg_idx + 1];
 
-        delete embg->embedding_backward(cpy_dc, embd_x_offset);
+            Tensor *cpy_dc = new Tensor(*dc);
 
-        int non_embg_range_len = ((nxt_embg_range.beg_idx - 1) - embg_range.end_idx);
-        embd_x_offset += (Tensor::get_cnt(embg->get_output_shape()) + non_embg_range_len);
-    }
+            delete embg->embedding_backward(cpy_dc, embd_x_offset);
 
-    {
-        Model *lst_embg = this->embgs[this->embgs.size() - 1];
-        Range lst_embg_range = this->embg_ranges[this->embgs.size() - 1];
+            int non_embg_range_len = ((nxt_embg_range.beg_idx - 1) - embg_range.end_idx);
+            embd_x_offset += (Tensor::get_cnt(embg->get_output_shape()) + non_embg_range_len);
+        }
 
-        Tensor *cpy_dc = new Tensor(*dc);
+        {
+            Model *lst_embg = this->embgs[this->embgs.size() - 1];
+            Range lst_embg_range = this->embg_ranges[this->embgs.size() - 1];
 
-        delete lst_embg->embedding_backward(cpy_dc, embd_x_offset);
+            Tensor *cpy_dc = new Tensor(*dc);
+
+            delete lst_embg->embedding_backward(cpy_dc, embd_x_offset);
+        }
     }
 
     return dc;
