@@ -167,9 +167,6 @@ void Model::load(FILE *file_ptr)
         case LayerType::Pooling:
             lyr = new PoolingLayer();
             break;
-        case LayerType::Aggregation:
-            lyr = new AggregationLayer();
-            break;
         case LayerType::Custom:
             lyr = new CustomLayer();
             break;
@@ -332,11 +329,6 @@ void Model::dropout(float dropout_rate)
 void Model::pooling(PoolingFunction pool_fn)
 {
     this->add_layer(new PoolingLayer(this->get_output_shape(), pool_fn));
-}
-
-void Model::aggregation()
-{
-    this->add_layer(new AggregationLayer(this->get_output_shape()));
 }
 
 void Model::custom(std::vector<int> (*get_output_shape_fn)(),

@@ -18,7 +18,6 @@ namespace zero
             Activation,
             Dropout,
             Pooling,
-            Aggregation,
             Custom
         };
 
@@ -180,24 +179,6 @@ namespace zero
             virtual Tensor *backward(Tensor *dc);
         };
 
-        class AggregationLayer : public Layer
-        {
-        public:
-            AggregationLayer();
-            AggregationLayer(std::vector<int> n_shape);
-            ~AggregationLayer();
-
-            virtual LayerType get_type();
-
-            virtual void load(FILE *file_ptr);
-            virtual void save(FILE *file_ptr);
-
-            virtual std::vector<int> get_output_shape();
-
-            virtual void forward(Tensor *nxt_n, bool train_flg);
-            virtual Tensor *backward(Tensor *dc);
-        };
-
         class CustomLayer : public Layer
         {
         private:
@@ -211,7 +192,7 @@ namespace zero
             CustomLayer(std::vector<int> n_shape,
                         std::vector<int> (*get_output_shape_fn)(),
                         void (*forward_fn)(Tensor *n, Tensor *nxt_n, bool train_flg),
-                        Tensor *(*backward_fn)(Tensor* n, Tensor *dc));
+                        Tensor *(*backward_fn)(Tensor *n, Tensor *dc));
             ~CustomLayer();
 
             virtual LayerType get_type();

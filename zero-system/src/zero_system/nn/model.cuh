@@ -51,7 +51,6 @@ namespace zero
             void activation(std::vector<int> n_shape, ActivationFunction activation_fn);
             void dropout(float dropout_rate);
             void pooling(PoolingFunction pool_fn);
-            void aggregation();
             void custom(std::vector<int> (*get_output_shape_fn)(),
                         void (*forward_fn)(Tensor *n, Tensor *nxt_n, bool train_flg),
                         Tensor *(*backward_fn)(Tensor *n, Tensor *dc));
