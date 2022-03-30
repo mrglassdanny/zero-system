@@ -731,9 +731,9 @@ __global__ void k_derive_aggregation(float *n_arr, float *dc_arr, float *nxt_dc_
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (tid < dc_cnt)
+    if (tid < nxt_dc_cnt)
     {
-        nxt_dc_arr[tid] *= 1.0f;
+        nxt_dc_arr[tid] = (dc_arr[0] * 1.0f);
     }
 }
 
@@ -1591,7 +1591,7 @@ Tensor *AggregationLayer::backward(Tensor *dc)
 
     {
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
-        int num_blocks = (dc_cnt / threads_per_block) + 1;
+        int num_blocks = (n_cnt / threads_per_block) + 1;
         k_derive_aggregation<<<num_blocks, threads_per_block>>>(this->n->get_arr(), dc->get_arr(), nxt_dc->get_arr(), dc_cnt, n_cnt);
     }
 
