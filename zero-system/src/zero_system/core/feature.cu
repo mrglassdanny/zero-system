@@ -48,9 +48,9 @@ Column *Column::copy()
     return this->copy(this->name);
 }
 
-Column *Column::copy(const char *dst_name)
+Column *Column::copy(const char *name)
 {
-    Column *dst = new Column(dst_name, this->numeric, this->row_cnt);
+    Column *dst = new Column(name, this->numeric, this->row_cnt);
 
     memcpy(dst->data, this->data, this->get_data_size());
 

@@ -32,7 +32,7 @@ namespace zero
             ~Column();
 
             Column *copy();
-            Column *copy(const char *dst_name);
+            Column *copy(const char *name);
 
             void print();
 
