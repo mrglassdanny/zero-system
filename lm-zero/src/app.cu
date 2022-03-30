@@ -325,7 +325,7 @@ int main(int argc, char **argv)
 
     // Data setup:
 
-    Table *xs_tbl = Table::fr_csv("data/palmov-test.csv");
+    Table *xs_tbl = Table::fr_csv("data/palmov.csv");
     Table *ys_tbl = xs_tbl->split("elapsed_secs");
 
     delete xs_tbl->remove_column("cas_per_lyr");
@@ -365,7 +365,7 @@ int main(int argc, char **argv)
 
     // Fit:
     {
-        // fit(xs_tbl, ys_tbl, sup);
+        fit(xs_tbl, ys_tbl, sup);
     }
 
     // Test:
@@ -392,7 +392,7 @@ int main(int argc, char **argv)
 
     // Grad Check:
     {
-        grad_check(xs_tbl, ys_tbl, sup);
+        // grad_check(xs_tbl, ys_tbl, sup);
     }
 
     // Cleanup:
