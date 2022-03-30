@@ -224,40 +224,40 @@ void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
     Model *lm = new Model(MSE, 0.001f);
 
     Model *variable_actcod_embg = new Model();
-    variable_actcod_embg->linear(xs_tbl->get_column_idx("cas_wgt") - xs_tbl->get_column_idx("actcod") + 1, 64);
-    variable_actcod_embg->activation(Sigmoid);
+    variable_actcod_embg->linear(xs_tbl->get_last_column_idx("typ") - xs_tbl->get_column_idx("actcod") + 1, 64);
+    variable_actcod_embg->activation(Tanh);
     variable_actcod_embg->linear(64);
-    variable_actcod_embg->activation(Sigmoid);
+    variable_actcod_embg->activation(Tanh);
     variable_actcod_embg->linear(1);
-    variable_actcod_embg->activation(Sigmoid);
+    variable_actcod_embg->activation(Tanh);
 
     int qty_idx = xs_tbl->get_column_idx("pal_qty");
 
     Model *src_loc_embg = new Model();
     src_loc_embg->linear(xs_tbl->get_last_column_idx("fr_loc") - xs_tbl->get_column_idx("fr_loc") + 1, 32);
-    src_loc_embg->activation(Sigmoid);
+    src_loc_embg->activation(Tanh);
     src_loc_embg->linear(16);
-    src_loc_embg->activation(Sigmoid);
+    src_loc_embg->activation(Tanh);
     src_loc_embg->linear(8);
-    src_loc_embg->activation(Sigmoid);
+    src_loc_embg->activation(Tanh);
     src_loc_embg->aggregation();
 
     Model *dst_loc_embg = new Model();
     dst_loc_embg->linear(xs_tbl->get_last_column_idx("to_loc") - xs_tbl->get_column_idx("to_loc") + 1, 32);
-    dst_loc_embg->activation(Sigmoid);
+    dst_loc_embg->activation(Tanh);
     dst_loc_embg->linear(16);
-    dst_loc_embg->activation(Sigmoid);
+    dst_loc_embg->activation(Tanh);
     dst_loc_embg->linear(8);
-    dst_loc_embg->activation(Sigmoid);
+    dst_loc_embg->activation(Tanh);
     dst_loc_embg->aggregation();
     dst_loc_embg->share_parameters(src_loc_embg);
 
-    lm->embed(variable_actcod_embg, Range{xs_tbl->get_column_idx("actcod"), xs_tbl->get_column_idx("cas_wgt")});
+    lm->embed(variable_actcod_embg, Range{xs_tbl->get_column_idx("actcod"), xs_tbl->get_last_column_idx("typ")});
     lm->embed(src_loc_embg, xs_tbl->get_column_range("fr_loc"));
     lm->embed(dst_loc_embg, xs_tbl->get_column_range("to_loc"));
 
-    lm->activation(Model::calc_embedded_input_shape(lm, xs_tbl->get_column_cnt()), None);
-    lm->custom(get_output_shape, forward, backward);
+    lm->custom(Model::calc_embedded_input_shape(lm, xs_tbl->get_column_cnt()),
+               get_output_shape, forward, backward);
 
     lm->fit(sup, 128, 25, "temp/train.csv", upd_rslt_fn);
 
@@ -276,40 +276,40 @@ void grad_check(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
     Model *lm = new Model();
 
     Model *variable_actcod_embg = new Model();
-    variable_actcod_embg->linear(xs_tbl->get_column_idx("cas_wgt") - xs_tbl->get_column_idx("actcod") + 1, 64);
-    variable_actcod_embg->activation(Sigmoid);
+    variable_actcod_embg->linear(xs_tbl->get_last_column_idx("typ") - xs_tbl->get_column_idx("actcod") + 1, 64);
+    variable_actcod_embg->activation(Tanh);
     variable_actcod_embg->linear(64);
-    variable_actcod_embg->activation(Sigmoid);
+    variable_actcod_embg->activation(Tanh);
     variable_actcod_embg->linear(1);
-    variable_actcod_embg->activation(Sigmoid);
+    variable_actcod_embg->activation(Tanh);
 
     int qty_idx = xs_tbl->get_column_idx("pal_qty");
 
     Model *src_loc_embg = new Model();
     src_loc_embg->linear(xs_tbl->get_last_column_idx("fr_loc") - xs_tbl->get_column_idx("fr_loc") + 1, 32);
-    src_loc_embg->activation(Sigmoid);
+    src_loc_embg->activation(Tanh);
     src_loc_embg->linear(16);
-    src_loc_embg->activation(Sigmoid);
+    src_loc_embg->activation(Tanh);
     src_loc_embg->linear(8);
-    src_loc_embg->activation(Sigmoid);
+    src_loc_embg->activation(Tanh);
     src_loc_embg->aggregation();
 
     Model *dst_loc_embg = new Model();
     dst_loc_embg->linear(xs_tbl->get_last_column_idx("to_loc") - xs_tbl->get_column_idx("to_loc") + 1, 32);
-    dst_loc_embg->activation(Sigmoid);
+    dst_loc_embg->activation(Tanh);
     dst_loc_embg->linear(16);
-    dst_loc_embg->activation(Sigmoid);
+    dst_loc_embg->activation(Tanh);
     dst_loc_embg->linear(8);
-    dst_loc_embg->activation(Sigmoid);
+    dst_loc_embg->activation(Tanh);
     dst_loc_embg->aggregation();
     dst_loc_embg->share_parameters(src_loc_embg);
 
-    lm->embed(variable_actcod_embg, Range{xs_tbl->get_column_idx("actcod"), xs_tbl->get_column_idx("cas_wgt")});
+    lm->embed(variable_actcod_embg, Range{xs_tbl->get_column_idx("actcod"), xs_tbl->get_last_column_idx("typ")});
     lm->embed(src_loc_embg, xs_tbl->get_column_range("fr_loc"));
     lm->embed(dst_loc_embg, xs_tbl->get_column_range("to_loc"));
 
-    lm->activation(Model::calc_embedded_input_shape(lm, xs_tbl->get_column_cnt()), None);
-    lm->custom(get_output_shape, forward, backward);
+    lm->custom(Model::calc_embedded_input_shape(lm, xs_tbl->get_column_cnt()),
+               get_output_shape, forward, backward);
 
     Batch *b = sup->create_batch();
 
@@ -325,9 +325,15 @@ int main(int argc, char **argv)
 
     // Data setup:
 
-    Table *xs_tbl = Table::fr_csv("data/palmov.csv");
+    Table *xs_tbl = Table::fr_csv("data/palmov-test.csv");
     Table *ys_tbl = xs_tbl->split("elapsed_secs");
 
+    delete xs_tbl->remove_column("cas_per_lyr");
+    delete xs_tbl->remove_column("lyr_per_pal");
+    delete xs_tbl->remove_column("cas_len");
+    delete xs_tbl->remove_column("cas_wid");
+    delete xs_tbl->remove_column("cas_hgt");
+    delete xs_tbl->remove_column("cas_wgt");
     delete xs_tbl->remove_column("cas_qty");
 
     Column *actcod_col = xs_tbl->get_column("actcod")->copy();
@@ -359,7 +365,7 @@ int main(int argc, char **argv)
 
     // Fit:
     {
-        fit(xs_tbl, ys_tbl, sup);
+        // fit(xs_tbl, ys_tbl, sup);
     }
 
     // Test:
@@ -386,7 +392,7 @@ int main(int argc, char **argv)
 
     // Grad Check:
     {
-        // grad_check(xs_tbl, ys_tbl, sup);
+        grad_check(xs_tbl, ys_tbl, sup);
     }
 
     // Cleanup:
