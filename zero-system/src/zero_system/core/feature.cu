@@ -535,13 +535,17 @@ int Table::get_column_cnt()
 
 void Table::add_column(Column *col)
 {
-    if (this->cols.size() != 0 &&
-        this->get_row_cnt() != col->row_cnt)
-    {
-        return;
-    }
-
     this->cols.push_back(col);
+}
+
+void Table::add_column(Column *col, int idx)
+{
+    this->cols.insert(this->cols.begin() + idx, col);
+}
+
+void Table::add_column(Column *col, const char *col_name)
+{
+    this->cols.insert(this->cols.begin() + this->get_last_column_idx(col_name) + 1, col);
 }
 
 int Table::get_column_idx(const char *col_name)

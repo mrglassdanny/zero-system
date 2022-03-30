@@ -86,6 +86,8 @@ namespace zero
             int get_column_cnt();
 
             void add_column(Column *col);
+            void add_column(Column *col, int idx);
+            void add_column(Column *col, const char *col_name);
 
             int get_column_idx(const char *col_name);
             int get_last_column_idx(const char *col_name);
