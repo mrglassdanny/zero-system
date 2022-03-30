@@ -214,7 +214,7 @@ void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
                get_output_shape, forward, backward);
     lm->activation(ReLU);
 
-    lm->fit(sup, 32, 15, "temp/train.csv", upd_rslt_fn);
+    lm->fit(sup, 200, 15, "temp/train.csv", upd_rslt_fn);
 
     Batch *test_batch = sup->create_batch(1000);
     lm->test(test_batch, upd_rslt_fn).print();
