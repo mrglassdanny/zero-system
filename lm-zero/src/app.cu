@@ -59,8 +59,6 @@ Tensor *backward(Tensor *n, Tensor *dc)
 
     v = sqrt(v);
 
-    float dv = 1.0f / (2.0f * v);
-
     for (int i = 0; i < LOC_EMBG_OUTPUT_N_CNT; i++)
     {
         if (v == 0.0f)
@@ -70,6 +68,8 @@ Tensor *backward(Tensor *n, Tensor *dc)
         }
         else
         {
+            float dv = 1.0f / (2.0f * v);
+
             nxt_dc->set_val(src_loc_beg_idx + i, dc_val * dv * (2.0f * ((n->get_val(src_loc_beg_idx + i) - n->get_val(dst_loc_beg_idx + i)))));
             nxt_dc->set_val(dst_loc_beg_idx + i, dc_val * dv * (-2.0f * (-(n->get_val(dst_loc_beg_idx + i)) + (n->get_val(src_loc_beg_idx + i)))));
         }
