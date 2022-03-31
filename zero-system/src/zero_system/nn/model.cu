@@ -148,7 +148,7 @@ void Model::load(FILE *file_ptr)
         LayerType lyr_typ;
         fread(&lyr_typ, sizeof(LayerType), 1, file_ptr);
 
-        Layer *lyr = nullptr;
+        Layer *lyr = NULL;
 
         switch (lyr_typ)
         {
@@ -187,7 +187,7 @@ void Model::load(FILE *file_ptr)
         fread(&child_range, sizeof(Range), 1, file_ptr);
 
         // Since children are saved to their own files, we will let the caller worry about loading them in accordance with ranges.
-        this->child(nullptr, child_range);
+        this->child(NULL, child_range);
     }
 }
 
@@ -298,7 +298,7 @@ void Model::add_layer(Layer *lyr)
 
 void Model::add_child(Model *child, Range child_range)
 {
-    if (child != nullptr)
+    if (child != NULL)
     {
         child->set_learning_rate(this->learning_rate);
         this->children.push_back(child);
@@ -1057,7 +1057,7 @@ void Model::fit(Supervisor *supervisor, int batch_size, int target_epoch, const 
 {
     FILE *csv_file_ptr;
 
-    if (csv_path != nullptr)
+    if (csv_path != NULL)
     {
         csv_file_ptr = fopen(csv_path, "w");
         CSVUtils::write_csv_header(csv_file_ptr);
@@ -1071,7 +1071,7 @@ void Model::fit(Supervisor *supervisor, int batch_size, int target_epoch, const 
         Batch *train_batch = supervisor->create_batch(batch_size);
         Report train_rpt = this->train(train_batch, fn);
 
-        if (csv_path != nullptr)
+        if (csv_path != NULL)
         {
             CSVUtils::write_to_csv(csv_file_ptr, epoch, iteration, train_rpt);
         }
@@ -1108,7 +1108,7 @@ void Model::fit(Supervisor *supervisor, int batch_size, int target_epoch, const 
         epoch = ((iteration * batch_size) / supervisor->get_cnt());
     }
 
-    if (csv_path != nullptr)
+    if (csv_path != NULL)
     {
         fclose(csv_file_ptr);
     }

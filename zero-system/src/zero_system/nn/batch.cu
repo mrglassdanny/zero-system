@@ -203,7 +203,7 @@ Batch *Supervisor::create_batch()
 
     if (cnt == 0)
     {
-        return nullptr;
+        return NULL;
     }
 
     Batch *batch = this->create_batch(cnt, 0, this->get_cnt(), false);
@@ -220,7 +220,7 @@ Batch *Supervisor::create_batch(int lower, int upper)
 {
     if (this->get_cnt() == 0)
     {
-        return nullptr;
+        return NULL;
     }
 
     Batch *batch = this->create_batch(upper - lower, lower, upper, false);
@@ -232,7 +232,7 @@ Batch *Supervisor::create_batch(int batch_size, int lower, int upper)
 {
     if (this->get_cnt() == 0)
     {
-        return nullptr;
+        return NULL;
     }
 
     Batch *batch = this->create_batch(batch_size, lower, upper, true);

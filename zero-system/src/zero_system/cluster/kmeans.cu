@@ -69,7 +69,7 @@ void __global__ k_assign_to_clusters(float *xs_arr, float *cluster_assignments_a
 
         cluster_assignments_arr[tid] = min_cluster_idx;
 
-        if (cost != nullptr)
+        if (cost != NULL)
         {
             atomicAdd(cost, temp[min_cluster_idx]);
         }
@@ -111,7 +111,7 @@ KMeans::KMeans()
 {
     this->cluster_cnt = 0;
     this->feature_cnt = 0;
-    this->clusters = nullptr;
+    this->clusters = NULL;
 }
 
 KMeans::KMeans(int cluster_cnt, int feature_cnt)
@@ -313,7 +313,7 @@ Tensor *KMeans::predict(Tensor *xs)
     {
         int threads_per_block(THREADS_PER_BLOCK);
         int num_blocks((x_row_cnt / threads_per_block) + 1);
-        k_assign_to_clusters<<<num_blocks, threads_per_block>>>(xs->get_arr(), cluster_assignments->get_arr(), this->clusters->get_arr(), nullptr,
+        k_assign_to_clusters<<<num_blocks, threads_per_block>>>(xs->get_arr(), cluster_assignments->get_arr(), this->clusters->get_arr(), NULL,
                                                                 this->feature_cnt, this->cluster_cnt, x_row_cnt);
     }
 

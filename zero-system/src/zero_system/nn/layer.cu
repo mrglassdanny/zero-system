@@ -721,7 +721,7 @@ __global__ void k_derive_pool(float *dc_arr, float *nxt_dc_arr, float *n_arr, in
 
 Layer::Layer()
 {
-    this->n = nullptr;
+    this->n = NULL;
 }
 
 Layer::Layer(std::vector<int> n_shape)
@@ -732,7 +732,7 @@ Layer::Layer(std::vector<int> n_shape)
 
 Layer::~Layer()
 {
-    if (this->n != nullptr)
+    if (this->n != NULL)
     {
         delete this->n;
     }
@@ -771,6 +771,11 @@ void Layer::save(FILE *file_ptr)
 
 void Layer::copy(Layer *src)
 {
+    if (this->n == NULL)
+    {
+        this->n = new Tensor(Device::Cuda);
+    }
+
     this->n->copy(src->n);
 }
 
@@ -809,39 +814,39 @@ void Layer::forward(Tensor *nxt_n, bool train_flg)
 LearnableLayer::LearnableLayer()
     : Layer()
 {
-    this->w = nullptr;
-    this->b = nullptr;
-    this->dw = nullptr;
-    this->db = nullptr;
+    this->w = NULL;
+    this->b = NULL;
+    this->dw = NULL;
+    this->db = NULL;
 }
 
 LearnableLayer::LearnableLayer(std::vector<int> n_shape)
     : Layer(n_shape)
 {
-    this->w = nullptr;
-    this->b = nullptr;
-    this->dw = nullptr;
-    this->db = nullptr;
+    this->w = NULL;
+    this->b = NULL;
+    this->dw = NULL;
+    this->db = NULL;
 }
 
 LearnableLayer::~LearnableLayer()
 {
-    if (this->w != nullptr)
+    if (this->w != NULL)
     {
         delete this->w;
     }
 
-    if (this->b != nullptr)
+    if (this->b != NULL)
     {
         delete this->b;
     }
 
-    if (this->dw != nullptr)
+    if (this->dw != NULL)
     {
         delete this->dw;
     }
 
-    if (this->db != nullptr)
+    if (this->db != NULL)
     {
         delete this->db;
     }
@@ -932,6 +937,26 @@ void LearnableLayer::copy(Layer *src)
 {
     Layer::copy(src);
 
+    if (this->w == NULL)
+    {
+        this->w = new Tensor(Device::Cuda);
+    }
+
+    if (this->b == NULL)
+    {
+        this->b = new Tensor(Device::Cuda);
+    }
+
+    if (this->dw == NULL)
+    {
+        this->dw = new Tensor(Device::Cuda);
+    }
+
+    if (this->db == NULL)
+    {
+        this->db = new Tensor(Device::Cuda);
+    }
+
     this->w->copy(((LearnableLayer *)src)->w);
     this->b->copy(((LearnableLayer *)src)->b);
     this->dw->copy(((LearnableLayer *)src)->dw);
@@ -960,7 +985,7 @@ Tensor *LearnableLayer::get_bias_derivatives()
 
 void LearnableLayer::set_weights(Tensor *w)
 {
-    if (this->w != nullptr)
+    if (this->w != NULL)
     {
         delete this->w;
     }
@@ -970,7 +995,7 @@ void LearnableLayer::set_weights(Tensor *w)
 
 void LearnableLayer::set_weight_derivatives(Tensor *dw)
 {
-    if (this->dw != nullptr)
+    if (this->dw != NULL)
     {
         delete this->dw;
     }
@@ -980,7 +1005,7 @@ void LearnableLayer::set_weight_derivatives(Tensor *dw)
 
 void LearnableLayer::set_biases(Tensor *b)
 {
-    if (this->b != nullptr)
+    if (this->b != NULL)
     {
         delete this->b;
     }
@@ -990,7 +1015,7 @@ void LearnableLayer::set_biases(Tensor *b)
 
 void LearnableLayer::set_bias_derivatives(Tensor *db)
 {
-    if (this->db != nullptr)
+    if (this->db != NULL)
     {
         delete this->db;
     }
@@ -1367,7 +1392,7 @@ DropoutLayer::DropoutLayer()
     : Layer()
 {
     this->dropout_rate = 0.0f;
-    this->dropout_mask = nullptr;
+    this->dropout_mask = NULL;
 }
 
 DropoutLayer::DropoutLayer(std::vector<int> n_shape, float dropout_rate)
@@ -1407,6 +1432,12 @@ void DropoutLayer::copy(Layer *src)
     Layer::copy(src);
 
     this->dropout_rate = ((DropoutLayer *)src)->dropout_rate;
+
+    if (this->dropout_mask == NULL)
+    {
+        this->dropout_mask = new Tensor(Device::Cuda);
+    }
+
     this->dropout_mask->copy(((DropoutLayer *)src)->dropout_mask);
 }
 
@@ -1565,17 +1596,17 @@ Tensor *PoolingLayer::backward(Tensor *dc)
 CustomLayer::CustomLayer()
     : Layer()
 {
-    this->get_output_shape_fn = nullptr;
-    this->forward_fn = nullptr;
-    this->backward_fn = nullptr;
+    this->get_output_shape_fn = NULL;
+    this->forward_fn = NULL;
+    this->backward_fn = NULL;
 }
 
 CustomLayer::CustomLayer(std::vector<int> n_shape)
     : Layer(n_shape)
 {
-    this->get_output_shape_fn = nullptr;
-    this->forward_fn = nullptr;
-    this->backward_fn = nullptr;
+    this->get_output_shape_fn = NULL;
+    this->forward_fn = NULL;
+    this->backward_fn = NULL;
 }
 
 CustomLayer::CustomLayer(std::vector<int> n_shape,
