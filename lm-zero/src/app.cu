@@ -1,7 +1,7 @@
 
 #include <zero_system/mod.cuh>
 
-#define LOC_EMBG_OUTPUT_N_CNT 8
+#define LOC_EMBG_OUTPUT_N_CNT 64
 
 std::vector<int> get_output_shape()
 {
@@ -47,6 +47,74 @@ Tensor *backward(Tensor *n, Tensor *dc)
     nxt_dc->set_val(2, dc_val * n->get_val(0));
 
     int src_loc_beg_idx = 3;
+    int dst_loc_beg_idx = src_loc_beg_idx + LOC_EMBG_OUTPUT_N_CNT;
+
+    float v = 0.0f;
+
+    for (int i = 0; i < LOC_EMBG_OUTPUT_N_CNT; i++)
+    {
+        float loc_diff = n->get_val(src_loc_beg_idx + i) - n->get_val(dst_loc_beg_idx + i);
+        v += (loc_diff * loc_diff);
+    }
+
+    v = sqrt(v);
+
+    for (int i = 0; i < LOC_EMBG_OUTPUT_N_CNT; i++)
+    {
+        if (v == 0.0f)
+        {
+            nxt_dc->set_val(src_loc_beg_idx + i, 0.0f);
+            nxt_dc->set_val(dst_loc_beg_idx + i, 0.0f);
+        }
+        else
+        {
+            float dv = 1.0f / (2.0f * v);
+
+            nxt_dc->set_val(src_loc_beg_idx + i, dc_val * dv * (2.0f * (n->get_val(src_loc_beg_idx + i) - n->get_val(dst_loc_beg_idx + i))));
+            nxt_dc->set_val(dst_loc_beg_idx + i, dc_val * dv * (-2.0f * (n->get_val(src_loc_beg_idx + i) - n->get_val(dst_loc_beg_idx + i))));
+        }
+    }
+
+    return nxt_dc;
+}
+
+std::vector<int> pg_get_output_shape()
+{
+    std::vector<int> n_shape{1};
+    return n_shape;
+}
+
+void pg_forward(Tensor *n, Tensor *nxt_n, bool train_flg)
+{
+    // t = v
+
+    float v = 0.0f;
+
+    int src_loc_beg_idx = 0;
+    int dst_loc_beg_idx = src_loc_beg_idx + LOC_EMBG_OUTPUT_N_CNT;
+
+    for (int i = 0; i < LOC_EMBG_OUTPUT_N_CNT; i++)
+    {
+        float loc_diff = n->get_val(src_loc_beg_idx + i) - n->get_val(dst_loc_beg_idx + i);
+        v += (loc_diff * loc_diff);
+    }
+
+    v = sqrt(v);
+
+    float t = v;
+
+    nxt_n->set_val(0, t);
+}
+
+Tensor *pg_backward(Tensor *n, Tensor *dc)
+{
+    // t = v
+
+    Tensor *nxt_dc = new Tensor(n->get_device(), n->get_shape());
+
+    float dc_val = dc->get_val(0);
+
+    int src_loc_beg_idx = 0;
     int dst_loc_beg_idx = src_loc_beg_idx + LOC_EMBG_OUTPUT_N_CNT;
 
     float v = 0.0f;
@@ -342,6 +410,52 @@ void grad_check(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
     delete lm;
 }
 
+void playground(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
+{
+    Model *lm = new Model();
+
+    Model *src_loc_embg = new Model();
+    src_loc_embg->linear(xs_tbl->get_last_column_idx("fr_loc") - xs_tbl->get_column_idx("fr_loc") + 1, 1024);
+    src_loc_embg->activation(ReLU);
+    src_loc_embg->linear(512);
+    src_loc_embg->activation(ReLU);
+    src_loc_embg->linear(256);
+    src_loc_embg->activation(ReLU);
+    src_loc_embg->linear(LOC_EMBG_OUTPUT_N_CNT);
+    src_loc_embg->activation(ReLU);
+
+    Model *dst_loc_embg = new Model();
+    dst_loc_embg->linear(xs_tbl->get_last_column_idx("to_loc") - xs_tbl->get_column_idx("to_loc") + 1, 1024);
+    dst_loc_embg->activation(ReLU);
+    dst_loc_embg->linear(512);
+    dst_loc_embg->activation(ReLU);
+    dst_loc_embg->linear(256);
+    dst_loc_embg->activation(ReLU);
+    dst_loc_embg->linear(LOC_EMBG_OUTPUT_N_CNT);
+    dst_loc_embg->activation(ReLU);
+    dst_loc_embg->share_parameters(src_loc_embg);
+
+    lm->embed(src_loc_embg, xs_tbl->get_column_range("fr_loc"));
+    lm->embed(dst_loc_embg, xs_tbl->get_column_range("to_loc"));
+
+    lm->custom(Model::calc_embedded_input_shape(lm, xs_tbl->get_column_cnt()),
+               pg_get_output_shape, pg_forward, pg_backward);
+    lm->activation(ReLU);
+
+    lm->fit(sup, 100, 5, "temp/train.csv", upd_rslt_fn);
+
+    Batch *test_batch = sup->create_batch();
+    lm->test(test_batch, upd_rslt_fn).print();
+    delete test_batch;
+
+    lm->save("temp/lm.nn");
+    src_loc_embg->save("temp/loc.em");
+
+    delete lm;
+    delete src_loc_embg;
+    delete dst_loc_embg;
+}
+
 int main(int argc, char **argv)
 {
     ZERO();
@@ -359,21 +473,25 @@ int main(int argc, char **argv)
     delete xs_tbl->remove_column("cas_wgt");
     delete xs_tbl->remove_column("cas_qty");
 
-    Column *constant_actcod_col = xs_tbl->get_column("actcod")->copy("constant_actcod");
-    Column *constant_typ_col = xs_tbl->get_column("typ")->copy("constant_typ");
+    delete xs_tbl->remove_column("actcod");
+    delete xs_tbl->remove_column("typ");
+    delete xs_tbl->remove_column("pal_qty");
 
-    xs_tbl->add_column(constant_actcod_col, "typ");
-    xs_tbl->add_column(constant_typ_col, "constant_actcod");
+    // Column *constant_actcod_col = xs_tbl->get_column("actcod")->copy("constant_actcod");
+    // Column *constant_typ_col = xs_tbl->get_column("typ")->copy("constant_typ");
 
-    Column *actcod_col = xs_tbl->get_column("actcod")->copy();
-    Column *typ_col = xs_tbl->get_column("typ")->copy();
-    Column *fr_loc_col = xs_tbl->get_column("fr_loc")->copy();
-    Column *to_loc_col = xs_tbl->get_column("to_loc")->copy();
+    // xs_tbl->add_column(constant_actcod_col, "typ");
+    // xs_tbl->add_column(constant_typ_col, "constant_actcod");
 
-    xs_tbl->encode_onehot("actcod");
-    xs_tbl->encode_onehot("typ");
-    xs_tbl->encode_onehot("constant_actcod");
-    xs_tbl->encode_onehot("constant_typ");
+    // Column *actcod_col = xs_tbl->get_column("actcod")->copy();
+    // Column *typ_col = xs_tbl->get_column("typ")->copy();
+    // Column *fr_loc_col = xs_tbl->get_column("fr_loc")->copy();
+    // Column *to_loc_col = xs_tbl->get_column("to_loc")->copy();
+
+    // xs_tbl->encode_onehot("actcod");
+    // xs_tbl->encode_onehot("typ");
+    // xs_tbl->encode_onehot("constant_actcod");
+    // xs_tbl->encode_onehot("constant_typ");
     xs_tbl->encode_custom("fr_loc", 3, loc_encode_fn);
     xs_tbl->encode_custom("to_loc", 3, loc_encode_fn);
 
@@ -397,7 +515,7 @@ int main(int argc, char **argv)
 
     // Fit:
     {
-        fit(xs_tbl, ys_tbl, sup);
+        // fit(xs_tbl, ys_tbl, sup);
     }
 
     // Test:
@@ -422,6 +540,11 @@ int main(int argc, char **argv)
     // Grad Check:
     {
         // grad_check(xs_tbl, ys_tbl, sup);
+    }
+
+    // Playground:
+    {
+        playground(xs_tbl, ys_tbl, sup);
     }
 
     // Cleanup:
