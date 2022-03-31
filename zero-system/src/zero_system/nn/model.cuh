@@ -36,12 +36,12 @@ namespace zero
             void save(FILE *file_ptr);
             void save(const char *path);
 
-            void linear(int nxt_n_cnt);
-            void linear(int nxt_n_cnt, InitializationFunction init_fn);
-            void linear(std::vector<int> n_shape, int nxt_n_cnt);
-            void linear(int n_cnt, int nxt_n_cnt);
-            void linear(int n_cnt, int nxt_n_cnt, InitializationFunction init_fn);
-            void linear(std::vector<int> n_shape, int nxt_n_cnt, InitializationFunction init_fn);
+            void dense(int nxt_n_cnt);
+            void dense(int nxt_n_cnt, InitializationFunction init_fn);
+            void dense(std::vector<int> n_shape, int nxt_n_cnt);
+            void dense(int n_cnt, int nxt_n_cnt);
+            void dense(int n_cnt, int nxt_n_cnt, InitializationFunction init_fn);
+            void dense(std::vector<int> n_shape, int nxt_n_cnt, InitializationFunction init_fn);
             void convolutional(int fltr_cnt, int w_row_cnt, int w_col_cnt);
             void convolutional(int fltr_cnt, int w_row_cnt, int w_col_cnt, InitializationFunction init_fn);
             void convolutional(std::vector<int> n_shape, int fltr_cnt, int w_row_cnt, int w_col_cnt);

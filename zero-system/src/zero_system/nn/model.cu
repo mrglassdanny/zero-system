@@ -152,8 +152,8 @@ void Model::load(FILE *file_ptr)
 
         switch (lyr_typ)
         {
-        case LayerType::Linear:
-            lyr = new LinearLayer();
+        case LayerType::Dense:
+            lyr = new DenseLayer();
             break;
         case LayerType::Convolutional:
             lyr = new ConvolutionalLayer();
@@ -253,36 +253,36 @@ void Model::add_embedding(Model *embg, Range embg_range)
     this->embg_ranges.push_back(embg_range);
 }
 
-void Model::linear(int nxt_n_cnt)
+void Model::dense(int nxt_n_cnt)
 {
-    this->linear(this->get_output_shape(), nxt_n_cnt, InitializationFunction::Xavier);
+    this->dense(this->get_output_shape(), nxt_n_cnt, InitializationFunction::Xavier);
 }
 
-void Model::linear(int nxt_n_cnt, InitializationFunction init_fn)
+void Model::dense(int nxt_n_cnt, InitializationFunction init_fn)
 {
-    this->linear(this->get_output_shape(), nxt_n_cnt, init_fn);
+    this->dense(this->get_output_shape(), nxt_n_cnt, init_fn);
 }
 
-void Model::linear(std::vector<int> n_shape, int nxt_n_cnt)
+void Model::dense(std::vector<int> n_shape, int nxt_n_cnt)
 {
-    this->linear(n_shape, nxt_n_cnt, InitializationFunction::Xavier);
+    this->dense(n_shape, nxt_n_cnt, InitializationFunction::Xavier);
 }
 
-void Model::linear(int n_cnt, int nxt_n_cnt)
+void Model::dense(int n_cnt, int nxt_n_cnt)
 {
     std::vector<int> n_shape{n_cnt};
-    this->linear(n_shape, nxt_n_cnt, InitializationFunction::Xavier);
+    this->dense(n_shape, nxt_n_cnt, InitializationFunction::Xavier);
 }
 
-void Model::linear(int n_cnt, int nxt_n_cnt, InitializationFunction init_fn)
+void Model::dense(int n_cnt, int nxt_n_cnt, InitializationFunction init_fn)
 {
     std::vector<int> n_shape{n_cnt};
-    this->linear(n_shape, nxt_n_cnt, init_fn);
+    this->dense(n_shape, nxt_n_cnt, init_fn);
 }
 
-void Model::linear(std::vector<int> n_shape, int nxt_n_cnt, InitializationFunction init_fn)
+void Model::dense(std::vector<int> n_shape, int nxt_n_cnt, InitializationFunction init_fn)
 {
-    this->add_layer(new LinearLayer(n_shape, nxt_n_cnt, init_fn));
+    this->add_layer(new DenseLayer(n_shape, nxt_n_cnt, init_fn));
 }
 
 void Model::convolutional(int fltr_cnt, int w_row_cnt, int w_col_cnt)

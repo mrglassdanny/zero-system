@@ -124,16 +124,16 @@ int main(int argc, char **argv)
     conv->activation(ReLU);
     conv->pooling(Max);
 
-    conv->linear(128);
+    conv->dense(128);
     conv->activation(ReLU);
 
-    conv->linear(128);
+    conv->dense(128);
     conv->activation(ReLU);
 
-    conv->linear(32);
+    conv->dense(32);
     conv->activation(ReLU);
 
-    conv->linear(Tensor::get_cnt(train_sup->get_y_shape()));
+    conv->dense(Tensor::get_cnt(train_sup->get_y_shape()));
     conv->activation(ReLU);
 
     conv->fit(train_sup, 64, 20, "temp/mnist-train.csv", NULL);

@@ -13,7 +13,7 @@ namespace zero
     {
         enum LayerType
         {
-            Linear,
+            Dense,
             Convolutional,
             Activation,
             Dropout,
@@ -76,12 +76,12 @@ namespace zero
             virtual void step(int batch_size, float learning_rate) = 0;
         };
 
-        class LinearLayer : public LearnableLayer
+        class DenseLayer : public LearnableLayer
         {
         public:
-            LinearLayer();
-            LinearLayer(std::vector<int> n_shape, int nxt_n_cnt, InitializationFunction init_fn);
-            ~LinearLayer();
+            DenseLayer();
+            DenseLayer(std::vector<int> n_shape, int nxt_n_cnt, InitializationFunction init_fn);
+            ~DenseLayer();
 
             virtual LayerType get_type();
 

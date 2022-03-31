@@ -22,13 +22,13 @@ void nn_gradient_test()
 
 	conv->pooling(PoolingFunction::Average);
 
-	conv->linear(64);
+	conv->dense(64);
 	conv->activation(ActivationFunction::Tanh);
 
-	conv->linear(40);
+	conv->dense(40);
 	conv->activation(ActivationFunction::Tanh);
 
-	conv->linear(Tensor::get_cnt(y->get_shape()));
+	conv->dense(Tensor::get_cnt(y->get_shape()));
 	conv->activation(ActivationFunction::Tanh);
 
 	conv->grad_check(x, y, true);
@@ -59,16 +59,16 @@ void nn_performance_test()
 
 	Model *model = new Model(CostFunction::MSE, 0.001f);
 
-	model->linear(x_shape, 2048);
+	model->dense(x_shape, 2048);
 	model->activation(ActivationFunction::Sigmoid);
 
-	model->linear(2048);
+	model->dense(2048);
 	model->activation(ActivationFunction::Sigmoid);
 
-	model->linear(1024);
+	model->dense(1024);
 	model->activation(ActivationFunction::Sigmoid);
 
-	model->linear(Tensor::get_cnt(y_shape));
+	model->dense(Tensor::get_cnt(y_shape));
 	model->activation(ActivationFunction::Sigmoid);
 
 	printf("SYSTEM ZERO: PERFORMANCE TEST INITIATED...\n");
@@ -112,11 +112,11 @@ void nn_approx_test()
 
 	Model *model = new Model(MSE, 0.001f);
 
-	model->linear(3, 128);
+	model->dense(3, 128);
 	model->activation(Sigmoid);
-	model->linear(128);
+	model->dense(128);
 	model->activation(Sigmoid);
-	model->linear(1);
+	model->dense(1);
 
 	model->fit(batch, NULL);
 

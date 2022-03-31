@@ -47,16 +47,16 @@ Model *init_model()
     conv->convolutional(x_shape, 1, 1, 1);
     conv->activation(ActivationFunction::Tanh);
 
-    conv->linear(1024);
+    conv->dense(1024);
     conv->activation(ActivationFunction::Tanh);
 
-    conv->linear(1024);
+    conv->dense(1024);
     conv->activation(ActivationFunction::Tanh);
 
-    conv->linear(128);
+    conv->dense(128);
     conv->activation(ActivationFunction::Tanh);
 
-    conv->linear(y_shape);
+    conv->dense(y_shape);
     conv->activation(ActivationFunction::Tanh);
 
     return conv;

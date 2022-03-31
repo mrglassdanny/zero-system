@@ -170,7 +170,7 @@ __global__ void k_add_bias(float *b_arr, float *nxt_n_arr, int nxt_n_cnt)
     }
 }
 
-__global__ void k_lin_derive_z_and_increment_weight_derivative(float *dc_arr, float *n_arr, float *dw_arr, int dc_cnt, int n_cnt)
+__global__ void k_dense_derive_z_and_increment_weight_derivative(float *dc_arr, float *n_arr, float *dw_arr, int dc_cnt, int n_cnt)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -186,7 +186,7 @@ __global__ void k_lin_derive_z_and_increment_weight_derivative(float *dc_arr, fl
     }
 }
 
-__global__ void k_lin_derive_z_and_increment_bias_derivative(float *dc_arr, float *db_arr, int dc_cnt)
+__global__ void k_dense_derive_z_and_increment_bias_derivative(float *dc_arr, float *db_arr, int dc_cnt)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -196,7 +196,7 @@ __global__ void k_lin_derive_z_and_increment_bias_derivative(float *dc_arr, floa
     }
 }
 
-__global__ void k_lin_derive_z_and_aggregate_derivatives(float *dc_arr, float *w_arr, float *nxt_dc_arr, int n_cnt, int nxt_n_cnt)
+__global__ void k_dense_derive_z_and_aggregate_derivatives(float *dc_arr, float *w_arr, float *nxt_dc_arr, int n_cnt, int nxt_n_cnt)
 {
     __shared__ float temp[CUDA_THREADS_PER_BLOCK];
     memset(temp, 0, CUDA_THREADS_PER_BLOCK * sizeof(float));
@@ -985,10 +985,10 @@ void LearnableLayer::set_bias_derivatives(Tensor *db)
 
 // LinearLayer functions:
 
-LinearLayer::LinearLayer()
+DenseLayer::DenseLayer()
     : LearnableLayer() {}
 
-LinearLayer::LinearLayer(std::vector<int> n_shape, int nxt_n_cnt, InitializationFunction init_fn)
+DenseLayer::DenseLayer(std::vector<int> n_shape, int nxt_n_cnt, InitializationFunction init_fn)
     : LearnableLayer(n_shape)
 {
     int n_cnt = Tensor::get_cnt(n_shape);
@@ -1006,29 +1006,29 @@ LinearLayer::LinearLayer(std::vector<int> n_shape, int nxt_n_cnt, Initialization
     this->db->reset();
 }
 
-LinearLayer::~LinearLayer() {}
+DenseLayer::~DenseLayer() {}
 
-LayerType LinearLayer::get_type()
+LayerType DenseLayer::get_type()
 {
-    return LayerType::Linear;
+    return LayerType::Dense;
 }
 
-void LinearLayer::load(FILE *file_ptr)
+void DenseLayer::load(FILE *file_ptr)
 {
     LearnableLayer::load(file_ptr);
 }
 
-void LinearLayer::save(FILE *file_ptr)
+void DenseLayer::save(FILE *file_ptr)
 {
     LearnableLayer::save(file_ptr);
 }
 
-std::vector<int> LinearLayer::get_output_shape()
+std::vector<int> DenseLayer::get_output_shape()
 {
     return this->b->get_shape();
 }
 
-void LinearLayer::forward(Tensor *nxt_n, bool train_flg)
+void DenseLayer::forward(Tensor *nxt_n, bool train_flg)
 {
     Layer::forward(nxt_n, train_flg);
 
@@ -1050,7 +1050,7 @@ void LinearLayer::forward(Tensor *nxt_n, bool train_flg)
     }
 }
 
-Tensor *LinearLayer::backward(Tensor *dc)
+Tensor *DenseLayer::backward(Tensor *dc)
 {
     int dc_cnt = dc->get_cnt();
     int n_cnt = this->n->get_cnt();
@@ -1058,16 +1058,16 @@ Tensor *LinearLayer::backward(Tensor *dc)
     {
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
         int num_blocks = ((dc_cnt * n_cnt) / threads_per_block) + 1;
-        k_lin_derive_z_and_increment_weight_derivative<<<num_blocks, threads_per_block>>>(dc->get_arr(),
-                                                                                          this->n->get_arr(),
-                                                                                          this->dw->get_arr(),
-                                                                                          dc_cnt, n_cnt);
+        k_dense_derive_z_and_increment_weight_derivative<<<num_blocks, threads_per_block>>>(dc->get_arr(),
+                                                                                            this->n->get_arr(),
+                                                                                            this->dw->get_arr(),
+                                                                                            dc_cnt, n_cnt);
     }
 
     {
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
         int num_blocks = (dc_cnt / threads_per_block) + 1;
-        k_lin_derive_z_and_increment_bias_derivative<<<num_blocks, threads_per_block>>>(dc->get_arr(), this->db->get_arr(), dc_cnt);
+        k_dense_derive_z_and_increment_bias_derivative<<<num_blocks, threads_per_block>>>(dc->get_arr(), this->db->get_arr(), dc_cnt);
     }
 
     Tensor *nxt_dc = new Tensor(Device::Cuda, this->n->get_shape());
@@ -1075,9 +1075,9 @@ Tensor *LinearLayer::backward(Tensor *dc)
     {
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
         int num_blocks = ((n_cnt * dc_cnt) / threads_per_block) + 1;
-        k_lin_derive_z_and_aggregate_derivatives<<<num_blocks, threads_per_block>>>(dc->get_arr(), this->w->get_arr(),
-                                                                                    nxt_dc->get_arr(),
-                                                                                    dc_cnt, n_cnt);
+        k_dense_derive_z_and_aggregate_derivatives<<<num_blocks, threads_per_block>>>(dc->get_arr(), this->w->get_arr(),
+                                                                                      nxt_dc->get_arr(),
+                                                                                      dc_cnt, n_cnt);
     }
 
     delete dc;
@@ -1086,7 +1086,7 @@ Tensor *LinearLayer::backward(Tensor *dc)
     return dc;
 }
 
-void LinearLayer::step(int batch_size, float learning_rate)
+void DenseLayer::step(int batch_size, float learning_rate)
 {
     {
         int threads_per_block = CUDA_THREADS_PER_BLOCK;

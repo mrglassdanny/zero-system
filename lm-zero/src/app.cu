@@ -283,43 +283,43 @@ void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
     Model *lm = new Model();
 
     Model *variable_act_embg = new Model();
-    variable_act_embg->linear(xs_tbl->get_last_column_idx("typ") - xs_tbl->get_column_idx("actcod") + 1, 256);
+    variable_act_embg->dense(xs_tbl->get_last_column_idx("typ") - xs_tbl->get_column_idx("actcod") + 1, 256);
     variable_act_embg->activation(ReLU);
-    variable_act_embg->linear(256);
+    variable_act_embg->dense(256);
     variable_act_embg->activation(ReLU);
-    variable_act_embg->linear(16);
+    variable_act_embg->dense(16);
     variable_act_embg->activation(ReLU);
-    variable_act_embg->linear(1);
+    variable_act_embg->dense(1);
     variable_act_embg->activation(ReLU);
 
     Model *constant_act_embg = new Model();
-    constant_act_embg->linear(xs_tbl->get_last_column_idx("constant_typ") - xs_tbl->get_column_idx("constant_actcod") + 1, 256);
+    constant_act_embg->dense(xs_tbl->get_last_column_idx("constant_typ") - xs_tbl->get_column_idx("constant_actcod") + 1, 256);
     constant_act_embg->activation(ReLU);
-    constant_act_embg->linear(256);
+    constant_act_embg->dense(256);
     constant_act_embg->activation(ReLU);
-    constant_act_embg->linear(16);
+    constant_act_embg->dense(16);
     constant_act_embg->activation(ReLU);
-    constant_act_embg->linear(1);
+    constant_act_embg->dense(1);
     constant_act_embg->activation(ReLU);
 
     Model *src_loc_embg = new Model();
-    src_loc_embg->linear(xs_tbl->get_last_column_idx("fr_loc") - xs_tbl->get_column_idx("fr_loc") + 1, 1024);
+    src_loc_embg->dense(xs_tbl->get_last_column_idx("fr_loc") - xs_tbl->get_column_idx("fr_loc") + 1, 1024);
     src_loc_embg->activation(ReLU);
-    src_loc_embg->linear(512);
+    src_loc_embg->dense(512);
     src_loc_embg->activation(ReLU);
-    src_loc_embg->linear(256);
+    src_loc_embg->dense(256);
     src_loc_embg->activation(ReLU);
-    src_loc_embg->linear(LOC_EMBG_OUTPUT_N_CNT);
+    src_loc_embg->dense(LOC_EMBG_OUTPUT_N_CNT);
     src_loc_embg->activation(ReLU);
 
     Model *dst_loc_embg = new Model();
-    dst_loc_embg->linear(xs_tbl->get_last_column_idx("to_loc") - xs_tbl->get_column_idx("to_loc") + 1, 1024);
+    dst_loc_embg->dense(xs_tbl->get_last_column_idx("to_loc") - xs_tbl->get_column_idx("to_loc") + 1, 1024);
     dst_loc_embg->activation(ReLU);
-    dst_loc_embg->linear(512);
+    dst_loc_embg->dense(512);
     dst_loc_embg->activation(ReLU);
-    dst_loc_embg->linear(256);
+    dst_loc_embg->dense(256);
     dst_loc_embg->activation(ReLU);
-    dst_loc_embg->linear(LOC_EMBG_OUTPUT_N_CNT);
+    dst_loc_embg->dense(LOC_EMBG_OUTPUT_N_CNT);
     dst_loc_embg->activation(ReLU);
     dst_loc_embg->share_parameters(src_loc_embg);
 
@@ -415,23 +415,23 @@ void playground(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
     Model *lm = new Model();
 
     Model *src_loc_embg = new Model();
-    src_loc_embg->linear(xs_tbl->get_last_column_idx("fr_loc") - xs_tbl->get_column_idx("fr_loc") + 1, 1024);
+    src_loc_embg->dense(xs_tbl->get_last_column_idx("fr_loc") - xs_tbl->get_column_idx("fr_loc") + 1, 1024);
     src_loc_embg->activation(ReLU);
-    src_loc_embg->linear(512);
+    src_loc_embg->dense(512);
     src_loc_embg->activation(ReLU);
-    src_loc_embg->linear(256);
+    src_loc_embg->dense(256);
     src_loc_embg->activation(ReLU);
-    src_loc_embg->linear(LOC_EMBG_OUTPUT_N_CNT);
+    src_loc_embg->dense(LOC_EMBG_OUTPUT_N_CNT);
     src_loc_embg->activation(ReLU);
 
     Model *dst_loc_embg = new Model();
-    dst_loc_embg->linear(xs_tbl->get_last_column_idx("to_loc") - xs_tbl->get_column_idx("to_loc") + 1, 1024);
+    dst_loc_embg->dense(xs_tbl->get_last_column_idx("to_loc") - xs_tbl->get_column_idx("to_loc") + 1, 1024);
     dst_loc_embg->activation(ReLU);
-    dst_loc_embg->linear(512);
+    dst_loc_embg->dense(512);
     dst_loc_embg->activation(ReLU);
-    dst_loc_embg->linear(256);
+    dst_loc_embg->dense(256);
     dst_loc_embg->activation(ReLU);
-    dst_loc_embg->linear(LOC_EMBG_OUTPUT_N_CNT);
+    dst_loc_embg->dense(LOC_EMBG_OUTPUT_N_CNT);
     dst_loc_embg->activation(ReLU);
     dst_loc_embg->share_parameters(src_loc_embg);
 
