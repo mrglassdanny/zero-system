@@ -24,6 +24,12 @@ namespace zero
             void add_layer(Layer *lyr);
             void add_child(Model *child, Range child_range);
 
+            Tensor *child_backward(Tensor *dc, int adj_x_offset);
+
+            void child_grad_check(Model *parent, Tensor *x, Tensor *y,
+                                  float *agg_ana_grad, float *agg_num_grad, float *agg_grad_diff,
+                                  int child_idx, bool print_flg);
+
         public:
             Model();
             Model(CostFunction cost_fn);
@@ -83,13 +89,9 @@ namespace zero
             Tensor *forward(Tensor *x, bool train_flg);
             float cost(Tensor *pred, Tensor *y);
             Tensor *backward(Tensor *pred, Tensor *y);
-            Tensor *child_backward(Tensor *dc, int adj_x_offset);
             void step(int batch_size);
 
             void grad_check(Tensor *x, Tensor *y, bool print_flg);
-            void child_grad_check(Model *parent, Tensor *x, Tensor *y,
-                                  float *agg_ana_grad, float *agg_num_grad, float *agg_grad_diff,
-                                  int child_idx, bool print_flg);
 
             Report train(Batch *batch, UpdateResultFn fn);
             Report test(Batch *batch, UpdateResultFn fn);
