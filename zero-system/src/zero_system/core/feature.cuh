@@ -29,6 +29,8 @@ namespace zero
             Column(const char *name);
             Column(const char *name, bool numeric);
             Column(const char *name, bool numeric, int row_cnt);
+            Column(Column &src);
+            Column(const char *name, Column &src);
             ~Column();
 
             void copy(Column *src);

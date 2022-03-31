@@ -35,6 +35,19 @@ Column::Column(const char *name, bool numeric, int row_cnt)
     this->alloc_data(row_cnt);
 }
 
+Column::Column(Column &src)
+{
+    this->copy(&src);
+}
+
+Column::Column(const char *name, Column &src)
+{
+    memset(this->name, 0, sizeof(this->name));
+    strcpy(this->name, name);
+
+    this->copy(&src);
+}
+
 Column::~Column()
 {
     if (this->data != NULL)
