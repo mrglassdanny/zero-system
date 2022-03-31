@@ -132,7 +132,7 @@ Model::~Model()
         delete lyr;
     }
 
-    // Let caller handle embeddings!
+    // Let caller handle children!
 }
 
 void Model::load(FILE *file_ptr)
@@ -178,16 +178,16 @@ void Model::load(FILE *file_ptr)
         this->add_layer(lyr);
     }
 
-    int embg_cnt = 0;
-    fread(&embg_cnt, sizeof(int), 1, file_ptr);
+    int child_cnt = 0;
+    fread(&child_cnt, sizeof(int), 1, file_ptr);
 
-    for (int i = 0; i < embg_cnt; i++)
+    for (int i = 0; i < child_cnt; i++)
     {
-        Range embg_range;
-        fread(&embg_range, sizeof(Range), 1, file_ptr);
+        Range child_range;
+        fread(&child_range, sizeof(Range), 1, file_ptr);
 
-        // Since embeddings are saved to their own files, we will let the caller worry about loading them in accordance with ranges.
-        this->embed(nullptr, embg_range);
+        // Since children are saved to their own files, we will let the caller worry about loading them in accordance with ranges.
+        this->child(nullptr, child_range);
     }
 }
 
@@ -216,15 +216,15 @@ void Model::save(FILE *file_ptr)
         lyr->save(file_ptr);
     }
 
-    int embg_cnt = this->embgs.size();
-    fwrite(&embg_cnt, sizeof(int), 1, file_ptr);
+    int child_cnt = this->children.size();
+    fwrite(&child_cnt, sizeof(int), 1, file_ptr);
 
-    for (int embg_idx = 0; embg_idx < embg_cnt; embg_idx++)
+    for (int child_idx = 0; child_idx < child_cnt; child_idx++)
     {
-        Range embg_range = this->embg_ranges[embg_idx];
-        fwrite(&embg_range, sizeof(Range), 1, file_ptr);
+        Range child_range = this->child_ranges[child_idx];
+        fwrite(&child_range, sizeof(Range), 1, file_ptr);
 
-        // We will let the caller save embeddings as they please!
+        // We will let the caller save children as they please!
     }
 }
 
@@ -242,15 +242,15 @@ void Model::add_layer(Layer *lyr)
     this->layers.push_back(lyr);
 }
 
-void Model::add_embedding(Model *embg, Range embg_range)
+void Model::add_child(Model *child, Range child_range)
 {
-    if (embg != nullptr)
+    if (child != nullptr)
     {
-        embg->set_learning_rate(this->learning_rate);
-        this->embgs.push_back(embg);
+        child->set_learning_rate(this->learning_rate);
+        this->children.push_back(child);
     }
 
-    this->embg_ranges.push_back(embg_range);
+    this->child_ranges.push_back(child_range);
 }
 
 void Model::dense(int nxt_n_cnt)
@@ -355,20 +355,20 @@ void Model::custom(std::vector<int> n_shape,
     this->add_layer(new CustomLayer(n_shape, get_output_shape_fn, forward_fn, backward_fn));
 }
 
-void Model::embed(Model *embg)
+void Model::child(Model *child)
 {
-    // We are assuming that caller is pushing embedding into the right spot given range positions.
-    this->embgs.push_back(embg);
+    // We are assuming that caller is pushing child into the right spot given range positions.
+    this->children.push_back(child);
 }
 
-void Model::embed(Model *embg, Range embg_range)
+void Model::child(Model *child, Range child_range)
 {
-    this->add_embedding(embg, embg_range);
+    this->add_child(child, child_range);
 }
 
 std::vector<int> Model::get_input_shape()
 {
-    if (this->embgs.size() == 0)
+    if (this->children.size() == 0)
     {
         return this->layers[0]->get_input_shape();
     }
@@ -376,10 +376,10 @@ std::vector<int> Model::get_input_shape()
     {
         int n_cnt = Tensor::get_cnt(this->layers[0]->get_input_shape());
 
-        for (Model *embg : this->embgs)
+        for (Model *child : this->children)
         {
-            n_cnt -= Tensor::get_cnt(embg->get_output_shape());
-            n_cnt += Tensor::get_cnt(embg->get_input_shape());
+            n_cnt -= Tensor::get_cnt(child->get_output_shape());
+            n_cnt += Tensor::get_cnt(child->get_input_shape());
         }
 
         std::vector<int> n_shape{n_cnt};
@@ -392,7 +392,7 @@ std::vector<int> Model::get_output_shape()
     return this->layers[this->layers.size() - 1]->get_output_shape();
 }
 
-std::vector<int> Model::get_embedded_input_shape()
+std::vector<int> Model::get_adjusted_input_shape()
 {
     return this->layers[0]->get_input_shape();
 }
@@ -402,14 +402,14 @@ std::vector<Layer *> Model::get_layers()
     return this->layers;
 }
 
-std::vector<Model *> Model::get_embeddings()
+std::vector<Model *> Model::get_children()
 {
-    return this->embgs;
+    return this->children;
 }
 
-std::vector<Range> Model::get_embedding_ranges()
+std::vector<Range> Model::get_child_ranges()
 {
-    return this->embg_ranges;
+    return this->child_ranges;
 }
 
 void Model::set_learning_rate(float learning_rate)
@@ -444,82 +444,82 @@ Tensor *Model::forward(Tensor *x, bool train_flg)
     Layer *frst_lyr = this->layers[0];
     Layer *lst_lyr = this->layers[lst_lyr_idx];
 
-    if (this->embgs.size() > 0)
+    if (this->children.size() > 0)
     {
-        // We need to create an embedded x tensor to match our updated shape and values due to embeddings:
-        Tensor *embd_x = new Tensor(x->get_device(), this->get_embedded_input_shape());
-        cudaMemcpy(embd_x->get_arr(), x->get_arr(), sizeof(float) * this->embg_ranges[0].beg_idx, cudaMemcpyDefault);
+        // We need to create an adjusted x tensor to match our updated shape and values due to children:
+        Tensor *adj_x = new Tensor(x->get_device(), this->get_adjusted_input_shape());
+        cudaMemcpy(adj_x->get_arr(), x->get_arr(), sizeof(float) * this->child_ranges[0].beg_idx, cudaMemcpyDefault);
 
-        // First we need to shift all non-embedding inputs in accordance to new embedded x layout:
+        // First we need to shift all non-child inputs in accordance to new adjusted x layout:
         {
-            int embd_x_offset = this->embg_ranges[0].beg_idx;
+            int adj_x_offset = this->child_ranges[0].beg_idx;
 
             int lst_x_idx = x->get_cnt() - 1;
 
-            for (int embg_idx = 0; embg_idx < this->embgs.size() - 1; embg_idx++)
+            for (int child_idx = 0; child_idx < this->children.size() - 1; child_idx++)
             {
-                Model *embg = this->embgs[embg_idx];
-                Model *nxt_embg = this->embgs[embg_idx + 1];
+                Model *child = this->children[child_idx];
+                Model *nxt_child = this->children[child_idx + 1];
 
-                Range embg_range = this->embg_ranges[embg_idx];
-                Range nxt_embg_range = this->embg_ranges[embg_idx + 1];
+                Range child_range = this->child_ranges[child_idx];
+                Range nxt_child_range = this->child_ranges[child_idx + 1];
 
-                embd_x_offset += Tensor::get_cnt(embg->get_output_shape());
+                adj_x_offset += Tensor::get_cnt(child->get_output_shape());
 
-                int non_embg_range_len = ((nxt_embg_range.beg_idx - 1) - embg_range.end_idx);
+                int non_child_range_len = ((nxt_child_range.beg_idx - 1) - child_range.end_idx);
 
-                if (non_embg_range_len > 0)
+                if (non_child_range_len > 0)
                 {
-                    cudaMemcpy(&embd_x->get_arr()[embd_x_offset], &x->get_arr()[embg_range.end_idx + 1], sizeof(float) * non_embg_range_len, cudaMemcpyDefault);
-                    embd_x_offset += non_embg_range_len;
+                    cudaMemcpy(&adj_x->get_arr()[adj_x_offset], &x->get_arr()[child_range.end_idx + 1], sizeof(float) * non_child_range_len, cudaMemcpyDefault);
+                    adj_x_offset += non_child_range_len;
                 }
             }
 
             {
-                Model *lst_embg = this->embgs[this->embgs.size() - 1];
-                Range lst_embg_range = this->embg_ranges[this->embgs.size() - 1];
+                Model *lst_child = this->children[this->children.size() - 1];
+                Range lst_child_range = this->child_ranges[this->children.size() - 1];
 
-                embd_x_offset += Tensor::get_cnt(lst_embg->get_output_shape());
+                adj_x_offset += Tensor::get_cnt(lst_child->get_output_shape());
 
-                int non_embg_range_len = (lst_x_idx - lst_embg_range.end_idx);
+                int non_child_range_len = (lst_x_idx - lst_child_range.end_idx);
 
-                if (non_embg_range_len > 0 && embd_x_offset + non_embg_range_len <= embd_x->get_cnt())
+                if (non_child_range_len > 0 && adj_x_offset + non_child_range_len <= adj_x->get_cnt())
                 {
-                    cudaMemcpy(&embd_x->get_arr()[embd_x_offset], &x->get_arr()[lst_embg_range.end_idx + 1], sizeof(float) * non_embg_range_len, cudaMemcpyDefault);
+                    cudaMemcpy(&adj_x->get_arr()[adj_x_offset], &x->get_arr()[lst_child_range.end_idx + 1], sizeof(float) * non_child_range_len, cudaMemcpyDefault);
                 }
             }
         }
 
-        // Now we can evaluate embeddings and stick the predictions in their correct spots:
+        // Now we can evaluate children and stick the predictions in their correct spots:
         {
-            int embg_output_shape_cnt = 0;
+            int child_output_shape_cnt = 0;
 
-            int embd_x_offset = 0;
+            int adj_x_offset = 0;
 
-            for (int embg_idx = 0; embg_idx < this->embgs.size(); embg_idx++)
+            for (int child_idx = 0; child_idx < this->children.size(); child_idx++)
             {
-                Model *embg = this->embgs[embg_idx];
-                Range embg_range = this->embg_ranges[embg_idx];
+                Model *child = this->children[child_idx];
+                Range child_range = this->child_ranges[child_idx];
 
-                embg_output_shape_cnt = Tensor::get_cnt(embg->get_output_shape());
+                child_output_shape_cnt = Tensor::get_cnt(child->get_output_shape());
 
-                Tensor *embg_x = new Tensor(x->get_device(), embg->get_input_shape());
+                Tensor *child_x = new Tensor(x->get_device(), child->get_input_shape());
 
-                cudaMemcpy(embg_x->get_arr(), &x->get_arr()[embg_range.beg_idx], sizeof(float) * (embg_range.end_idx - embg_range.beg_idx + 1), cudaMemcpyDefault);
+                cudaMemcpy(child_x->get_arr(), &x->get_arr()[child_range.beg_idx], sizeof(float) * (child_range.end_idx - child_range.beg_idx + 1), cudaMemcpyDefault);
 
-                Tensor *embg_pred = embg->forward(embg_x, train_flg);
+                Tensor *child_pred = child->forward(child_x, train_flg);
 
-                cudaMemcpy(&embd_x->get_arr()[embg_range.beg_idx + embd_x_offset], embg_pred->get_arr(), sizeof(float) * embg_output_shape_cnt, cudaMemcpyDefault);
+                cudaMemcpy(&adj_x->get_arr()[child_range.beg_idx + adj_x_offset], child_pred->get_arr(), sizeof(float) * child_output_shape_cnt, cudaMemcpyDefault);
 
-                embd_x_offset += (embg_output_shape_cnt - Tensor::get_cnt(embg->get_input_shape()));
+                adj_x_offset += (child_output_shape_cnt - Tensor::get_cnt(child->get_input_shape()));
 
-                delete embg_x;
-                delete embg_pred;
+                delete child_x;
+                delete child_pred;
             }
         }
 
-        frst_lyr->set_neurons(embd_x);
-        delete embd_x;
+        frst_lyr->set_neurons(adj_x);
+        delete adj_x;
     }
     else
     {
@@ -585,51 +585,51 @@ Tensor *Model::backward(Tensor *pred, Tensor *y)
         dc = lyr->backward(dc);
     }
 
-    if (this->embgs.size() > 0)
+    if (this->children.size() > 0)
     {
-        int embd_x_offset = this->embg_ranges[0].beg_idx;
+        int adj_x_offset = this->child_ranges[0].beg_idx;
 
-        for (int embg_idx = 0; embg_idx < this->embgs.size() - 1; embg_idx++)
+        for (int child_idx = 0; child_idx < this->children.size() - 1; child_idx++)
         {
-            Model *embg = this->embgs[embg_idx];
-            Model *nxt_embg = this->embgs[embg_idx + 1];
+            Model *child = this->children[child_idx];
+            Model *nxt_child = this->children[child_idx + 1];
 
-            Range embg_range = this->embg_ranges[embg_idx];
-            Range nxt_embg_range = this->embg_ranges[embg_idx + 1];
+            Range child_range = this->child_ranges[child_idx];
+            Range nxt_child_range = this->child_ranges[child_idx + 1];
 
             Tensor *cpy_dc = new Tensor(*dc);
 
-            delete embg->embedding_backward(cpy_dc, embd_x_offset);
+            delete child->child_backward(cpy_dc, adj_x_offset);
 
-            int non_embg_range_len = ((nxt_embg_range.beg_idx - 1) - embg_range.end_idx);
-            embd_x_offset += (Tensor::get_cnt(embg->get_output_shape()) + non_embg_range_len);
+            int non_child_range_len = ((nxt_child_range.beg_idx - 1) - child_range.end_idx);
+            adj_x_offset += (Tensor::get_cnt(child->get_output_shape()) + non_child_range_len);
         }
 
         {
-            Model *lst_embg = this->embgs[this->embgs.size() - 1];
-            Range lst_embg_range = this->embg_ranges[this->embgs.size() - 1];
+            Model *lst_child = this->children[this->children.size() - 1];
+            Range lst_child_range = this->child_ranges[this->children.size() - 1];
 
             Tensor *cpy_dc = new Tensor(*dc);
 
-            delete lst_embg->embedding_backward(cpy_dc, embd_x_offset);
+            delete lst_child->child_backward(cpy_dc, adj_x_offset);
         }
     }
 
     return dc;
 }
 
-Tensor *Model::embedding_backward(Tensor *dc, int embd_x_offset)
+Tensor *Model::child_backward(Tensor *dc, int adj_x_offset)
 {
     int lst_lyr_idx = this->layers.size() - 1;
 
-    // Need to adjust derivatives tensor since embedding only influences a handful of next layer neurons:
+    // Need to adjust derivatives tensor since child only influences a handful of next layer neurons:
     {
-        Tensor *embg_dc = new Tensor(dc->get_device(), this->get_output_shape());
+        Tensor *child_dc = new Tensor(dc->get_device(), this->get_output_shape());
 
-        cudaMemcpy(embg_dc->get_arr(), &dc->get_arr()[embd_x_offset], sizeof(float) * (embg_dc->get_cnt()), cudaMemcpyDefault);
+        cudaMemcpy(child_dc->get_arr(), &dc->get_arr()[adj_x_offset], sizeof(float) * (child_dc->get_cnt()), cudaMemcpyDefault);
 
         delete dc;
-        dc = embg_dc;
+        dc = child_dc;
     }
 
     for (int lyr_idx = lst_lyr_idx; lyr_idx >= 0; lyr_idx--)
@@ -651,9 +651,9 @@ void Model::step(int batch_size)
         }
     }
 
-    for (Model *embg : this->embgs)
+    for (Model *child : this->children)
     {
-        embg->step(batch_size);
+        child->step(batch_size);
     }
 }
 
@@ -677,14 +677,14 @@ void Model::grad_check(Tensor *x, Tensor *y, bool print_flg)
     // Numerical gradients:
     {
 
-        // Embeddings:
+        // Children:
         {
-            int embg_idx = 0;
-            for (Model *embg : this->embgs)
+            int child_idx = 0;
+            for (Model *child : this->children)
             {
-                embg_idx++;
-                embg->embedding_grad_check(this, x, y, &agg_ana_grad, &agg_num_grad, &agg_grad_diff,
-                                           embg_idx, print_flg);
+                child_idx++;
+                child->child_grad_check(this, x, y, &agg_ana_grad, &agg_num_grad, &agg_grad_diff,
+                                        child_idx, print_flg);
             }
         }
 
@@ -797,21 +797,21 @@ void Model::grad_check(Tensor *x, Tensor *y, bool print_flg)
     }
 }
 
-void Model::embedding_grad_check(Model *parent_embd_model, Tensor *x, Tensor *y,
-                                 float *agg_ana_grad, float *agg_num_grad, float *agg_grad_diff,
-                                 int embg_idx, bool print_flg)
+void Model::child_grad_check(Model *parent, Tensor *x, Tensor *y,
+                             float *agg_ana_grad, float *agg_num_grad, float *agg_grad_diff,
+                             int child_idx, bool print_flg)
 {
-    int embg_lyr_idx = 0;
-    for (Layer *embg_lyr : this->get_layers())
+    int child_lyr_idx = 0;
+    for (Layer *child_lyr : this->get_layers())
     {
-        embg_lyr_idx++;
+        child_lyr_idx++;
 
-        if (LearnableLayer *embg_lrn_lyr = dynamic_cast<LearnableLayer *>(embg_lyr))
+        if (LearnableLayer *child_lrn_lyr = dynamic_cast<LearnableLayer *>(child_lyr))
         {
-            Tensor *w = embg_lrn_lyr->get_weights();
-            Tensor *dw = embg_lrn_lyr->get_weight_derivatives();
-            Tensor *b = embg_lrn_lyr->get_biases();
-            Tensor *db = embg_lrn_lyr->get_bias_derivatives();
+            Tensor *w = child_lrn_lyr->get_weights();
+            Tensor *dw = child_lrn_lyr->get_weight_derivatives();
+            Tensor *b = child_lrn_lyr->get_biases();
+            Tensor *db = child_lrn_lyr->get_bias_derivatives();
 
             for (int w_idx = 0; w_idx < w->get_cnt(); w_idx++)
             {
@@ -827,15 +827,15 @@ void Model::embedding_grad_check(Model *parent_embd_model, Tensor *x, Tensor *y,
 
                 w->set_val(w_idx, left_w_val);
                 {
-                    Tensor *pred = parent_embd_model->forward(x, true);
-                    left_cost = parent_embd_model->cost(pred, y);
+                    Tensor *pred = parent->forward(x, true);
+                    left_cost = parent->cost(pred, y);
                     delete pred;
                 }
 
                 w->set_val(w_idx, right_w_val);
                 {
-                    Tensor *pred = parent_embd_model->forward(x, true);
-                    right_cost = parent_embd_model->cost(pred, y);
+                    Tensor *pred = parent->forward(x, true);
+                    right_cost = parent->cost(pred, y);
                     delete pred;
                 }
 
@@ -843,7 +843,7 @@ void Model::embedding_grad_check(Model *parent_embd_model, Tensor *x, Tensor *y,
 
                 if (print_flg)
                 {
-                    printf("E: %d W: %d  %d\t%f : %f  (%f)\n", embg_idx, embg_lyr_idx, w_idx, ana_grad, num_grad, fabs(ana_grad - num_grad));
+                    printf("E: %d W: %d  %d\t%f : %f  (%f)\n", child_idx, child_lyr_idx, w_idx, ana_grad, num_grad, fabs(ana_grad - num_grad));
                 }
 
                 *agg_ana_grad += (ana_grad * ana_grad);
@@ -867,15 +867,15 @@ void Model::embedding_grad_check(Model *parent_embd_model, Tensor *x, Tensor *y,
 
                 b->set_val(b_idx, left_b_val);
                 {
-                    Tensor *pred = parent_embd_model->forward(x, true);
-                    left_cost = parent_embd_model->cost(pred, y);
+                    Tensor *pred = parent->forward(x, true);
+                    left_cost = parent->cost(pred, y);
                     delete pred;
                 }
 
                 b->set_val(b_idx, right_b_val);
                 {
-                    Tensor *pred = parent_embd_model->forward(x, true);
-                    right_cost = parent_embd_model->cost(pred, y);
+                    Tensor *pred = parent->forward(x, true);
+                    right_cost = parent->cost(pred, y);
                     delete pred;
                 }
 
@@ -883,7 +883,7 @@ void Model::embedding_grad_check(Model *parent_embd_model, Tensor *x, Tensor *y,
 
                 if (print_flg)
                 {
-                    printf("E: %d B: %d  %d\t%f : %f  (%f)\n", embg_idx, embg_lyr_idx, b_idx, ana_grad, num_grad, fabs(ana_grad - num_grad));
+                    printf("E: %d B: %d  %d\t%f : %f  (%f)\n", child_idx, child_lyr_idx, b_idx, ana_grad, num_grad, fabs(ana_grad - num_grad));
                 }
 
                 *agg_ana_grad += (ana_grad * ana_grad);
@@ -1067,21 +1067,21 @@ Tensor *Model::predict(Tensor *x)
 
 // Model static functions:
 
-std::vector<int> Model::calc_embedded_input_shape(Model *model, std::vector<int> n_shape)
+std::vector<int> Model::calc_adjusted_input_shape(Model *model, std::vector<int> n_shape)
 {
-    return Model::calc_embedded_input_shape(model, Tensor::get_cnt(n_shape));
+    return Model::calc_adjusted_input_shape(model, Tensor::get_cnt(n_shape));
 }
 
-std::vector<int> Model::calc_embedded_input_shape(Model *model, int n_cnt)
+std::vector<int> Model::calc_adjusted_input_shape(Model *model, int n_cnt)
 {
-    int embd_n_cnt = n_cnt;
+    int adj_n_cnt = n_cnt;
 
-    for (Model *embg : model->embgs)
+    for (Model *child : model->children)
     {
-        embd_n_cnt += Tensor::get_cnt(embg->get_output_shape());
-        embd_n_cnt -= Tensor::get_cnt(embg->get_input_shape());
+        adj_n_cnt += Tensor::get_cnt(child->get_output_shape());
+        adj_n_cnt -= Tensor::get_cnt(child->get_input_shape());
     }
 
-    std::vector<int> embd_n_shape{embd_n_cnt};
-    return embd_n_shape;
+    std::vector<int> adj_n_shape{adj_n_cnt};
+    return adj_n_shape;
 }

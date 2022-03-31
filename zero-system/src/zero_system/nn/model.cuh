@@ -16,13 +16,13 @@ namespace zero
         {
         protected:
             std::vector<Layer *> layers;
-            std::vector<Model *> embgs;
-            std::vector<Range> embg_ranges;
+            std::vector<Model *> children;
+            std::vector<Range> child_ranges;
             CostFunction cost_fn;
             float learning_rate;
 
             void add_layer(Layer *lyr);
-            void add_embedding(Model *embg, Range embg_range);
+            void add_child(Model *child, Range child_range);
 
         public:
             Model();
@@ -63,16 +63,16 @@ namespace zero
                         void (*forward_fn)(Tensor *n, Tensor *nxt_n, bool train_flg),
                         Tensor *(*backward_fn)(Tensor *n, Tensor *dc));
 
-            void embed(Model *embg);
-            void embed(Model *embg, Range embg_range);
+            void child(Model *child);
+            void child(Model *child, Range child_range);
 
             std::vector<int> get_input_shape();
             std::vector<int> get_output_shape();
-            std::vector<int> get_embedded_input_shape();
+            std::vector<int> get_adjusted_input_shape();
 
             std::vector<Layer *> get_layers();
-            std::vector<Model *> get_embeddings();
-            std::vector<Range> get_embedding_ranges();
+            std::vector<Model *> get_children();
+            std::vector<Range> get_child_ranges();
 
             void set_learning_rate(float learning_rate);
 
@@ -81,13 +81,13 @@ namespace zero
             Tensor *forward(Tensor *x, bool train_flg);
             float cost(Tensor *pred, Tensor *y);
             Tensor *backward(Tensor *pred, Tensor *y);
-            Tensor *embedding_backward(Tensor *dc, int embd_x_offset);
+            Tensor *child_backward(Tensor *dc, int adj_x_offset);
             void step(int batch_size);
 
             void grad_check(Tensor *x, Tensor *y, bool print_flg);
-            void embedding_grad_check(Model *parent_embd_model, Tensor *x, Tensor *y,
-                                      float *agg_ana_grad, float *agg_num_grad, float *agg_grad_diff,
-                                      int embg_idx, bool print_flg);
+            void child_grad_check(Model *parent, Tensor *x, Tensor *y,
+                                  float *agg_ana_grad, float *agg_num_grad, float *agg_grad_diff,
+                                  int child_idx, bool print_flg);
 
             Report train(Batch *batch, UpdateResultFn fn);
             Report test(Batch *batch, UpdateResultFn fn);
@@ -97,8 +97,8 @@ namespace zero
 
             Tensor *predict(Tensor *x);
 
-            static std::vector<int> calc_embedded_input_shape(Model *model, std::vector<int> n_shape);
-            static std::vector<int> calc_embedded_input_shape(Model *model, int n_cnt);
+            static std::vector<int> calc_adjusted_input_shape(Model *model, std::vector<int> n_shape);
+            static std::vector<int> calc_adjusted_input_shape(Model *model, int n_cnt);
         };
     }
 }
