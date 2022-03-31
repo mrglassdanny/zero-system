@@ -237,6 +237,60 @@ void Model::save(const char *path)
     fclose(file_ptr);
 }
 
+void Model::copy(Model *src)
+{
+    this->cost_fn = src->cost_fn;
+    this->learning_rate = src->learning_rate;
+
+    for (Layer *src_lyr : src->layers)
+    {
+        Layer *lyr;
+
+        switch (src_lyr->get_type())
+        {
+        case LayerType::Dense:
+            lyr = new DenseLayer();
+            lyr->copy((DenseLayer *)src_lyr);
+            break;
+        case LayerType::Convolutional:
+            lyr = new ConvolutionalLayer();
+            lyr->copy((ConvolutionalLayer *)src_lyr);
+            break;
+        case LayerType::Activation:
+            lyr = new ActivationLayer();
+            lyr->copy((ActivationLayer *)src_lyr);
+            break;
+        case LayerType::Dropout:
+            lyr = new DropoutLayer();
+            lyr->copy((DropoutLayer *)src_lyr);
+            break;
+        case LayerType::Pooling:
+            lyr = new PoolingLayer();
+            lyr->copy((PoolingLayer *)src_lyr);
+            break;
+        case LayerType::Custom:
+            lyr = new CustomLayer();
+            lyr->copy((CustomLayer *)src_lyr);
+            break;
+        default:
+            break;
+        }
+
+        this->add_layer(lyr);
+    }
+
+    for (int i = 0; i < src->children.size(); i++)
+    {
+        Model *src_child = src->children[i];
+        Range src_child_range = src->child_ranges[i];
+
+        Model *child = new Model();
+        child->copy(src_child);
+
+        this->child(child, src_child_range);
+    }
+}
+
 void Model::add_layer(Layer *lyr)
 {
     this->layers.push_back(lyr);

@@ -36,6 +36,8 @@ namespace zero
             void save(FILE *file_ptr);
             void save(const char *path);
 
+            void copy(Model *src);
+
             void dense(int nxt_n_cnt);
             void dense(int nxt_n_cnt, InitializationFunction init_fn);
             void dense(std::vector<int> n_shape, int nxt_n_cnt);
