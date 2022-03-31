@@ -36,6 +36,8 @@ namespace zero
             virtual void load(FILE *file_ptr);
             virtual void save(FILE *file_ptr);
 
+            virtual void copy(Layer *src);
+
             virtual std::vector<int> get_input_shape();
             virtual std::vector<int> get_output_shape();
 
@@ -63,6 +65,8 @@ namespace zero
             virtual void load(FILE *file_ptr);
             virtual void save(FILE *file_ptr);
 
+            virtual void copy(Layer *src);
+
             virtual Tensor *get_weights();
             virtual Tensor *get_weight_derivatives();
             virtual Tensor *get_biases();
@@ -88,6 +92,8 @@ namespace zero
             virtual void load(FILE *file_ptr);
             virtual void save(FILE *file_ptr);
 
+            virtual void copy(Layer *src);
+
             virtual std::vector<int> get_output_shape();
 
             virtual void forward(Tensor *nxt_n, bool train_flg);
@@ -108,6 +114,8 @@ namespace zero
 
             virtual void load(FILE *file_ptr);
             virtual void save(FILE *file_ptr);
+
+            virtual void copy(Layer *src);
 
             virtual std::vector<int> get_output_shape();
 
@@ -132,6 +140,8 @@ namespace zero
             virtual void load(FILE *file_ptr);
             virtual void save(FILE *file_ptr);
 
+            virtual void copy(Layer *src);
+
             virtual void forward(Tensor *nxt_n, bool train_flg);
             virtual Tensor *backward(Tensor *dc);
         };
@@ -151,6 +161,8 @@ namespace zero
 
             virtual void load(FILE *file_ptr);
             virtual void save(FILE *file_ptr);
+
+            virtual void copy(Layer *src);
 
             virtual void forward(Tensor *nxt_n, bool train_flg);
             virtual Tensor *backward(Tensor *dc);
@@ -172,6 +184,8 @@ namespace zero
 
             virtual void load(FILE *file_ptr);
             virtual void save(FILE *file_ptr);
+
+            virtual void copy(Layer *src);
 
             virtual std::vector<int> get_output_shape();
 
@@ -199,6 +213,8 @@ namespace zero
 
             virtual void load(FILE *file_ptr);
             virtual void save(FILE *file_ptr);
+
+            virtual void copy(Layer *src);
 
             virtual std::vector<int> get_output_shape();
 

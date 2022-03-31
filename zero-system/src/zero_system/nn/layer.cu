@@ -769,6 +769,11 @@ void Layer::save(FILE *file_ptr)
     }
 }
 
+void Layer::copy(Layer *src)
+{
+    this->n->copy(src->n);
+}
+
 std::vector<int> Layer::get_input_shape()
 {
     return this->n->get_shape();
@@ -923,6 +928,16 @@ void LearnableLayer::save(FILE *file_ptr)
     fwrite(this->b->get_arr(Device::Cpu), sizeof(float), this->b->get_cnt(), file_ptr);
 }
 
+void LearnableLayer::copy(Layer *src)
+{
+    Layer::copy(src);
+
+    this->w->copy(((LearnableLayer *)src)->w);
+    this->b->copy(((LearnableLayer *)src)->b);
+    this->dw->copy(((LearnableLayer *)src)->dw);
+    this->db->copy(((LearnableLayer *)src)->db);
+}
+
 Tensor *LearnableLayer::get_weights()
 {
     return this->w;
@@ -983,7 +998,7 @@ void LearnableLayer::set_bias_derivatives(Tensor *db)
     this->db = db;
 }
 
-// LinearLayer functions:
+// DenseLayer functions:
 
 DenseLayer::DenseLayer()
     : LearnableLayer() {}
@@ -1021,6 +1036,11 @@ void DenseLayer::load(FILE *file_ptr)
 void DenseLayer::save(FILE *file_ptr)
 {
     LearnableLayer::save(file_ptr);
+}
+
+void DenseLayer::copy(Layer *src)
+{
+    LearnableLayer::copy(src);
 }
 
 std::vector<int> DenseLayer::get_output_shape()
@@ -1146,6 +1166,11 @@ void ConvolutionalLayer::load(FILE *file_ptr)
 void ConvolutionalLayer::save(FILE *file_ptr)
 {
     LearnableLayer::save(file_ptr);
+}
+
+void ConvolutionalLayer::copy(Layer *src)
+{
+    LearnableLayer::copy(src);
 }
 
 std::vector<int> ConvolutionalLayer::get_output_shape()
@@ -1307,6 +1332,13 @@ void ActivationLayer::save(FILE *file_ptr)
     fwrite(&this->activation_fn, sizeof(ActivationFunction), 1, file_ptr);
 }
 
+void ActivationLayer::copy(Layer *src)
+{
+    Layer::copy(src);
+
+    this->activation_fn = ((ActivationLayer *)src)->activation_fn;
+}
+
 void ActivationLayer::forward(Tensor *nxt_n, bool train_flg)
 {
     Layer::forward(nxt_n, train_flg);
@@ -1368,6 +1400,14 @@ void DropoutLayer::save(FILE *file_ptr)
     Layer::save(file_ptr);
 
     fwrite(&this->dropout_rate, sizeof(float), 1, file_ptr);
+}
+
+void DropoutLayer::copy(Layer *src)
+{
+    Layer::copy(src);
+
+    this->dropout_rate = ((DropoutLayer *)src)->dropout_rate;
+    this->dropout_mask->copy(((DropoutLayer *)src)->dropout_mask);
 }
 
 void DropoutLayer::forward(Tensor *nxt_n, bool train_flg)
@@ -1456,6 +1496,15 @@ void PoolingLayer::save(FILE *file_ptr)
     fwrite(&this->pool_fn, sizeof(PoolingFunction), 1, file_ptr);
     fwrite(&this->pool_row_cnt, sizeof(int), 1, file_ptr);
     fwrite(&this->pool_col_cnt, sizeof(int), 1, file_ptr);
+}
+
+void PoolingLayer::copy(Layer *src)
+{
+    Layer::copy(src);
+
+    this->pool_fn = ((PoolingLayer *)src)->pool_fn;
+    this->pool_row_cnt = ((PoolingLayer *)src)->pool_row_cnt;
+    this->pool_col_cnt = ((PoolingLayer *)src)->pool_col_cnt;
 }
 
 std::vector<int> PoolingLayer::get_output_shape()
@@ -1557,6 +1606,15 @@ void CustomLayer::load(FILE *file_ptr)
 void CustomLayer::save(FILE *file_ptr)
 {
     Layer::save(file_ptr);
+}
+
+void CustomLayer::copy(Layer *src)
+{
+    Layer::copy(src);
+
+    this->get_output_shape_fn = ((CustomLayer *)src)->get_output_shape_fn;
+    this->forward_fn = ((CustomLayer *)src)->forward_fn;
+    this->backward_fn = ((CustomLayer *)src)->backward_fn;
 }
 
 std::vector<int> CustomLayer::get_output_shape()
