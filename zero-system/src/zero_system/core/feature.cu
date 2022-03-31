@@ -43,18 +43,18 @@ Column::~Column()
     }
 }
 
-Column *Column::copy()
+void Column::copy(Column *src)
 {
-    return this->copy(this->name);
-}
+    if (strlen(this->name) == 0)
+    {
+        strcpy(this->name, src->name);
+    }
 
-Column *Column::copy(const char *name)
-{
-    Column *dst = new Column(name, this->numeric, this->row_cnt);
+    this->numeric = src->numeric;
+    this->data = NULL;
 
-    memcpy(dst->data, this->data, this->get_data_size());
-
-    return dst;
+    this->alloc_data(row_cnt);
+    memcpy(this->data, src->data, this->get_data_size());
 }
 
 void Column::print()
