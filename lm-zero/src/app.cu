@@ -422,16 +422,16 @@ void playground(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
     lm->child(src_loc_model, xs_tbl->get_column_range("fr_loc"));
     lm->child(dst_loc_model, xs_tbl->get_column_range("to_loc"));
 
-    // lm->custom(Model::calc_adjusted_input_shape(lm, xs_tbl->get_column_cnt()),
-    //            pg_get_output_shape, pg_forward, pg_backward);
-    lm->dense(Model::calc_adjusted_input_shape(lm, xs_tbl->get_column_cnt()), 1);
+    lm->custom(Model::calc_adjusted_input_shape(lm, xs_tbl->get_column_cnt()),
+               pg_get_output_shape, pg_forward, pg_backward);
+    // lm->dense(Model::calc_adjusted_input_shape(lm, xs_tbl->get_column_cnt()), 1);
     lm->activation(Sigmoid);
 
-    // lm->fit(sup, 100, 5, "temp/train.csv", upd_rslt_fn);
+    lm->fit(sup, 100, 5, "temp/train.csv", upd_rslt_fn);
 
     Batch *test_batch = sup->create_batch();
     // lm->test(test_batch, upd_rslt_fn).print();
-    lm->grad_check(test_batch->get_x(1), test_batch->get_y(1), true);
+    // lm->grad_check(test_batch->get_x(1), test_batch->get_y(1), true);
     delete test_batch;
 
     lm->save("temp/lm.model");
