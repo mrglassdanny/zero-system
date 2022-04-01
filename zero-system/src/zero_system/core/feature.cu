@@ -66,7 +66,7 @@ void Column::copy(Column *src)
     this->numeric = src->numeric;
     this->data = NULL;
 
-    this->alloc_data(row_cnt);
+    this->alloc_data(src->row_cnt);
     memcpy(this->data, src->data, this->get_data_size());
 }
 
