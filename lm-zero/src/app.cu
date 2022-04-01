@@ -1,7 +1,7 @@
 
 #include <zero_system/mod.cuh>
 
-#define LOC_EMBG_OUTPUT_N_CNT 64
+#define LOC_MODEL_OUTPUT_N_CNT 16
 
 std::vector<int> get_output_shape()
 {
@@ -19,9 +19,9 @@ void forward(Tensor *n, Tensor *nxt_n, bool train_flg)
     float v = 0.0f;
 
     int src_loc_beg_idx = 3;
-    int dst_loc_beg_idx = src_loc_beg_idx + LOC_EMBG_OUTPUT_N_CNT;
+    int dst_loc_beg_idx = src_loc_beg_idx + LOC_MODEL_OUTPUT_N_CNT;
 
-    for (int i = 0; i < LOC_EMBG_OUTPUT_N_CNT; i++)
+    for (int i = 0; i < LOC_MODEL_OUTPUT_N_CNT; i++)
     {
         float loc_diff = n->get_val(src_loc_beg_idx + i) - n->get_val(dst_loc_beg_idx + i);
         v += (loc_diff * loc_diff);
@@ -47,11 +47,11 @@ Tensor *backward(Tensor *n, Tensor *dc)
     nxt_dc->set_val(2, dc_val * n->get_val(0));
 
     int src_loc_beg_idx = 3;
-    int dst_loc_beg_idx = src_loc_beg_idx + LOC_EMBG_OUTPUT_N_CNT;
+    int dst_loc_beg_idx = src_loc_beg_idx + LOC_MODEL_OUTPUT_N_CNT;
 
     float v = 0.0f;
 
-    for (int i = 0; i < LOC_EMBG_OUTPUT_N_CNT; i++)
+    for (int i = 0; i < LOC_MODEL_OUTPUT_N_CNT; i++)
     {
         float loc_diff = n->get_val(src_loc_beg_idx + i) - n->get_val(dst_loc_beg_idx + i);
         v += (loc_diff * loc_diff);
@@ -59,7 +59,7 @@ Tensor *backward(Tensor *n, Tensor *dc)
 
     v = sqrt(v);
 
-    for (int i = 0; i < LOC_EMBG_OUTPUT_N_CNT; i++)
+    for (int i = 0; i < LOC_MODEL_OUTPUT_N_CNT; i++)
     {
         if (v == 0.0f)
         {
@@ -91,9 +91,9 @@ void pg_forward(Tensor *n, Tensor *nxt_n, bool train_flg)
     float v = 0.0f;
 
     int src_loc_beg_idx = 0;
-    int dst_loc_beg_idx = src_loc_beg_idx + LOC_EMBG_OUTPUT_N_CNT;
+    int dst_loc_beg_idx = src_loc_beg_idx + LOC_MODEL_OUTPUT_N_CNT;
 
-    for (int i = 0; i < LOC_EMBG_OUTPUT_N_CNT; i++)
+    for (int i = 0; i < LOC_MODEL_OUTPUT_N_CNT; i++)
     {
         float loc_diff = n->get_val(src_loc_beg_idx + i) - n->get_val(dst_loc_beg_idx + i);
         v += (loc_diff * loc_diff);
@@ -115,11 +115,11 @@ Tensor *pg_backward(Tensor *n, Tensor *dc)
     float dc_val = dc->get_val(0);
 
     int src_loc_beg_idx = 0;
-    int dst_loc_beg_idx = src_loc_beg_idx + LOC_EMBG_OUTPUT_N_CNT;
+    int dst_loc_beg_idx = src_loc_beg_idx + LOC_MODEL_OUTPUT_N_CNT;
 
     float v = 0.0f;
 
-    for (int i = 0; i < LOC_EMBG_OUTPUT_N_CNT; i++)
+    for (int i = 0; i < LOC_MODEL_OUTPUT_N_CNT; i++)
     {
         float loc_diff = n->get_val(src_loc_beg_idx + i) - n->get_val(dst_loc_beg_idx + i);
         v += (loc_diff * loc_diff);
@@ -127,7 +127,7 @@ Tensor *pg_backward(Tensor *n, Tensor *dc)
 
     v = sqrt(v);
 
-    for (int i = 0; i < LOC_EMBG_OUTPUT_N_CNT; i++)
+    for (int i = 0; i < LOC_MODEL_OUTPUT_N_CNT; i++)
     {
         if (v == 0.0f)
         {
@@ -282,53 +282,46 @@ void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
 {
     Model *lm = new Model();
 
-    Model *variable_act_embg = new Model();
-    variable_act_embg->dense(xs_tbl->get_last_column_idx("typ") - xs_tbl->get_column_idx("actcod") + 1, 256);
-    variable_act_embg->activation(ReLU);
-    variable_act_embg->dense(256);
-    variable_act_embg->activation(ReLU);
-    variable_act_embg->dense(16);
-    variable_act_embg->activation(ReLU);
-    variable_act_embg->dense(1);
-    variable_act_embg->activation(ReLU);
+    Model *variable_act_model = new Model();
+    variable_act_model->dense(xs_tbl->get_last_column_idx("typ") - xs_tbl->get_column_idx("actcod") + 1, 256);
+    variable_act_model->activation(ReLU);
+    variable_act_model->dense(256);
+    variable_act_model->activation(ReLU);
+    variable_act_model->dense(16);
+    variable_act_model->activation(ReLU);
+    variable_act_model->dense(1);
+    variable_act_model->activation(ReLU);
 
-    Model *constant_act_embg = new Model();
-    constant_act_embg->dense(xs_tbl->get_last_column_idx("constant_typ") - xs_tbl->get_column_idx("constant_actcod") + 1, 256);
-    constant_act_embg->activation(ReLU);
-    constant_act_embg->dense(256);
-    constant_act_embg->activation(ReLU);
-    constant_act_embg->dense(16);
-    constant_act_embg->activation(ReLU);
-    constant_act_embg->dense(1);
-    constant_act_embg->activation(ReLU);
+    Model *constant_act_model = new Model();
+    constant_act_model->dense(xs_tbl->get_last_column_idx("constant_typ") - xs_tbl->get_column_idx("constant_actcod") + 1, 256);
+    constant_act_model->activation(ReLU);
+    constant_act_model->dense(256);
+    constant_act_model->activation(ReLU);
+    constant_act_model->dense(16);
+    constant_act_model->activation(ReLU);
+    constant_act_model->dense(1);
+    constant_act_model->activation(ReLU);
 
-    Model *src_loc_embg = new Model();
-    src_loc_embg->dense(xs_tbl->get_last_column_idx("fr_loc") - xs_tbl->get_column_idx("fr_loc") + 1, 1024);
-    src_loc_embg->activation(ReLU);
-    src_loc_embg->dense(512);
-    src_loc_embg->activation(ReLU);
-    src_loc_embg->dense(256);
-    src_loc_embg->activation(ReLU);
-    src_loc_embg->dense(LOC_EMBG_OUTPUT_N_CNT);
-    src_loc_embg->activation(ReLU);
+    Model *src_loc_model = new Model();
+    src_loc_model->dense(xs_tbl->get_last_column_idx("fr_loc") - xs_tbl->get_column_idx("fr_loc") + 1, 1024);
+    src_loc_model->activation(ReLU);
+    src_loc_model->dense(512);
+    src_loc_model->activation(ReLU);
+    src_loc_model->dense(256);
+    src_loc_model->activation(ReLU);
+    src_loc_model->dense(LOC_MODEL_OUTPUT_N_CNT);
+    src_loc_model->activation(ReLU);
 
-    Model *dst_loc_embg = new Model();
-    dst_loc_embg->dense(xs_tbl->get_last_column_idx("to_loc") - xs_tbl->get_column_idx("to_loc") + 1, 1024);
-    dst_loc_embg->activation(ReLU);
-    dst_loc_embg->dense(512);
-    dst_loc_embg->activation(ReLU);
-    dst_loc_embg->dense(256);
-    dst_loc_embg->activation(ReLU);
-    dst_loc_embg->dense(LOC_EMBG_OUTPUT_N_CNT);
-    dst_loc_embg->activation(ReLU);
-    dst_loc_embg->share_parameters(src_loc_embg);
+    Model *dst_loc_model = new Model();
+    dst_loc_model->copy(src_loc_model);
+    dst_loc_model->share_parameters(src_loc_model);
 
-    lm->embed(variable_act_embg, Range{xs_tbl->get_column_idx("actcod"), xs_tbl->get_last_column_idx("typ")});
-    lm->embed(constant_act_embg, Range{xs_tbl->get_column_idx("constant_actcod"), xs_tbl->get_last_column_idx("constant_typ")});
-    lm->embed(src_loc_embg, xs_tbl->get_column_range("fr_loc"));
-    lm->embed(dst_loc_embg, xs_tbl->get_column_range("to_loc"));
+    lm->child(variable_act_model, Range{xs_tbl->get_column_idx("actcod"), xs_tbl->get_last_column_idx("typ")});
+    lm->child(constant_act_model, Range{xs_tbl->get_column_idx("constant_actcod"), xs_tbl->get_last_column_idx("constant_typ")});
+    lm->child(src_loc_model, xs_tbl->get_column_range("fr_loc"));
+    lm->child(dst_loc_model, xs_tbl->get_column_range("to_loc"));
 
-    lm->custom(Model::calc_embedded_input_shape(lm, xs_tbl->get_column_cnt()),
+    lm->custom(Model::calc_adjusted_input_shape(lm, xs_tbl->get_column_cnt()),
                get_output_shape, forward, backward);
     lm->activation(ReLU);
 
@@ -338,40 +331,40 @@ void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
     lm->test(test_batch, upd_rslt_fn).print();
     delete test_batch;
 
-    lm->save("temp/lm.nn");
-    variable_act_embg->save("temp/vact.em");
-    constant_act_embg->save("temp/cact.em");
-    src_loc_embg->save("temp/loc.em");
+    lm->save("temp/lm.model");
+    variable_act_model->save("temp/vact.model");
+    constant_act_model->save("temp/cact.model");
+    src_loc_model->save("temp/loc.model");
 
     delete lm;
-    delete variable_act_embg;
-    delete src_loc_embg;
-    delete dst_loc_embg;
+    delete variable_act_model;
+    delete src_loc_model;
+    delete dst_loc_model;
 }
 
 // Using this fn will cause memory leak for embeddings!
 Model *load_lm()
 {
     Model *lm = new Model();
-    lm->load("temp/lm.nn");
+    lm->load("temp/lm.model");
 
-    Model *variable_act_embg = new Model();
-    variable_act_embg->load("temp/vact.em");
+    Model *variable_act_model = new Model();
+    variable_act_model->load("temp/vact.model");
 
-    Model *constant_act_embg = new Model();
-    constant_act_embg->load("temp/cact.em");
+    Model *constant_act_model = new Model();
+    constant_act_model->load("temp/cact.model");
 
-    Model *src_loc_embg = new Model();
-    src_loc_embg->load("temp/loc.em");
+    Model *src_loc_model = new Model();
+    src_loc_model->load("temp/loc.model");
 
-    Model *dst_loc_embg = new Model();
-    dst_loc_embg->load("temp/loc.em");
-    dst_loc_embg->share_parameters(src_loc_embg);
+    Model *dst_loc_model = new Model();
+    dst_loc_model->load("temp/loc.model");
+    dst_loc_model->share_parameters(src_loc_model);
 
-    lm->embed(variable_act_embg);
-    lm->embed(constant_act_embg);
-    lm->embed(src_loc_embg);
-    lm->embed(dst_loc_embg);
+    lm->child(variable_act_model);
+    lm->child(constant_act_model);
+    lm->child(src_loc_model);
+    lm->child(dst_loc_model);
 
     ((CustomLayer *)lm->get_layers()[0])->set_callbacks(get_output_shape, forward, backward);
 
@@ -414,46 +407,39 @@ void playground(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
 {
     Model *lm = new Model();
 
-    Model *src_loc_embg = new Model();
-    src_loc_embg->dense(xs_tbl->get_last_column_idx("fr_loc") - xs_tbl->get_column_idx("fr_loc") + 1, 1024);
-    src_loc_embg->activation(ReLU);
-    src_loc_embg->dense(512);
-    src_loc_embg->activation(ReLU);
-    src_loc_embg->dense(256);
-    src_loc_embg->activation(ReLU);
-    src_loc_embg->dense(LOC_EMBG_OUTPUT_N_CNT);
-    src_loc_embg->activation(ReLU);
+    Model *src_loc_model = new Model();
+    src_loc_model->dense(xs_tbl->get_last_column_idx("fr_loc") - xs_tbl->get_column_idx("fr_loc") + 1, 32);
+    src_loc_model->activation(Sigmoid);
+    src_loc_model->dense(32);
+    src_loc_model->activation(Sigmoid);
+    src_loc_model->dense(LOC_MODEL_OUTPUT_N_CNT);
+    src_loc_model->activation(Sigmoid);
 
-    Model *dst_loc_embg = new Model();
-    dst_loc_embg->dense(xs_tbl->get_last_column_idx("to_loc") - xs_tbl->get_column_idx("to_loc") + 1, 1024);
-    dst_loc_embg->activation(ReLU);
-    dst_loc_embg->dense(512);
-    dst_loc_embg->activation(ReLU);
-    dst_loc_embg->dense(256);
-    dst_loc_embg->activation(ReLU);
-    dst_loc_embg->dense(LOC_EMBG_OUTPUT_N_CNT);
-    dst_loc_embg->activation(ReLU);
-    dst_loc_embg->share_parameters(src_loc_embg);
+    Model *dst_loc_model = new Model();
+    dst_loc_model->copy(src_loc_model);
+    dst_loc_model->share_parameters(src_loc_model);
 
-    lm->embed(src_loc_embg, xs_tbl->get_column_range("fr_loc"));
-    lm->embed(dst_loc_embg, xs_tbl->get_column_range("to_loc"));
+    lm->child(src_loc_model, xs_tbl->get_column_range("fr_loc"));
+    lm->child(dst_loc_model, xs_tbl->get_column_range("to_loc"));
 
-    lm->custom(Model::calc_embedded_input_shape(lm, xs_tbl->get_column_cnt()),
-               pg_get_output_shape, pg_forward, pg_backward);
-    lm->activation(ReLU);
+    // lm->custom(Model::calc_adjusted_input_shape(lm, xs_tbl->get_column_cnt()),
+    //            pg_get_output_shape, pg_forward, pg_backward);
+    lm->dense(Model::calc_adjusted_input_shape(lm, xs_tbl->get_column_cnt()), 1);
+    lm->activation(Sigmoid);
 
-    lm->fit(sup, 100, 5, "temp/train.csv", upd_rslt_fn);
+    // lm->fit(sup, 100, 5, "temp/train.csv", upd_rslt_fn);
 
     Batch *test_batch = sup->create_batch();
-    lm->test(test_batch, upd_rslt_fn).print();
+    // lm->test(test_batch, upd_rslt_fn).print();
+    lm->grad_check(test_batch->get_x(1), test_batch->get_y(1), true);
     delete test_batch;
 
-    lm->save("temp/lm.nn");
-    src_loc_embg->save("temp/loc.em");
+    lm->save("temp/lm.model");
+    src_loc_model->save("temp/loc.model");
 
     delete lm;
-    delete src_loc_embg;
-    delete dst_loc_embg;
+    delete src_loc_model;
+    delete dst_loc_model;
 }
 
 int main(int argc, char **argv)
