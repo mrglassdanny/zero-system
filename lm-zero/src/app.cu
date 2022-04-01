@@ -408,7 +408,7 @@ void playground(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
     Model *lm = new Model();
 
     Model *src_loc_model = new Model();
-    src_loc_model->dense(xs_tbl->get_last_column_idx("fr_loc") - xs_tbl->get_column_idx("fr_loc") + 1, 256);
+    src_loc_model->dense(3, 256);
     src_loc_model->activation(ReLU);
     src_loc_model->dense(512);
     src_loc_model->activation(ReLU);
