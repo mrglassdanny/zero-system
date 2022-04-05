@@ -451,6 +451,25 @@ std::vector<int> Model::get_adjusted_input_shape()
     return this->layers[0]->get_input_shape();
 }
 
+std::vector<int> Model::calc_adjusted_input_shape(std::vector<int> n_shape)
+{
+    return this->calc_adjusted_input_shape(Tensor::get_cnt(n_shape));
+}
+
+std::vector<int> Model::calc_adjusted_input_shape(int n_cnt)
+{
+    int adj_n_cnt = n_cnt;
+
+    for (Model *child : this->children)
+    {
+        adj_n_cnt += Tensor::get_cnt(child->get_output_shape());
+        adj_n_cnt -= Tensor::get_cnt(child->get_input_shape());
+    }
+
+    std::vector<int> adj_n_shape{adj_n_cnt};
+    return adj_n_shape;
+}
+
 std::vector<Layer *> Model::get_layers()
 {
     return this->layers;
@@ -1120,22 +1139,3 @@ Tensor *Model::predict(Tensor *x)
 }
 
 // Model static functions:
-
-std::vector<int> Model::calc_adjusted_input_shape(Model *model, std::vector<int> n_shape)
-{
-    return Model::calc_adjusted_input_shape(model, Tensor::get_cnt(n_shape));
-}
-
-std::vector<int> Model::calc_adjusted_input_shape(Model *model, int n_cnt)
-{
-    int adj_n_cnt = n_cnt;
-
-    for (Model *child : model->children)
-    {
-        adj_n_cnt += Tensor::get_cnt(child->get_output_shape());
-        adj_n_cnt -= Tensor::get_cnt(child->get_input_shape());
-    }
-
-    std::vector<int> adj_n_shape{adj_n_cnt};
-    return adj_n_shape;
-}

@@ -77,6 +77,8 @@ namespace zero
             std::vector<int> get_input_shape();
             std::vector<int> get_output_shape();
             std::vector<int> get_adjusted_input_shape();
+            std::vector<int> calc_adjusted_input_shape(std::vector<int> n_shape);
+            std::vector<int> calc_adjusted_input_shape(int n_cnt);
 
             std::vector<Layer *> get_layers();
             std::vector<Model *> get_children();
@@ -100,9 +102,6 @@ namespace zero
             void fit(Supervisor *supervisor, int batch_size, int target_epoch, const char *csv_path, UpdateResultFn fn);
 
             Tensor *predict(Tensor *x);
-
-            static std::vector<int> calc_adjusted_input_shape(Model *model, std::vector<int> n_shape);
-            static std::vector<int> calc_adjusted_input_shape(Model *model, int n_cnt);
         };
     }
 }

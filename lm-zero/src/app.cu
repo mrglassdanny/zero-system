@@ -307,7 +307,7 @@ void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
     lm->child(src_loc_model, xs_tbl->get_column_range("fr_loc"));
     lm->child(dst_loc_model, xs_tbl->get_column_range("to_loc"));
 
-    lm->custom(Model::calc_adjusted_input_shape(lm, xs_tbl->get_column_cnt()),
+    lm->custom(lm->calc_adjusted_input_shape(xs_tbl->get_column_cnt()),
                get_output_shape, forward2, backward2);
     lm->activation(Tanh);
 
