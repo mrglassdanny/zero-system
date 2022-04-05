@@ -1,7 +1,7 @@
 
 #include <zero_system/mod.cuh>
 
-#define LOC_MODEL_OUTPUT_N_CNT 16
+#define LOC_MODEL_OUTPUT_N_CNT 8
 
 std::vector<int> get_output_shape()
 {
@@ -34,6 +34,29 @@ void forward(Tensor *n, Tensor *nxt_n, bool train_flg)
     nxt_n->set_val(0, t);
 }
 
+void forward2(Tensor *n, Tensor *nxt_n, bool train_flg)
+{
+    // t = a + v
+
+    float a = n->get_val(0);
+    float v = 0.0f;
+
+    int src_loc_beg_idx = 1;
+    int dst_loc_beg_idx = src_loc_beg_idx + LOC_MODEL_OUTPUT_N_CNT;
+
+    for (int i = 0; i < LOC_MODEL_OUTPUT_N_CNT; i++)
+    {
+        float loc_diff = n->get_val(src_loc_beg_idx + i) - n->get_val(dst_loc_beg_idx + i);
+        v += (loc_diff * loc_diff);
+    }
+
+    v = sqrt(v);
+
+    float t = a + v;
+
+    nxt_n->set_val(0, t);
+}
+
 Tensor *backward(Tensor *n, Tensor *dc)
 {
     // t = aq + c + v
@@ -47,6 +70,48 @@ Tensor *backward(Tensor *n, Tensor *dc)
     nxt_dc->set_val(2, dc_val * n->get_val(0));
 
     int src_loc_beg_idx = 3;
+    int dst_loc_beg_idx = src_loc_beg_idx + LOC_MODEL_OUTPUT_N_CNT;
+
+    float v = 0.0f;
+
+    for (int i = 0; i < LOC_MODEL_OUTPUT_N_CNT; i++)
+    {
+        float loc_diff = n->get_val(src_loc_beg_idx + i) - n->get_val(dst_loc_beg_idx + i);
+        v += (loc_diff * loc_diff);
+    }
+
+    v = sqrt(v);
+
+    for (int i = 0; i < LOC_MODEL_OUTPUT_N_CNT; i++)
+    {
+        if (v == 0.0f)
+        {
+            nxt_dc->set_val(src_loc_beg_idx + i, 0.0f);
+            nxt_dc->set_val(dst_loc_beg_idx + i, 0.0f);
+        }
+        else
+        {
+            float dv = 1.0f / (2.0f * v);
+
+            nxt_dc->set_val(src_loc_beg_idx + i, dc_val * dv * (2.0f * (n->get_val(src_loc_beg_idx + i) - n->get_val(dst_loc_beg_idx + i))));
+            nxt_dc->set_val(dst_loc_beg_idx + i, dc_val * dv * (-2.0f * (n->get_val(src_loc_beg_idx + i) - n->get_val(dst_loc_beg_idx + i))));
+        }
+    }
+
+    return nxt_dc;
+}
+
+Tensor *backward2(Tensor *n, Tensor *dc)
+{
+    // t = a + v
+
+    Tensor *nxt_dc = new Tensor(n->get_device(), n->get_shape());
+
+    float dc_val = dc->get_val(0);
+
+    nxt_dc->set_val(0, dc_val * 1.0f);
+
+    int src_loc_beg_idx = 1;
     int dst_loc_beg_idx = src_loc_beg_idx + LOC_MODEL_OUTPUT_N_CNT;
 
     float v = 0.0f;
@@ -215,42 +280,38 @@ void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
     Model *lm = new Model(0.1f);
 
     Model *variable_act_model = new Model();
-    variable_act_model->dense(xs_tbl->get_last_column_idx("typ") - xs_tbl->get_column_idx("actcod") + 1, 512);
-    variable_act_model->activation(ReLU);
-    variable_act_model->dense(128);
-    variable_act_model->activation(ReLU);
-    variable_act_model->dense(64);
-    variable_act_model->activation(ReLU);
+    variable_act_model->dense(xs_tbl->get_last_column_idx("typ") - xs_tbl->get_column_idx("actcod") + 1, 32);
+    variable_act_model->activation(Tanh);
+    variable_act_model->dense(8);
+    variable_act_model->activation(Tanh);
     variable_act_model->dense(1);
-    variable_act_model->activation(ReLU);
+    variable_act_model->activation(Tanh);
 
-    Model *constant_act_model = new Model();
-    constant_act_model->copy(variable_act_model);
+    // Model *constant_act_model = new Model();
+    // constant_act_model->copy(variable_act_model);
 
     Model *src_loc_model = new Model();
-    src_loc_model->dense(xs_tbl->get_last_column_idx("fr_loc") - xs_tbl->get_column_idx("fr_loc") + 1, 512);
-    src_loc_model->activation(ReLU);
-    src_loc_model->dense(256);
-    src_loc_model->activation(ReLU);
-    src_loc_model->dense(128);
-    src_loc_model->activation(ReLU);
+    src_loc_model->dense(3, 32);
+    src_loc_model->activation(Tanh);
+    src_loc_model->dense(16);
+    src_loc_model->activation(Tanh);
     src_loc_model->dense(LOC_MODEL_OUTPUT_N_CNT);
-    src_loc_model->activation(ReLU);
+    src_loc_model->activation(Tanh);
 
     Model *dst_loc_model = new Model();
     dst_loc_model->copy(src_loc_model);
     dst_loc_model->share_parameters(src_loc_model);
 
     lm->child(variable_act_model, Range{xs_tbl->get_column_idx("actcod"), xs_tbl->get_last_column_idx("typ")});
-    lm->child(constant_act_model, Range{xs_tbl->get_column_idx("constant_actcod"), xs_tbl->get_last_column_idx("constant_typ")});
+    // lm->child(constant_act_model, Range{xs_tbl->get_column_idx("constant_actcod"), xs_tbl->get_last_column_idx("constant_typ")});
     lm->child(src_loc_model, xs_tbl->get_column_range("fr_loc"));
     lm->child(dst_loc_model, xs_tbl->get_column_range("to_loc"));
 
     lm->custom(Model::calc_adjusted_input_shape(lm, xs_tbl->get_column_cnt()),
-               get_output_shape, forward, backward);
-    lm->activation(ReLU);
+               get_output_shape, forward2, backward2);
+    lm->activation(Tanh);
 
-    lm->fit(sup, 100, 50, "temp/train.csv", upd_rslt_fn);
+    lm->fit(sup, 25, 30, "temp/train.csv", upd_rslt_fn);
 
     Batch *test_batch = sup->create_batch();
     lm->test(test_batch, upd_rslt_fn).print();
@@ -258,16 +319,17 @@ void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
 
     lm->save("temp/lm.model");
     variable_act_model->save("temp/vact.model");
-    constant_act_model->save("temp/cact.model");
+    // constant_act_model->save("temp/cact.model");
     src_loc_model->save("temp/loc.model");
 
     delete lm;
     delete variable_act_model;
+    // delete constant_act_model;
     delete src_loc_model;
     delete dst_loc_model;
 }
 
-// Using this fn will cause memory leak for embeddings!
+// Using this fn will cause memory leak for child models!
 Model *load_lm()
 {
     Model *lm = new Model();
@@ -276,8 +338,8 @@ Model *load_lm()
     Model *variable_act_model = new Model();
     variable_act_model->load("temp/vact.model");
 
-    Model *constant_act_model = new Model();
-    constant_act_model->load("temp/cact.model");
+    // Model *constant_act_model = new Model();
+    // constant_act_model->load("temp/cact.model");
 
     Model *src_loc_model = new Model();
     src_loc_model->load("temp/loc.model");
@@ -287,11 +349,11 @@ Model *load_lm()
     dst_loc_model->share_parameters(src_loc_model);
 
     lm->child(variable_act_model);
-    lm->child(constant_act_model);
+    // lm->child(constant_act_model);
     lm->child(src_loc_model);
     lm->child(dst_loc_model);
 
-    ((CustomLayer *)lm->get_layers()[0])->set_callbacks(get_output_shape, forward, backward);
+    ((CustomLayer *)lm->get_layers()[0])->set_callbacks(get_output_shape, forward2, backward2);
 
     return lm;
 }
@@ -334,7 +396,7 @@ int main(int argc, char **argv)
 
     // Data setup:
 
-    Table *xs_tbl = Table::fr_csv("data/palmov.csv");
+    Table *xs_tbl = Table::fr_csv("data/palmov-test.csv");
     Table *ys_tbl = xs_tbl->split("elapsed_secs");
 
     delete xs_tbl->remove_column("cas_per_lyr");
@@ -345,11 +407,13 @@ int main(int argc, char **argv)
     delete xs_tbl->remove_column("cas_wgt");
     delete xs_tbl->remove_column("cas_qty");
 
-    Column *constant_actcod_col = new Column("constant_actcod", *xs_tbl->get_column("actcod"));
-    Column *constant_typ_col = new Column("constant_typ", *xs_tbl->get_column("typ"));
+    delete xs_tbl->remove_column("pal_qty");
 
-    xs_tbl->add_column(constant_actcod_col, "typ");
-    xs_tbl->add_column(constant_typ_col, "constant_actcod");
+    // Column *constant_actcod_col = new Column("constant_actcod", *xs_tbl->get_column("actcod"));
+    // Column *constant_typ_col = new Column("constant_typ", *xs_tbl->get_column("typ"));
+
+    // xs_tbl->add_column(constant_actcod_col, "typ");
+    // xs_tbl->add_column(constant_typ_col, "constant_actcod");
 
     Column *actcod_col = new Column(*xs_tbl->get_column("actcod"));
     Column *typ_col = new Column(*xs_tbl->get_column("typ"));
@@ -358,8 +422,8 @@ int main(int argc, char **argv)
 
     xs_tbl->encode_onehot("actcod");
     xs_tbl->encode_onehot("typ");
-    xs_tbl->encode_onehot("constant_actcod");
-    xs_tbl->encode_onehot("constant_typ");
+    // xs_tbl->encode_onehot("constant_actcod");
+    // xs_tbl->encode_onehot("constant_typ");
     xs_tbl->encode_custom("fr_loc", 3, loc_encode_fn);
     xs_tbl->encode_custom("to_loc", 3, loc_encode_fn);
 
@@ -388,21 +452,21 @@ int main(int argc, char **argv)
 
     // Test:
     {
-        // Column *y_col = ys_tbl->get_column("elapsed_secs");
-        // Column *pred_col = new Column("pred", true, xs_tbl->get_row_cnt());
+        Column *y_col = ys_tbl->get_column("elapsed_secs");
+        Column *pred_col = new Column("pred", true, xs_tbl->get_row_cnt());
 
-        // xs_tbl->clear();
+        xs_tbl->clear();
 
-        // xs_tbl->add_column(actcod_col);
-        // xs_tbl->add_column(typ_col);
-        // xs_tbl->add_column(fr_loc_col);
-        // xs_tbl->add_column(to_loc_col);
-        // xs_tbl->add_column(y_col);
-        // xs_tbl->add_column(pred_col);
+        xs_tbl->add_column(actcod_col);
+        xs_tbl->add_column(typ_col);
+        xs_tbl->add_column(fr_loc_col);
+        xs_tbl->add_column(to_loc_col);
+        xs_tbl->add_column(y_col);
+        xs_tbl->add_column(pred_col);
 
-        // test(sup, pred_col);
+        test(sup, pred_col);
 
-        // Table::to_csv("temp/preds.csv", xs_tbl);
+        Table::to_csv("temp/preds.csv", xs_tbl);
     }
 
     // Grad Check:
