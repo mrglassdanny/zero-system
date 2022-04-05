@@ -1,7 +1,7 @@
 
 #include <zero_system/mod.cuh>
 
-#define LOC_MODEL_OUTPUT_N_CNT 8
+#define LOC_MODEL_OUTPUT_N_CNT 16
 
 std::vector<int> get_output_shape()
 {
@@ -215,27 +215,27 @@ void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
     Model *lm = new Model(0.1f);
 
     Model *variable_act_model = new Model();
-    variable_act_model->dense(xs_tbl->get_last_column_idx("typ") - xs_tbl->get_column_idx("actcod") + 1, 64);
-    variable_act_model->activation(Tanh);
+    variable_act_model->dense(xs_tbl->get_last_column_idx("typ") - xs_tbl->get_column_idx("actcod") + 1, 512);
+    variable_act_model->activation(ReLU);
+    variable_act_model->dense(128);
+    variable_act_model->activation(ReLU);
     variable_act_model->dense(64);
-    variable_act_model->activation(Tanh);
-    variable_act_model->dense(16);
-    variable_act_model->activation(Tanh);
+    variable_act_model->activation(ReLU);
     variable_act_model->dense(1);
-    variable_act_model->activation(Tanh);
+    variable_act_model->activation(ReLU);
 
     Model *constant_act_model = new Model();
     constant_act_model->copy(variable_act_model);
 
     Model *src_loc_model = new Model();
-    src_loc_model->dense(xs_tbl->get_last_column_idx("fr_loc") - xs_tbl->get_column_idx("fr_loc") + 1, 128);
-    src_loc_model->activation(Tanh);
+    src_loc_model->dense(xs_tbl->get_last_column_idx("fr_loc") - xs_tbl->get_column_idx("fr_loc") + 1, 512);
+    src_loc_model->activation(ReLU);
+    src_loc_model->dense(256);
+    src_loc_model->activation(ReLU);
     src_loc_model->dense(128);
-    src_loc_model->activation(Tanh);
-    src_loc_model->dense(32);
-    src_loc_model->activation(Tanh);
+    src_loc_model->activation(ReLU);
     src_loc_model->dense(LOC_MODEL_OUTPUT_N_CNT);
-    src_loc_model->activation(Tanh);
+    src_loc_model->activation(ReLU);
 
     Model *dst_loc_model = new Model();
     dst_loc_model->copy(src_loc_model);
@@ -248,7 +248,7 @@ void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
 
     lm->custom(Model::calc_adjusted_input_shape(lm, xs_tbl->get_column_cnt()),
                get_output_shape, forward, backward);
-    lm->activation(Tanh);
+    lm->activation(ReLU);
 
     lm->fit(sup, 100, 50, "temp/train.csv", upd_rslt_fn);
 
@@ -334,7 +334,7 @@ int main(int argc, char **argv)
 
     // Data setup:
 
-    Table *xs_tbl = Table::fr_csv("data/palmov-test.csv");
+    Table *xs_tbl = Table::fr_csv("data/palmov.csv");
     Table *ys_tbl = xs_tbl->split("elapsed_secs");
 
     delete xs_tbl->remove_column("cas_per_lyr");
