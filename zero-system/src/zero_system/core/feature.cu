@@ -719,6 +719,29 @@ void Table::encode_ordinal(const char *col_name)
     delete col;
 }
 
+void Table::encode_ordinal(const char *col_name, std::map<std::string, int> *ordinal_map)
+{
+    int col_idx = this->get_column_idx(col_name);
+    Column *col = this->get_column(col_idx);
+
+    if (col == NULL)
+    {
+        return;
+    }
+
+    Column *ordinal_col = col->encode_ordinal(ordinal_map);
+
+    if (ordinal_col == NULL)
+    {
+        return;
+    }
+
+    this->cols.insert(this->cols.begin() + col_idx + 1, ordinal_col);
+    this->cols.erase(this->cols.begin() + col_idx);
+
+    delete col;
+}
+
 void Table::encode_onehot(const char *col_name)
 {
     int col_idx = this->get_column_idx(col_name);

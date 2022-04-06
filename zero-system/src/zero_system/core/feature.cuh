@@ -111,6 +111,7 @@ namespace zero
             void scale_down();
 
             void encode_ordinal(const char *col_name);
+            void encode_ordinal(const char *col_name, std::map<std::string, int> *ordinal_map);
             void encode_onehot(const char *col_name);
             void encode_custom(const char *col_name, int encoded_col_cnt, CustomEncodeFn encode_fn);
 
@@ -119,7 +120,7 @@ namespace zero
 
             static Tensor *to_tensor(Table *tbl);
 
-            static Table *fr_ordinal_map(std::map<std::string, int> *map, const char *key_col_name, const char *val_col_name);
+            static Table *fr_ordinal_map(std::map<std::string, int> *ordinal_map, const char *key_col_name, const char *val_col_name);
         };
     }
 }
