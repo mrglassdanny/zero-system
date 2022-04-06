@@ -397,6 +397,7 @@ Column *Column::encode_ordinal()
     Column *ordinal_col = new Column(this->name, true, this->row_cnt);
 
     std::map<std::string, int> ordinal_map;
+
     int ordinal_id = 1;
 
     for (int row_idx = 0; row_idx < this->row_cnt; row_idx++)
@@ -416,6 +417,25 @@ Column *Column::encode_ordinal()
     }
 
     return ordinal_col;
+}
+
+std::map<std::string, int> *Column::encode_ordinal_to_map()
+{
+    std::map<std::string, int> *ordinal_map = new std::map<std::string, int>();
+
+    int ordinal_id = 1;
+
+    for (int row_idx = 0; row_idx < this->row_cnt; row_idx++)
+    {
+        std::string text = std::string(this->get_non_numeric_val(row_idx));
+
+        if (ordinal_map->find(text) == ordinal_map->end())
+        {
+            (*ordinal_map)[text] = ordinal_id++;
+        }
+    }
+
+    return ordinal_map;
 }
 
 std::vector<Column *> Column::encode_onehot()
@@ -1025,4 +1045,26 @@ Tensor *Table::to_tensor(Table *tbl)
     }
 
     return tensor;
+}
+
+Table *Table::fr_map(std::map<std::string, int> *map, const char *key_col_name, const char *val_col_name)
+{
+    Table *tbl = new Table();
+    Column *key_col = new Column(key_col_name, false, map->size());
+    Column *val_col = new Column(val_col_name, true, map->size());
+
+    std::map<std::string, int>::iterator iter;
+
+    int row_idx;
+
+    for (iter = map->begin(), row_idx = 0; iter != map->end(); iter++, row_idx++)
+    {
+        key_col->set_val(row_idx, iter->first.data());
+        val_col->set_val(row_idx, iter->second);
+    }
+
+    tbl->add_column(key_col);
+    tbl->add_column(val_col);
+
+    return tbl;
 }
