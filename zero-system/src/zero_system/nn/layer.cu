@@ -1418,6 +1418,7 @@ void EmbeddingLayer::forward(Tensor *nxt_n, bool train_flg)
     int n_cnt = this->n->get_cnt();
     int nxt_n_cnt = nxt_n->get_cnt();
 
+    // NOTE: ordinal encoding starts at 1, so we need to subtract 1 from the value in order to utilize index 0 in weight matrix.
     cudaMemcpy(nxt_n->get_arr(), &this->w->get_arr()[(((int)this->n->get_val(0)) - 1) * this->embg_dim_cnt], sizeof(float) * this->embg_dim_cnt, cudaMemcpyDefault);
 }
 
