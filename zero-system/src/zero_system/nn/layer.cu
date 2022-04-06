@@ -1366,12 +1366,14 @@ EmbeddingLayer::EmbeddingLayer(int embg_cnt, int embg_dim_cnt, InitializationFun
     this->w = new Tensor(Device::Cuda, embg_cnt, embg_dim_cnt);
     Initializer::initialize(init_fn, this->w, embg_cnt, embg_dim_cnt);
 
-    this->b = NULL;
-
     this->dw = new Tensor(Device::Cuda, embg_cnt, embg_dim_cnt);
     this->dw->reset();
 
-    this->db = NULL;
+    // NOTE: we do not have biases for embedding -- let's just initialize dummy tensors.
+    this->b = new Tensor(Device::Cuda, 1);
+    this->b->reset();
+    this->db = new Tensor(Device::Cuda, 1);
+    this->db->reset();
 }
 
 EmbeddingLayer::~EmbeddingLayer() {}
