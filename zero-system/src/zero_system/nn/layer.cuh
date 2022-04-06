@@ -15,6 +15,7 @@ namespace zero
         {
             Dense,
             Convolutional,
+            Embedding,
             Activation,
             Dropout,
             Pooling,
@@ -109,6 +110,33 @@ namespace zero
             ConvolutionalLayer();
             ConvolutionalLayer(std::vector<int> n_shape, int fltr_cnt, int w_row_cnt, int w_col_cnt, InitializationFunction init_fn);
             ~ConvolutionalLayer();
+
+            virtual LayerType get_type();
+
+            virtual void load(FILE *file_ptr);
+            virtual void save(FILE *file_ptr);
+
+            virtual void copy(Layer *src);
+
+            virtual std::vector<int> get_output_shape();
+
+            virtual void forward(Tensor *nxt_n, bool train_flg);
+            virtual Tensor *backward(Tensor *dc);
+
+            virtual void step(int batch_size, float learning_rate);
+        };
+
+        class EmbeddingLayer : public LearnableLayer
+        {
+        private:
+            int embg_cnt;
+            int embg_dim_cnt;
+
+        public:
+            EmbeddingLayer();
+            EmbeddingLayer(std::vector<int> n_shape);
+            EmbeddingLayer(int embg_cnt, int embg_dim_cnt, InitializationFunction init_fn);
+            ~EmbeddingLayer();
 
             virtual LayerType get_type();
 

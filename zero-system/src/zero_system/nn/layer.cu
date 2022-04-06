@@ -429,6 +429,27 @@ __global__ void k_adjust_bias(float *b_arr, float *db_arr, int batch_size, float
     }
 }
 
+__global__ void k_embg_derive(float *dc_arr, float *dw_arr, int embg_dim_cnt)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < embg_dim_cnt)
+    {
+        dw_arr[tid] += (dc_arr[tid]);
+    }
+}
+
+__global__ void k_embg_adjust_weight(float *w_arr, float *dw_arr, float learning_rate, int cnt)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < cnt)
+    {
+        w_arr[tid] -= (dw_arr[tid] * learning_rate);
+        dw_arr[tid] = 0.0f;
+    }
+}
+
 __global__ void k_activate(float *n_arr, float *nxt_n_arr, int n_cnt, ActivationFunction activation_fn)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -1317,6 +1338,112 @@ void ConvolutionalLayer::step(int batch_size, float learning_rate)
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
         int num_blocks = (this->b->get_cnt() / threads_per_block) + 1;
         k_adjust_bias<<<num_blocks, threads_per_block>>>(this->b->get_arr(), this->db->get_arr(), batch_size, learning_rate, this->b->get_cnt());
+    }
+}
+
+// EmbeddingLayer functions:
+
+EmbeddingLayer::EmbeddingLayer()
+    : LearnableLayer()
+{
+    this->embg_cnt = 0;
+    this->embg_dim_cnt = 0;
+}
+
+EmbeddingLayer::EmbeddingLayer(std::vector<int> n_shape)
+    : LearnableLayer(n_shape) {}
+
+EmbeddingLayer::EmbeddingLayer(int embg_cnt, int embg_dim_cnt, InitializationFunction init_fn)
+    : LearnableLayer()
+{
+    // Layer constructor:
+    {
+        std::vector<int> n_shape{1};
+        this->n = new Tensor(Device::Cuda, n_shape);
+        this->n->reset();
+    }
+
+    this->w = new Tensor(Device::Cuda, embg_cnt, embg_dim_cnt);
+    Initializer::initialize(init_fn, this->w, embg_cnt, embg_dim_cnt);
+
+    this->b = NULL;
+
+    this->dw = new Tensor(Device::Cuda, embg_cnt, embg_dim_cnt);
+    this->dw->reset();
+
+    this->db = NULL;
+}
+
+EmbeddingLayer::~EmbeddingLayer() {}
+
+LayerType EmbeddingLayer::get_type()
+{
+    return LayerType::Embedding;
+}
+
+void EmbeddingLayer::load(FILE *file_ptr)
+{
+    LearnableLayer::load(file_ptr);
+
+    fread(&this->embg_cnt, sizeof(int), 1, file_ptr);
+    fread(&this->embg_dim_cnt, sizeof(int), 1, file_ptr);
+}
+
+void EmbeddingLayer::save(FILE *file_ptr)
+{
+    LearnableLayer::save(file_ptr);
+
+    fwrite(&this->embg_cnt, sizeof(int), 1, file_ptr);
+    fwrite(&this->embg_dim_cnt, sizeof(int), 1, file_ptr);
+}
+
+void EmbeddingLayer::copy(Layer *src)
+{
+    LearnableLayer::copy(src);
+
+    this->embg_cnt = ((EmbeddingLayer *)src)->embg_cnt;
+    this->embg_dim_cnt = ((EmbeddingLayer *)src)->embg_dim_cnt;
+}
+
+std::vector<int> EmbeddingLayer::get_output_shape()
+{
+    std::vector<int> shape{this->embg_dim_cnt};
+    return shape;
+}
+
+void EmbeddingLayer::forward(Tensor *nxt_n, bool train_flg)
+{
+    Layer::forward(nxt_n, train_flg);
+
+    int n_cnt = this->n->get_cnt();
+    int nxt_n_cnt = nxt_n->get_cnt();
+
+    cudaMemcpy(nxt_n->get_arr(), &this->w->get_arr()[(((int)this->n->get_val(0)) - 1) * this->embg_dim_cnt], sizeof(float) * this->embg_dim_cnt, cudaMemcpyDefault);
+}
+
+Tensor *EmbeddingLayer::backward(Tensor *dc)
+{
+    int dc_cnt = dc->get_cnt();
+    int n_cnt = this->n->get_cnt();
+
+    {
+        int threads_per_block = CUDA_THREADS_PER_BLOCK;
+        int num_blocks = (this->embg_dim_cnt / threads_per_block) + 1;
+        k_embg_derive<<<num_blocks, threads_per_block>>>(dc->get_arr(), this->w->get_arr(), this->embg_dim_cnt);
+    }
+
+    delete dc;
+
+    return NULL;
+}
+
+void EmbeddingLayer::step(int batch_size, float learning_rate)
+{
+    {
+        int threads_per_block = CUDA_THREADS_PER_BLOCK;
+        int num_blocks = (this->w->get_cnt() / threads_per_block) + 1;
+        k_embg_adjust_weight<<<num_blocks, threads_per_block>>>(this->w->get_arr(), this->dw->get_arr(), learning_rate,
+                                                                (this->w->get_cnt()));
     }
 }
 
