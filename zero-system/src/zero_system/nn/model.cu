@@ -259,6 +259,10 @@ void Model::copy(Model *src)
             lyr = new ConvolutionalLayer();
             lyr->copy((ConvolutionalLayer *)src_lyr);
             break;
+        case LayerType::Embedding:
+            lyr = new EmbeddingLayer();
+            lyr->copy((EmbeddingLayer *)src_lyr);
+            break;
         case LayerType::Activation:
             lyr = new ActivationLayer();
             lyr->copy((ActivationLayer *)src_lyr);
