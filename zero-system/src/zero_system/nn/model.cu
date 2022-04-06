@@ -158,6 +158,9 @@ void Model::load(FILE *file_ptr)
         case LayerType::Convolutional:
             lyr = new ConvolutionalLayer();
             break;
+        case LayerType::Embedding:
+            lyr = new EmbeddingLayer();
+            break;
         case LayerType::Activation:
             lyr = new ActivationLayer();
             break;
@@ -357,6 +360,16 @@ void Model::convolutional(std::vector<int> n_shape, int fltr_cnt, int w_row_cnt,
 void Model::convolutional(std::vector<int> n_shape, int fltr_cnt, int w_row_cnt, int w_col_cnt, InitializationFunction init_fn)
 {
     this->add_layer(new ConvolutionalLayer(n_shape, fltr_cnt, w_row_cnt, w_col_cnt, init_fn));
+}
+
+void Model::embedding(int embg_cnt, int embg_dim_cnt)
+{
+    this->embedding(embg_cnt, embg_dim_cnt, InitializationFunction::He);
+}
+
+void Model::embedding(int embg_cnt, int embg_dim_cnt, InitializationFunction init_fn)
+{
+    this->add_layer(new EmbeddingLayer(embg_cnt, embg_dim_cnt, init_fn));
 }
 
 void Model::activation(ActivationFunction activation_fn)
