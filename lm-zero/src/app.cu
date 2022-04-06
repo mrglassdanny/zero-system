@@ -275,54 +275,6 @@ std::vector<float> loc_encode_fn(const char *loc_name, int dim_cnt)
     return parsed_loc;
 }
 
-void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
-{
-    Model *lm = new Model(0.1f);
-
-    Model *variable_act_model = new Model();
-    variable_act_model->dense(xs_tbl->get_last_column_idx("typ") - xs_tbl->get_column_idx("actcod") + 1, 32);
-    variable_act_model->activation(Tanh);
-    variable_act_model->dense(8);
-    variable_act_model->activation(Tanh);
-    variable_act_model->dense(1);
-    variable_act_model->activation(Tanh);
-
-    // Model *constant_act_model = new Model();
-    // constant_act_model->copy(variable_act_model);
-
-    Model *src_loc_model = new Model();
-    src_loc_model->dense(3, LOC_MODEL_OUTPUT_N_CNT);
-
-    Model *dst_loc_model = new Model();
-    dst_loc_model->copy(src_loc_model);
-    dst_loc_model->share_parameters(src_loc_model);
-
-    lm->child(variable_act_model, Range{xs_tbl->get_column_idx("actcod"), xs_tbl->get_last_column_idx("typ")});
-    // lm->child(constant_act_model, Range{xs_tbl->get_column_idx("constant_actcod"), xs_tbl->get_last_column_idx("constant_typ")});
-    lm->child(src_loc_model, xs_tbl->get_column_range("fr_loc"));
-    lm->child(dst_loc_model, xs_tbl->get_column_range("to_loc"));
-
-    lm->custom(lm->calc_adjusted_input_shape(xs_tbl->get_column_cnt()),
-               get_output_shape, forward2, backward2);
-
-    lm->fit(sup, 25, 30, "temp/train.csv", upd_rslt_fn);
-
-    Batch *test_batch = sup->create_batch();
-    lm->test(test_batch, upd_rslt_fn).print();
-    delete test_batch;
-
-    lm->save("temp/lm.model");
-    variable_act_model->save("temp/vact.model");
-    // constant_act_model->save("temp/cact.model");
-    src_loc_model->save("temp/loc.model");
-
-    delete lm;
-    delete variable_act_model;
-    // delete constant_act_model;
-    delete src_loc_model;
-    delete dst_loc_model;
-}
-
 // Using this fn will cause memory leak for child models!
 Model *load_lm()
 {
@@ -440,7 +392,52 @@ int main(int argc, char **argv)
 
     // Fit:
     {
-        fit(xs_tbl, ys_tbl, sup);
+        Model *lm = new Model(0.1f);
+
+        Model *variable_act_model = new Model();
+        variable_act_model->dense(xs_tbl->get_last_column_idx("typ") - xs_tbl->get_column_idx("actcod") + 1, 32);
+        variable_act_model->activation(Tanh);
+        variable_act_model->dense(8);
+        variable_act_model->activation(Tanh);
+        variable_act_model->dense(1);
+        variable_act_model->activation(Tanh);
+
+        // Model *constant_act_model = new Model();
+        // constant_act_model->copy(variable_act_model);
+
+        Model *src_loc_model = new Model();
+        // src_loc_model->dense(3, LOC_MODEL_OUTPUT_N_CNT);
+        src_loc_model->embedding((int)xs_tbl->get_column("fr_loc")->get_max(), 8);
+
+        Model *dst_loc_model = new Model();
+        // dst_loc_model->copy(src_loc_model);
+        // dst_loc_model->share_parameters(src_loc_model);
+        dst_loc_model->embedding((int)xs_tbl->get_column("to_loc")->get_max(), 8);
+
+        lm->child(variable_act_model, Range{xs_tbl->get_column_idx("actcod"), xs_tbl->get_last_column_idx("typ")});
+        // lm->child(constant_act_model, Range{xs_tbl->get_column_idx("constant_actcod"), xs_tbl->get_last_column_idx("constant_typ")});
+        lm->child(src_loc_model, xs_tbl->get_column_range("fr_loc"));
+        lm->child(dst_loc_model, xs_tbl->get_column_range("to_loc"));
+
+        lm->custom(lm->calc_adjusted_input_shape(xs_tbl->get_column_cnt()),
+                   get_output_shape, forward2, backward2);
+
+        lm->fit(sup, 25, 30, "temp/train.csv", upd_rslt_fn);
+
+        Batch *test_batch = sup->create_batch();
+        lm->test(test_batch, upd_rslt_fn).print();
+        delete test_batch;
+
+        lm->save("temp/lm.model");
+        variable_act_model->save("temp/vact.model");
+        // constant_act_model->save("temp/cact.model");
+        src_loc_model->save("temp/loc.model");
+
+        delete lm;
+        delete variable_act_model;
+        // delete constant_act_model;
+        delete src_loc_model;
+        delete dst_loc_model;
     }
 
     // Test:
