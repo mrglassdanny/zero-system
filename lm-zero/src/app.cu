@@ -291,12 +291,7 @@ void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
     // constant_act_model->copy(variable_act_model);
 
     Model *src_loc_model = new Model();
-    src_loc_model->dense(3, 32);
-    src_loc_model->activation(Tanh);
-    src_loc_model->dense(16);
-    src_loc_model->activation(Tanh);
-    src_loc_model->dense(LOC_MODEL_OUTPUT_N_CNT);
-    src_loc_model->activation(Tanh);
+    src_loc_model->dense(3, LOC_MODEL_OUTPUT_N_CNT);
 
     Model *dst_loc_model = new Model();
     dst_loc_model->copy(src_loc_model);
@@ -309,7 +304,6 @@ void fit(Table *xs_tbl, Table *ys_tbl, Supervisor *sup)
 
     lm->custom(lm->calc_adjusted_input_shape(xs_tbl->get_column_cnt()),
                get_output_shape, forward2, backward2);
-    lm->activation(Tanh);
 
     lm->fit(sup, 25, 30, "temp/train.csv", upd_rslt_fn);
 
@@ -406,7 +400,6 @@ int main(int argc, char **argv)
     delete xs_tbl->remove_column("cas_hgt");
     delete xs_tbl->remove_column("cas_wgt");
     delete xs_tbl->remove_column("cas_qty");
-
     delete xs_tbl->remove_column("pal_qty");
 
     // Column *constant_actcod_col = new Column("constant_actcod", *xs_tbl->get_column("actcod"));
@@ -471,7 +464,7 @@ int main(int argc, char **argv)
 
     // Grad Check:
     {
-        // grad_check(xs_tbl, ys_tbl, sup);
+        grad_check(xs_tbl, ys_tbl, sup);
     }
 
     // Cleanup:
