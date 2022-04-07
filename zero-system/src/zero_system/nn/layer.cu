@@ -1351,7 +1351,11 @@ EmbeddingLayer::EmbeddingLayer()
 }
 
 EmbeddingLayer::EmbeddingLayer(std::vector<int> n_shape)
-    : LearnableLayer(n_shape) {}
+    : LearnableLayer(n_shape)
+{
+    this->embg_cnt = 0;
+    this->embg_dim_cnt = 0;
+}
 
 EmbeddingLayer::EmbeddingLayer(int embg_cnt, int embg_dim_cnt, InitializationFunction init_fn)
     : LearnableLayer()
@@ -1362,6 +1366,9 @@ EmbeddingLayer::EmbeddingLayer(int embg_cnt, int embg_dim_cnt, InitializationFun
         this->n = new Tensor(Device::Cuda, n_shape);
         this->n->reset();
     }
+
+    this->embg_cnt = embg_cnt;
+    this->embg_dim_cnt = embg_dim_cnt;
 
     this->w = new Tensor(Device::Cuda, embg_cnt, embg_dim_cnt);
     Initializer::initialize(init_fn, this->w, embg_cnt, embg_dim_cnt);
@@ -1426,13 +1433,10 @@ void EmbeddingLayer::forward(Tensor *nxt_n, bool train_flg)
 
 Tensor *EmbeddingLayer::backward(Tensor *dc)
 {
-    int dc_cnt = dc->get_cnt();
-    int n_cnt = this->n->get_cnt();
-
     {
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
         int num_blocks = (this->embg_dim_cnt / threads_per_block) + 1;
-        k_embg_derive<<<num_blocks, threads_per_block>>>(dc->get_arr(), this->w->get_arr(), this->embg_dim_cnt);
+        k_embg_derive<<<num_blocks, threads_per_block>>>(dc->get_arr(), &this->dw->get_arr()[(((int)this->n->get_val(0)) - 1) * this->embg_dim_cnt], this->embg_dim_cnt);
     }
 
     delete dc;
