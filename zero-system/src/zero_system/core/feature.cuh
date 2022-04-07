@@ -65,10 +65,12 @@ namespace zero
             void subtract(Column *col);
             void subtract_abs(Column *col);
 
+            std::map<std::string, int> *to_ordinal_map();
+
             Column *encode_ordinal();
             Column *encode_ordinal(std::map<std::string, int> *ordinal_map);
-            std::map<std::string, int> *encode_ordinal_to_map();
             std::vector<Column *> encode_onehot();
+            std::vector<Column *> encode_onehot(std::map<std::string, int> *ordinal_map);
             std::vector<Column *> encode_custom(int encoded_col_cnt, CustomEncodeFn encode_fn);
 
             static Tensor *to_tensor(Column *col);
@@ -113,6 +115,7 @@ namespace zero
             void encode_ordinal(const char *col_name);
             void encode_ordinal(const char *col_name, std::map<std::string, int> *ordinal_map);
             void encode_onehot(const char *col_name);
+            void encode_onehot(const char *col_name, std::map<std::string, int> *ordinal_map);
             void encode_custom(const char *col_name, int encoded_col_cnt, CustomEncodeFn encode_fn);
 
             static Table *fr_csv(const char *path);

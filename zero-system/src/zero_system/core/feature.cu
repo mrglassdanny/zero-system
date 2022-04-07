@@ -392,6 +392,25 @@ void Column::subtract_abs(Column *col)
     }
 }
 
+std::map<std::string, int> *Column::to_ordinal_map()
+{
+    std::map<std::string, int> *ordinal_map = new std::map<std::string, int>();
+
+    int ordinal_id = 1;
+
+    for (int row_idx = 0; row_idx < this->row_cnt; row_idx++)
+    {
+        std::string text = std::string(this->get_non_numeric_val(row_idx));
+
+        if (ordinal_map->find(text) == ordinal_map->end())
+        {
+            (*ordinal_map)[text] = ordinal_id++;
+        }
+    }
+
+    return ordinal_map;
+}
+
 Column *Column::encode_ordinal()
 {
     Column *ordinal_col = new Column(this->name, true, this->row_cnt);
@@ -437,57 +456,51 @@ Column *Column::encode_ordinal(std::map<std::string, int> *ordinal_map)
     return ordinal_col;
 }
 
-std::map<std::string, int> *Column::encode_ordinal_to_map()
-{
-    std::map<std::string, int> *ordinal_map = new std::map<std::string, int>();
-
-    int ordinal_id = 1;
-
-    for (int row_idx = 0; row_idx < this->row_cnt; row_idx++)
-    {
-        std::string text = std::string(this->get_non_numeric_val(row_idx));
-
-        if (ordinal_map->find(text) == ordinal_map->end())
-        {
-            (*ordinal_map)[text] = ordinal_id++;
-        }
-    }
-
-    return ordinal_map;
-}
-
 std::vector<Column *> Column::encode_onehot()
 {
     std::vector<Column *> onehot_cols;
 
-    Column *ordinal_col = new Column(this->name, true, row_cnt);
+    Column *ordinal_col = this->encode_ordinal();
 
-    std::map<std::string, int> ordinal_map;
-    int ordinal_id = 0;
-
-    for (int row_idx = 0; row_idx < this->row_cnt; row_idx++)
-    {
-        std::string text = std::string(this->get_non_numeric_val(row_idx));
-
-        if (ordinal_map.find(text) != ordinal_map.end())
-        {
-            std::map<std::string, int>::iterator iter = ordinal_map.find(text);
-            ordinal_col->set_val(row_idx, iter->second);
-        }
-        else
-        {
-            ordinal_col->set_val(row_idx, ordinal_id);
-            ordinal_map[text] = ordinal_id++;
-        }
-    }
-
-    for (int ordinal_idx = 0; ordinal_idx < ordinal_id; ordinal_idx++)
+    for (int ordinal_idx = 0; ordinal_idx < (int)ordinal_col->get_max(); ordinal_idx++)
     {
         Column *onehot_col = new Column(this->name, true, this->row_cnt);
 
         for (int row_idx = 0; row_idx < row_cnt; row_idx++)
         {
-            if (ordinal_col->get_numeric_val(row_idx) == ordinal_idx)
+            // NOTE: subtract 1 since ordinal encoding starts at 1!
+            if ((ordinal_col->get_numeric_val(row_idx) - 1) == ordinal_idx)
+            {
+                onehot_col->set_val(row_idx, 1.0f);
+            }
+            else
+            {
+                onehot_col->set_val(row_idx, 0.0f);
+            }
+        }
+
+        onehot_cols.push_back(onehot_col);
+    }
+
+    delete ordinal_col;
+
+    return onehot_cols;
+}
+
+std::vector<Column *> Column::encode_onehot(std::map<std::string, int> *ordinal_map)
+{
+    std::vector<Column *> onehot_cols;
+
+    Column *ordinal_col = this->encode_ordinal(ordinal_map);
+
+    for (int ordinal_idx = 0; ordinal_idx < (int)ordinal_col->get_max(); ordinal_idx++)
+    {
+        Column *onehot_col = new Column(this->name, true, this->row_cnt);
+
+        for (int row_idx = 0; row_idx < row_cnt; row_idx++)
+        {
+            // NOTE: subtract 1 since ordinal encoding starts at 1!
+            if ((ordinal_col->get_numeric_val(row_idx) - 1) == ordinal_idx)
             {
                 onehot_col->set_val(row_idx, 1.0f);
             }
@@ -753,6 +766,29 @@ void Table::encode_onehot(const char *col_name)
     }
 
     std::vector<Column *> onehot_cols = col->encode_onehot();
+
+    if (onehot_cols.size() == 0)
+    {
+        return;
+    }
+
+    this->cols.insert(this->cols.begin() + col_idx + 1, onehot_cols.begin(), onehot_cols.end());
+    this->cols.erase(this->cols.begin() + col_idx);
+
+    delete col;
+}
+
+void Table::encode_onehot(const char *col_name, std::map<std::string, int> *ordinal_map)
+{
+    int col_idx = this->get_column_idx(col_name);
+    Column *col = this->get_column(col_idx);
+
+    if (col == NULL)
+    {
+        return;
+    }
+
+    std::vector<Column *> onehot_cols = col->encode_onehot(ordinal_map);
 
     if (onehot_cols.size() == 0)
     {
