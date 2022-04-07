@@ -287,9 +287,13 @@ Model *load_lm()
     Model *src_loc_model = new Model();
     src_loc_model->load("temp/loc.model");
 
+    Model *dst_loc_model = new Model();
+    dst_loc_model->load("temp/loc.model");
+    dst_loc_model->share_parameters(src_loc_model);
+
     lm->child(variable_act_model);
     lm->child(src_loc_model);
-    lm->child(src_loc_model);
+    lm->child(dst_loc_model);
 
     ((CustomLayer *)lm->get_layers()[0])->set_callbacks(get_output_shape, forward2, backward2);
 
@@ -358,10 +362,10 @@ int main(int argc, char **argv)
     // xs_tbl->add_column(constant_actcod_col, "typ");
     // xs_tbl->add_column(constant_typ_col, "constant_actcod");
 
-    // Column *actcod_col = new Column(*xs_tbl->get_column("actcod"));
-    // Column *typ_col = new Column(*xs_tbl->get_column("typ"));
-    // Column *fr_loc_col = new Column(*xs_tbl->get_column("fr_loc"));
-    // Column *to_loc_col = new Column(*xs_tbl->get_column("to_loc"));
+    Column *actcod_col = new Column(*xs_tbl->get_column("actcod"));
+    Column *typ_col = new Column(*xs_tbl->get_column("typ"));
+    Column *fr_loc_col = new Column(*xs_tbl->get_column("fr_loc"));
+    Column *to_loc_col = new Column(*xs_tbl->get_column("to_loc"));
 
     xs_tbl->encode_onehot("actcod");
     xs_tbl->encode_onehot("typ");
@@ -413,7 +417,7 @@ int main(int argc, char **argv)
         lm->custom(lm->calc_adjusted_input_shape(xs_tbl->get_column_cnt()),
                    get_output_shape, forward2, backward2);
 
-        lm->fit(sup, 25, 10, "temp/train.csv", upd_rslt_fn);
+        lm->fit(sup, 25, 20, "temp/train.csv", upd_rslt_fn);
 
         Batch *test_batch = sup->create_batch();
         lm->test(test_batch, upd_rslt_fn).print();
@@ -430,21 +434,21 @@ int main(int argc, char **argv)
 
     // Test:
     {
-        // Column *y_col = ys_tbl->get_column("elapsed_secs");
-        // Column *pred_col = new Column("pred", true, xs_tbl->get_row_cnt());
+        Column *y_col = ys_tbl->get_column("elapsed_secs");
+        Column *pred_col = new Column("pred", true, xs_tbl->get_row_cnt());
 
-        // xs_tbl->clear();
+        xs_tbl->clear();
 
-        // xs_tbl->add_column(actcod_col);
-        // xs_tbl->add_column(typ_col);
-        // xs_tbl->add_column(fr_loc_col);
-        // xs_tbl->add_column(to_loc_col);
-        // xs_tbl->add_column(y_col);
-        // xs_tbl->add_column(pred_col);
+        xs_tbl->add_column(actcod_col);
+        xs_tbl->add_column(typ_col);
+        xs_tbl->add_column(fr_loc_col);
+        xs_tbl->add_column(to_loc_col);
+        xs_tbl->add_column(y_col);
+        xs_tbl->add_column(pred_col);
 
-        // test(sup, pred_col);
+        test(sup, pred_col);
 
-        // Table::to_csv("temp/preds.csv", xs_tbl);
+        Table::to_csv("temp/preds.csv", xs_tbl);
     }
 
     // Grad Check:
