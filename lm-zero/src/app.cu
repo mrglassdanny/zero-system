@@ -285,16 +285,16 @@ Model *load_lm()
     Model *actcodtyp_model = new Model();
     actcodtyp_model->load("temp/actcodtyp.model");
 
-    Model *src_loc_model = new Model();
-    src_loc_model->load("temp/loc.model");
+    // Model *src_loc_model = new Model();
+    // src_loc_model->load("temp/loc.model");
 
-    Model *dst_loc_model = new Model();
-    dst_loc_model->load("temp/loc.model");
-    dst_loc_model->share_parameters(src_loc_model);
+    // Model *dst_loc_model = new Model();
+    // dst_loc_model->load("temp/loc.model");
+    // dst_loc_model->share_parameters(src_loc_model);
 
     lm->child(actcodtyp_model);
-    lm->child(src_loc_model);
-    lm->child(dst_loc_model);
+    // lm->child(src_loc_model);
+    // lm->child(dst_loc_model);
 
     // ((CustomLayer *)lm->get_layers()[0])->set_callbacks(get_output_shape, forward2, backward2);
 
@@ -354,11 +354,18 @@ int main(int argc, char **argv)
 
     delete xs_tbl->remove_column("actcod");
     delete xs_tbl->remove_column("typ");
+    delete xs_tbl->remove_column("fr_loc");
+    delete xs_tbl->remove_column("to_loc");
+    delete xs_tbl->remove_column("fx");
+    delete xs_tbl->remove_column("fy");
+    delete xs_tbl->remove_column("tx");
+    delete xs_tbl->remove_column("ty");
 
     xs_tbl->encode_ordinal("actcodtyp", actcodtyp_map);
-    xs_tbl->encode_ordinal("fr_loc", loc_map);
-    xs_tbl->encode_ordinal("to_loc", loc_map);
+    // xs_tbl->encode_ordinal("fr_loc", loc_map);
+    // xs_tbl->encode_ordinal("to_loc", loc_map);
 
+    xs_tbl->get_column("trvl")->scale_down();
     ys_tbl->scale_down();
 
     xs_tbl->print();
@@ -385,16 +392,16 @@ int main(int argc, char **argv)
         Model *actcodtyp_model = new Model();
         actcodtyp_model->embedding((int)actcodtyps_tbl->get_column(0)->row_cnt, ACTCODTYP_EMBG_DIM_CNT);
 
-        Model *src_loc_model = new Model();
-        src_loc_model->embedding((int)locs_tbl->get_column(0)->row_cnt, LOC_EMBG_DIM_CNT);
+        // Model *src_loc_model = new Model();
+        // src_loc_model->embedding((int)locs_tbl->get_column(0)->row_cnt, LOC_EMBG_DIM_CNT);
 
-        Model *dst_loc_model = new Model();
-        dst_loc_model->copy(src_loc_model);
-        dst_loc_model->share_parameters(src_loc_model);
+        // Model *dst_loc_model = new Model();
+        // dst_loc_model->copy(src_loc_model);
+        // dst_loc_model->share_parameters(src_loc_model);
 
         lm->child(actcodtyp_model, xs_tbl->get_column_range("actcodtyp"));
-        lm->child(src_loc_model, xs_tbl->get_column_range("fr_loc"));
-        lm->child(dst_loc_model, xs_tbl->get_column_range("to_loc"));
+        // lm->child(src_loc_model, xs_tbl->get_column_range("fr_loc"));
+        // lm->child(dst_loc_model, xs_tbl->get_column_range("to_loc"));
 
         // lm->custom(lm->calc_adjusted_input_shape(xs_tbl->get_column_cnt()),
         //            get_output_shape, forward2, backward2);
@@ -405,6 +412,7 @@ int main(int argc, char **argv)
         lm->dense(64);
         lm->activation(ReLU);
         lm->dense(1);
+        lm->activation(ReLU);
 
         lm->fit(sup, 25, 10, "temp/train.csv", upd_rslt_fn);
 
@@ -414,12 +422,12 @@ int main(int argc, char **argv)
 
         lm->save("temp/lm.model");
         actcodtyp_model->save("temp/actcodtyp.model");
-        src_loc_model->save("temp/loc.model");
+        // src_loc_model->save("temp/loc.model");
 
         delete lm;
         delete actcodtyp_model;
-        delete src_loc_model;
-        delete dst_loc_model;
+        // delete src_loc_model;
+        // delete dst_loc_model;
     }
 
     // Test:
