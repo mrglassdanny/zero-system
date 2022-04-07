@@ -339,24 +339,29 @@ int main(int argc, char **argv)
 
     // Data setup:
 
-    Table *xs_tbl = Table::fr_csv("data/palmov2-test.csv");
+    Table *xs_tbl = Table::fr_csv("data/palmov_data-test.csv");
     Table *ys_tbl = xs_tbl->split("elapsed_secs");
 
     Table *actcodtyps_tbl = Table::fr_csv("data/actcodtyps.csv");
     std::map<std::string, int> *actcodtyp_map = actcodtyps_tbl->get_column(0)->to_ordinal_map();
 
-    Table *locs_tbl = Table::fr_csv("data/locs2.csv");
+    Table *locs_tbl = Table::fr_csv("data/locs.csv");
     std::map<std::string, int> *loc_map = locs_tbl->get_column(0)->to_ordinal_map();
 
     Column *actcodtyp_col = new Column(*xs_tbl->get_column("actcodtyp"));
     Column *fr_loc_col = new Column(*xs_tbl->get_column("fr_loc"));
     Column *to_loc_col = new Column(*xs_tbl->get_column("to_loc"));
 
+    delete xs_tbl->remove_column("actcod");
+    delete xs_tbl->remove_column("typ");
+
     xs_tbl->encode_ordinal("actcodtyp", actcodtyp_map);
     xs_tbl->encode_ordinal("fr_loc", loc_map);
     xs_tbl->encode_ordinal("to_loc", loc_map);
 
     ys_tbl->scale_down();
+
+    xs_tbl->print();
 
     Supervisor *sup;
     {
