@@ -1,7 +1,7 @@
 
 #include <zero_system/mod.cuh>
 
-#define LOC_EMBG_DIM_CNT 1
+#define LOC_EMBG_DIM_CNT 8
 
 std::vector<int> get_output_shape()
 {
@@ -338,7 +338,7 @@ int main(int argc, char **argv)
 
     // Data setup:
 
-    Table *xs_tbl = Table::fr_csv("data/palmov-test.csv");
+    Table *xs_tbl = Table::fr_csv("data/palmov.csv");
     Table *ys_tbl = xs_tbl->split("elapsed_secs");
 
     Table *locs_tbl = Table::fr_csv("data/locs.csv");
@@ -356,12 +356,6 @@ int main(int argc, char **argv)
         delete xs_tbl->remove_column("pal_qty");
     }
 
-    // Column *constant_actcod_col = new Column("constant_actcod", *xs_tbl->get_column("actcod"));
-    // Column *constant_typ_col = new Column("constant_typ", *xs_tbl->get_column("typ"));
-
-    // xs_tbl->add_column(constant_actcod_col, "typ");
-    // xs_tbl->add_column(constant_typ_col, "constant_actcod");
-
     Column *actcod_col = new Column(*xs_tbl->get_column("actcod"));
     Column *typ_col = new Column(*xs_tbl->get_column("typ"));
     Column *fr_loc_col = new Column(*xs_tbl->get_column("fr_loc"));
@@ -369,8 +363,6 @@ int main(int argc, char **argv)
 
     xs_tbl->encode_onehot("actcod");
     xs_tbl->encode_onehot("typ");
-    // xs_tbl->encode_onehot("constant_actcod");
-    // xs_tbl->encode_onehot("constant_typ");
     xs_tbl->encode_ordinal("fr_loc", loc_map);
     xs_tbl->encode_ordinal("to_loc", loc_map);
 
@@ -396,12 +388,14 @@ int main(int argc, char **argv)
         Model *lm = new Model(0.1f);
 
         Model *variable_act_model = new Model();
-        variable_act_model->dense(xs_tbl->get_last_column_idx("typ") - xs_tbl->get_column_idx("actcod") + 1, 32);
-        variable_act_model->activation(Tanh);
-        variable_act_model->dense(8);
-        variable_act_model->activation(Tanh);
+        variable_act_model->dense(xs_tbl->get_last_column_idx("typ") - xs_tbl->get_column_idx("actcod") + 1, 128);
+        variable_act_model->activation(ReLU);
+        variable_act_model->dense(64);
+        variable_act_model->activation(ReLU);
+        variable_act_model->dense(64);
+        variable_act_model->activation(ReLU);
         variable_act_model->dense(1);
-        variable_act_model->activation(Tanh);
+        variable_act_model->activation(ReLU);
 
         Model *src_loc_model = new Model();
         src_loc_model->embedding((int)locs_tbl->get_column(0)->row_cnt, LOC_EMBG_DIM_CNT);
@@ -416,8 +410,9 @@ int main(int argc, char **argv)
 
         lm->custom(lm->calc_adjusted_input_shape(xs_tbl->get_column_cnt()),
                    get_output_shape, forward2, backward2);
+        lm->activation(ReLU);
 
-        lm->fit(sup, 25, 50, "temp/train.csv", upd_rslt_fn);
+        lm->fit(sup, 100, 10, "temp/train.csv", upd_rslt_fn);
 
         Batch *test_batch = sup->create_batch();
         lm->test(test_batch, upd_rslt_fn).print();
