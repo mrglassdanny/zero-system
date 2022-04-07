@@ -37,6 +37,7 @@ Column::Column(const char *name, bool numeric, int row_cnt)
 
 Column::Column(Column &src)
 {
+    memset(this->name, 0, sizeof(this->name));
     this->copy(&src);
 }
 
