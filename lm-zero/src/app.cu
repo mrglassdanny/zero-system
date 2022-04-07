@@ -385,7 +385,7 @@ int main(int argc, char **argv)
 
     // Fit:
     {
-        Model *lm = new Model(0.1f);
+        Model *lm = new Model(0.01f);
 
         Model *variable_act_model = new Model();
         variable_act_model->dense(xs_tbl->get_last_column_idx("typ") - xs_tbl->get_column_idx("actcod") + 1, 128);
