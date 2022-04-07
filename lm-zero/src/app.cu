@@ -417,7 +417,7 @@ int main(int argc, char **argv)
         lm->custom(lm->calc_adjusted_input_shape(xs_tbl->get_column_cnt()),
                    get_output_shape, forward2, backward2);
 
-        lm->fit(sup, 25, 20, "temp/train.csv", upd_rslt_fn);
+        lm->fit(sup, 25, 50, "temp/train.csv", upd_rslt_fn);
 
         Batch *test_batch = sup->create_batch();
         lm->test(test_batch, upd_rslt_fn).print();
@@ -430,6 +430,7 @@ int main(int argc, char **argv)
         delete lm;
         delete variable_act_model;
         delete src_loc_model;
+        delete dst_loc_model;
     }
 
     // Test:
@@ -453,7 +454,7 @@ int main(int argc, char **argv)
 
     // Grad Check:
     {
-        grad_check(xs_tbl, ys_tbl, sup);
+        // grad_check(xs_tbl, ys_tbl, sup);
     }
 
     // Cleanup:
