@@ -1,7 +1,7 @@
 
 #include <zero_system/mod.cuh>
 
-#define ACTCODTYP_EMBG_DIM_CNT 6
+#define ACTCODTYP_EMBG_DIM_CNT 4
 #define LOC_EMBG_DIM_CNT 12
 
 std::vector<int> get_output_shape()
@@ -12,7 +12,7 @@ std::vector<int> get_output_shape()
 
 std::vector<int> get_output_shape2()
 {
-    std::vector<int> n_shape{1};
+    std::vector<int> n_shape{2};
     return n_shape;
 }
 
@@ -41,8 +41,6 @@ void forward(Tensor *n, Tensor *nxt_n, bool train_flg)
 
 void forward2(Tensor *n, Tensor *nxt_n, bool train_flg)
 {
-    // y = a + t
-
     float a = n->get_val(0);
     float t = 0.0f;
 
@@ -57,9 +55,8 @@ void forward2(Tensor *n, Tensor *nxt_n, bool train_flg)
 
     t = sqrt(t);
 
-    float y = a + t;
-
-    nxt_n->set_val(0, y);
+    nxt_n->set_val(0, a);
+    nxt_n->set_val(1, t);
 }
 
 void forward3(Tensor *n, Tensor *nxt_n, bool train_flg)
@@ -108,13 +105,9 @@ Tensor *backward(Tensor *n, Tensor *dc)
 
 Tensor *backward2(Tensor *n, Tensor *dc)
 {
-    // y = a + t
-
     Tensor *nxt_dc = new Tensor(n->get_device(), n->get_shape());
 
-    float dc_val = dc->get_val(0);
-
-    nxt_dc->set_val(0, dc_val * 1.0f);
+    nxt_dc->set_val(0, dc->get_val(0) * 1.0f);
 
     int src_loc_beg_idx = 1;
     int dst_loc_beg_idx = src_loc_beg_idx + LOC_EMBG_DIM_CNT;
@@ -131,6 +124,8 @@ Tensor *backward2(Tensor *n, Tensor *dc)
 
     for (int i = 0; i < LOC_EMBG_DIM_CNT; i++)
     {
+        float dc_val = dc->get_val(1);
+
         if (t == 0.0f)
         {
             nxt_dc->set_val(src_loc_beg_idx + i, 0.0f);
@@ -424,12 +419,10 @@ int main(int argc, char **argv)
     // Model 3: 26%
     {
         // Model *actcodtyp_model = new Model();
-        // actcodtyp_model->dense(xs_tbl->get_last_column_idx("actcodtyp") - xs_tbl->get_column_idx("actcodtyp") + 1, 128);
-        // actcodtyp_model->activation(ReLU);
+        // actcodtyp_model->embedding((int)actcodtyps_tbl->get_column(0)->row_cnt, ACTCODTYP_EMBG_DIM_CNT);
         // actcodtyp_model->dense(64);
-        // actcodtyp_model->activation(ReLU);
+        // actcodtyp_model->activation(Tanh);
         // actcodtyp_model->dense(1);
-        // actcodtyp_model->activation(ReLU);
 
         // Model *src_loc_model = new Model();
         // src_loc_model->embedding((int)locs_tbl->get_column(0)->row_cnt, LOC_EMBG_DIM_CNT);
@@ -444,7 +437,12 @@ int main(int argc, char **argv)
 
         // lm->custom(lm->calc_adjusted_input_shape(xs_tbl->get_column_cnt()),
         //            get_output_shape2, forward2, backward2);
-        // lm->activation(ReLU);
+        // lm->activation(Tanh);
+        // lm->dense(32);
+        // lm->activation(Tanh);
+        // lm->dense(8);
+        // lm->activation(Tanh);
+        // lm->dense(1);
     }
 
     // Model 4: 32%
@@ -466,14 +464,11 @@ int main(int argc, char **argv)
         lm->custom(lm->calc_adjusted_input_shape(xs_tbl->get_column_cnt()),
                    get_output_shape3, forward3, backward3);
         lm->activation(Tanh);
-        lm->dense(128);
-        lm->activation(Tanh);
         lm->dense(32);
         lm->activation(Tanh);
         lm->dense(8);
         lm->activation(Tanh);
         lm->dense(1);
-        lm->activation(Sigmoid);
     }
 
     // ===================================================================================================
