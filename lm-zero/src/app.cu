@@ -2,7 +2,7 @@
 #include <zero_system/mod.cuh>
 
 #define ACTCODTYP_EMBG_DIM_CNT 4
-#define LOC_EMBG_DIM_CNT 12
+#define LOC_EMBG_DIM_CNT 1
 
 std::vector<int> get_output_shape()
 {
@@ -420,7 +420,7 @@ int main(int argc, char **argv)
     {
         // Model *actcodtyp_model = new Model();
         // actcodtyp_model->embedding((int)actcodtyps_tbl->get_column(0)->row_cnt, ACTCODTYP_EMBG_DIM_CNT);
-        // actcodtyp_model->dense(64);
+        // actcodtyp_model->dense(32);
         // actcodtyp_model->activation(Tanh);
         // actcodtyp_model->dense(1);
 
@@ -438,9 +438,9 @@ int main(int argc, char **argv)
         // lm->custom(lm->calc_adjusted_input_shape(xs_tbl->get_column_cnt()),
         //            get_output_shape2, forward2, backward2);
         // lm->activation(Tanh);
-        // lm->dense(32);
+        // lm->dense(64);
         // lm->activation(Tanh);
-        // lm->dense(8);
+        // lm->dense(16);
         // lm->activation(Tanh);
         // lm->dense(1);
     }
@@ -517,7 +517,7 @@ int main(int argc, char **argv)
     // Grad Check:
     {
         // Batch *grad_check_batch = sup->create_batch();
-        // lm->grad_check(grad_check_batch->get_x(1), grad_check_batch->get_y(1), false);
+        // lm->grad_check(grad_check_batch->get_x(1), grad_check_batch->get_y(1), true);
         // delete grad_check_batch;
     }
 
