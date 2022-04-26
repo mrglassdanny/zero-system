@@ -198,7 +198,7 @@ int main(int argc, char **argv)
 
     // Data setup:
 
-    Table *xs_tbl = Table::fr_csv("data/tasks.csv");
+    Table *xs_tbl = Table::fr_csv("data/tasks-copy.csv");
     Table *ys_tbl = xs_tbl->split("task_time");
 
     delete xs_tbl->remove_column("usr_id");
@@ -211,7 +211,7 @@ int main(int argc, char **argv)
 
     // TODO: make sure we are handling NULL values in a good way ^^^
 
-    Table *locs_tbl = Table::fr_csv("data/locs.csv");
+    Table *locs_tbl = Table::fr_csv("data/locs-copy.csv");
     std::map<std::string, int> *loc_map = locs_tbl->get_column(0)->to_ordinal_map();
 
     xs_tbl->encode_ordinal("actcod_typ");
@@ -276,11 +276,11 @@ int main(int argc, char **argv)
 
         lm->custom(lm->calc_adjusted_input_shape(xs_tbl->get_column_cnt()), get_output_shape, forward, backward);
         lm->activation(Tanh);
-        lm->dense(128);
-        lm->activation(Tanh);
-        lm->dense(64);
+        lm->dense(16);
         lm->activation(Tanh);
         lm->dense(16);
+        lm->activation(Tanh);
+        lm->dense(8);
         lm->activation(Tanh);
         lm->dense(1);
     }
@@ -289,11 +289,11 @@ int main(int argc, char **argv)
 
     // Fit:
     {
-        lm->fit(sup, 25, 4, "temp/train.csv", upd_rslt_fn);
+        // lm->fit(sup, 25, 4, "temp/train.csv", upd_rslt_fn);
 
-        Batch *test_batch = sup->create_batch();
-        lm->test(test_batch, upd_rslt_fn).print();
-        delete test_batch;
+        // Batch *test_batch = sup->create_batch();
+        // lm->test(test_batch, upd_rslt_fn).print();
+        // delete test_batch;
     }
 
     // ===================================================================================================
@@ -322,9 +322,9 @@ int main(int argc, char **argv)
 
     // Grad Check:
     {
-        // Batch *grad_check_batch = sup->create_batch();
-        // lm->grad_check(grad_check_batch->get_x(0), grad_check_batch->get_y(0), true);
-        // delete grad_check_batch;
+        Batch *grad_check_batch = sup->create_batch();
+        lm->grad_check(grad_check_batch->get_x(1), grad_check_batch->get_y(1), true);
+        delete grad_check_batch;
     }
 
     return 0;
