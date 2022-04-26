@@ -89,22 +89,13 @@ bool StackBuffer::contains(char c)
 
 bool StackBuffer::is_numeric()
 {
-    double val = atof(this->arr);
-
-    if (val == 0.0)
+    for (int i = 0; i < this->idx; i++)
     {
-        for (int i = 0; i < this->idx; i++)
+        if (isdigit(this->arr[i]) == 0)
         {
-            if (this->arr[i] != '0' && this->arr[i] != '.' && this->arr[i] != '-')
-            {
-                return false;
-            }
+            return false;
         }
+    }
 
-        return true;
-    }
-    else
-    {
-        return true;
-    }
+    return true;
 }

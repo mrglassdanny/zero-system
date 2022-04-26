@@ -7,6 +7,7 @@
 #include <float.h>
 #include <time.h>
 #include <conio.h>
+#include <ctype.h>
 #include <random>
 #include <vector>
 #include <map>

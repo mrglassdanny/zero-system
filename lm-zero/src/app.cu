@@ -1,186 +1,60 @@
 
 #include <zero_system/mod.cuh>
 
-#define ACTCODTYP_EMBG_DIM_CNT 4
-#define LOC_EMBG_DIM_CNT 1
+#define ACTCOD_TYP_EMBG_DIM_CNT 4
+#define DEVCOD_EMBG_DIM_CNT 4
+#define LOC_EMBG_DIM_CNT 16
+
+int adj_x_col_cnt = 0;
+int fr_loc_idx = 0;
 
 std::vector<int> get_output_shape()
 {
-    std::vector<int> n_shape{ACTCODTYP_EMBG_DIM_CNT + LOC_EMBG_DIM_CNT};
-    return n_shape;
-}
-
-std::vector<int> get_output_shape2()
-{
-    std::vector<int> n_shape{2};
-    return n_shape;
-}
-
-std::vector<int> get_output_shape3()
-{
-    std::vector<int> n_shape{ACTCODTYP_EMBG_DIM_CNT + 1};
+    std::vector<int> n_shape{adj_x_col_cnt - LOC_EMBG_DIM_CNT};
     return n_shape;
 }
 
 void forward(Tensor *n, Tensor *nxt_n, bool train_flg)
 {
-    for (int i = 0; i < ACTCODTYP_EMBG_DIM_CNT; i++)
+    for (int i = 0; i < fr_loc_idx; i++)
     {
         nxt_n->set_val(i, n->get_val(i));
     }
 
-    int src_loc_beg_idx = ACTCODTYP_EMBG_DIM_CNT;
-    int dst_loc_beg_idx = src_loc_beg_idx + LOC_EMBG_DIM_CNT;
+    for (int i = fr_loc_idx + LOC_EMBG_DIM_CNT; i < adj_x_col_cnt; i++)
+    {
+        nxt_n->set_val(i - LOC_EMBG_DIM_CNT, n->get_val(i));
+    }
+
+    int to_loc_idx = fr_loc_idx + LOC_EMBG_DIM_CNT;
 
     for (int i = 0; i < LOC_EMBG_DIM_CNT; i++)
     {
-        float loc_diff = n->get_val(src_loc_beg_idx + i) - n->get_val(dst_loc_beg_idx + i);
-        nxt_n->set_val(i + ACTCODTYP_EMBG_DIM_CNT, loc_diff);
+        float loc_diff = n->get_val(fr_loc_idx + i) - n->get_val(to_loc_idx + i);
+        nxt_n->set_val(i + fr_loc_idx, loc_diff);
     }
-}
-
-void forward2(Tensor *n, Tensor *nxt_n, bool train_flg)
-{
-    float a = n->get_val(0);
-    float t = 0.0f;
-
-    int src_loc_beg_idx = 1;
-    int dst_loc_beg_idx = src_loc_beg_idx + LOC_EMBG_DIM_CNT;
-
-    for (int i = 0; i < LOC_EMBG_DIM_CNT; i++)
-    {
-        float loc_diff = n->get_val(src_loc_beg_idx + i) - n->get_val(dst_loc_beg_idx + i);
-        t += (loc_diff * loc_diff);
-    }
-
-    t = sqrt(t);
-
-    nxt_n->set_val(0, a);
-    nxt_n->set_val(1, t);
-}
-
-void forward3(Tensor *n, Tensor *nxt_n, bool train_flg)
-{
-    for (int i = 0; i < ACTCODTYP_EMBG_DIM_CNT; i++)
-    {
-        nxt_n->set_val(i, n->get_val(i));
-    }
-
-    int src_loc_beg_idx = ACTCODTYP_EMBG_DIM_CNT;
-    int dst_loc_beg_idx = src_loc_beg_idx + LOC_EMBG_DIM_CNT;
-
-    float t = 0.0f;
-
-    for (int i = 0; i < LOC_EMBG_DIM_CNT; i++)
-    {
-        float loc_diff = n->get_val(src_loc_beg_idx + i) - n->get_val(dst_loc_beg_idx + i);
-        t += (loc_diff * loc_diff);
-    }
-
-    t = sqrt(t);
-
-    nxt_n->set_val(ACTCODTYP_EMBG_DIM_CNT, t);
 }
 
 Tensor *backward(Tensor *n, Tensor *dc)
 {
     Tensor *nxt_dc = new Tensor(n->get_device(), n->get_shape());
 
-    for (int i = 0; i < ACTCODTYP_EMBG_DIM_CNT; i++)
+    for (int i = 0; i < fr_loc_idx; i++)
     {
         nxt_dc->set_val(i, dc->get_val(i));
     }
 
-    int src_loc_beg_idx = ACTCODTYP_EMBG_DIM_CNT;
-    int dst_loc_beg_idx = src_loc_beg_idx + LOC_EMBG_DIM_CNT;
+    for (int i = fr_loc_idx + LOC_EMBG_DIM_CNT; i < adj_x_col_cnt; i++)
+    {
+        nxt_dc->set_val(i, dc->get_val(i - LOC_EMBG_DIM_CNT));
+    }
+
+    int to_loc_idx = fr_loc_idx + LOC_EMBG_DIM_CNT;
 
     for (int i = 0; i < LOC_EMBG_DIM_CNT; i++)
     {
-        nxt_dc->set_val(src_loc_beg_idx + i, dc->get_val(i + ACTCODTYP_EMBG_DIM_CNT) * 1.0f);
-        nxt_dc->set_val(dst_loc_beg_idx + i, dc->get_val(i + ACTCODTYP_EMBG_DIM_CNT) * -1.0f);
-    }
-
-    return nxt_dc;
-}
-
-Tensor *backward2(Tensor *n, Tensor *dc)
-{
-    Tensor *nxt_dc = new Tensor(n->get_device(), n->get_shape());
-
-    nxt_dc->set_val(0, dc->get_val(0) * 1.0f);
-
-    int src_loc_beg_idx = 1;
-    int dst_loc_beg_idx = src_loc_beg_idx + LOC_EMBG_DIM_CNT;
-
-    float t = 0.0f;
-
-    for (int i = 0; i < LOC_EMBG_DIM_CNT; i++)
-    {
-        float loc_diff = n->get_val(src_loc_beg_idx + i) - n->get_val(dst_loc_beg_idx + i);
-        t += (loc_diff * loc_diff);
-    }
-
-    t = sqrt(t);
-
-    for (int i = 0; i < LOC_EMBG_DIM_CNT; i++)
-    {
-        float dc_val = dc->get_val(1);
-
-        if (t == 0.0f)
-        {
-            nxt_dc->set_val(src_loc_beg_idx + i, 0.0f);
-            nxt_dc->set_val(dst_loc_beg_idx + i, 0.0f);
-        }
-        else
-        {
-            float dv = 1.0f / (2.0f * t);
-
-            nxt_dc->set_val(src_loc_beg_idx + i, dc_val * dv * (2.0f * (n->get_val(src_loc_beg_idx + i) - n->get_val(dst_loc_beg_idx + i))));
-            nxt_dc->set_val(dst_loc_beg_idx + i, dc_val * dv * (-2.0f * (n->get_val(src_loc_beg_idx + i) - n->get_val(dst_loc_beg_idx + i))));
-        }
-    }
-
-    return nxt_dc;
-}
-
-Tensor *backward3(Tensor *n, Tensor *dc)
-{
-    Tensor *nxt_dc = new Tensor(n->get_device(), n->get_shape());
-
-    for (int i = 0; i < ACTCODTYP_EMBG_DIM_CNT; i++)
-    {
-        nxt_dc->set_val(i, dc->get_val(i));
-    }
-
-    int src_loc_beg_idx = ACTCODTYP_EMBG_DIM_CNT;
-    int dst_loc_beg_idx = src_loc_beg_idx + LOC_EMBG_DIM_CNT;
-
-    float t = 0.0f;
-
-    for (int i = 0; i < LOC_EMBG_DIM_CNT; i++)
-    {
-        float loc_diff = n->get_val(src_loc_beg_idx + i) - n->get_val(dst_loc_beg_idx + i);
-        t += (loc_diff * loc_diff);
-    }
-
-    t = sqrt(t);
-
-    for (int i = 0; i < LOC_EMBG_DIM_CNT; i++)
-    {
-        float dc_val = dc->get_val(ACTCODTYP_EMBG_DIM_CNT);
-
-        if (t == 0.0f)
-        {
-            nxt_dc->set_val(src_loc_beg_idx + i, 0.0f);
-            nxt_dc->set_val(dst_loc_beg_idx + i, 0.0f);
-        }
-        else
-        {
-            float dv = 1.0f / (2.0f * t);
-
-            nxt_dc->set_val(src_loc_beg_idx + i, dc_val * dv * (2.0f * (n->get_val(src_loc_beg_idx + i) - n->get_val(dst_loc_beg_idx + i))));
-            nxt_dc->set_val(dst_loc_beg_idx + i, dc_val * dv * (-2.0f * (n->get_val(src_loc_beg_idx + i) - n->get_val(dst_loc_beg_idx + i))));
-        }
+        nxt_dc->set_val(fr_loc_idx + i, dc->get_val(i + fr_loc_idx) * 1.0f);
+        nxt_dc->set_val(to_loc_idx + i, dc->get_val(i + fr_loc_idx) * -1.0f);
     }
 
     return nxt_dc;
@@ -324,36 +198,32 @@ int main(int argc, char **argv)
 
     // Data setup:
 
-    Table *xs_tbl = Table::fr_csv("data/palmov_data-test.csv");
-    Table *ys_tbl = xs_tbl->split("elapsed_secs");
+    Table *xs_tbl = Table::fr_csv("data/tasks.csv");
+    Table *ys_tbl = xs_tbl->split("task_time");
 
-    Table *actcodtyps_tbl = Table::fr_csv("data/actcodtyps.csv");
-    std::map<std::string, int> *actcodtyp_map = actcodtyps_tbl->get_column(0)->to_ordinal_map();
+    delete xs_tbl->remove_column("usr_id");
+    delete xs_tbl->remove_column("cstnum");
+    delete xs_tbl->remove_column("supnum");
+    delete xs_tbl->remove_column("actcod");
+    delete xs_tbl->remove_column("typ");
+    delete xs_tbl->remove_column("begdte");
+    delete xs_tbl->remove_column("enddte");
+
+    // TODO: make sure we are handling NULL values in a good way ^^^
 
     Table *locs_tbl = Table::fr_csv("data/locs.csv");
     std::map<std::string, int> *loc_map = locs_tbl->get_column(0)->to_ordinal_map();
 
-    Column *actcod_col = new Column(*xs_tbl->get_column("actcod"));
-    Column *typ_col = new Column(*xs_tbl->get_column("typ"));
-    Column *fr_loc_col = new Column(*xs_tbl->get_column("fr_loc"));
-    Column *to_loc_col = new Column(*xs_tbl->get_column("to_loc"));
-
-    delete xs_tbl->remove_column("actcod");
-    delete xs_tbl->remove_column("typ");
-    // delete xs_tbl->remove_column("fr_loc");
-    // delete xs_tbl->remove_column("to_loc");
-    delete xs_tbl->remove_column("fx");
-    delete xs_tbl->remove_column("fy");
-    delete xs_tbl->remove_column("tx");
-    delete xs_tbl->remove_column("ty");
-    delete xs_tbl->remove_column("trvl");
-
-    xs_tbl->encode_ordinal("actcodtyp", actcodtyp_map);
-    // xs_tbl->encode_onehot("actcodtyp", actcodtyp_map);
+    xs_tbl->encode_ordinal("actcod_typ");
+    xs_tbl->encode_ordinal("devcod");
     xs_tbl->encode_ordinal("fr_loc", loc_map);
     xs_tbl->encode_ordinal("to_loc", loc_map);
 
-    // xs_tbl->get_column("trvl")->scale_down();
+    xs_tbl->get_column("cas_cnt")->scale_down();
+    xs_tbl->get_column("pal_cnt")->scale_down();
+    xs_tbl->get_column("cub")->scale_down();
+    xs_tbl->get_column("wgt")->scale_down();
+
     ys_tbl->scale_down();
 
     Supervisor *sup;
@@ -373,100 +243,44 @@ int main(int argc, char **argv)
 
     // ===================================================================================================
 
-    // Models:
+    // Model(s):
 
-    Model *lm = new Model(0.1f);
+    Model *lm = new Model(0.01f);
 
-    // Model 1: 25%
+    // Model 1:
     {
-        // Model *actcodtyp_model = new Model();
-        // actcodtyp_model->embedding((int)actcodtyps_tbl->get_column(0)->row_cnt, ACTCODTYP_EMBG_DIM_CNT);
+        Model *actcod_typ_m = new Model();
+        Model *devcod_m = new Model();
+        Model *loc_m = new Model();
+        Model *loc_m_cpy = new Model();
 
-        // lm->child(actcodtyp_model, xs_tbl->get_column_range("actcodtyp"));
+        int actcod_typ_max = xs_tbl->get_column("actcod_typ")->get_max();
+        actcod_typ_m->embedding(actcod_typ_max, ACTCOD_TYP_EMBG_DIM_CNT);
 
-        // lm->dense(lm->calc_adjusted_input_shape(xs_tbl->get_column_cnt()), 128);
-        // lm->activation(ReLU);
-        // lm->dense(32);
-        // lm->activation(ReLU);
-        // lm->dense(1);
-        // lm->activation(ReLU);
-    }
+        int devcod_max = xs_tbl->get_column("devcod")->get_max();
+        devcod_m->embedding(devcod_max, DEVCOD_EMBG_DIM_CNT);
 
-    // Model 2: 26%
-    {
-        // Model *actcodtyp_model = new Model();
-        // actcodtyp_model->embedding((int)actcodtyps_tbl->get_column(0)->row_cnt, ACTCODTYP_EMBG_DIM_CNT);
+        int loc_max = loc_map->size();
+        loc_m->embedding(loc_max, LOC_EMBG_DIM_CNT);
 
-        // Model *src_loc_model = new Model();
-        // src_loc_model->embedding((int)locs_tbl->get_column(0)->row_cnt, LOC_EMBG_DIM_CNT);
+        loc_m_cpy->copy(loc_m);
+        loc_m_cpy->share_parameters(loc_m);
 
-        // Model *dst_loc_model = new Model();
-        // dst_loc_model->copy(src_loc_model);
-        // dst_loc_model->share_parameters(src_loc_model);
+        lm->child(actcod_typ_m, xs_tbl->get_column_range("actcod_typ"));
+        lm->child(devcod_m, xs_tbl->get_column_range("devcod"));
+        lm->child(loc_m, xs_tbl->get_column_range("fr_loc"));
+        lm->child(loc_m_cpy, xs_tbl->get_column_range("to_loc"));
 
-        // lm->child(actcodtyp_model, xs_tbl->get_column_range("actcodtyp"));
-        // lm->child(src_loc_model, xs_tbl->get_column_range("fr_loc"));
-        // lm->child(dst_loc_model, xs_tbl->get_column_range("to_loc"));
+        adj_x_col_cnt = lm->calc_adjusted_input_shape(xs_tbl->get_column_cnt())[0];
+        fr_loc_idx = xs_tbl->get_column_idx("fr_loc");
 
-        // lm->dense(lm->calc_adjusted_input_shape(xs_tbl->get_column_cnt()), 256);
-        // lm->activation(ReLU);
-        // lm->dense(64);
-        // lm->activation(ReLU);
-        // lm->dense(1);
-        // lm->activation(ReLU);
-    }
-
-    // Model 3: 26%
-    {
-        // Model *actcodtyp_model = new Model();
-        // actcodtyp_model->embedding((int)actcodtyps_tbl->get_column(0)->row_cnt, ACTCODTYP_EMBG_DIM_CNT);
-        // actcodtyp_model->dense(32);
-        // actcodtyp_model->activation(Tanh);
-        // actcodtyp_model->dense(1);
-
-        // Model *src_loc_model = new Model();
-        // src_loc_model->embedding((int)locs_tbl->get_column(0)->row_cnt, LOC_EMBG_DIM_CNT);
-
-        // Model *dst_loc_model = new Model();
-        // dst_loc_model->copy(src_loc_model);
-        // dst_loc_model->share_parameters(src_loc_model);
-
-        // lm->child(actcodtyp_model, xs_tbl->get_column_range("actcodtyp"));
-        // lm->child(src_loc_model, xs_tbl->get_column_range("fr_loc"));
-        // lm->child(dst_loc_model, xs_tbl->get_column_range("to_loc"));
-
-        // lm->custom(lm->calc_adjusted_input_shape(xs_tbl->get_column_cnt()),
-        //            get_output_shape2, forward2, backward2);
-        // lm->activation(Tanh);
-        // lm->dense(64);
-        // lm->activation(Tanh);
-        // lm->dense(16);
-        // lm->activation(Tanh);
-        // lm->dense(1);
-    }
-
-    // Model 4: 32%
-    {
-        Model *actcodtyp_model = new Model();
-        actcodtyp_model->embedding((int)actcodtyps_tbl->get_column(0)->row_cnt, ACTCODTYP_EMBG_DIM_CNT);
-
-        Model *src_loc_model = new Model();
-        src_loc_model->embedding((int)locs_tbl->get_column(0)->row_cnt, LOC_EMBG_DIM_CNT);
-
-        Model *dst_loc_model = new Model();
-        dst_loc_model->copy(src_loc_model);
-        dst_loc_model->share_parameters(src_loc_model);
-
-        lm->child(actcodtyp_model, xs_tbl->get_column_range("actcodtyp"));
-        lm->child(src_loc_model, xs_tbl->get_column_range("fr_loc"));
-        lm->child(dst_loc_model, xs_tbl->get_column_range("to_loc"));
-
-        lm->custom(lm->calc_adjusted_input_shape(xs_tbl->get_column_cnt()),
-                   get_output_shape3, forward3, backward3);
+        lm->custom(lm->calc_adjusted_input_shape(xs_tbl->get_column_cnt()), get_output_shape, forward, backward);
         lm->activation(Tanh);
-        lm->dense(32);
+        lm->dense(128);
         lm->activation(Tanh);
-        lm->dense(8);
+        lm->dense(64);
+        lm->activation(Tanh);
+        lm->dense(16);
         lm->activation(Tanh);
         lm->dense(1);
     }
@@ -486,30 +300,22 @@ int main(int argc, char **argv)
 
     // Test:
     {
-        Column *y_col = ys_tbl->get_column("elapsed_secs");
-        Column *pred_col = new Column("pred", true, xs_tbl->get_row_cnt());
+        // Column *pred_col = new Column("pred", true, ys_tbl->get_row_cnt());
 
-        xs_tbl->clear();
+        // ys_tbl->add_column(pred_col);
 
-        xs_tbl->add_column(actcod_col);
-        xs_tbl->add_column(typ_col);
-        xs_tbl->add_column(fr_loc_col);
-        xs_tbl->add_column(to_loc_col);
-        xs_tbl->add_column(y_col);
-        xs_tbl->add_column(pred_col);
+        // Batch *test_batch = sup->create_batch();
 
-        Batch *test_batch = sup->create_batch();
+        // for (int i = 0; i < test_batch->get_size(); i++)
+        // {
+        //     Tensor *pred = lm->forward(test_batch->get_x(i), false);
+        //     pred_col->set_val(i, pred->get_val(0));
+        //     delete pred;
+        // }
 
-        for (int i = 0; i < test_batch->get_size(); i++)
-        {
-            Tensor *pred = lm->forward(test_batch->get_x(i), false);
-            pred_col->set_val(i, pred->get_val(0));
-            delete pred;
-        }
+        // delete test_batch;
 
-        delete test_batch;
-
-        Table::to_csv("temp/preds.csv", xs_tbl);
+        // Table::to_csv("temp/preds.csv", ys_tbl);
     }
 
     // ===================================================================================================
@@ -517,7 +323,7 @@ int main(int argc, char **argv)
     // Grad Check:
     {
         // Batch *grad_check_batch = sup->create_batch();
-        // lm->grad_check(grad_check_batch->get_x(1), grad_check_batch->get_y(1), true);
+        // lm->grad_check(grad_check_batch->get_x(0), grad_check_batch->get_y(0), true);
         // delete grad_check_batch;
     }
 
