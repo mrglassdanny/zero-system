@@ -8,20 +8,20 @@
 int adj_x_col_cnt = 0;
 int fr_loc_idx = 0;
 
-std::vector<int> get_output_shape()
+std::vector<int> get_output_shape_diff()
 {
     std::vector<int> n_shape{adj_x_col_cnt - LOC_EMBG_DIM_CNT};
     return n_shape;
 }
 
-void forward(Tensor *n, Tensor *nxt_n, bool train_flg)
+void forward_diff(Tensor *n, Tensor *nxt_n, bool train_flg)
 {
     for (int i = 0; i < fr_loc_idx; i++)
     {
         nxt_n->set_val(i, n->get_val(i));
     }
 
-    for (int i = fr_loc_idx + LOC_EMBG_DIM_CNT; i < adj_x_col_cnt; i++)
+    for (int i = fr_loc_idx + (LOC_EMBG_DIM_CNT * 2); i < adj_x_col_cnt; i++)
     {
         nxt_n->set_val(i - LOC_EMBG_DIM_CNT, n->get_val(i));
     }
@@ -35,7 +35,7 @@ void forward(Tensor *n, Tensor *nxt_n, bool train_flg)
     }
 }
 
-Tensor *backward(Tensor *n, Tensor *dc)
+Tensor *backward_diff(Tensor *n, Tensor *dc)
 {
     Tensor *nxt_dc = new Tensor(n->get_device(), n->get_shape());
 
@@ -44,7 +44,7 @@ Tensor *backward(Tensor *n, Tensor *dc)
         nxt_dc->set_val(i, dc->get_val(i));
     }
 
-    for (int i = fr_loc_idx + LOC_EMBG_DIM_CNT; i < adj_x_col_cnt; i++)
+    for (int i = fr_loc_idx + (LOC_EMBG_DIM_CNT * 2); i < adj_x_col_cnt; i++)
     {
         nxt_dc->set_val(i, dc->get_val(i - LOC_EMBG_DIM_CNT));
     }
@@ -55,6 +55,63 @@ Tensor *backward(Tensor *n, Tensor *dc)
     {
         nxt_dc->set_val(fr_loc_idx + i, dc->get_val(i + fr_loc_idx) * 1.0f);
         nxt_dc->set_val(to_loc_idx + i, dc->get_val(i + fr_loc_idx) * -1.0f);
+    }
+
+    return nxt_dc;
+}
+
+std::vector<int> get_output_shape_dot()
+{
+    std::vector<int> n_shape{adj_x_col_cnt - (LOC_EMBG_DIM_CNT * 2) + 1};
+    return n_shape;
+}
+
+void forward_dot(Tensor *n, Tensor *nxt_n, bool train_flg)
+{
+    for (int i = 0; i < fr_loc_idx; i++)
+    {
+        nxt_n->set_val(i, n->get_val(i));
+    }
+
+    for (int i = fr_loc_idx + (LOC_EMBG_DIM_CNT * 2); i < adj_x_col_cnt; i++)
+    {
+        nxt_n->set_val(i - (LOC_EMBG_DIM_CNT * 2) + 1, n->get_val(i));
+    }
+
+    int to_loc_idx = fr_loc_idx + LOC_EMBG_DIM_CNT;
+
+    float dot = 0.0f;
+
+    for (int i = 0; i < LOC_EMBG_DIM_CNT; i++)
+    {
+        dot += n->get_val(fr_loc_idx + i) * n->get_val(to_loc_idx + i);
+    }
+
+    nxt_n->set_val(fr_loc_idx, dot);
+}
+
+Tensor *backward_dot(Tensor *n, Tensor *dc)
+{
+    Tensor *nxt_dc = new Tensor(n->get_device(), n->get_shape());
+
+    for (int i = 0; i < fr_loc_idx; i++)
+    {
+        nxt_dc->set_val(i, dc->get_val(i));
+    }
+
+    for (int i = fr_loc_idx + (LOC_EMBG_DIM_CNT * 2); i < adj_x_col_cnt; i++)
+    {
+        nxt_dc->set_val(i, dc->get_val(i - (LOC_EMBG_DIM_CNT * 2) + 1));
+    }
+
+    int to_loc_idx = fr_loc_idx + LOC_EMBG_DIM_CNT;
+
+    float val = dc->get_val(fr_loc_idx);
+
+    for (int i = 0; i < LOC_EMBG_DIM_CNT; i++)
+    {
+        nxt_dc->set_val(fr_loc_idx + i, val * (n->get_val(to_loc_idx + i)));
+        nxt_dc->set_val(to_loc_idx + i, val * (n->get_val(fr_loc_idx + i)));
     }
 
     return nxt_dc;
@@ -246,12 +303,12 @@ int main(int argc, char **argv)
     // Model(s):
 
     Model *lm = new Model(0.01f);
+    Model *actcod_typ_m = new Model();
+    Model *devcod_m = new Model();
+    Model *loc_m = new Model();
 
     // Model 1:
     {
-        Model *actcod_typ_m = new Model();
-        Model *devcod_m = new Model();
-        Model *loc_m = new Model();
         Model *loc_m_cpy = new Model();
 
         int actcod_typ_max = xs_tbl->get_column("actcod_typ")->get_max();
@@ -274,7 +331,7 @@ int main(int argc, char **argv)
         adj_x_col_cnt = lm->calc_adjusted_input_shape(xs_tbl->get_column_cnt())[0];
         fr_loc_idx = xs_tbl->get_column_idx("fr_loc");
 
-        lm->custom(lm->calc_adjusted_input_shape(xs_tbl->get_column_cnt()), get_output_shape, forward, backward);
+        lm->custom(lm->calc_adjusted_input_shape(xs_tbl->get_column_cnt()), get_output_shape_dot, forward_dot, backward_dot);
         lm->activation(Tanh);
         lm->dense(16);
         lm->activation(Tanh);
@@ -326,6 +383,11 @@ int main(int argc, char **argv)
         lm->grad_check(grad_check_batch->get_x(1), grad_check_batch->get_y(1), true);
         delete grad_check_batch;
     }
+
+    lm->save("temp/lm.m");
+    actcod_typ_m->save("temp/actcod_typ.m");
+    devcod_m->save("temp/devcod.m");
+    loc_m->save("temp/loc.m");
 
     return 0;
 }
