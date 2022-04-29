@@ -5,6 +5,9 @@
 #define DEVCOD_EMBG_DIM_CNT 4
 #define LOC_EMBG_DIM_CNT 16
 
+#define METRIC_PCT 0.20f
+#define METRIC_SECS 10.0f
+
 int adj_x_col_cnt = 0;
 int fr_loc_idx = 0;
 
@@ -117,7 +120,7 @@ Tensor *backward_dot(Tensor *n, Tensor *dc)
     return nxt_dc;
 }
 
-void upd_rslt_fn(Tensor *p, Tensor *y, int *cnt)
+void upd_rslt_pct(Tensor *p, Tensor *y, int *cnt)
 {
     float y_val = y->get_val(0);
     float p_val = p->get_val(0);
@@ -127,7 +130,20 @@ void upd_rslt_fn(Tensor *p, Tensor *y, int *cnt)
 
     float prcnt = 1.0f - (lower / upper);
 
-    if (prcnt <= 0.20f)
+    if (prcnt <= METRIC_PCT)
+    {
+        (*cnt)++;
+    }
+}
+
+void upd_rslt_secs(Tensor *p, Tensor *y, int *cnt)
+{
+    float y_val = y->get_val(0);
+    float p_val = p->get_val(0);
+
+    float secs = abs(y_val - p_val);
+
+    if (secs <= METRIC_SECS)
     {
         (*cnt)++;
     }
@@ -332,13 +348,11 @@ int main(int argc, char **argv)
         fr_loc_idx = xs_tbl->get_column_idx("fr_loc");
 
         lm->custom(lm->calc_adjusted_input_shape(xs_tbl->get_column_cnt()), get_output_shape_dot, forward_dot, backward_dot);
-        lm->activation(Tanh);
-        lm->dense(16);
-        lm->activation(Tanh);
-        lm->dense(16);
-        lm->activation(Tanh);
+        lm->activation(ReLU);
+        lm->dense(32);
+        lm->activation(ReLU);
         lm->dense(8);
-        lm->activation(Tanh);
+        lm->activation(ReLU);
         lm->dense(1);
     }
 
@@ -349,13 +363,13 @@ int main(int argc, char **argv)
         // lm->fit(sup, 25, 4, "temp/train.csv", upd_rslt_fn);
 
         // Batch *test_batch = sup->create_batch();
-        // lm->test(test_batch, upd_rslt_fn).print();
+        // lm->test(test_batch, upd_rslt_pct).print();
         // delete test_batch;
     }
 
     // ===================================================================================================
 
-    // Test:
+    // Predict:
     {
         // Column *pred_col = new Column("pred", true, ys_tbl->get_row_cnt());
 
@@ -379,9 +393,9 @@ int main(int argc, char **argv)
 
     // Grad Check:
     {
-        Batch *grad_check_batch = sup->create_batch();
-        lm->grad_check(grad_check_batch->get_x(1), grad_check_batch->get_y(1), true);
-        delete grad_check_batch;
+        // Batch *grad_check_batch = sup->create_batch();
+        // lm->grad_check(grad_check_batch->get_x(1), grad_check_batch->get_y(1), true);
+        // delete grad_check_batch;
     }
 
     lm->save("temp/lm.m");
