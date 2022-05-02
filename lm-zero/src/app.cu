@@ -271,11 +271,12 @@ int main(int argc, char **argv)
     delete xs_tbl->remove_column("pal_cnt");
     delete xs_tbl->remove_column("cub");
     delete xs_tbl->remove_column("wgt");
+    delete xs_tbl->remove_column("actcod_typ");
 
     Table *locs_tbl = Table::fr_csv("data/locs.csv");
     std::map<std::string, int> *loc_map = locs_tbl->get_column(0)->to_ordinal_map();
 
-    xs_tbl->encode_ordinal("actcod_typ");
+    // xs_tbl->encode_ordinal("actcod_typ");
     xs_tbl->encode_ordinal("fr_loc", loc_map);
     xs_tbl->encode_ordinal("to_loc", loc_map);
 
@@ -306,15 +307,15 @@ int main(int argc, char **argv)
     // Model(s):
 
     Model *lm = new Model(0.01f);
-    Model *actcod_typ_m = new Model();
+    // Model *actcod_typ_m = new Model();
     Model *loc_m = new Model();
 
     // Model 1:
     {
         Model *loc_m_cpy = new Model();
 
-        int actcod_typ_max = xs_tbl->get_column("actcod_typ")->get_max();
-        actcod_typ_m->embedding(actcod_typ_max, ACTCOD_TYP_EMBG_DIM_CNT);
+        // int actcod_typ_max = xs_tbl->get_column("actcod_typ")->get_max();
+        // actcod_typ_m->embedding(actcod_typ_max, ACTCOD_TYP_EMBG_DIM_CNT);
 
         int loc_max = loc_map->size();
         loc_m->embedding(loc_max, LOC_EMBG_DIM_CNT);
@@ -322,7 +323,7 @@ int main(int argc, char **argv)
         loc_m_cpy->copy(loc_m);
         loc_m_cpy->share_parameters(loc_m);
 
-        lm->child(actcod_typ_m, xs_tbl->get_column_range("actcod_typ"));
+        // lm->child(actcod_typ_m, xs_tbl->get_column_range("actcod_typ"));
         lm->child(loc_m, xs_tbl->get_column_range("fr_loc"));
         lm->child(loc_m_cpy, xs_tbl->get_column_range("to_loc"));
 
@@ -332,9 +333,9 @@ int main(int argc, char **argv)
         lm->custom(lm->calc_adjusted_input_shape(xs_tbl->get_column_cnt()), get_output_shape_diff, forward_diff, backward_diff);
         // lm->custom(lm->calc_adjusted_input_shape(xs_tbl->get_column_cnt()), get_output_shape_dot, forward_dot, backward_dot);
         lm->activation(Tanh);
-        lm->dense(128);
+        lm->dense(64);
         lm->activation(Tanh);
-        lm->dense(32);
+        lm->dense(16);
         lm->activation(Tanh);
         lm->dense(1);
     }
@@ -382,7 +383,7 @@ int main(int argc, char **argv)
     }
 
     lm->save("temp/lm.m");
-    actcod_typ_m->save("temp/actcod_typ.m");
+    // actcod_typ_m->save("temp/actcod_typ.m");
     loc_m->save("temp/loc.m");
 
     return 0;
