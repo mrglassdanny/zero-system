@@ -549,6 +549,16 @@ void Tensor::set_val(int idx, float val)
     }
 }
 
+void Tensor::inc_val(int idx, float inc)
+{
+    this->set_val(idx, this->get_val(idx) + inc);
+}
+
+void Tensor::dec_val(int idx, float dec)
+{
+    this->set_val(idx, this->get_val(idx) - dec);
+}
+
 void Tensor::set_all(float val)
 {
     int cnt = this->get_cnt();

@@ -78,6 +78,9 @@ namespace zero
             float get_val(int idx);
             void set_val(int idx, float val);
 
+            void inc_val(int idx, float inc);
+            void dec_val(int idx, float dec);
+
             void set_all(float val);
             void set_all_rand(float mean, float stddev);
 
