@@ -267,6 +267,10 @@ int main(int argc, char **argv)
     delete xs_tbl->remove_column("begdte");
     delete xs_tbl->remove_column("enddte");
     delete xs_tbl->remove_column("devcod");
+    delete xs_tbl->remove_column("cas_cnt");
+    delete xs_tbl->remove_column("pal_cnt");
+    delete xs_tbl->remove_column("cub");
+    delete xs_tbl->remove_column("wgt");
 
     Table *locs_tbl = Table::fr_csv("data/locs.csv");
     std::map<std::string, int> *loc_map = locs_tbl->get_column(0)->to_ordinal_map();
@@ -275,10 +279,10 @@ int main(int argc, char **argv)
     xs_tbl->encode_ordinal("fr_loc", loc_map);
     xs_tbl->encode_ordinal("to_loc", loc_map);
 
-    xs_tbl->get_column("cas_cnt")->scale_down();
-    xs_tbl->get_column("pal_cnt")->scale_down();
-    xs_tbl->get_column("cub")->scale_down();
-    xs_tbl->get_column("wgt")->scale_down();
+    // xs_tbl->get_column("cas_cnt")->scale_down();
+    // xs_tbl->get_column("pal_cnt")->scale_down();
+    // xs_tbl->get_column("cub")->scale_down();
+    // xs_tbl->get_column("wgt")->scale_down();
 
     ys_tbl->scale_down();
 
@@ -341,7 +345,7 @@ int main(int argc, char **argv)
     {
         lm->fit(sup, 200, 5, "temp/train.csv", upd_rslt_pct);
 
-        Batch *test_batch = sup->create_batch();
+        Batch *test_batch = sup->create_batch(1000);
         lm->test(test_batch, upd_rslt_pct).print();
         delete test_batch;
     }

@@ -37,7 +37,8 @@ namespace zero
             He,
             Xavier,
             Zeros,
-            Ones
+            Ones,
+            Simple
         };
 
         enum OptimizationFunction
