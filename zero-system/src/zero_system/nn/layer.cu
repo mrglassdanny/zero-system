@@ -439,13 +439,18 @@ __global__ void k_embg_derive(float *dc_arr, float *dw_arr, int embg_dim_cnt)
     }
 }
 
-__global__ void k_embg_adjust_weight(float *w_arr, float *dw_arr, float learning_rate, int cnt)
+__global__ void k_embg_adjust_weight(float *w_arr, float *dw_arr, float learning_rate, int cnt, float *m_arr)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (tid < cnt)
     {
-        w_arr[tid] -= (dw_arr[tid] * learning_rate);
+        if (m_arr[tid] > 0.0f)
+        {
+            w_arr[tid] -= ((dw_arr[tid] / m_arr[tid]) * learning_rate);
+            m_arr[tid] = 0.0f;
+        }
+
         dw_arr[tid] = 0.0f;
     }
 }
@@ -1369,6 +1374,7 @@ EmbeddingLayer::EmbeddingLayer(int embg_cnt, int embg_dim_cnt, InitializationFun
 
     this->embg_cnt = embg_cnt;
     this->embg_dim_cnt = embg_dim_cnt;
+    this->m = new Tensor(Device::Cuda, embg_cnt);
 
     this->w = new Tensor(Device::Cuda, embg_cnt, embg_dim_cnt);
     Initializer::initialize(init_fn, this->w, embg_cnt, embg_dim_cnt);
@@ -1383,7 +1389,10 @@ EmbeddingLayer::EmbeddingLayer(int embg_cnt, int embg_dim_cnt, InitializationFun
     this->db->reset();
 }
 
-EmbeddingLayer::~EmbeddingLayer() {}
+EmbeddingLayer::~EmbeddingLayer()
+{
+    delete this->m;
+}
 
 LayerType EmbeddingLayer::get_type()
 {
@@ -1428,7 +1437,11 @@ void EmbeddingLayer::forward(Tensor *nxt_n, bool train_flg)
     int nxt_n_cnt = nxt_n->get_cnt();
 
     // NOTE: ordinal encoding starts at 1, so we need to subtract 1 from the value in order to utilize index 0 in weight matrix.
-    cudaMemcpy(nxt_n->get_arr(), &this->w->get_arr()[(((int)this->n->get_val(0)) - 1) * this->embg_dim_cnt], sizeof(float) * this->embg_dim_cnt, cudaMemcpyDefault);
+    int embg_idx = (int)this->n->get_val(0) - 1;
+
+    cudaMemcpy(nxt_n->get_arr(), &this->w->get_arr()[embg_idx * this->embg_dim_cnt], sizeof(float) * this->embg_dim_cnt, cudaMemcpyDefault);
+
+    this->m->inc_val(embg_idx, 1.0f);
 }
 
 Tensor *EmbeddingLayer::backward(Tensor *dc)
@@ -1450,7 +1463,7 @@ void EmbeddingLayer::step(int batch_size, float learning_rate)
         int threads_per_block = CUDA_THREADS_PER_BLOCK;
         int num_blocks = (this->w->get_cnt() / threads_per_block) + 1;
         k_embg_adjust_weight<<<num_blocks, threads_per_block>>>(this->w->get_arr(), this->dw->get_arr(), learning_rate,
-                                                                (this->w->get_cnt()));
+                                                                (this->w->get_cnt()), this->m->get_arr());
     }
 }
 

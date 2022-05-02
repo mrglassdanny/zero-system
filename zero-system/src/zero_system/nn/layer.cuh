@@ -131,6 +131,7 @@ namespace zero
         private:
             int embg_cnt;
             int embg_dim_cnt;
+            Tensor *m;
 
         public:
             EmbeddingLayer();
