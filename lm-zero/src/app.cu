@@ -1,12 +1,10 @@
 
 #include <zero_system/mod.cuh>
 
-#define ACTCOD_TYP_EMBG_DIM_CNT 4
-#define DEVCOD_EMBG_DIM_CNT 4
-#define LOC_EMBG_DIM_CNT 16
+#define ACTCOD_TYP_EMBG_DIM_CNT 3
+#define LOC_EMBG_DIM_CNT 12
 
 #define METRIC_PCT 0.20f
-#define METRIC_SECS 10.0f
 
 int adj_x_col_cnt = 0;
 int fr_loc_idx = 0;
@@ -136,19 +134,6 @@ void upd_rslt_pct(Tensor *p, Tensor *y, int *cnt)
     }
 }
 
-void upd_rslt_secs(Tensor *p, Tensor *y, int *cnt)
-{
-    float y_val = y->get_val(0);
-    float p_val = p->get_val(0);
-
-    float secs = abs(y_val - p_val);
-
-    if (secs <= METRIC_SECS)
-    {
-        (*cnt)++;
-    }
-}
-
 std::vector<float> loc_encode_fn(const char *loc_name, int dim_cnt)
 {
     char delims[] = {'-'};
@@ -271,7 +256,7 @@ int main(int argc, char **argv)
 
     // Data setup:
 
-    Table *xs_tbl = Table::fr_csv("data/tasks-copy.csv");
+    Table *xs_tbl = Table::fr_csv("data/tasks.csv");
     Table *ys_tbl = xs_tbl->split("task_time");
 
     delete xs_tbl->remove_column("usr_id");
@@ -281,14 +266,12 @@ int main(int argc, char **argv)
     delete xs_tbl->remove_column("typ");
     delete xs_tbl->remove_column("begdte");
     delete xs_tbl->remove_column("enddte");
+    delete xs_tbl->remove_column("devcod");
 
-    // TODO: make sure we are handling NULL values in a good way ^^^
-
-    Table *locs_tbl = Table::fr_csv("data/locs-copy.csv");
+    Table *locs_tbl = Table::fr_csv("data/locs.csv");
     std::map<std::string, int> *loc_map = locs_tbl->get_column(0)->to_ordinal_map();
 
     xs_tbl->encode_ordinal("actcod_typ");
-    xs_tbl->encode_ordinal("devcod");
     xs_tbl->encode_ordinal("fr_loc", loc_map);
     xs_tbl->encode_ordinal("to_loc", loc_map);
 
@@ -320,7 +303,6 @@ int main(int argc, char **argv)
 
     Model *lm = new Model(0.01f);
     Model *actcod_typ_m = new Model();
-    Model *devcod_m = new Model();
     Model *loc_m = new Model();
 
     // Model 1:
@@ -330,9 +312,6 @@ int main(int argc, char **argv)
         int actcod_typ_max = xs_tbl->get_column("actcod_typ")->get_max();
         actcod_typ_m->embedding(actcod_typ_max, ACTCOD_TYP_EMBG_DIM_CNT);
 
-        int devcod_max = xs_tbl->get_column("devcod")->get_max();
-        devcod_m->embedding(devcod_max, DEVCOD_EMBG_DIM_CNT);
-
         int loc_max = loc_map->size();
         loc_m->embedding(loc_max, LOC_EMBG_DIM_CNT);
 
@@ -340,19 +319,19 @@ int main(int argc, char **argv)
         loc_m_cpy->share_parameters(loc_m);
 
         lm->child(actcod_typ_m, xs_tbl->get_column_range("actcod_typ"));
-        lm->child(devcod_m, xs_tbl->get_column_range("devcod"));
         lm->child(loc_m, xs_tbl->get_column_range("fr_loc"));
         lm->child(loc_m_cpy, xs_tbl->get_column_range("to_loc"));
 
         adj_x_col_cnt = lm->calc_adjusted_input_shape(xs_tbl->get_column_cnt())[0];
         fr_loc_idx = xs_tbl->get_column_idx("fr_loc");
 
-        lm->custom(lm->calc_adjusted_input_shape(xs_tbl->get_column_cnt()), get_output_shape_dot, forward_dot, backward_dot);
-        lm->activation(ReLU);
+        lm->custom(lm->calc_adjusted_input_shape(xs_tbl->get_column_cnt()), get_output_shape_diff, forward_diff, backward_diff);
+        // lm->custom(lm->calc_adjusted_input_shape(xs_tbl->get_column_cnt()), get_output_shape_dot, forward_dot, backward_dot);
+        lm->activation(Tanh);
+        lm->dense(128);
+        lm->activation(Tanh);
         lm->dense(32);
-        lm->activation(ReLU);
-        lm->dense(8);
-        lm->activation(ReLU);
+        lm->activation(Tanh);
         lm->dense(1);
     }
 
@@ -360,11 +339,11 @@ int main(int argc, char **argv)
 
     // Fit:
     {
-        // lm->fit(sup, 25, 4, "temp/train.csv", upd_rslt_fn);
+        lm->fit(sup, 200, 5, "temp/train.csv", upd_rslt_pct);
 
-        // Batch *test_batch = sup->create_batch();
-        // lm->test(test_batch, upd_rslt_pct).print();
-        // delete test_batch;
+        Batch *test_batch = sup->create_batch();
+        lm->test(test_batch, upd_rslt_pct).print();
+        delete test_batch;
     }
 
     // ===================================================================================================
@@ -400,7 +379,6 @@ int main(int argc, char **argv)
 
     lm->save("temp/lm.m");
     actcod_typ_m->save("temp/actcod_typ.m");
-    devcod_m->save("temp/devcod.m");
     loc_m->save("temp/loc.m");
 
     return 0;

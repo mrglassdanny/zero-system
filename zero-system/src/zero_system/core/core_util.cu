@@ -91,7 +91,7 @@ bool StackBuffer::is_numeric()
 {
     for (int i = 0; i < this->idx; i++)
     {
-        if (isdigit(this->arr[i]) == 0)
+        if (!isdigit(this->arr[i]) && this->arr[i] != '.' && this->arr[i] != '-')
         {
             return false;
         }

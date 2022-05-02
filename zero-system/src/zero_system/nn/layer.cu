@@ -1421,6 +1421,7 @@ void EmbeddingLayer::copy(Layer *src)
 
     this->embg_cnt = ((EmbeddingLayer *)src)->embg_cnt;
     this->embg_dim_cnt = ((EmbeddingLayer *)src)->embg_dim_cnt;
+    this->m = new Tensor(Device::Cuda, this->embg_cnt);
 }
 
 std::vector<int> EmbeddingLayer::get_output_shape()
