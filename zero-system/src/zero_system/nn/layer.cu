@@ -1405,6 +1405,7 @@ void EmbeddingLayer::load(FILE *file_ptr)
 
     fread(&this->embg_cnt, sizeof(int), 1, file_ptr);
     fread(&this->embg_dim_cnt, sizeof(int), 1, file_ptr);
+    this->m = new Tensor(Device::Cuda, this->embg_cnt);
 }
 
 void EmbeddingLayer::save(FILE *file_ptr)
