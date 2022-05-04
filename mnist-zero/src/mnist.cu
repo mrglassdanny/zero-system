@@ -114,17 +114,17 @@ int main(int argc, char **argv)
     Supervisor *train_sup = get_mnist_train_supervisor();
     Supervisor *test_sup = get_mnist_test_supervisor();
 
-    Model *conv = new Model(CrossEntropy, 0.1f);
+    Model *conv = new Model(CrossEntropy, 0.01f);
 
-    conv->convolutional(train_sup->get_x_shape(), 16, 3, 3);
+    conv->convolutional(train_sup->get_x_shape(), 32, 3, 3);
     conv->activation(ReLU);
     conv->pooling(Max);
 
-    conv->convolutional(train_sup->get_x_shape(), 16, 3, 3);
+    conv->convolutional(32, 3, 3);
     conv->activation(ReLU);
     conv->pooling(Max);
 
-    conv->dense(128);
+    conv->dense(256);
     conv->activation(ReLU);
 
     conv->dense(128);
@@ -145,8 +145,6 @@ int main(int argc, char **argv)
     delete test_batch;
 
     conv->save("temp/mnist.nn");
-
-    delete conv;
 
     // ============
 
