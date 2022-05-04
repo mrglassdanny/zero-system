@@ -116,18 +116,18 @@ int main(int argc, char **argv)
 
     Model *conv = new Model(CrossEntropy, 0.01f);
 
-    conv->convolutional(train_sup->get_x_shape(), 32, 3, 3);
+    conv->convolutional(train_sup->get_x_shape(), 64, 3, 3);
     conv->activation(ReLU);
     conv->pooling(Max);
 
-    conv->convolutional(32, 3, 3);
+    conv->convolutional(64, 3, 3);
     conv->activation(ReLU);
     conv->pooling(Max);
 
-    conv->dense(256);
+    conv->dense(512);
     conv->activation(ReLU);
 
-    conv->dense(128);
+    conv->dense(512);
     conv->activation(ReLU);
 
     conv->dense(32);
@@ -136,7 +136,7 @@ int main(int argc, char **argv)
     conv->dense(Tensor::get_cnt(train_sup->get_y_shape()));
     conv->activation(ReLU);
 
-    conv->fit(train_sup, 64, 20, "temp/mnist-train.csv", NULL);
+    conv->fit(train_sup, 150, 10, "temp/mnist-train.csv", NULL);
 
     Batch *test_batch = test_sup->create_batch();
 
